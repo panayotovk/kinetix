@@ -23,6 +23,10 @@ object ValuationJobsTable : Table("valuation_jobs") {
     val vega = double("vega").nullable()
     val theta = double("theta").nullable()
     val rho = double("rho").nullable()
+    val positionRisk = jsonb<List<PositionRiskJson>>("position_risk", Json).nullable()
+    val componentBreakdown = jsonb<List<ComponentBreakdownJson>>("component_breakdown", Json).nullable()
+    val computedOutputs = jsonb<List<String>>("computed_outputs", Json).nullable()
+    val assetClassGreeks = jsonb<List<AssetClassGreeksJson>>("asset_class_greeks", Json).nullable()
     val steps = jsonb<List<JobStepJson>>("steps", Json)
     val error = text("error").nullable()
 
