@@ -20,4 +20,6 @@ interface ValuationJobRecorder {
         to: Instant? = null,
     ): Long
     suspend fun findByJobId(jobId: UUID): ValuationJob?
+    suspend fun findDistinctPortfolioIds(): List<String>
+    suspend fun findLatestCompleted(portfolioId: String): ValuationJob?
 }

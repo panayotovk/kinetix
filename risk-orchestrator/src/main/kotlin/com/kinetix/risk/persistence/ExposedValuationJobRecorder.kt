@@ -120,6 +120,27 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             ?.toValuationJob()
     }
 
+    override suspend fun findDistinctPortfolioIds(): List<String> = newSuspendedTransaction(db = db) {
+        ValuationJobsTable
+            .select(ValuationJobsTable.portfolioId)
+            .withDistinct()
+            .map { it[ValuationJobsTable.portfolioId] }
+    }
+
+    override suspend fun findLatestCompleted(portfolioId: String): ValuationJob? = newSuspendedTransaction(db = db) {
+        ValuationJobsTable
+            .selectAll()
+            .where {
+                (ValuationJobsTable.portfolioId eq portfolioId) and
+                    (ValuationJobsTable.status eq "COMPLETED") and
+                    (ValuationJobsTable.positionRisk.isNotNull())
+            }
+            .orderBy(ValuationJobsTable.startedAt, SortOrder.DESC)
+            .limit(1)
+            .firstOrNull()
+            ?.toValuationJob()
+    }
+
     private fun JobStep.toJson(): JobStepJson = JobStepJson(
         name = name.name,
         status = status.name,

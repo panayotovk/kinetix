@@ -10,4 +10,6 @@ class NoOpValuationJobRecorder : ValuationJobRecorder {
     override suspend fun findByPortfolioId(portfolioId: String, limit: Int, offset: Int, from: Instant?, to: Instant?): List<ValuationJob> = emptyList()
     override suspend fun countByPortfolioId(portfolioId: String, from: Instant?, to: Instant?): Long = 0
     override suspend fun findByJobId(jobId: UUID): ValuationJob? = null
+    override suspend fun findDistinctPortfolioIds(): List<String> = emptyList()
+    override suspend fun findLatestCompleted(portfolioId: String): ValuationJob? = null
 }
