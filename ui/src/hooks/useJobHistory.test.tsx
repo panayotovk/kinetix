@@ -1110,6 +1110,52 @@ describe('useJobHistory', () => {
       })
     })
 
+    it('merges new items from poll into chartRuns to keep chart current', async () => {
+      mockFetchChartJobs.mockResolvedValue([jobSummary2])
+      mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 2 })
+
+      const { result } = renderHook(() => useJobHistory('port-1'))
+
+      await waitFor(() => {
+        expect(result.current.chartRuns).toHaveLength(1)
+        expect(result.current.chartRuns[0].jobId).toBe('job-2')
+      })
+
+      // Next poll also returns job-1 which is not in chartRuns yet
+      await act(async () => {
+        vi.advanceTimersByTime(5_000)
+      })
+
+      await waitFor(() => {
+        expect(result.current.chartRuns).toHaveLength(2)
+      })
+
+      const jobIds = result.current.chartRuns.map((r) => r.jobId)
+      expect(jobIds).toContain('job-1')
+      expect(jobIds).toContain('job-2')
+    })
+
+    it('does not duplicate items already in chartRuns when polling', async () => {
+      mockFetchChartJobs.mockResolvedValue([jobSummary])
+      mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
+
+      const { result } = renderHook(() => useJobHistory('port-1'))
+
+      await waitFor(() => {
+        expect(result.current.chartRuns).toHaveLength(1)
+      })
+
+      await act(async () => {
+        vi.advanceTimersByTime(5_000)
+      })
+
+      await waitFor(() => {
+        expect(mockFetchJobs).toHaveBeenCalledTimes(2)
+      })
+
+      expect(result.current.chartRuns).toHaveLength(1)
+    })
+
     it('silently ignores chart fetch errors', async () => {
       mockFetchJobs.mockResolvedValue({ items: [jobSummary], totalCount: 1 })
       mockFetchChartJobs.mockRejectedValue(new Error('Network error'))

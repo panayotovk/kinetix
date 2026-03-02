@@ -94,6 +94,13 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
       const { items, totalCount: count } = await fetchValuationJobs(portfolioId, pageSizeRef.current, pageRef.current * pageSizeRef.current, from, to)
       setTotalCount(count)
       setRuns(items)
+      setChartRuns((prev) => {
+        if (items.length === 0 || prev.length === 0) return prev
+        const existing = new Set(prev.map((r) => r.jobId))
+        const newItems = items.filter((r) => !existing.has(r.jobId))
+        if (newItems.length === 0) return prev
+        return [...prev, ...newItems]
+      })
       setTimeRangeInternal((prev) => {
         if (prev.from === from && prev.to === to) return prev
         return { ...prev, from, to }
