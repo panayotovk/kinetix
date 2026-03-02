@@ -1,10 +1,13 @@
 package com.kinetix.risk.persistence
 
+import com.kinetix.common.model.AssetClass
+import com.kinetix.common.model.InstrumentId
 import com.kinetix.risk.model.*
 import com.kinetix.risk.service.ValuationJobRecorder
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
@@ -31,6 +34,10 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             it[vega] = job.vega
             it[theta] = job.theta
             it[rho] = job.rho
+            it[positionRisk] = job.positionRiskSnapshot.takeIf { s -> s.isNotEmpty() }?.map { pr -> pr.toJson() }
+            it[componentBreakdown] = job.componentBreakdownSnapshot.takeIf { s -> s.isNotEmpty() }?.map { cb -> cb.toJson() }
+            it[computedOutputs] = job.computedOutputsSnapshot.takeIf { s -> s.isNotEmpty() }?.map { o -> o.name }
+            it[assetClassGreeks] = job.assetClassGreeksSnapshot.takeIf { s -> s.isNotEmpty() }?.map { g -> g.toJson() }
             it[steps] = job.steps.map { step -> step.toJson() }
             it[error] = job.error
         }
@@ -51,6 +58,10 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             it[vega] = job.vega
             it[theta] = job.theta
             it[rho] = job.rho
+            it[positionRisk] = job.positionRiskSnapshot.takeIf { s -> s.isNotEmpty() }?.map { pr -> pr.toJson() }
+            it[componentBreakdown] = job.componentBreakdownSnapshot.takeIf { s -> s.isNotEmpty() }?.map { cb -> cb.toJson() }
+            it[computedOutputs] = job.computedOutputsSnapshot.takeIf { s -> s.isNotEmpty() }?.map { o -> o.name }
+            it[assetClassGreeks] = job.assetClassGreeksSnapshot.takeIf { s -> s.isNotEmpty() }?.map { g -> g.toJson() }
             it[steps] = job.steps.map { step -> step.toJson() }
             it[error] = job.error
         }
@@ -134,6 +145,56 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         error = error,
     )
 
+    private fun PositionRisk.toJson(): PositionRiskJson = PositionRiskJson(
+        instrumentId = instrumentId.value,
+        assetClass = assetClass.name,
+        marketValue = marketValue.toPlainString(),
+        delta = delta,
+        gamma = gamma,
+        vega = vega,
+        varContribution = varContribution.toPlainString(),
+        esContribution = esContribution.toPlainString(),
+        percentageOfTotal = percentageOfTotal.toPlainString(),
+    )
+
+    private fun PositionRiskJson.toDomain(): PositionRisk = PositionRisk(
+        instrumentId = InstrumentId(instrumentId),
+        assetClass = AssetClass.valueOf(assetClass),
+        marketValue = BigDecimal(marketValue),
+        delta = delta,
+        gamma = gamma,
+        vega = vega,
+        varContribution = BigDecimal(varContribution),
+        esContribution = BigDecimal(esContribution),
+        percentageOfTotal = BigDecimal(percentageOfTotal),
+    )
+
+    private fun ComponentBreakdown.toJson(): ComponentBreakdownJson = ComponentBreakdownJson(
+        assetClass = assetClass.name,
+        varContribution = varContribution,
+        percentageOfTotal = percentageOfTotal,
+    )
+
+    private fun ComponentBreakdownJson.toDomain(): ComponentBreakdown = ComponentBreakdown(
+        assetClass = AssetClass.valueOf(assetClass),
+        varContribution = varContribution,
+        percentageOfTotal = percentageOfTotal,
+    )
+
+    private fun GreekValues.toJson(): AssetClassGreeksJson = AssetClassGreeksJson(
+        assetClass = assetClass.name,
+        delta = delta,
+        gamma = gamma,
+        vega = vega,
+    )
+
+    private fun AssetClassGreeksJson.toDomain(): GreekValues = GreekValues(
+        assetClass = AssetClass.valueOf(assetClass),
+        delta = delta,
+        gamma = gamma,
+        vega = vega,
+    )
+
     private fun ResultRow.toValuationJob(): ValuationJob = ValuationJob(
         jobId = this[ValuationJobsTable.jobId],
         portfolioId = this[ValuationJobsTable.portfolioId],
@@ -152,6 +213,10 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         vega = this[ValuationJobsTable.vega],
         theta = this[ValuationJobsTable.theta],
         rho = this[ValuationJobsTable.rho],
+        positionRiskSnapshot = this[ValuationJobsTable.positionRisk]?.map { it.toDomain() } ?: emptyList(),
+        componentBreakdownSnapshot = this[ValuationJobsTable.componentBreakdown]?.map { it.toDomain() } ?: emptyList(),
+        computedOutputsSnapshot = this[ValuationJobsTable.computedOutputs]?.map { ValuationOutput.valueOf(it) }?.toSet() ?: emptySet(),
+        assetClassGreeksSnapshot = this[ValuationJobsTable.assetClassGreeks]?.map { it.toDomain() } ?: emptyList(),
         steps = this[ValuationJobsTable.steps].map { it.toDomain() },
         error = this[ValuationJobsTable.error],
     )
