@@ -18,6 +18,11 @@ object ValuationJobsTable : Table("valuation_jobs") {
     val varValue = double("var_value").nullable()
     val expectedShortfall = double("expected_shortfall").nullable()
     val pvValue = double("pv_value").nullable()
+    val delta = double("delta").nullable()
+    val gamma = double("gamma").nullable()
+    val vega = double("vega").nullable()
+    val theta = double("theta").nullable()
+    val rho = double("rho").nullable()
     val steps = jsonb<List<JobStepJson>>("steps", Json)
     val error = text("error").nullable()
 

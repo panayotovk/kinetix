@@ -17,6 +17,8 @@ import java.math.RoundingMode
 import java.time.Instant
 import java.util.UUID
 
+private data class AggregateGreeks(val delta: Double, val gamma: Double, val vega: Double, val theta: Double, val rho: Double)
+
 class VaRCalculationService(
     private val positionProvider: PositionProvider,
     private val riskEngineClient: RiskEngineClient,
@@ -266,6 +268,18 @@ class VaRCalculationService(
                 request.portfolioId.value, result.varValue, result.expectedShortfall,
             )
 
+            val aggregateGreeks = result.greeks?.let { greeks ->
+                var totalDelta = 0.0
+                var totalGamma = 0.0
+                var totalVega = 0.0
+                for (ac in greeks.assetClassGreeks) {
+                    totalDelta += ac.delta
+                    totalGamma += ac.gamma
+                    totalVega += ac.vega
+                }
+                AggregateGreeks(totalDelta, totalGamma, totalVega, greeks.theta, greeks.rho)
+            }
+
             val jobCompletedAt = Instant.now()
             val job = ValuationJob(
                 jobId = jobId,
@@ -280,6 +294,11 @@ class VaRCalculationService(
                 varValue = result.varValue,
                 expectedShortfall = result.expectedShortfall,
                 pvValue = result.pvValue,
+                delta = aggregateGreeks?.delta,
+                gamma = aggregateGreeks?.gamma,
+                vega = aggregateGreeks?.vega,
+                theta = aggregateGreeks?.theta,
+                rho = aggregateGreeks?.rho,
                 steps = steps,
             )
             updateJobSafely(job)

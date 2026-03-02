@@ -684,6 +684,11 @@ data class ValuationJobSummaryResponse(
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
     val pvValue: Double? = null,
+    val delta: Double? = null,
+    val gamma: Double? = null,
+    val vega: Double? = null,
+    val theta: Double? = null,
+    val rho: Double? = null,
 )
 
 @Serializable
@@ -734,6 +739,11 @@ fun ValuationJobSummaryItem.toResponse(): ValuationJobSummaryResponse = Valuatio
     varValue = varValue,
     expectedShortfall = expectedShortfall,
     pvValue = pvValue,
+    delta = delta,
+    gamma = gamma,
+    vega = vega,
+    theta = theta,
+    rho = rho,
 )
 
 fun ValuationJobDetailItem.toResponse(): ValuationJobDetailResponse = ValuationJobDetailResponse(

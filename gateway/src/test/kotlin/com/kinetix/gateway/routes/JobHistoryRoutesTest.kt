@@ -26,6 +26,11 @@ private val JOB = ValuationJobSummaryItem(
     varValue = 5000.0,
     expectedShortfall = 6250.0,
     pvValue = 1_800_000.0,
+    delta = 1500.8,
+    gamma = 61.0,
+    vega = 5001.0,
+    theta = -120.5,
+    rho = 200.0,
 )
 
 class JobHistoryRoutesTest : FunSpec({

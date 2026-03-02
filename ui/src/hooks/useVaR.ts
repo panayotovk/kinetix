@@ -92,6 +92,9 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
               expectedShortfall: job.expectedShortfall ?? 0,
               calculatedAt: job.completedAt!,
               confidenceLevel: job.confidenceLevel ?? 'CL_95',
+              ...(job.delta != null && job.gamma != null && job.vega != null
+                ? { delta: job.delta, gamma: job.gamma, vega: job.vega, ...(job.theta != null ? { theta: job.theta } : {}) }
+                : {}),
             }))
             .sort((a, b) => new Date(a.calculatedAt).getTime() - new Date(b.calculatedAt).getTime())
 

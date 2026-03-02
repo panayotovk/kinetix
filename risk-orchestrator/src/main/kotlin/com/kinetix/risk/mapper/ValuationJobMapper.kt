@@ -19,6 +19,11 @@ fun ValuationJob.toSummaryResponse(): ValuationJobSummaryResponse = ValuationJob
     varValue = varValue,
     expectedShortfall = expectedShortfall,
     pvValue = pvValue,
+    delta = delta,
+    gamma = gamma,
+    vega = vega,
+    theta = theta,
+    rho = rho,
 )
 
 fun ValuationJob.toDetailResponse(): ValuationJobDetailResponse = ValuationJobDetailResponse(

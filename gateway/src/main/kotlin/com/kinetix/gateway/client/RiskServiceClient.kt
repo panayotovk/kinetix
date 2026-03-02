@@ -142,6 +142,11 @@ data class ValuationJobSummaryItem(
     val varValue: Double?,
     val expectedShortfall: Double?,
     val pvValue: Double?,
+    val delta: Double?,
+    val gamma: Double?,
+    val vega: Double?,
+    val theta: Double?,
+    val rho: Double?,
 )
 
 data class ValuationJobDetailItem(

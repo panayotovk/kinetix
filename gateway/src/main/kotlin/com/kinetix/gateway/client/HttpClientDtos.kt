@@ -284,6 +284,11 @@ data class ValuationJobSummaryClientDto(
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
     val pvValue: Double? = null,
+    val delta: Double? = null,
+    val gamma: Double? = null,
+    val vega: Double? = null,
+    val theta: Double? = null,
+    val rho: Double? = null,
 )
 
 @Serializable
@@ -538,6 +543,11 @@ fun ValuationJobSummaryClientDto.toDomain() = ValuationJobSummaryItem(
     varValue = varValue,
     expectedShortfall = expectedShortfall,
     pvValue = pvValue,
+    delta = delta,
+    gamma = gamma,
+    vega = vega,
+    theta = theta,
+    rho = rho,
 )
 
 fun ValuationJobDetailClientDto.toDomain() = ValuationJobDetailItem(

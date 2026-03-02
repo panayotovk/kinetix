@@ -26,6 +26,11 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             it[varValue] = job.varValue
             it[expectedShortfall] = job.expectedShortfall
             it[pvValue] = job.pvValue
+            it[delta] = job.delta
+            it[gamma] = job.gamma
+            it[vega] = job.vega
+            it[theta] = job.theta
+            it[rho] = job.rho
             it[steps] = job.steps.map { step -> step.toJson() }
             it[error] = job.error
         }
@@ -41,6 +46,11 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             it[varValue] = job.varValue
             it[expectedShortfall] = job.expectedShortfall
             it[pvValue] = job.pvValue
+            it[delta] = job.delta
+            it[gamma] = job.gamma
+            it[vega] = job.vega
+            it[theta] = job.theta
+            it[rho] = job.rho
             it[steps] = job.steps.map { step -> step.toJson() }
             it[error] = job.error
         }
@@ -137,6 +147,11 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         varValue = this[ValuationJobsTable.varValue],
         expectedShortfall = this[ValuationJobsTable.expectedShortfall],
         pvValue = this[ValuationJobsTable.pvValue],
+        delta = this[ValuationJobsTable.delta],
+        gamma = this[ValuationJobsTable.gamma],
+        vega = this[ValuationJobsTable.vega],
+        theta = this[ValuationJobsTable.theta],
+        rho = this[ValuationJobsTable.rho],
         steps = this[ValuationJobsTable.steps].map { it.toDomain() },
         error = this[ValuationJobsTable.error],
     )

@@ -213,6 +213,11 @@ export interface ValuationJobSummaryDto {
   varValue: number | null
   expectedShortfall: number | null
   pvValue: number | null
+  delta: number | null
+  gamma: number | null
+  vega: number | null
+  theta: number | null
+  rho: number | null
 }
 
 export interface HypotheticalTradeDto {

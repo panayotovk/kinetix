@@ -307,6 +307,106 @@ describe('useVaR', () => {
     expect(entry.theta).toBeUndefined()
   })
 
+  it('populates Greeks from job history when available', async () => {
+    mockFetchValuationJobs.mockResolvedValue({
+      items: [
+        {
+          jobId: 'j1',
+          portfolioId: 'port-1',
+          triggerType: 'SCHEDULED',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T09:00:00Z',
+          completedAt: '2025-01-15T09:01:00Z',
+          durationMs: 60000,
+          calculationType: 'HISTORICAL',
+          confidenceLevel: 'CL_95',
+          varValue: 1200000,
+          expectedShortfall: 1500000,
+          pvValue: 10000000,
+          delta: 1500.8,
+          gamma: 61.0,
+          vega: 5001.0,
+          theta: -120.5,
+          rho: 200.0,
+        },
+        {
+          jobId: 'j2',
+          portfolioId: 'port-1',
+          triggerType: 'SCHEDULED',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T10:00:00Z',
+          completedAt: '2025-01-15T10:01:00Z',
+          durationMs: 60000,
+          calculationType: 'HISTORICAL',
+          confidenceLevel: 'CL_95',
+          varValue: 1300000,
+          expectedShortfall: 1600000,
+          pvValue: 11000000,
+          delta: 1600.2,
+          gamma: 65.5,
+          vega: 5200.3,
+          theta: -135.2,
+          rho: 210.0,
+        },
+      ],
+      totalCount: 2,
+    })
+    mockFetchVaR.mockResolvedValue(null)
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.history).toHaveLength(2)
+    expect(result.current.history[0].delta).toBeCloseTo(1500.8)
+    expect(result.current.history[0].gamma).toBeCloseTo(61.0)
+    expect(result.current.history[0].vega).toBeCloseTo(5001.0)
+    expect(result.current.history[0].theta).toBeCloseTo(-120.5)
+    expect(result.current.history[1].delta).toBeCloseTo(1600.2)
+  })
+
+  it('leaves Greeks undefined when job history has null Greeks', async () => {
+    mockFetchValuationJobs.mockResolvedValue({
+      items: [
+        {
+          jobId: 'j1',
+          portfolioId: 'port-1',
+          triggerType: 'SCHEDULED',
+          status: 'COMPLETED',
+          startedAt: '2025-01-15T09:00:00Z',
+          completedAt: '2025-01-15T09:01:00Z',
+          durationMs: 60000,
+          calculationType: 'HISTORICAL',
+          confidenceLevel: 'CL_95',
+          varValue: 1200000,
+          expectedShortfall: 1500000,
+          pvValue: 10000000,
+          delta: null,
+          gamma: null,
+          vega: null,
+          theta: null,
+          rho: null,
+        },
+      ],
+      totalCount: 1,
+    })
+    mockFetchVaR.mockResolvedValue(null)
+
+    const { result } = renderHook(() => useVaR('port-1'))
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.history).toHaveLength(1)
+    expect(result.current.history[0].delta).toBeUndefined()
+    expect(result.current.history[0].gamma).toBeUndefined()
+    expect(result.current.history[0].vega).toBeUndefined()
+    expect(result.current.history[0].theta).toBeUndefined()
+  })
+
   it('history entries include confidenceLevel from job history', async () => {
     mockFetchValuationJobs.mockResolvedValue({
       items: [

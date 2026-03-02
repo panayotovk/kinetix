@@ -16,4 +16,9 @@ data class ValuationJobSummaryResponse(
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
     val pvValue: Double? = null,
+    val delta: Double? = null,
+    val gamma: Double? = null,
+    val vega: Double? = null,
+    val theta: Double? = null,
+    val rho: Double? = null,
 )
