@@ -37,6 +37,7 @@ export function RiskTab({
     varResult,
     greeksResult,
     loading: varLoading,
+    historyLoading: varHistoryLoading,
     refreshing: varRefreshing,
     error: varError,
     refresh,
@@ -88,6 +89,7 @@ export function RiskTab({
         varResult={varResult}
         filteredHistory={filteredHistory}
         loading={varLoading}
+        historyLoading={varHistoryLoading}
         refreshing={varRefreshing}
         error={varError}
         onRefresh={handleRefresh}

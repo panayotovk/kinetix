@@ -21,6 +21,7 @@ interface VaRDashboardProps {
   varResult: VaRResultDto | null
   filteredHistory: VaRHistoryEntry[]
   loading: boolean
+  historyLoading?: boolean
   refreshing?: boolean
   error: string | null
   onRefresh: () => void
@@ -36,7 +37,7 @@ interface VaRDashboardProps {
   onConfidenceLevelChange?: (level: string) => void
 }
 
-export function VaRDashboard({ varResult, filteredHistory, loading, refreshing = false, error, onRefresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth, greeksResult, varLimit, onWhatIf, selectedConfidenceLevel, onConfidenceLevelChange }: VaRDashboardProps) {
+export function VaRDashboard({ varResult, filteredHistory, loading, historyLoading, refreshing = false, error, onRefresh, timeRange, setTimeRange, zoomIn, resetZoom, zoomDepth, greeksResult, varLimit, onWhatIf, selectedConfidenceLevel, onConfidenceLevelChange }: VaRDashboardProps) {
   const [tooltipOpen, setTooltipOpen] = useState(false)
   const [chartView, setChartView] = useState<'var' | 'greeks'>('var')
   const calcTypeRef = useRef<HTMLSpanElement>(null)
@@ -136,6 +137,7 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
         {chartView === 'var' ? (
           <VaRTrendChart
             history={filteredHistory}
+            isLoading={historyLoading}
             timeRange={timeRange}
             onZoom={zoomIn}
             zoomDepth={zoomDepth}
@@ -144,6 +146,7 @@ export function VaRDashboard({ varResult, filteredHistory, loading, refreshing =
         ) : (
           <GreeksTrendChart
             history={filteredHistory}
+            isLoading={historyLoading}
             timeRange={timeRange}
             onZoom={zoomIn}
             zoomDepth={zoomDepth}

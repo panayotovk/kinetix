@@ -192,7 +192,7 @@ describe('VaRDashboard', () => {
     )
 
     const trend = screen.getByTestId('var-trend-chart')
-    expect(trend).toHaveTextContent('Trend data requires at least 2 calculations')
+    expect(trend).toHaveTextContent('Needs at least 2 calculations to draw a trend.')
     expect(trend.querySelector('svg')).not.toBeInTheDocument()
   })
 

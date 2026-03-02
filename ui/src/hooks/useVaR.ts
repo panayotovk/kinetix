@@ -21,6 +21,7 @@ export interface UseVaRResult {
   history: VaRHistoryEntry[]
   filteredHistory: VaRHistoryEntry[]
   loading: boolean
+  historyLoading: boolean
   refreshing: boolean
   error: string | null
   refresh: () => Promise<void>
@@ -59,6 +60,7 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
   const [varResult, setVarResult] = useState<VaRResultDto | null>(null)
   const [history, setHistory] = useState<VaRHistoryEntry[]>([])
   const [loading, setLoading] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(!!portfolioId)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [timeRange, setTimeRangeInternal] = useState<TimeRange>(defaultTimeRange)
@@ -71,7 +73,11 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
   timeRangeRef.current = timeRange
 
   const loadHistory = useCallback(async () => {
-    if (!portfolioId) return
+    if (!portfolioId) {
+      setHistoryLoading(false)
+      return
+    }
+    setHistoryLoading(true)
 
     try {
       const { from, to } = resolveTimeRange(timeRangeRef.current)
@@ -106,6 +112,8 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
       })
     } catch {
       // History fetch failure is non-critical; polling continues
+    } finally {
+      setHistoryLoading(false)
     }
   }, [portfolioId])
 
@@ -260,5 +268,5 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
 
   const greeksResult = varResult?.greeks ?? null
 
-  return { varResult, greeksResult, history, filteredHistory, loading, refreshing, error, refresh, timeRange, setTimeRange, selectedConfidenceLevel, setSelectedConfidenceLevel, zoomIn, resetZoom, zoomDepth: zoomStack.length }
+  return { varResult, greeksResult, history, filteredHistory, loading, historyLoading, refreshing, error, refresh, timeRange, setTimeRange, selectedConfidenceLevel, setSelectedConfidenceLevel, zoomIn, resetZoom, zoomDepth: zoomStack.length }
 }

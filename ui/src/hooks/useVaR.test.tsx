@@ -3,12 +3,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { VaRResultDto } from '../types'
 
 vi.mock('../api/risk')
+vi.mock('../api/jobHistory')
 
 import { fetchVaR, triggerVaRCalculation } from '../api/risk'
+import { fetchValuationJobsForChart } from '../api/jobHistory'
 import { useVaR } from './useVaR'
 
 const mockFetchVaR = vi.mocked(fetchVaR)
 const mockTriggerVaR = vi.mocked(triggerVaRCalculation)
+const mockFetchHistory = vi.mocked(fetchValuationJobsForChart)
 
 const varResult: VaRResultDto = {
   portfolioId: 'port-1',
@@ -743,6 +746,45 @@ describe('useVaR', () => {
       expect(result.current.zoomDepth).toBe(0)
       expect(result.current.timeRange.label).toBe('Last 24h')
       expect(result.current.filteredHistory).toHaveLength(4)
+    })
+  })
+
+  describe('historyLoading', () => {
+    it('is false immediately when portfolioId is null', () => {
+      const { result } = renderHook(() => useVaR(null))
+
+      expect(result.current.historyLoading).toBe(false)
+    })
+
+    it('is true on initial mount with a portfolioId before history resolves', () => {
+      mockFetchVaR.mockReturnValue(new Promise(() => {}))
+      mockFetchHistory.mockReturnValue(new Promise(() => {}))
+
+      const { result } = renderHook(() => useVaR('port-1'))
+
+      expect(result.current.historyLoading).toBe(true)
+    })
+
+    it('goes false after loadHistory resolves successfully', async () => {
+      mockFetchVaR.mockResolvedValue(null)
+      mockFetchHistory.mockResolvedValue([])
+
+      const { result } = renderHook(() => useVaR('port-1'))
+
+      await waitFor(() => {
+        expect(result.current.historyLoading).toBe(false)
+      })
+    })
+
+    it('goes false after loadHistory rejects (skeleton does not stay forever)', async () => {
+      mockFetchVaR.mockResolvedValue(null)
+      mockFetchHistory.mockRejectedValue(new Error('network failure'))
+
+      const { result } = renderHook(() => useVaR('port-1'))
+
+      await waitFor(() => {
+        expect(result.current.historyLoading).toBe(false)
+      })
     })
   })
 })

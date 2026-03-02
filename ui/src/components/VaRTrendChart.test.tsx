@@ -42,15 +42,40 @@ describe('VaRTrendChart', () => {
   it('renders empty state for zero data points', () => {
     render(<VaRTrendChart history={[]} />)
 
-    expect(screen.getByTestId('var-trend-chart')).toHaveTextContent('Collecting data...')
+    expect(screen.getByTestId('var-trend-chart')).toHaveTextContent('No calculations yet for this time range.')
   })
 
   it('shows message instead of chart for single data point', () => {
     render(<VaRTrendChart history={[history[0]]} />)
 
     const panel = screen.getByTestId('var-trend-chart')
-    expect(panel).toHaveTextContent('Trend data requires at least 2 calculations')
+    expect(panel).toHaveTextContent('Needs at least 2 calculations to draw a trend.')
     expect(panel.querySelector('svg')).not.toBeInTheDocument()
+  })
+
+  it('renders skeleton when isLoading is true and history is empty', () => {
+    render(<VaRTrendChart history={[]} isLoading />)
+
+    const chart = screen.getByTestId('var-trend-chart')
+    const skeleton = chart.querySelector('[role="status"]')
+    expect(skeleton).toBeInTheDocument()
+    expect(skeleton).toHaveAttribute('aria-label', 'Loading chart data')
+    expect(chart).not.toHaveTextContent('No calculations yet')
+  })
+
+  it('renders skeleton when isLoading is true and history has one entry', () => {
+    render(<VaRTrendChart history={[history[0]]} isLoading />)
+
+    const chart = screen.getByTestId('var-trend-chart')
+    const skeleton = chart.querySelector('[role="status"]')
+    expect(skeleton).toBeInTheDocument()
+    expect(chart).not.toHaveTextContent('Needs at least 2 calculations')
+  })
+
+  it('shows empty state text when isLoading is false and history is empty', () => {
+    render(<VaRTrendChart history={[]} isLoading={false} />)
+
+    expect(screen.getByTestId('var-trend-chart')).toHaveTextContent('No calculations yet for this time range.')
   })
 
   it('renders the chart panel with header', () => {

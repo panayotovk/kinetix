@@ -9,6 +9,7 @@ import { resolveTimeRange } from '../utils/resolveTimeRange'
 
 interface GreeksTrendChartProps {
   history: VaRHistoryEntry[]
+  isLoading?: boolean
   timeRange?: TimeRange
   onZoom?: (range: TimeRange) => void
   zoomDepth?: number
@@ -67,7 +68,7 @@ function formatCompactNumber(value: number): string {
   return `${sign}${abs.toFixed(1).replace(/\.0$/, '')}`
 }
 
-export function GreeksTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onResetZoom }: GreeksTrendChartProps) {
+export function GreeksTrendChart({ history, isLoading, timeRange, onZoom, zoomDepth = 0, onResetZoom }: GreeksTrendChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const [containerWidth, setContainerWidth] = useState(DEFAULT_WIDTH)
@@ -269,6 +270,27 @@ export function GreeksTrendChart({ history, timeRange, onZoom, zoomDepth = 0, on
     setTooltipLeft(clampTooltipLeft(pointX, tooltipWidth, containerWidth))
   }, [hoveredIndex, seriesPoints, containerWidth])
 
+  if (isLoading && greeksHistory.length < 2) {
+    return (
+      <div data-testid="greeks-trend-chart" className="rounded bg-slate-800 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-slate-300">Greeks Trend</h3>
+        </div>
+        <div
+          role="status"
+          aria-label="Loading chart data"
+          className="space-y-3 animate-pulse"
+          style={{ height: CHART_HEIGHT }}
+        >
+          <div className="h-2 bg-slate-700 rounded w-full" />
+          <div className="h-2 bg-slate-700 rounded w-full" />
+          <div className="h-2 bg-slate-700 rounded w-3/4" />
+          <div className="h-2 bg-slate-700 rounded w-full" />
+        </div>
+      </div>
+    )
+  }
+
   if (greeksHistory.length === 0) {
     return (
       <div data-testid="greeks-trend-chart" className="rounded bg-slate-800 p-4">
@@ -276,7 +298,7 @@ export function GreeksTrendChart({ history, timeRange, onZoom, zoomDepth = 0, on
           <h3 className="text-sm font-semibold text-slate-300">Greeks Trend</h3>
         </div>
         <div className="flex items-center justify-center text-sm text-slate-400" style={{ height: CHART_HEIGHT }}>
-          Collecting data...
+          No calculations yet for this time range.
         </div>
       </div>
     )
@@ -289,7 +311,7 @@ export function GreeksTrendChart({ history, timeRange, onZoom, zoomDepth = 0, on
           <h3 className="text-sm font-semibold text-slate-300">Greeks Trend</h3>
         </div>
         <div className="flex items-center justify-center text-sm text-slate-400" style={{ height: CHART_HEIGHT }}>
-          Trend data requires at least 2 calculations. Current values shown in the table above.
+          Needs at least 2 calculations to draw a trend.
         </div>
       </div>
     )
