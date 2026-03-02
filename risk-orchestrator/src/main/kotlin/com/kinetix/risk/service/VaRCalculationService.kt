@@ -299,6 +299,10 @@ class VaRCalculationService(
                 vega = aggregateGreeks?.vega,
                 theta = aggregateGreeks?.theta,
                 rho = aggregateGreeks?.rho,
+                positionRiskSnapshot = positionRiskList,
+                componentBreakdownSnapshot = result.componentBreakdown,
+                computedOutputsSnapshot = result.computedOutputs,
+                assetClassGreeksSnapshot = result.greeks?.assetClassGreeks ?: emptyList(),
                 steps = steps,
             )
             updateJobSafely(job)
