@@ -13,6 +13,7 @@ vi.mock('../api/jobHistory', () => ({
 
 import { fetchVaR } from '../api/risk'
 import { fetchValuationJobsForChart } from '../api/jobHistory'
+import type { ValuationJobSummaryDto } from '../types'
 
 const mockFetchVaR = vi.mocked(fetchVaR)
 const mockFetchChartJobs = vi.mocked(fetchValuationJobsForChart)
@@ -782,8 +783,8 @@ describe('useVaR', () => {
     })
 
     // History API returns the same job but with null Greeks (pre-V12 migration)
-    let resolveHistory!: (value: any[]) => void
-    const historyPromise = new Promise<any[]>((resolve) => {
+    let resolveHistory!: (value: ValuationJobSummaryDto[]) => void
+    const historyPromise = new Promise<ValuationJobSummaryDto[]>((resolve) => {
       resolveHistory = resolve
     })
     mockFetchChartJobs.mockReturnValue(historyPromise)
