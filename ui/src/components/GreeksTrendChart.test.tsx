@@ -93,6 +93,108 @@ describe('GreeksTrendChart', () => {
     expect(chart).toHaveTextContent('Theta')
   })
 
+  describe('legend toggle interaction', () => {
+    it('renders all four legend items as button elements for accessibility', () => {
+      render(<GreeksTrendChart history={history} />)
+
+      expect(screen.getByTestId('legend-toggle-delta').tagName).toBe('BUTTON')
+      expect(screen.getByTestId('legend-toggle-gamma').tagName).toBe('BUTTON')
+      expect(screen.getByTestId('legend-toggle-vega').tagName).toBe('BUTTON')
+      expect(screen.getByTestId('legend-toggle-theta').tagName).toBe('BUTTON')
+    })
+
+    it('has cursor-pointer on all legend buttons', () => {
+      render(<GreeksTrendChart history={history} />)
+
+      expect(screen.getByTestId('legend-toggle-delta')).toHaveStyle({ cursor: 'pointer' })
+    })
+
+    it('clicking Delta isolates Delta and dims all other series', () => {
+      render(<GreeksTrendChart history={history} />)
+
+      fireEvent.click(screen.getByTestId('legend-toggle-delta'))
+
+      const svg = screen.getByTestId('greeks-trend-chart').querySelector('svg')!
+
+      expect(svg.querySelector('polyline[stroke="#3b82f6"]')).toHaveAttribute('opacity', '1')
+      expect(svg.querySelector('polyline[stroke="#22c55e"]')).toHaveAttribute('opacity', '0.35')
+      expect(svg.querySelector('polyline[stroke="#a855f7"]')).toHaveAttribute('opacity', '0.35')
+      expect(svg.querySelector('polyline[stroke="#f59e0b"]')).toHaveAttribute('opacity', '0.35')
+    })
+
+    it('clicking Gamma isolates Gamma and dims all other series', () => {
+      render(<GreeksTrendChart history={history} />)
+
+      fireEvent.click(screen.getByTestId('legend-toggle-gamma'))
+
+      const svg = screen.getByTestId('greeks-trend-chart').querySelector('svg')!
+
+      expect(svg.querySelector('polyline[stroke="#3b82f6"]')).toHaveAttribute('opacity', '0.35')
+      expect(svg.querySelector('polyline[stroke="#22c55e"]')).toHaveAttribute('opacity', '1')
+      expect(svg.querySelector('polyline[stroke="#a855f7"]')).toHaveAttribute('opacity', '0.35')
+      expect(svg.querySelector('polyline[stroke="#f59e0b"]')).toHaveAttribute('opacity', '0.35')
+    })
+
+    it('clicking the isolated series again restores all series to full opacity', () => {
+      render(<GreeksTrendChart history={history} />)
+
+      fireEvent.click(screen.getByTestId('legend-toggle-vega'))
+      fireEvent.click(screen.getByTestId('legend-toggle-vega'))
+
+      const svg = screen.getByTestId('greeks-trend-chart').querySelector('svg')!
+
+      expect(svg.querySelector('polyline[stroke="#3b82f6"]')).toHaveAttribute('opacity', '1')
+      expect(svg.querySelector('polyline[stroke="#22c55e"]')).toHaveAttribute('opacity', '1')
+      expect(svg.querySelector('polyline[stroke="#a855f7"]')).toHaveAttribute('opacity', '1')
+      expect(svg.querySelector('polyline[stroke="#f59e0b"]')).toHaveAttribute('opacity', '1')
+    })
+
+    it('applies line-through text decoration to all hidden series labels', () => {
+      render(<GreeksTrendChart history={history} />)
+
+      fireEvent.click(screen.getByTestId('legend-toggle-delta'))
+
+      // Non-isolated series should have line-through on their labels
+      expect(screen.getByTestId('legend-label-gamma')).toHaveStyle({ textDecoration: 'line-through' })
+      expect(screen.getByTestId('legend-label-vega')).toHaveStyle({ textDecoration: 'line-through' })
+      expect(screen.getByTestId('legend-label-theta')).toHaveStyle({ textDecoration: 'line-through' })
+      // Isolated series label should NOT have line-through
+      expect(screen.getByTestId('legend-label-delta')).not.toHaveStyle({ textDecoration: 'line-through' })
+    })
+
+    it('removes line-through when series is restored', () => {
+      render(<GreeksTrendChart history={history} />)
+
+      fireEvent.click(screen.getByTestId('legend-toggle-delta'))
+      fireEvent.click(screen.getByTestId('legend-toggle-delta'))
+
+      expect(screen.getByTestId('legend-label-gamma')).not.toHaveStyle({ textDecoration: 'line-through' })
+      expect(screen.getByTestId('legend-label-vega')).not.toHaveStyle({ textDecoration: 'line-through' })
+      expect(screen.getByTestId('legend-label-theta')).not.toHaveStyle({ textDecoration: 'line-through' })
+    })
+
+    it('rescales Y-axis to only isolated series data', () => {
+      // Delta: 1500-1700, Gamma: 61-70, Vega: 5001-5400, Theta: -142 to -120
+      // When Delta is isolated, Y-axis should not show Vega-range values (~5000)
+      render(<GreeksTrendChart history={history} />)
+
+      const svgBefore = screen.getByTestId('greeks-trend-chart').querySelector('svg')!
+      const yLabelsBefore = Array.from(svgBefore.querySelectorAll('text[text-anchor="end"]'))
+        .map((el) => el.textContent ?? '')
+        .join(' ')
+
+      fireEvent.click(screen.getByTestId('legend-toggle-delta'))
+
+      const svgAfter = screen.getByTestId('greeks-trend-chart').querySelector('svg')!
+      const yLabelsAfter = Array.from(svgAfter.querySelectorAll('text[text-anchor="end"]'))
+        .map((el) => el.textContent ?? '')
+        .join(' ')
+
+      // Y-axis labels should differ after isolating one series
+      expect(yLabelsBefore).not.toEqual(yLabelsAfter)
+    })
+  })
+
   it('shows crosshair and tooltip on hover', () => {
     render(<GreeksTrendChart history={history} />)
 

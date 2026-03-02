@@ -236,6 +236,136 @@ describe('VaRTrendChart', () => {
     expect(esLegend).toBeInTheDocument()
   })
 
+  describe('legend toggle interaction', () => {
+    it('renders legend items as button elements for accessibility', () => {
+      render(<VaRTrendChart history={history} />)
+
+      const varButton = screen.getByTestId('legend-toggle-var')
+      const esButton = screen.getByTestId('legend-toggle-es')
+
+      expect(varButton.tagName).toBe('BUTTON')
+      expect(esButton.tagName).toBe('BUTTON')
+    })
+
+    it('has cursor-pointer on legend buttons', () => {
+      render(<VaRTrendChart history={history} />)
+
+      const varButton = screen.getByTestId('legend-toggle-var')
+      expect(varButton).toHaveStyle({ cursor: 'pointer' })
+    })
+
+    it('clicking VaR legend button isolates VaR series and hides ES', () => {
+      render(<VaRTrendChart history={history} />)
+
+      fireEvent.click(screen.getByTestId('legend-toggle-var'))
+
+      const chart = screen.getByTestId('var-trend-chart')
+      const svg = chart.querySelector('svg')!
+
+      // VaR polyline should be fully visible (opacity 1)
+      const varPolyline = svg.querySelector('polyline[stroke="#6366f1"]')
+      expect(varPolyline).toHaveAttribute('opacity', '1')
+
+      // ES polyline should be dimmed (opacity 0.35)
+      const esPolyline = svg.querySelector('polyline[stroke="#f59e0b"]')
+      expect(esPolyline).toHaveAttribute('opacity', '0.35')
+    })
+
+    it('clicking ES legend button isolates ES series and hides VaR', () => {
+      render(<VaRTrendChart history={history} />)
+
+      fireEvent.click(screen.getByTestId('legend-toggle-es'))
+
+      const chart = screen.getByTestId('var-trend-chart')
+      const svg = chart.querySelector('svg')!
+
+      // ES polyline should be fully visible (opacity 1)
+      const esPolyline = svg.querySelector('polyline[stroke="#f59e0b"]')
+      expect(esPolyline).toHaveAttribute('opacity', '1')
+
+      // VaR polyline should be dimmed (opacity 0.35)
+      const varPolyline = svg.querySelector('polyline[stroke="#6366f1"]')
+      expect(varPolyline).toHaveAttribute('opacity', '0.35')
+    })
+
+    it('clicking the isolated series again restores all series to full opacity', () => {
+      render(<VaRTrendChart history={history} />)
+
+      // Isolate VaR
+      fireEvent.click(screen.getByTestId('legend-toggle-var'))
+      // Click isolated VaR again — should restore
+      fireEvent.click(screen.getByTestId('legend-toggle-var'))
+
+      const svg = screen.getByTestId('var-trend-chart').querySelector('svg')!
+
+      const varPolyline = svg.querySelector('polyline[stroke="#6366f1"]')
+      const esPolyline = svg.querySelector('polyline[stroke="#f59e0b"]')
+
+      expect(varPolyline).toHaveAttribute('opacity', '1')
+      expect(esPolyline).toHaveAttribute('opacity', '1')
+    })
+
+    it('applies line-through text decoration to hidden series label', () => {
+      render(<VaRTrendChart history={history} />)
+
+      fireEvent.click(screen.getByTestId('legend-toggle-var'))
+
+      // ES button label text should have line-through
+      const esButton = screen.getByTestId('legend-toggle-es')
+      const esLabel = esButton.querySelector('[data-testid="legend-label-es"]')
+      expect(esLabel).toHaveStyle({ textDecoration: 'line-through' })
+    })
+
+    it('removes line-through when series is restored', () => {
+      render(<VaRTrendChart history={history} />)
+
+      fireEvent.click(screen.getByTestId('legend-toggle-var'))
+      fireEvent.click(screen.getByTestId('legend-toggle-var'))
+
+      const esLabel = screen.getByTestId('legend-label-es')
+      expect(esLabel).not.toHaveStyle({ textDecoration: 'line-through' })
+    })
+
+    it('rescales Y-axis to only visible series data when one series is isolated', () => {
+      // VaR values: 1.2M to 1.4M; ES values: 1.5M to 1.7M
+      // When only VaR is visible, Y-axis max should not reach 1.7M
+      render(<VaRTrendChart history={history} />)
+
+      // Initially both series visible — Y axis covers both ranges
+      const svgBefore = screen.getByTestId('var-trend-chart').querySelector('svg')!
+      const yLabelsBefore = Array.from(svgBefore.querySelectorAll('text[text-anchor="end"]'))
+        .map((el) => el.textContent ?? '')
+        .join(' ')
+
+      // Isolate VaR only
+      fireEvent.click(screen.getByTestId('legend-toggle-var'))
+
+      const svgAfter = screen.getByTestId('var-trend-chart').querySelector('svg')!
+      const yLabelsAfter = Array.from(svgAfter.querySelectorAll('text[text-anchor="end"]'))
+        .map((el) => el.textContent ?? '')
+        .join(' ')
+
+      // After isolating VaR (max ~1.4M), ES max values (~1.7M) should no longer appear on axis
+      expect(yLabelsBefore).not.toEqual(yLabelsAfter)
+    })
+
+    it('area fills are also dimmed when their series is hidden', () => {
+      render(<VaRTrendChart history={history} />)
+
+      fireEvent.click(screen.getByTestId('legend-toggle-var'))
+
+      const svg = screen.getByTestId('var-trend-chart').querySelector('svg')!
+
+      // VaR area fill should be visible (opacity 1)
+      const varArea = svg.querySelector('polygon[fill="rgba(99, 102, 241, 0.15)"]')
+      expect(varArea).toHaveAttribute('opacity', '1')
+
+      // ES area fill should be dimmed (opacity 0.35)
+      const esArea = svg.querySelector('polygon[fill="rgba(245, 158, 11, 0.10)"]')
+      expect(esArea).toHaveAttribute('opacity', '0.35')
+    })
+  })
+
   describe('zoom interaction', () => {
     it('renders reset zoom button when zoomDepth > 0', () => {
       render(

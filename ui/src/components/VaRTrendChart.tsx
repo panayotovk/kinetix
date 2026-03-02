@@ -58,6 +58,14 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
   const [containerWidth, setContainerWidth] = useState(DEFAULT_WIDTH)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [tooltipLeft, setTooltipLeft] = useState(0)
+  const [isolatedSeries, setIsolatedSeries] = useState<string | null>(null)
+
+  const handleLegendClick = useCallback((seriesKey: string) => {
+    setIsolatedSeries((prev) => (prev === seriesKey ? null : seriesKey))
+  }, [])
+
+  const varVisible = isolatedSeries === null || isolatedSeries === 'var'
+  const esVisible = isolatedSeries === null || isolatedSeries === 'es'
 
   const hasChart = history.length >= 2
 
@@ -80,13 +88,24 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
   const plotHeight = CHART_HEIGHT - PADDING.top - PADDING.bottom
 
   const { min, max } = useMemo(() => {
-    const values = history.flatMap((e) => [e.varValue, e.expectedShortfall])
+    const values = [
+      ...(varVisible ? history.map((e) => e.varValue) : []),
+      ...(esVisible ? history.map((e) => e.expectedShortfall) : []),
+    ]
+    if (values.length === 0) {
+      const fallback = history.flatMap((e) => [e.varValue, e.expectedShortfall])
+      const fMin = Math.min(...fallback)
+      const fMax = Math.max(...fallback)
+      const fRange = fMax - fMin
+      const fPad = fRange * 0.1 || fMax * 0.1 || 1
+      return { min: fMin - fPad, max: fMax + fPad }
+    }
     const minVal = Math.min(...values)
     const maxVal = Math.max(...values)
     const range = maxVal - minVal
     const padding = range * 0.1 || maxVal * 0.1 || 1
     return { min: minVal - padding, max: maxVal + padding }
-  }, [history])
+  }, [history, varVisible, esVisible])
 
   const gridLines = useMemo(() => computeNiceGridLines(min, max, 4), [min, max])
 
@@ -301,12 +320,26 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
       </div>
 
       <div className="flex items-center gap-3 mb-1 text-xs text-slate-400">
-        <span className="flex items-center gap-1">
-          <span className="inline-block w-3 h-0.5 bg-indigo-500 rounded" /> VaR
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="inline-block w-3 h-0.5 bg-amber-500 rounded" /> ES
-        </span>
+        <button
+          type="button"
+          data-testid="legend-toggle-var"
+          onClick={() => handleLegendClick('var')}
+          className="flex items-center gap-1 bg-transparent border-0 p-0 text-xs text-slate-400"
+          style={{ cursor: 'pointer', opacity: varVisible ? 1 : 0.35 }}
+        >
+          <span className="inline-block w-3 h-0.5 bg-indigo-500 rounded" />
+          <span data-testid="legend-label-var" style={{ textDecoration: varVisible ? 'none' : 'line-through' }}>VaR</span>
+        </button>
+        <button
+          type="button"
+          data-testid="legend-toggle-es"
+          onClick={() => handleLegendClick('es')}
+          className="flex items-center gap-1 bg-transparent border-0 p-0 text-xs text-slate-400"
+          style={{ cursor: 'pointer', opacity: esVisible ? 1 : 0.35 }}
+        >
+          <span className="inline-block w-3 h-0.5 bg-amber-500 rounded" />
+          <span data-testid="legend-label-es" style={{ textDecoration: esVisible ? 'none' : 'line-through' }}>ES</span>
+        </button>
       </div>
 
       <svg
@@ -353,12 +386,12 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
         ))}
 
         {/* ES area fill */}
-        <polygon points={esAreaPoints} fill="rgba(245, 158, 11, 0.10)" />
+        <polygon points={esAreaPoints} fill="rgba(245, 158, 11, 0.10)" opacity={esVisible ? 1 : 0.35} style={{ transition: 'opacity 150ms' }} />
         {/* ES line */}
-        <polyline points={esPolylinePoints} fill="none" stroke="#f59e0b" strokeWidth={2} strokeLinejoin="round" />
+        <polyline points={esPolylinePoints} fill="none" stroke="#f59e0b" strokeWidth={2} strokeLinejoin="round" opacity={esVisible ? 1 : 0.35} style={{ transition: 'opacity 150ms' }} />
 
         {/* Area fill */}
-        <polygon points={areaPoints} fill="rgba(99, 102, 241, 0.15)" />
+        <polygon points={areaPoints} fill="rgba(99, 102, 241, 0.15)" opacity={varVisible ? 1 : 0.35} style={{ transition: 'opacity 150ms' }} />
 
         {/* Line */}
         <polyline
@@ -367,6 +400,8 @@ export function VaRTrendChart({ history, timeRange, onZoom, zoomDepth = 0, onRes
           stroke="#6366f1"
           strokeWidth={2}
           strokeLinejoin="round"
+          opacity={varVisible ? 1 : 0.35}
+          style={{ transition: 'opacity 150ms' }}
         />
 
         {/* Hover crosshair + dot */}
