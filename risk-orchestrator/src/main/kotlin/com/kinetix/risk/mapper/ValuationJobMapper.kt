@@ -1,7 +1,7 @@
 package com.kinetix.risk.mapper
 
-import com.kinetix.risk.model.ValuationJob
-import com.kinetix.risk.model.JobStep
+import com.kinetix.common.model.PortfolioId
+import com.kinetix.risk.model.*
 import com.kinetix.risk.routes.dtos.ValuationJobDetailResponse
 import com.kinetix.risk.routes.dtos.ValuationJobSummaryResponse
 import com.kinetix.risk.routes.dtos.JobStepResponse
@@ -42,6 +42,33 @@ fun ValuationJob.toDetailResponse(): ValuationJobDetailResponse = ValuationJobDe
     steps = steps.map { it.toResponse() },
     error = error,
 )
+
+fun ValuationJob.toValuationResult(): ValuationResult? {
+    if (status != RunStatus.COMPLETED) return null
+    if (calculationType == null || confidenceLevel == null) return null
+    return ValuationResult(
+        portfolioId = PortfolioId(portfolioId),
+        calculationType = CalculationType.valueOf(calculationType),
+        confidenceLevel = ConfidenceLevel.valueOf(confidenceLevel),
+        varValue = varValue,
+        expectedShortfall = expectedShortfall,
+        componentBreakdown = componentBreakdownSnapshot,
+        greeks = assetClassGreeksSnapshot.takeIf { it.isNotEmpty() }?.let { acGreeks ->
+            GreeksResult(
+                assetClassGreeks = acGreeks,
+                theta = theta ?: 0.0,
+                rho = rho ?: 0.0,
+            )
+        },
+        calculatedAt = completedAt ?: startedAt,
+        computedOutputs = computedOutputsSnapshot.ifEmpty {
+            setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL)
+        },
+        pvValue = pvValue,
+        positionRisk = positionRiskSnapshot,
+        jobId = jobId,
+    )
+}
 
 private fun JobStep.toResponse(): JobStepResponse = JobStepResponse(
     name = name.name,
