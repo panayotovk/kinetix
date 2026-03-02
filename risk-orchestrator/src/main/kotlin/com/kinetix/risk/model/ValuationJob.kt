@@ -21,6 +21,10 @@ data class ValuationJob(
     val vega: Double? = null,
     val theta: Double? = null,
     val rho: Double? = null,
+    val positionRiskSnapshot: List<PositionRisk> = emptyList(),
+    val componentBreakdownSnapshot: List<ComponentBreakdown> = emptyList(),
+    val computedOutputsSnapshot: Set<ValuationOutput> = emptySet(),
+    val assetClassGreeksSnapshot: List<GreekValues> = emptyList(),
     val steps: List<JobStep> = emptyList(),
     val error: String? = null,
 )
