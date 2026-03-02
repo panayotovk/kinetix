@@ -173,8 +173,8 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
           return next.length > MAX_HISTORY ? next.slice(-MAX_HISTORY) : next
         })
       }
-    } catch (err: any) {
-      if (err.status === 503) {
+    } catch (err: unknown) {
+      if (err instanceof Error && (err as Error & { status: number }).status === 503) {
         await new Promise(resolve => setTimeout(resolve, 5000))
         try {
           const retryResult = await triggerVaRCalculation(portfolioId, { confidenceLevel: selectedConfidenceLevel })
@@ -198,8 +198,8 @@ export function useVaR(portfolioId: string | null): UseVaRResult {
             })
           }
           return
-        } catch (retryErr: any) {
-          setError(retryErr.message || 'VaR calculation failed')
+        } catch (retryErr: unknown) {
+          setError(retryErr instanceof Error ? retryErr.message : 'VaR calculation failed')
         }
       } else {
         setError(err instanceof Error ? err.message : String(err))

@@ -222,9 +222,10 @@ describe('risk API', () => {
       try {
         await triggerVaRCalculation('p1')
         expect.fail('should have thrown')
-      } catch (e: any) {
-        expect(e.status).toBe(503)
-        expect(e.message).toBe('Risk engine temporarily unavailable')
+      } catch (e: unknown) {
+        const err = e as Error & { status: number }
+        expect(err.status).toBe(503)
+        expect(err.message).toBe('Risk engine temporarily unavailable')
       }
     })
 
@@ -239,9 +240,10 @@ describe('risk API', () => {
       try {
         await triggerVaRCalculation('p1')
         expect.fail('should have thrown')
-      } catch (e: any) {
-        expect(e.status).toBe(500)
-        expect(e.message).toBe('An unexpected error occurred')
+      } catch (e: unknown) {
+        const err = e as Error & { status: number }
+        expect(err.status).toBe(500)
+        expect(err.message).toBe('An unexpected error occurred')
       }
     })
 
@@ -256,9 +258,10 @@ describe('risk API', () => {
       try {
         await triggerVaRCalculation('p1')
         expect.fail('should have thrown')
-      } catch (e: any) {
-        expect(e.status).toBe(502)
-        expect(e.message).toContain('Bad Gateway')
+      } catch (e: unknown) {
+        const err = e as Error & { status: number }
+        expect(err.status).toBe(502)
+        expect(err.message).toContain('Bad Gateway')
       }
     })
   })
