@@ -1,4 +1,4 @@
-import type { AssetClassImpactDto, PositionStressImpactDto, StressTestResultDto } from '../types'
+import type { AssetClassImpactDto, PositionStressImpactDto, StressScenarioDto, StressTestResultDto } from '../types'
 
 export function makeAssetClassImpact(overrides?: Partial<AssetClassImpactDto>): AssetClassImpactDto {
   return {
@@ -42,6 +42,21 @@ export function makeStressResult(overrides?: Partial<StressTestResultDto>): Stre
 }
 
 export const SCENARIOS_LIST = ['GFC_2008', 'COVID_2020', 'TAPER_TANTRUM_2013', 'EURO_CRISIS_2011']
+
+export function makeScenario(overrides?: Partial<StressScenarioDto>): StressScenarioDto {
+  return {
+    id: 'scenario-1',
+    name: 'Custom Scenario',
+    description: 'A custom stress scenario',
+    shocks: JSON.stringify({ volShocks: { EQUITY: 2.0 }, priceShocks: { EQUITY: 0.8 } }),
+    status: 'DRAFT',
+    createdBy: 'analyst@kinetix.com',
+    approvedBy: null,
+    approvedAt: null,
+    createdAt: '2026-03-03T08:00:00Z',
+    ...overrides,
+  }
+}
 
 export const ALL_STRESS_RESULTS: StressTestResultDto[] = [
   makeStressResult({ scenarioName: 'GFC_2008', pnlImpact: '-500000.00', baseVar: '100000.00', stressedVar: '300000.00' }),

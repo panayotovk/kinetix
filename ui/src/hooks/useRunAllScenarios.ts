@@ -14,6 +14,7 @@ export interface UseRunAllScenariosResult {
   loading: boolean
   error: string | null
   runAll: () => void
+  appendResult: (result: StressTestResultDto) => void
 }
 
 export function useRunAllScenarios(portfolioId: string | null): UseRunAllScenariosResult {
@@ -67,6 +68,16 @@ export function useRunAllScenarios(portfolioId: string | null): UseRunAllScenari
     }
   }, [portfolioId, scenarios, confidenceLevel, timeHorizonDays])
 
+  const appendResult = useCallback((result: StressTestResultDto) => {
+    setResults((prev) => {
+      const filtered = prev.filter((r) => r.scenarioName !== result.scenarioName)
+      const updated = [...filtered, result]
+      return updated.sort(
+        (a, b) => Math.abs(Number(b.pnlImpact)) - Math.abs(Number(a.pnlImpact)),
+      )
+    })
+  }, [])
+
   return {
     scenarios,
     results,
@@ -79,5 +90,6 @@ export function useRunAllScenarios(portfolioId: string | null): UseRunAllScenari
     loading,
     error,
     runAll,
+    appendResult,
   }
 }

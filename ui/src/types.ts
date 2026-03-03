@@ -362,3 +362,27 @@ export interface PortfolioAggregationDto {
   totalUnrealizedPnl: MoneyDto
   currencyBreakdown: CurrencyExposureDto[]
 }
+
+export interface StressScenarioDto {
+  id: string
+  name: string
+  description: string
+  shocks: string
+  status: string
+  createdBy: string
+  approvedBy: string | null
+  approvedAt: string | null
+  createdAt: string
+}
+
+export interface CreateScenarioRequestDto {
+  name: string
+  description: string
+  shocks: string
+  createdBy: string
+}
+
+export interface ScenarioShocksDto {
+  volShocks: Record<string, number>
+  priceShocks: Record<string, number>
+}
