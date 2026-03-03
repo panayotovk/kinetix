@@ -15,6 +15,27 @@ function formatMultiplier(baseVar: string, stressedVar: string): string {
   return `${(stressed / base).toFixed(1)}x`
 }
 
+function breachSummary(result: StressTestResultDto): { count: number; worst: string } {
+  const breaches = result.limitBreaches ?? []
+  if (breaches.length === 0) return { count: 0, worst: 'OK' }
+  const hasBreached = breaches.some((b) => b.breachSeverity === 'BREACHED')
+  const hasWarning = breaches.some((b) => b.breachSeverity === 'WARNING')
+  const worst = hasBreached ? 'BREACHED' : hasWarning ? 'WARNING' : 'OK'
+  const count = breaches.filter((b) => b.breachSeverity !== 'OK').length
+  return { count, worst }
+}
+
+const BREACH_BADGE_STYLES: Record<string, string> = {
+  OK: 'bg-green-100 text-green-800',
+  WARNING: 'bg-yellow-100 text-yellow-800',
+  BREACHED: 'bg-red-100 text-red-800',
+}
+
+const BREACH_BORDER: Record<string, string> = {
+  BREACHED: 'border-l-4 border-l-red-500',
+  WARNING: 'border-l-4 border-l-amber-400',
+}
+
 export function ScenarioComparisonTable({
   results,
   selectedScenario,
@@ -28,6 +49,8 @@ export function ScenarioComparisonTable({
     )
   }
 
+  const hasAnyBreaches = results.some((r) => (r.limitBreaches ?? []).length > 0)
+
   return (
     <div data-testid="scenario-comparison-table">
       <table className="w-full text-sm">
@@ -39,6 +62,7 @@ export function ScenarioComparisonTable({
             <th className="py-2 text-right">Stressed VaR</th>
             <th className="py-2 text-right">VaR Multiplier</th>
             <th className="py-2 text-right">P&amp;L Impact</th>
+            {hasAnyBreaches && <th className="py-2 text-center">Limits</th>}
           </tr>
         </thead>
         <tbody>
@@ -46,6 +70,8 @@ export function ScenarioComparisonTable({
             const isSelected = selectedScenario === r.scenarioName
             const pnlValue = Number(r.pnlImpact)
             const isLoss = pnlValue < 0
+            const { count, worst } = breachSummary(r)
+            const breachBorder = BREACH_BORDER[worst] || ''
             return (
               <tr
                 key={r.scenarioName}
@@ -53,7 +79,7 @@ export function ScenarioComparisonTable({
                 className={`border-b cursor-pointer transition-colors ${
                   isSelected
                     ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-2 border-l-indigo-500'
-                    : 'hover:bg-slate-50 dark:hover:bg-slate-800'
+                    : breachBorder || 'hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
                 onClick={() => onSelectScenario(isSelected ? null : r.scenarioName)}
               >
@@ -78,6 +104,15 @@ export function ScenarioComparisonTable({
                 >
                   {formatCurrency(r.pnlImpact)}
                 </td>
+                {hasAnyBreaches && (
+                  <td className="py-1.5 text-center" data-testid="breach-badge">
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${BREACH_BADGE_STYLES[worst]}`}
+                    >
+                      {count > 0 ? `${count} ${worst === 'BREACHED' ? 'breach' : 'warn'}` : 'OK'}
+                    </span>
+                  </td>
+                )}
               </tr>
             )
           })}

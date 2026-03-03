@@ -107,6 +107,15 @@ export interface PositionStressImpactDto {
   percentageOfTotal: string
 }
 
+export interface StressLimitBreachDto {
+  limitType: string
+  limitLevel: string
+  limitValue: string
+  stressedValue: string
+  breachSeverity: string
+  scenarioName: string
+}
+
 export interface StressTestResultDto {
   scenarioName: string
   baseVar: string
@@ -115,6 +124,7 @@ export interface StressTestResultDto {
   assetClassImpacts: AssetClassImpactDto[]
   calculatedAt: string
   positionImpacts: PositionStressImpactDto[]
+  limitBreaches: StressLimitBreachDto[]
 }
 
 export interface GreekValuesDto {

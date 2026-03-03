@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { StressTestResultDto } from '../types'
 import { AssetClassImpactView } from './AssetClassImpactView'
 import { StressPositionTable } from './StressPositionTable'
+import { LimitBreachCard } from './LimitBreachCard'
 
 type DetailView = 'asset-class' | 'positions'
 
@@ -64,6 +65,10 @@ export function ScenarioDetailPanel({ result }: ScenarioDetailPanelProps) {
           assetClassFilter={assetClassFilter}
           onClearFilter={handleClearFilter}
         />
+      )}
+
+      {(result.limitBreaches ?? []).length > 0 && (
+        <LimitBreachCard breaches={result.limitBreaches} />
       )}
     </div>
   )

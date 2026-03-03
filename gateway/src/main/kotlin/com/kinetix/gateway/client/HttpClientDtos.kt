@@ -145,6 +145,16 @@ data class PositionStressImpactDto(
 )
 
 @Serializable
+data class StressLimitBreachDto(
+    val limitType: String,
+    val limitLevel: String,
+    val limitValue: String,
+    val stressedValue: String,
+    val breachSeverity: String,
+    val scenarioName: String,
+)
+
+@Serializable
 data class StressTestResultDto(
     val scenarioName: String,
     val baseVar: String,
@@ -153,6 +163,7 @@ data class StressTestResultDto(
     val assetClassImpacts: List<AssetClassImpactDto>,
     val calculatedAt: String,
     val positionImpacts: List<PositionStressImpactDto> = emptyList(),
+    val limitBreaches: List<StressLimitBreachDto> = emptyList(),
 )
 
 @Serializable
@@ -511,6 +522,16 @@ fun StressTestResultDto.toDomain() = StressTestResultSummary(
             stressedMarketValue = it.stressedMarketValue.toDouble(),
             pnlImpact = it.pnlImpact.toDouble(),
             percentageOfTotal = it.percentageOfTotal.toDouble(),
+        )
+    },
+    limitBreaches = limitBreaches.map {
+        StressLimitBreachItem(
+            limitType = it.limitType,
+            limitLevel = it.limitLevel,
+            limitValue = it.limitValue,
+            stressedValue = it.stressedValue,
+            breachSeverity = it.breachSeverity,
+            scenarioName = it.scenarioName,
         )
     },
 )

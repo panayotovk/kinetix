@@ -15,6 +15,7 @@ import com.kinetix.risk.persistence.PnlAttributionRepository
 import com.kinetix.risk.service.NoSodBaselineException
 import com.kinetix.risk.service.PnlComputationService
 import com.kinetix.risk.service.SodSnapshotService
+import com.kinetix.risk.service.StressLimitCheckService
 import com.kinetix.risk.service.VaRCalculationService
 import com.kinetix.risk.service.WhatIfAnalysisService
 import com.kinetix.proto.common.PortfolioId as ProtoPortfolioId
@@ -50,6 +51,7 @@ fun Route.riskRoutes(
     pnlAttributionRepository: PnlAttributionRepository? = null,
     sodSnapshotService: SodSnapshotService? = null,
     pnlComputationService: PnlComputationService? = null,
+    stressLimitCheckService: StressLimitCheckService? = null,
 ) {
     // VaR routes
     route("/api/v1/risk/var/{portfolioId}") {
@@ -314,7 +316,14 @@ fun Route.riskRoutes(
                 .build()
 
             val response = stressTestStub.runStressTest(protoRequest)
-            call.respond(response.toStressTestResponse())
+            val stressResult = response.toStressTestResponse()
+            val withBreaches = if (stressLimitCheckService != null) {
+                val breaches = stressLimitCheckService.evaluateBreaches(stressResult)
+                stressResult.copy(limitBreaches = breaches)
+            } else {
+                stressResult
+            }
+            call.respond(withBreaches)
         }
     }
 
@@ -335,7 +344,7 @@ fun Route.riskRoutes(
         val timeHorizon = body.timeHorizonDays?.toInt() ?: 1
         val protoPositions = positions.map { it.toProto() }
 
-        val results = coroutineScope {
+        val rawResults = coroutineScope {
             body.scenarioNames.map { scenarioName ->
                 async {
                     val protoRequest = StressTestRequest.newBuilder()
@@ -349,6 +358,15 @@ fun Route.riskRoutes(
                     stressTestStub.runStressTest(protoRequest).toStressTestResponse()
                 }
             }.awaitAll()
+        }
+
+        val results = if (stressLimitCheckService != null) {
+            rawResults.map { result ->
+                val breaches = stressLimitCheckService.evaluateBreaches(result)
+                result.copy(limitBreaches = breaches)
+            }
+        } else {
+            rawResults
         }
 
         call.respond(results)

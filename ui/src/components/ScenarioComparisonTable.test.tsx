@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { ScenarioComparisonTable } from './ScenarioComparisonTable'
-import { ALL_STRESS_RESULTS, makeStressResult } from '../test-utils/stressMocks'
+import { ALL_STRESS_RESULTS, makeStressResult, makeLimitBreach } from '../test-utils/stressMocks'
 
 const defaultProps = {
   results: ALL_STRESS_RESULTS,
@@ -88,5 +88,64 @@ describe('ScenarioComparisonTable', () => {
     render(<ScenarioComparisonTable results={[]} selectedScenario={null} onSelectScenario={vi.fn()} />)
 
     expect(screen.getByTestId('no-results')).toBeInTheDocument()
+  })
+
+  it('should render Limits column header when breaches exist', () => {
+    const results = [
+      makeStressResult({
+        scenarioName: 'GFC_2008',
+        limitBreaches: [makeLimitBreach({ breachSeverity: 'BREACHED' })],
+      }),
+    ]
+    render(<ScenarioComparisonTable results={results} selectedScenario={null} onSelectScenario={vi.fn()} />)
+
+    expect(screen.getByText('Limits')).toBeInTheDocument()
+  })
+
+  it('should show breach count per scenario row with color coding', () => {
+    const results = [
+      makeStressResult({
+        scenarioName: 'GFC_2008',
+        limitBreaches: [
+          makeLimitBreach({ breachSeverity: 'BREACHED' }),
+          makeLimitBreach({ limitType: 'VAR', breachSeverity: 'WARNING' }),
+        ],
+      }),
+      makeStressResult({
+        scenarioName: 'COVID_2020',
+        limitBreaches: [makeLimitBreach({ breachSeverity: 'OK' })],
+      }),
+    ]
+    render(<ScenarioComparisonTable results={results} selectedScenario={null} onSelectScenario={vi.fn()} />)
+
+    const badges = screen.getAllByTestId('breach-badge')
+    expect(badges[0]).toHaveTextContent('2 breach')
+    expect(badges[0].firstChild!).toHaveClass('bg-red-100')
+    expect(badges[1]).toHaveTextContent('OK')
+    expect(badges[1].firstChild!).toHaveClass('bg-green-100')
+  })
+
+  it('should color-code row left border: red for breach, amber for warning', () => {
+    const results = [
+      makeStressResult({
+        scenarioName: 'GFC_2008',
+        limitBreaches: [makeLimitBreach({ breachSeverity: 'BREACHED' })],
+      }),
+      makeStressResult({
+        scenarioName: 'COVID_2020',
+        limitBreaches: [makeLimitBreach({ breachSeverity: 'WARNING' })],
+      }),
+    ]
+    render(<ScenarioComparisonTable results={results} selectedScenario={null} onSelectScenario={vi.fn()} />)
+
+    const rows = screen.getAllByTestId('scenario-row')
+    expect(rows[0].className).toContain('border-l-red-500')
+    expect(rows[1].className).toContain('border-l-amber-400')
+  })
+
+  it('should not render Limits column when no results have breaches', () => {
+    render(<ScenarioComparisonTable {...defaultProps} />)
+
+    expect(screen.queryByText('Limits')).not.toBeInTheDocument()
   })
 })

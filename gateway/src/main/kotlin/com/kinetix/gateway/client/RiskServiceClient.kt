@@ -56,6 +56,15 @@ data class PositionStressImpactItem(
     val percentageOfTotal: Double,
 )
 
+data class StressLimitBreachItem(
+    val limitType: String,
+    val limitLevel: String,
+    val limitValue: String,
+    val stressedValue: String,
+    val breachSeverity: String,
+    val scenarioName: String,
+)
+
 data class StressTestResultSummary(
     val scenarioName: String,
     val baseVar: Double,
@@ -64,6 +73,7 @@ data class StressTestResultSummary(
     val assetClassImpacts: List<AssetClassImpactItem>,
     val calculatedAt: Instant,
     val positionImpacts: List<PositionStressImpactItem> = emptyList(),
+    val limitBreaches: List<StressLimitBreachItem> = emptyList(),
 )
 
 data class StressTestBatchParams(

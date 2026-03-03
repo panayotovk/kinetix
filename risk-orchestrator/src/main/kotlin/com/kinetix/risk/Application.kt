@@ -12,6 +12,7 @@ import com.kinetix.risk.cache.RedisVaRCache
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.mapper.toValuationResult
 import com.kinetix.risk.client.GrpcRiskEngineClient
+import com.kinetix.risk.client.HttpLimitServiceClient
 import com.kinetix.risk.client.HttpPositionServiceClient
 import com.kinetix.risk.client.HttpPriceServiceClient
 import com.kinetix.risk.client.HttpRatesServiceClient
@@ -38,6 +39,7 @@ import com.kinetix.risk.service.PnlAttributionService
 import com.kinetix.risk.service.PnlComputationService
 import com.kinetix.risk.service.SodSnapshotService
 import com.kinetix.risk.service.VaRCalculationService
+import com.kinetix.risk.service.StressLimitCheckService
 import com.kinetix.risk.service.WhatIfAnalysisService
 import com.kinetix.risk.simulation.*
 import io.lettuce.core.RedisClient
@@ -158,6 +160,8 @@ fun Application.moduleWithRoutes() {
         .propertyOrNull("positionService.baseUrl")?.getString() ?: "http://localhost:8081"
     val positionServiceClient = HttpPositionServiceClient(priceHttpClient, positionServiceBaseUrl)
     val positionProvider = PositionServicePositionProvider(positionServiceClient)
+    val limitServiceClient = HttpLimitServiceClient(priceHttpClient, positionServiceBaseUrl)
+    val stressLimitCheckService = StressLimitCheckService(limitServiceClient)
 
     val simulationDelays = SimulationDelays.from(environment.config)
     if (simulationDelays != null) {
@@ -325,7 +329,7 @@ fun Application.moduleWithRoutes() {
 
     routing {
         val whatIfAnalysisService = WhatIfAnalysisService(effectivePositionProvider, effectiveRiskEngineClient)
-        riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService)
+        riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService, stressLimitCheckService = stressLimitCheckService)
         jobHistoryRoutes(jobRecorder)
     }
 

@@ -15,6 +15,7 @@ import com.kinetix.gateway.client.AssetClassImpactItem
 import com.kinetix.gateway.client.ComponentBreakdownItem
 import com.kinetix.gateway.client.CreateAlertRuleParams
 import com.kinetix.gateway.client.PositionStressImpactItem
+import com.kinetix.gateway.client.StressLimitBreachItem
 import com.kinetix.gateway.client.StressTestBatchParams
 import com.kinetix.gateway.client.CurrencyExposureSummary
 import com.kinetix.gateway.client.FrtbResultSummary
@@ -294,6 +295,16 @@ data class PositionStressImpactDto(
 )
 
 @Serializable
+data class StressLimitBreachDto(
+    val limitType: String,
+    val limitLevel: String,
+    val limitValue: String,
+    val stressedValue: String,
+    val breachSeverity: String,
+    val scenarioName: String,
+)
+
+@Serializable
 data class StressTestResponse(
     val scenarioName: String,
     val baseVar: String,
@@ -302,6 +313,7 @@ data class StressTestResponse(
     val assetClassImpacts: List<AssetClassImpactDto>,
     val calculatedAt: String,
     val positionImpacts: List<PositionStressImpactDto> = emptyList(),
+    val limitBreaches: List<StressLimitBreachDto> = emptyList(),
 )
 
 @Serializable
@@ -368,6 +380,15 @@ fun PositionStressImpactItem.toDto(): PositionStressImpactDto = PositionStressIm
     percentageOfTotal = "%.2f".format(percentageOfTotal),
 )
 
+fun StressLimitBreachItem.toDto(): StressLimitBreachDto = StressLimitBreachDto(
+    limitType = limitType,
+    limitLevel = limitLevel,
+    limitValue = limitValue,
+    stressedValue = stressedValue,
+    breachSeverity = breachSeverity,
+    scenarioName = scenarioName,
+)
+
 fun StressTestResultSummary.toResponse(): StressTestResponse = StressTestResponse(
     scenarioName = scenarioName,
     baseVar = "%.2f".format(baseVar),
@@ -376,6 +397,7 @@ fun StressTestResultSummary.toResponse(): StressTestResponse = StressTestRespons
     assetClassImpacts = assetClassImpacts.map { it.toDto() },
     calculatedAt = calculatedAt.toString(),
     positionImpacts = positionImpacts.map { it.toDto() },
+    limitBreaches = limitBreaches.map { it.toDto() },
 )
 
 fun StressTestBatchRequest.toParams(portfolioId: String): StressTestBatchParams {

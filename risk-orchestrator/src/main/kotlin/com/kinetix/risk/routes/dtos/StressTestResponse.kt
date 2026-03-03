@@ -11,4 +11,5 @@ data class StressTestResponse(
     val assetClassImpacts: List<AssetClassImpactDto>,
     val calculatedAt: String,
     val positionImpacts: List<PositionStressImpactDto> = emptyList(),
+    val limitBreaches: List<StressLimitBreachDto> = emptyList(),
 )

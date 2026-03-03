@@ -1,4 +1,4 @@
-import type { AssetClassImpactDto, PositionStressImpactDto, StressTestResultDto } from '../types'
+import type { AssetClassImpactDto, PositionStressImpactDto, StressLimitBreachDto, StressTestResultDto } from '../types'
 
 export function makeAssetClassImpact(overrides?: Partial<AssetClassImpactDto>): AssetClassImpactDto {
   return {
@@ -22,6 +22,18 @@ export function makePositionImpact(overrides?: Partial<PositionStressImpactDto>)
   }
 }
 
+export function makeLimitBreach(overrides?: Partial<StressLimitBreachDto>): StressLimitBreachDto {
+  return {
+    limitType: 'NOTIONAL',
+    limitLevel: 'FIRM',
+    limitValue: '1000000.00',
+    stressedValue: '1200000.00',
+    breachSeverity: 'BREACHED',
+    scenarioName: 'GFC_2008',
+    ...overrides,
+  }
+}
+
 export function makeStressResult(overrides?: Partial<StressTestResultDto>): StressTestResultDto {
   return {
     scenarioName: 'GFC_2008',
@@ -36,6 +48,7 @@ export function makeStressResult(overrides?: Partial<StressTestResultDto>): Stre
       makePositionImpact({ instrumentId: 'AAPL', pnlImpact: '-200000.00', percentageOfTotal: '40.00' }),
       makePositionImpact({ instrumentId: 'GOLD', assetClass: 'COMMODITY', baseMarketValue: '500000.00', stressedMarketValue: '350000.00', pnlImpact: '-150000.00', percentageOfTotal: '30.00' }),
     ],
+    limitBreaches: [],
     calculatedAt: '2026-03-03T08:00:00Z',
     ...overrides,
   }
