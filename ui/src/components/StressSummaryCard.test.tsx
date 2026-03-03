@@ -16,6 +16,8 @@ const stressResult: StressTestResultDto = {
       pnlImpact: '-1500000',
     },
   ],
+  positionImpacts: [],
+  limitBreaches: [],
   calculatedAt: '2025-01-15T10:30:00Z',
 }
 
@@ -25,6 +27,8 @@ const stressResult2: StressTestResultDto = {
   stressedVar: '1800000',
   pnlImpact: '-800000',
   assetClassImpacts: [],
+  positionImpacts: [],
+  limitBreaches: [],
   calculatedAt: '2025-01-15T10:35:00Z',
 }
 
@@ -34,6 +38,8 @@ const stressResult3: StressTestResultDto = {
   stressedVar: '2100000',
   pnlImpact: '-1100000',
   assetClassImpacts: [],
+  positionImpacts: [],
+  limitBreaches: [],
   calculatedAt: '2025-01-15T10:40:00Z',
 }
 
@@ -43,6 +49,8 @@ const stressResult4: StressTestResultDto = {
   stressedVar: '1500000',
   pnlImpact: '-500000',
   assetClassImpacts: [],
+  positionImpacts: [],
+  limitBreaches: [],
   calculatedAt: '2025-01-15T10:45:00Z',
 }
 

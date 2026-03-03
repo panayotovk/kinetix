@@ -14,6 +14,8 @@ const stressResult: StressTestResultDto = {
     { assetClass: 'EQUITY', baseExposure: '1000000.00', stressedExposure: '600000.00', pnlImpact: '-400000.00' },
     { assetClass: 'COMMODITY', baseExposure: '500000.00', stressedExposure: '350000.00', pnlImpact: '-150000.00' },
   ],
+  positionImpacts: [],
+  limitBreaches: [],
   calculatedAt: '2025-01-15T10:00:00Z',
 }
 

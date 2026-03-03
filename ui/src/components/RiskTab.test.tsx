@@ -34,6 +34,8 @@ const stressResult: StressTestResultDto = {
   stressedVar: '2500000',
   pnlImpact: '-1500000',
   assetClassImpacts: [],
+  positionImpacts: [],
+  limitBreaches: [],
   calculatedAt: '2025-01-15T10:30:00Z',
 }
 

@@ -23,6 +23,8 @@ const stressResult: StressTestResultDto = {
       pnlImpact: '-1500000',
     },
   ],
+  positionImpacts: [],
+  limitBreaches: [],
   calculatedAt: '2025-01-15T10:30:00Z',
 }
 
