@@ -171,6 +171,7 @@ export function ScenariosTab({
             onApprove={governance.approve}
             onRetire={governance.retire}
             loading={governance.loading}
+            error={governance.error}
           />
         )}
 

@@ -13,6 +13,7 @@ export interface ScenarioGovernancePanelProps {
   onApprove: (id: string) => void
   onRetire: (id: string) => void
   loading: boolean
+  error?: string | null
 }
 
 export function ScenarioGovernancePanel({
@@ -21,13 +22,29 @@ export function ScenarioGovernancePanel({
   onApprove,
   onRetire,
   loading,
+  error,
 }: ScenarioGovernancePanelProps) {
-  if (loading) {
-    return <div className="text-sm text-slate-500">Loading scenarios...</div>
-  }
-
   return (
-    <div className="space-y-2" data-testid="governance-panel">
+    <div className="mt-4 border-t pt-4" data-testid="governance-panel">
+      <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Scenario Governance</h3>
+
+      {loading && (
+        <div className="text-sm text-slate-500">Loading scenarios...</div>
+      )}
+
+      {error && (
+        <div className="text-sm text-red-600 dark:text-red-400 mb-2" data-testid="governance-error">
+          {error}
+        </div>
+      )}
+
+      {!loading && !error && scenarios.length === 0 && (
+        <div className="text-sm text-slate-500 dark:text-slate-400" data-testid="governance-empty">
+          No scenarios found. Use &quot;+ Custom Scenario&quot; to create one.
+        </div>
+      )}
+
+      <div className="space-y-2">
       {scenarios.map((scenario) => (
         <div
           key={scenario.id}
@@ -77,6 +94,7 @@ export function ScenarioGovernancePanel({
           </div>
         </div>
       ))}
+      </div>
     </div>
   )
 }

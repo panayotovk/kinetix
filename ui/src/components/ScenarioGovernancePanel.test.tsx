@@ -69,4 +69,17 @@ describe('ScenarioGovernancePanel', () => {
     expect(screen.queryByText('Approve')).not.toBeInTheDocument()
     expect(screen.queryByText('Retire')).not.toBeInTheDocument()
   })
+
+  it('should show empty state when no scenarios exist', () => {
+    render(<ScenarioGovernancePanel {...defaultProps} scenarios={[]} />)
+
+    expect(screen.getByTestId('governance-empty')).toBeInTheDocument()
+    expect(screen.getByText(/No scenarios found/)).toBeInTheDocument()
+  })
+
+  it('should show error message when fetch fails', () => {
+    render(<ScenarioGovernancePanel {...defaultProps} scenarios={[]} error="Failed to load scenarios" />)
+
+    expect(screen.getByTestId('governance-error')).toHaveTextContent('Failed to load scenarios')
+  })
 })

@@ -5,12 +5,16 @@ import { listScenarios, submitScenario, approveScenario, retireScenario } from '
 export function useScenarioGovernance() {
   const [scenarios, setScenarios] = useState<StressScenarioDto[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
       const data = await listScenarios()
       setScenarios(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load scenarios')
     } finally {
       setLoading(false)
     }
@@ -35,5 +39,5 @@ export function useScenarioGovernance() {
     await refresh()
   }, [refresh])
 
-  return { scenarios, loading, submit, approve, retire, refresh }
+  return { scenarios, loading, error, submit, approve, retire, refresh }
 }
