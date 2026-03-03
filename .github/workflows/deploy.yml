@@ -36,6 +36,10 @@ jobs:
       audit-service: ${{ steps.filter.outputs.audit-service }}
       regulatory-service: ${{ steps.filter.outputs.regulatory-service }}
       notification-service: ${{ steps.filter.outputs.notification-service }}
+      rates-service: ${{ steps.filter.outputs.rates-service }}
+      reference-data-service: ${{ steps.filter.outputs.reference-data-service }}
+      volatility-service: ${{ steps.filter.outputs.volatility-service }}
+      correlation-service: ${{ steps.filter.outputs.correlation-service }}
       risk-engine: ${{ steps.filter.outputs.risk-engine }}
       ui: ${{ steps.filter.outputs.ui }}
     steps:
@@ -86,6 +90,30 @@ jobs:
               - 'common/**'
               - 'build-logic/**'
               - '*.gradle.kts'
+            rates-service:
+              - 'rates-service/**'
+              - 'proto/**'
+              - 'common/**'
+              - 'build-logic/**'
+              - '*.gradle.kts'
+            reference-data-service:
+              - 'reference-data-service/**'
+              - 'proto/**'
+              - 'common/**'
+              - 'build-logic/**'
+              - '*.gradle.kts'
+            volatility-service:
+              - 'volatility-service/**'
+              - 'proto/**'
+              - 'common/**'
+              - 'build-logic/**'
+              - '*.gradle.kts'
+            correlation-service:
+              - 'correlation-service/**'
+              - 'proto/**'
+              - 'common/**'
+              - 'build-logic/**'
+              - '*.gradle.kts'
             risk-engine:
               - 'risk-engine/**'
             ui:
@@ -105,6 +133,10 @@ jobs:
           - audit-service
           - regulatory-service
           - notification-service
+          - rates-service
+          - reference-data-service
+          - volatility-service
+          - correlation-service
         exclude:
           - service: ${{ needs.changes.outputs.gateway != 'true' && 'gateway' || 'NONE' }}
           - service: ${{ needs.changes.outputs['position-service'] != 'true' && 'position-service' || 'NONE' }}
@@ -113,6 +145,10 @@ jobs:
           - service: ${{ needs.changes.outputs['audit-service'] != 'true' && 'audit-service' || 'NONE' }}
           - service: ${{ needs.changes.outputs['regulatory-service'] != 'true' && 'regulatory-service' || 'NONE' }}
           - service: ${{ needs.changes.outputs['notification-service'] != 'true' && 'notification-service' || 'NONE' }}
+          - service: ${{ needs.changes.outputs['rates-service'] != 'true' && 'rates-service' || 'NONE' }}
+          - service: ${{ needs.changes.outputs['reference-data-service'] != 'true' && 'reference-data-service' || 'NONE' }}
+          - service: ${{ needs.changes.outputs['volatility-service'] != 'true' && 'volatility-service' || 'NONE' }}
+          - service: ${{ needs.changes.outputs['correlation-service'] != 'true' && 'correlation-service' || 'NONE' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -193,7 +229,7 @@ jobs:
 
   deploy:
     needs: [build-kotlin-services, build-risk-engine, build-ui]
-    if: always() && !contains(needs.*.result, 'failure')
+    if: always() && !contains(needs.*.result, 'failure') && contains(needs.*.result, 'success')
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment || 'dev' }}
     steps:
