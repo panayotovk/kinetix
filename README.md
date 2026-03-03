@@ -73,7 +73,7 @@ Covers the full risk lifecycle: trade booking with pre-trade limit checks, posit
 | ML / Numerics | PyTorch, scikit-learn, NumPy, SciPy |
 | Observability | Micrometer, OpenTelemetry, Prometheus, Grafana, Loki, Tempo |
 | Build | Gradle 9.3.1 (Kotlin DSL, convention plugins), uv, npm |
-| Testing | Kotest, Testcontainers, MockK, pytest, Vitest, Gatling |
+| Testing | Kotest, Testcontainers, MockK, pytest, Vitest, Playwright, Gatling |
 | CI/CD | GitHub Actions |
 
 ## Services
@@ -185,6 +185,13 @@ uv run pytest
 cd ui
 npm ci
 npm run test
+```
+
+### UI (Playwright E2E)
+
+```bash
+cd ui
+npx playwright test
 ```
 
 ### Load tests (Gatling)
