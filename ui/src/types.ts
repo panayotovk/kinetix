@@ -116,6 +116,19 @@ export interface StressLimitBreachDto {
   scenarioName: string
 }
 
+export interface StressedGreeksDto {
+  baseDelta: string
+  stressedDelta: string
+  baseGamma: string
+  stressedGamma: string
+  baseVega: string
+  stressedVega: string
+  baseTheta: string
+  stressedTheta: string
+  baseRho: string
+  stressedRho: string
+}
+
 export interface StressTestResultDto {
   scenarioName: string
   baseVar: string
@@ -125,6 +138,7 @@ export interface StressTestResultDto {
   calculatedAt: string
   positionImpacts: PositionStressImpactDto[]
   limitBreaches: StressLimitBreachDto[]
+  stressedGreeks?: StressedGreeksDto
 }
 
 export interface GreekValuesDto {
@@ -371,4 +385,28 @@ export interface PortfolioAggregationDto {
   totalNav: MoneyDto
   totalUnrealizedPnl: MoneyDto
   currencyBreakdown: CurrencyExposureDto[]
+}
+
+export interface StressScenarioDto {
+  id: string
+  name: string
+  description: string
+  shocks: string
+  status: string
+  createdBy: string
+  approvedBy: string | null
+  approvedAt: string | null
+  createdAt: string
+}
+
+export interface CreateScenarioRequestDto {
+  name: string
+  description: string
+  shocks: string
+  createdBy: string
+}
+
+export interface ScenarioShocksDto {
+  volShocks: Record<string, number>
+  priceShocks: Record<string, number>
 }

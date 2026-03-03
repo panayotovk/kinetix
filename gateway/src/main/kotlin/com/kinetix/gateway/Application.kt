@@ -8,10 +8,12 @@ import com.kinetix.gateway.auth.requirePermission
 import com.kinetix.gateway.client.HttpNotificationServiceClient
 import com.kinetix.gateway.client.HttpPositionServiceClient
 import com.kinetix.gateway.client.HttpPriceServiceClient
+import com.kinetix.gateway.client.HttpRegulatoryServiceClient
 import com.kinetix.gateway.client.HttpRiskServiceClient
 import com.kinetix.gateway.client.NotificationServiceClient
 import com.kinetix.gateway.client.PositionServiceClient
 import com.kinetix.gateway.client.PriceServiceClient
+import com.kinetix.gateway.client.RegulatoryServiceClient
 import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.dto.*
 import com.kinetix.gateway.routes.dataQualityRoutes
@@ -22,6 +24,7 @@ import com.kinetix.gateway.routes.notificationRoutes
 import com.kinetix.gateway.routes.positionRoutes
 import com.kinetix.gateway.routes.regulatoryRoutes
 import com.kinetix.gateway.routes.sodSnapshotRoutes
+import com.kinetix.gateway.routes.stressScenarioRoutes
 import com.kinetix.gateway.routes.stressTestRoutes
 import com.kinetix.gateway.routes.whatIfRoutes
 import com.kinetix.gateway.routes.requirePathParam
@@ -208,6 +211,13 @@ fun Application.module(notificationClient: NotificationServiceClient) {
     }
 }
 
+fun Application.module(regulatoryClient: RegulatoryServiceClient) {
+    module()
+    routing {
+        stressScenarioRoutes(regulatoryClient)
+    }
+}
+
 fun Application.moduleWithDataQuality(
     positionClient: PositionServiceClient,
     priceClient: PriceServiceClient,
@@ -232,6 +242,7 @@ fun Application.devModule() {
     val referenceDataUrl = servicesConfig.property("referenceData.url").getString()
     val volatilityUrl = servicesConfig.property("volatility.url").getString()
     val correlationUrl = servicesConfig.property("correlation.url").getString()
+    val regulatoryUrl = servicesConfig.property("regulatory.url").getString()
 
     val jsonConfig = Json { ignoreUnknownKeys = true }
     val httpClient = HttpClient(CIO) {
@@ -244,11 +255,13 @@ fun Application.devModule() {
     val priceClient = HttpPriceServiceClient(httpClient, priceUrl)
     val riskClient = HttpRiskServiceClient(httpClient, riskUrl)
     val notificationClient = HttpNotificationServiceClient(httpClient, notificationUrl)
+    val regulatoryClient = HttpRegulatoryServiceClient(httpClient, regulatoryUrl)
     val broadcaster = PriceBroadcaster()
 
     module(positionClient, priceClient, broadcaster, riskClient)
     routing {
         notificationRoutes(notificationClient)
+        stressScenarioRoutes(regulatoryClient)
         dataQualityRoutes()
         get("/api/v1/system/health") {
             val serviceUrls = mapOf(

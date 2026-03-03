@@ -28,6 +28,7 @@ import com.kinetix.gateway.client.PositionPnlAttributionSummary
 import com.kinetix.gateway.client.ReportResult
 import com.kinetix.gateway.client.RiskClassChargeItem
 import com.kinetix.gateway.client.SodBaselineStatusSummary
+import com.kinetix.gateway.client.StressScenarioItem
 import com.kinetix.gateway.client.StressTestParams
 import com.kinetix.gateway.client.StressTestResultSummary
 import com.kinetix.gateway.client.VaRCalculationParams
@@ -926,4 +927,46 @@ fun ValuationJobDetailItem.toResponse(): ValuationJobDetailResponse = ValuationJ
     pvValue = pvValue,
     steps = steps.map { it.toDto() },
     error = error,
+)
+
+// --- Stress Scenario Governance DTOs ---
+
+@Serializable
+data class StressScenarioResponse(
+    val id: String,
+    val name: String,
+    val description: String,
+    val shocks: String,
+    val status: String,
+    val createdBy: String,
+    val approvedBy: String?,
+    val approvedAt: String?,
+    val createdAt: String,
+)
+
+@Serializable
+data class CreateScenarioRequest(
+    val name: String,
+    val description: String,
+    val shocks: String,
+    val createdBy: String,
+)
+
+@Serializable
+data class ApproveScenarioRequest(
+    val approvedBy: String,
+)
+
+// --- Stress Scenario mappers ---
+
+fun StressScenarioItem.toResponse(): StressScenarioResponse = StressScenarioResponse(
+    id = id,
+    name = name,
+    description = description,
+    shocks = shocks,
+    status = status,
+    createdBy = createdBy,
+    approvedBy = approvedBy,
+    approvedAt = approvedAt,
+    createdAt = createdAt,
 )

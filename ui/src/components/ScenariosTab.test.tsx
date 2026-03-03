@@ -3,7 +3,17 @@ import { describe, expect, it, vi } from 'vitest'
 import { ScenariosTab } from './ScenariosTab'
 import { ALL_STRESS_RESULTS } from '../test-utils/stressMocks'
 
+vi.mock('../api/scenarios', () => ({
+  listScenarios: vi.fn().mockResolvedValue([]),
+  listApprovedScenarios: vi.fn().mockResolvedValue([]),
+  createScenario: vi.fn(),
+  submitScenario: vi.fn(),
+  approveScenario: vi.fn(),
+  retireScenario: vi.fn(),
+}))
+
 const defaultProps = {
+  portfolioId: 'portfolio-1',
   results: [],
   loading: false,
   error: null,
@@ -14,6 +24,7 @@ const defaultProps = {
   timeHorizonDays: '1',
   onTimeHorizonDaysChange: vi.fn(),
   onRunAll: vi.fn(),
+  onAppendResult: vi.fn(),
 }
 
 describe('ScenariosTab', () => {

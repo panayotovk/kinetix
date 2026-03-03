@@ -258,6 +258,7 @@ function App() {
 
                 {activeTab === 'scenarios' && (
                   <ScenariosTab
+                    portfolioId={portfolioId}
                     results={scenariosAll.results}
                     loading={scenariosAll.loading}
                     error={scenariosAll.error}
@@ -268,6 +269,7 @@ function App() {
                     timeHorizonDays={scenariosAll.timeHorizonDays}
                     onTimeHorizonDaysChange={scenariosAll.setTimeHorizonDays}
                     onRunAll={scenariosAll.runAll}
+                    onAppendResult={scenariosAll.appendResult}
                   />
                 )}
 

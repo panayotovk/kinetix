@@ -1,4 +1,4 @@
-import { Zap } from 'lucide-react'
+import { Zap, BarChart3, Settings, Download } from 'lucide-react'
 import { Button, Select } from './ui'
 
 interface ScenarioControlBarProps {
@@ -9,6 +9,10 @@ interface ScenarioControlBarProps {
   timeHorizonDays: string
   onTimeHorizonDaysChange: (days: string) => void
   onCustomScenario?: () => void
+  compareCount?: number
+  onCompare?: () => void
+  onManageScenarios?: () => void
+  onExportCsv?: () => void
 }
 
 export function ScenarioControlBar({
@@ -19,7 +23,13 @@ export function ScenarioControlBar({
   timeHorizonDays,
   onTimeHorizonDaysChange,
   onCustomScenario,
+  compareCount = 0,
+  onCompare,
+  onManageScenarios,
+  onExportCsv,
 }: ScenarioControlBarProps) {
+  const canCompare = compareCount >= 2 && compareCount <= 3
+
   return (
     <div data-testid="scenario-control-bar" className="flex items-center gap-3 mb-4">
       <Button
@@ -62,6 +72,42 @@ export function ScenarioControlBar({
           onClick={onCustomScenario}
         >
           + Custom Scenario
+        </Button>
+      )}
+
+      {onCompare && canCompare && (
+        <Button
+          data-testid="compare-btn"
+          variant="secondary"
+          size="md"
+          icon={<BarChart3 className="h-3.5 w-3.5" />}
+          onClick={onCompare}
+        >
+          Compare ({compareCount})
+        </Button>
+      )}
+
+      {onExportCsv && (
+        <Button
+          data-testid="export-csv-btn"
+          variant="secondary"
+          size="md"
+          icon={<Download className="h-3.5 w-3.5" />}
+          onClick={onExportCsv}
+        >
+          Export CSV
+        </Button>
+      )}
+
+      {onManageScenarios && (
+        <Button
+          data-testid="manage-scenarios-btn"
+          variant="secondary"
+          size="md"
+          icon={<Settings className="h-3.5 w-3.5" />}
+          onClick={onManageScenarios}
+        >
+          Manage Scenarios
         </Button>
       )}
     </div>

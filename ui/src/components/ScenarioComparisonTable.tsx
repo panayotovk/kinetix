@@ -1,11 +1,15 @@
 import { ChevronRight, ChevronDown } from 'lucide-react'
-import type { StressTestResultDto } from '../types'
+import type { StressScenarioDto, StressTestResultDto } from '../types'
 import { formatCurrency } from '../utils/format'
+import { ScenarioTooltip } from './ScenarioTooltip'
 
 interface ScenarioComparisonTableProps {
   results: StressTestResultDto[]
   selectedScenario: string | null
   onSelectScenario: (scenario: string | null) => void
+  checkedScenarios?: Set<string>
+  onToggleCheck?: (scenario: string) => void
+  scenarioMetadata?: StressScenarioDto[]
 }
 
 function formatMultiplier(baseVar: string, stressedVar: string): string {
@@ -40,6 +44,9 @@ export function ScenarioComparisonTable({
   results,
   selectedScenario,
   onSelectScenario,
+  checkedScenarios,
+  onToggleCheck,
+  scenarioMetadata,
 }: ScenarioComparisonTableProps) {
   if (results.length === 0) {
     return (
@@ -50,12 +57,14 @@ export function ScenarioComparisonTable({
   }
 
   const hasAnyBreaches = results.some((r) => (r.limitBreaches ?? []).length > 0)
+  const showCheckboxes = !!onToggleCheck
 
   return (
     <div data-testid="scenario-comparison-table">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b text-left text-slate-600 dark:text-slate-400">
+            {showCheckboxes && <th className="py-2 w-8"></th>}
             <th className="py-2 w-8"></th>
             <th className="py-2">Scenario</th>
             <th className="py-2 text-right">Base VaR</th>
@@ -68,6 +77,7 @@ export function ScenarioComparisonTable({
         <tbody>
           {results.map((r) => {
             const isSelected = selectedScenario === r.scenarioName
+            const isChecked = checkedScenarios?.has(r.scenarioName) ?? false
             const pnlValue = Number(r.pnlImpact)
             const isLoss = pnlValue < 0
             const { count, worst } = breachSummary(r)
@@ -83,6 +93,22 @@ export function ScenarioComparisonTable({
                 }`}
                 onClick={() => onSelectScenario(isSelected ? null : r.scenarioName)}
               >
+                {showCheckboxes && (
+                  <td className="py-1.5">
+                    <input
+                      type="checkbox"
+                      data-testid={`scenario-check-${r.scenarioName}`}
+                      aria-label={`Compare ${r.scenarioName.replace(/_/g, ' ')}`}
+                      checked={isChecked}
+                      onChange={(e) => {
+                        e.stopPropagation()
+                        onToggleCheck?.(r.scenarioName)
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                  </td>
+                )}
                 <td className="py-1.5 text-slate-400">
                   {isSelected ? (
                     <ChevronDown className="h-4 w-4" />
@@ -90,7 +116,25 @@ export function ScenarioComparisonTable({
                     <ChevronRight className="h-4 w-4" />
                   )}
                 </td>
-                <td className="py-1.5 font-medium">{r.scenarioName.replace(/_/g, ' ')}</td>
+                <td className="py-1.5 font-medium">
+                  {(() => {
+                    const meta = scenarioMetadata?.find(
+                      (s) => s.name === r.scenarioName || s.name.replace(/_/g, ' ') === r.scenarioName.replace(/_/g, ' '),
+                    )
+                    return meta ? (
+                      <ScenarioTooltip
+                        scenarioName={r.scenarioName}
+                        description={meta.description}
+                        shocks={meta.shocks}
+                        lastRunAt={r.calculatedAt}
+                        status={meta.status}
+                        approvedBy={meta.approvedBy}
+                      />
+                    ) : (
+                      r.scenarioName.replace(/_/g, ' ')
+                    )
+                  })()}
+                </td>
                 <td className="py-1.5 text-right">{formatCurrency(r.baseVar)}</td>
                 <td className="py-1.5 text-right font-medium text-red-600 dark:text-red-400">
                   {formatCurrency(r.stressedVar)}
