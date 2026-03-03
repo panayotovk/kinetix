@@ -67,7 +67,7 @@ class PriceRepositoryIntegrationTest : FunSpec({
         found.timestamp shouldBe Instant.parse("2025-01-15T11:00:00Z")
     }
 
-    test("findByInstrumentId returns points in time range ordered by timestamp") {
+    test("findByInstrumentId returns points in time range ordered by timestamp descending") {
         repository.save(point(timestamp = Instant.parse("2025-01-15T08:00:00Z"), priceAmount = BigDecimal("145.00")))
         repository.save(point(timestamp = Instant.parse("2025-01-15T10:00:00Z"), priceAmount = BigDecimal("150.00")))
         repository.save(point(timestamp = Instant.parse("2025-01-15T12:00:00Z"), priceAmount = BigDecimal("155.00")))
@@ -79,8 +79,8 @@ class PriceRepositoryIntegrationTest : FunSpec({
             to = Instant.parse("2025-01-15T13:00:00Z"),
         )
         results shouldHaveSize 2
-        results[0].price.amount.compareTo(BigDecimal("150.00")) shouldBe 0
-        results[1].price.amount.compareTo(BigDecimal("155.00")) shouldBe 0
+        results[0].price.amount.compareTo(BigDecimal("155.00")) shouldBe 0
+        results[1].price.amount.compareTo(BigDecimal("150.00")) shouldBe 0
     }
 
     test("findByInstrumentId returns empty list for no matches") {
