@@ -3,6 +3,7 @@ import { Zap } from 'lucide-react'
 import type { StressTestResultDto } from '../types'
 import { runStressTest } from '../api/stress'
 import { createScenario, submitScenario } from '../api/scenarios'
+import { exportStressResultsToCsv } from '../utils/exportStressResults'
 import type { ScenarioSavePayload, ScenarioRunPayload } from '../hooks/useCustomScenario'
 import { useScenarioGovernance } from '../hooks/useScenarioGovernance'
 import { Card, Spinner } from './ui'
@@ -133,6 +134,7 @@ export function ScenariosTab({
           onCustomScenario={() => setBuilderOpen(true)}
           compareCount={checkedScenarios.size}
           onCompare={handleCompare}
+          onExportCsv={results.length > 0 ? () => exportStressResultsToCsv(results) : undefined}
           onManageScenarios={() => setShowGovernance((v) => !v)}
         />
 

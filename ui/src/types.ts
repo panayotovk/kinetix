@@ -107,6 +107,19 @@ export interface PositionStressImpactDto {
   percentageOfTotal: string
 }
 
+export interface StressedGreeksDto {
+  baseDelta: string
+  stressedDelta: string
+  baseGamma: string
+  stressedGamma: string
+  baseVega: string
+  stressedVega: string
+  baseTheta: string
+  stressedTheta: string
+  baseRho: string
+  stressedRho: string
+}
+
 export interface StressTestResultDto {
   scenarioName: string
   baseVar: string
@@ -115,6 +128,7 @@ export interface StressTestResultDto {
   assetClassImpacts: AssetClassImpactDto[]
   calculatedAt: string
   positionImpacts: PositionStressImpactDto[]
+  stressedGreeks?: StressedGreeksDto
 }
 
 export interface GreekValuesDto {

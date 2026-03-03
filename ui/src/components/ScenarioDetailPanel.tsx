@@ -2,8 +2,9 @@ import { useState } from 'react'
 import type { StressTestResultDto } from '../types'
 import { AssetClassImpactView } from './AssetClassImpactView'
 import { StressPositionTable } from './StressPositionTable'
+import { StressedGreeksView } from './StressedGreeksView'
 
-type DetailView = 'asset-class' | 'positions'
+type DetailView = 'asset-class' | 'positions' | 'greeks'
 
 interface ScenarioDetailPanelProps {
   result: StressTestResultDto | null
@@ -40,7 +41,7 @@ export function ScenarioDetailPanel({ result }: ScenarioDetailPanelProps) {
         </button>
         <button
           data-testid="view-toggle-positions"
-          className={`px-3 py-1.5 text-sm font-medium rounded-r-md border transition-colors ${
+          className={`px-3 py-1.5 text-sm font-medium border transition-colors ${
             view === 'positions'
               ? 'bg-indigo-600 text-white border-indigo-600'
               : 'bg-white dark:bg-surface-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -48,6 +49,17 @@ export function ScenarioDetailPanel({ result }: ScenarioDetailPanelProps) {
           onClick={() => setView('positions')}
         >
           Positions
+        </button>
+        <button
+          data-testid="view-toggle-greeks"
+          className={`px-3 py-1.5 text-sm font-medium rounded-r-md border transition-colors ${
+            view === 'greeks'
+              ? 'bg-indigo-600 text-white border-indigo-600'
+              : 'bg-white dark:bg-surface-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
+          }`}
+          onClick={() => setView('greeks')}
+        >
+          Greeks
         </button>
       </div>
 
@@ -64,6 +76,10 @@ export function ScenarioDetailPanel({ result }: ScenarioDetailPanelProps) {
           assetClassFilter={assetClassFilter}
           onClearFilter={handleClearFilter}
         />
+      )}
+
+      {view === 'greeks' && (
+        <StressedGreeksView greeks={result.stressedGreeks} />
       )}
     </div>
   )
