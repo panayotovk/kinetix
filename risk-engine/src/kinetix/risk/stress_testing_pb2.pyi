@@ -59,21 +59,39 @@ class AssetClassImpact(_message.Message):
     pnl_impact: float
     def __init__(self, asset_class: _Optional[_Union[_types_pb2.AssetClass, str]] = ..., base_exposure: _Optional[float] = ..., stressed_exposure: _Optional[float] = ..., pnl_impact: _Optional[float] = ...) -> None: ...
 
+class PositionStressImpact(_message.Message):
+    __slots__ = ("instrument_id", "asset_class", "base_market_value", "stressed_market_value", "pnl_impact", "percentage_of_total")
+    INSTRUMENT_ID_FIELD_NUMBER: _ClassVar[int]
+    ASSET_CLASS_FIELD_NUMBER: _ClassVar[int]
+    BASE_MARKET_VALUE_FIELD_NUMBER: _ClassVar[int]
+    STRESSED_MARKET_VALUE_FIELD_NUMBER: _ClassVar[int]
+    PNL_IMPACT_FIELD_NUMBER: _ClassVar[int]
+    PERCENTAGE_OF_TOTAL_FIELD_NUMBER: _ClassVar[int]
+    instrument_id: str
+    asset_class: _types_pb2.AssetClass
+    base_market_value: float
+    stressed_market_value: float
+    pnl_impact: float
+    percentage_of_total: float
+    def __init__(self, instrument_id: _Optional[str] = ..., asset_class: _Optional[_Union[_types_pb2.AssetClass, str]] = ..., base_market_value: _Optional[float] = ..., stressed_market_value: _Optional[float] = ..., pnl_impact: _Optional[float] = ..., percentage_of_total: _Optional[float] = ...) -> None: ...
+
 class StressTestResponse(_message.Message):
-    __slots__ = ("scenario_name", "base_var", "stressed_var", "pnl_impact", "asset_class_impacts", "calculated_at")
+    __slots__ = ("scenario_name", "base_var", "stressed_var", "pnl_impact", "asset_class_impacts", "calculated_at", "position_impacts")
     SCENARIO_NAME_FIELD_NUMBER: _ClassVar[int]
     BASE_VAR_FIELD_NUMBER: _ClassVar[int]
     STRESSED_VAR_FIELD_NUMBER: _ClassVar[int]
     PNL_IMPACT_FIELD_NUMBER: _ClassVar[int]
     ASSET_CLASS_IMPACTS_FIELD_NUMBER: _ClassVar[int]
     CALCULATED_AT_FIELD_NUMBER: _ClassVar[int]
+    POSITION_IMPACTS_FIELD_NUMBER: _ClassVar[int]
     scenario_name: str
     base_var: float
     stressed_var: float
     pnl_impact: float
     asset_class_impacts: _containers.RepeatedCompositeFieldContainer[AssetClassImpact]
     calculated_at: _timestamp_pb2.Timestamp
-    def __init__(self, scenario_name: _Optional[str] = ..., base_var: _Optional[float] = ..., stressed_var: _Optional[float] = ..., pnl_impact: _Optional[float] = ..., asset_class_impacts: _Optional[_Iterable[_Union[AssetClassImpact, _Mapping]]] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    position_impacts: _containers.RepeatedCompositeFieldContainer[PositionStressImpact]
+    def __init__(self, scenario_name: _Optional[str] = ..., base_var: _Optional[float] = ..., stressed_var: _Optional[float] = ..., pnl_impact: _Optional[float] = ..., asset_class_impacts: _Optional[_Iterable[_Union[AssetClassImpact, _Mapping]]] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., position_impacts: _Optional[_Iterable[_Union[PositionStressImpact, _Mapping]]] = ...) -> None: ...
 
 class ListScenariosRequest(_message.Message):
     __slots__ = ()
