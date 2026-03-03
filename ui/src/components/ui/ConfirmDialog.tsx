@@ -1,4 +1,4 @@
-import { useEffect, useCallback, type ReactNode } from 'react'
+import { useEffect, useCallback, useRef, type ReactNode } from 'react'
 import { Button } from './Button'
 
 interface ConfirmDialogProps {
@@ -24,9 +24,36 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel()
+      if (e.key === 'Escape') {
+        onCancel()
+        return
+      }
+
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        )
+        if (focusable.length === 0) return
+
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault()
+            last.focus()
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault()
+            first.focus()
+          }
+        }
+      }
     },
     [onCancel],
   )
@@ -47,6 +74,7 @@ export function ConfirmDialog({
       onClick={onCancel}
     >
       <div
+        ref={dialogRef}
         data-testid="confirm-dialog"
         className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
         onClick={(e) => e.stopPropagation()}
