@@ -17,6 +17,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks: [kinetix]
 
   postgres:
     extends:
@@ -25,3 +26,7 @@ services:
 
 volumes:
   pgdata:
+
+networks:
+  kinetix:
+    external: true

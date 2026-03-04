@@ -1,0 +1,388 @@
+# Application services for containerised deployment
+# Usage: docker compose -f infra/docker-compose.infra.yml -f infra/docker-compose.auth.yml -f infra/docker-compose.observability.yml -f docker-compose.services.yml up -d
+
+services:
+  # ── One-shot: create Kafka topics ──────────────────────────────────────────
+  kafka-init:
+    image: apache/kafka:3.9.0
+    volumes:
+      - ./infra/kafka/create-topics.sh:/opt/create-topics.sh:ro
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+    entrypoint: ["/bin/bash", "/opt/create-topics.sh"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: "no"
+    networks: [kinetix]
+
+  # ── Python risk engine (gRPC + Prometheus metrics) ─────────────────────────
+  risk-engine:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.risk-engine
+    environment:
+      PYTHONPATH: /app/src
+    expose:
+      - "50051"
+      - "9091"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9091/metrics"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    networks: [kinetix]
+
+  # ── Kotlin services ────────────────────────────────────────────────────────
+  position-service:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.kotlin
+      args:
+        SERVICE_NAME: position-service
+    environment:
+      SERVICE_NAME: position-service
+      DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_position
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SEED_DATA: "true"
+    expose:
+      - "8081"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    networks: [kinetix]
+
+  price-service:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.kotlin
+      args:
+        SERVICE_NAME: price-service
+    environment:
+      SERVICE_NAME: price-service
+      DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_price
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_URL: redis://redis:6379
+      SEED_DATA: "true"
+      FEED_ENABLED: "true"
+    expose:
+      - "8082"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8082/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [kinetix]
+
+  rates-service:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.kotlin
+      args:
+        SERVICE_NAME: rates-service
+    environment:
+      SERVICE_NAME: rates-service
+      DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_rates
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_URL: redis://redis:6379
+      FEED_ENABLED: "true"
+    expose:
+      - "8088"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8088/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [kinetix]
+
+  reference-data-service:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.kotlin
+      args:
+        SERVICE_NAME: reference-data-service
+    environment:
+      SERVICE_NAME: reference-data-service
+      DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_reference_data
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_URL: redis://redis:6379
+    expose:
+      - "8089"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8089/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [kinetix]
+
+  volatility-service:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.kotlin
+      args:
+        SERVICE_NAME: volatility-service
+    environment:
+      SERVICE_NAME: volatility-service
+      DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_volatility
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_URL: redis://redis:6379
+      FEED_ENABLED: "true"
+    expose:
+      - "8090"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8090/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [kinetix]
+
+  correlation-service:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.kotlin
+      args:
+        SERVICE_NAME: correlation-service
+    environment:
+      SERVICE_NAME: correlation-service
+      DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_correlation
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_URL: redis://redis:6379
+      FEED_ENABLED: "true"
+    expose:
+      - "8091"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8091/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [kinetix]
+
+  audit-service:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.kotlin
+      args:
+        SERVICE_NAME: audit-service
+    environment:
+      SERVICE_NAME: audit-service
+      DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_audit
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SEED_DATA: "true"
+    expose:
+      - "8084"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8084/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    networks: [kinetix]
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.kotlin
+      args:
+        SERVICE_NAME: notification-service
+    environment:
+      SERVICE_NAME: notification-service
+      DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_notification
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SEED_DATA: "true"
+    expose:
+      - "8086"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8086/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    networks: [kinetix]
+
+  risk-orchestrator:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.kotlin
+      args:
+        SERVICE_NAME: risk-orchestrator
+    environment:
+      SERVICE_NAME: risk-orchestrator
+      RISK_DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_risk
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_URL: redis://redis:6379
+      RISK_ENGINE_HOST: risk-engine
+      POSITION_SERVICE_URL: http://position-service:8081
+      PRICE_SERVICE_URL: http://price-service:8082
+      RATES_SERVICE_URL: http://rates-service:8088
+      REFERENCE_DATA_SERVICE_URL: http://reference-data-service:8089
+      VOLATILITY_SERVICE_URL: http://volatility-service:8090
+      CORRELATION_SERVICE_URL: http://correlation-service:8091
+    expose:
+      - "8083"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8083/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      risk-engine:
+        condition: service_healthy
+      position-service:
+        condition: service_healthy
+      price-service:
+        condition: service_healthy
+      rates-service:
+        condition: service_healthy
+      reference-data-service:
+        condition: service_healthy
+      volatility-service:
+        condition: service_healthy
+      correlation-service:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [kinetix]
+
+  regulatory-service:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.kotlin
+      args:
+        SERVICE_NAME: regulatory-service
+    environment:
+      SERVICE_NAME: regulatory-service
+      DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_regulatory
+      RISK_ORCHESTRATOR_URL: http://risk-orchestrator:8083
+      SEED_DATA: "true"
+    expose:
+      - "8085"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8085/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      risk-orchestrator:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks: [kinetix]
+
+  gateway:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.kotlin
+      args:
+        SERVICE_NAME: gateway
+    environment:
+      SERVICE_NAME: gateway
+      POSITION_SERVICE_URL: http://position-service:8081
+      PRICE_SERVICE_URL: http://price-service:8082
+      RISK_SERVICE_URL: http://risk-orchestrator:8083
+      NOTIFICATION_SERVICE_URL: http://notification-service:8086
+      RATES_SERVICE_URL: http://rates-service:8088
+      REFERENCE_DATA_SERVICE_URL: http://reference-data-service:8089
+      VOLATILITY_SERVICE_URL: http://volatility-service:8090
+      CORRELATION_SERVICE_URL: http://correlation-service:8091
+      REGULATORY_SERVICE_URL: http://regulatory-service:8085
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      regulatory-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    networks: [kinetix]
+
+  ui:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.ui
+    ports:
+      - "80:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    depends_on:
+      gateway:
+        condition: service_healthy
+    networks: [kinetix]
+
+networks:
+  kinetix:
+    external: true

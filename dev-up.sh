@@ -47,6 +47,7 @@ done
 
 # ── Phase 3: Application services ───────────────────────────────────────────
 
+export KAFKA_BOOTSTRAP_SERVERS=localhost:29092
 export KINETIX_DEV_MODE=true
 export SIMULATION_DELAYS=true
 export OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED=true

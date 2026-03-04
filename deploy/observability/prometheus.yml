@@ -1,0 +1,77 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+rule_files:
+  - "alert-rules.yml"
+
+scrape_configs:
+  - job_name: "gateway"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["gateway:8080"]
+
+  - job_name: "position-service"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["position-service:8081"]
+
+  - job_name: "price-service"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["price-service:8082"]
+
+  - job_name: "risk-orchestrator"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["risk-orchestrator:8083"]
+
+  - job_name: "audit-service"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["audit-service:8084"]
+
+  - job_name: "regulatory-service"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["regulatory-service:8085"]
+
+  - job_name: "notification-service"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["notification-service:8086"]
+
+  - job_name: "rates-service"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["rates-service:8088"]
+
+  - job_name: "reference-data-service"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["reference-data-service:8089"]
+
+  - job_name: "volatility-service"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["volatility-service:8090"]
+
+  - job_name: "correlation-service"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["correlation-service:8091"]
+
+  - job_name: "risk-engine"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["risk-engine:9091"]
+
+  - job_name: "kafka-exporter"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["kafka-exporter:9308"]
