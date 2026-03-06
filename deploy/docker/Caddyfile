@@ -1,0 +1,3 @@
+kinetixrisk.ai {
+    reverse_proxy ui:80
+}

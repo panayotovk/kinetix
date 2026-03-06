@@ -1,12 +1,14 @@
 # Application services for containerised deployment
 # Usage: docker compose -f infra/docker-compose.infra.yml -f infra/docker-compose.auth.yml -f infra/docker-compose.observability.yml -f docker-compose.services.yml up -d
+# Note: build contexts use '..' because Docker Compose resolves relative paths
+# from the first -f file's directory (infra/), not the project root.
 
 services:
   # ── One-shot: create Kafka topics ──────────────────────────────────────────
   kafka-init:
     image: apache/kafka:3.9.0
     volumes:
-      - ./infra/kafka/create-topics.sh:/opt/create-topics.sh:ro
+      - ../infra/kafka/create-topics.sh:/opt/create-topics.sh:ro
     environment:
       KAFKA_BOOTSTRAP: kafka:9092
     entrypoint: ["/bin/bash", "/opt/create-topics.sh"]
@@ -19,7 +21,7 @@ services:
   # ── Python risk engine (gRPC + Prometheus metrics) ─────────────────────────
   risk-engine:
     build:
-      context: .
+      context: ..
       dockerfile: deploy/docker/Dockerfile.risk-engine
     environment:
       PYTHONPATH: /app/src
@@ -27,11 +29,12 @@ services:
       - "50051"
       - "9091"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:9091/metrics"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9091/metrics')"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 10s
+    restart: unless-stopped
     depends_on:
       kafka-init:
         condition: service_completed_successfully
@@ -40,7 +43,7 @@ services:
   # ── Kotlin services ────────────────────────────────────────────────────────
   position-service:
     build:
-      context: .
+      context: ..
       dockerfile: deploy/docker/Dockerfile.kotlin
       args:
         SERVICE_NAME: position-service
@@ -57,6 +60,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    restart: unless-stopped
     depends_on:
       kafka-init:
         condition: service_completed_successfully
@@ -66,7 +70,7 @@ services:
 
   price-service:
     build:
-      context: .
+      context: ..
       dockerfile: deploy/docker/Dockerfile.kotlin
       args:
         SERVICE_NAME: price-service
@@ -85,6 +89,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    restart: unless-stopped
     depends_on:
       kafka-init:
         condition: service_completed_successfully
@@ -96,7 +101,7 @@ services:
 
   rates-service:
     build:
-      context: .
+      context: ..
       dockerfile: deploy/docker/Dockerfile.kotlin
       args:
         SERVICE_NAME: rates-service
@@ -114,6 +119,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    restart: unless-stopped
     depends_on:
       kafka-init:
         condition: service_completed_successfully
@@ -125,7 +131,7 @@ services:
 
   reference-data-service:
     build:
-      context: .
+      context: ..
       dockerfile: deploy/docker/Dockerfile.kotlin
       args:
         SERVICE_NAME: reference-data-service
@@ -142,6 +148,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    restart: unless-stopped
     depends_on:
       kafka-init:
         condition: service_completed_successfully
@@ -153,7 +160,7 @@ services:
 
   volatility-service:
     build:
-      context: .
+      context: ..
       dockerfile: deploy/docker/Dockerfile.kotlin
       args:
         SERVICE_NAME: volatility-service
@@ -171,6 +178,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    restart: unless-stopped
     depends_on:
       kafka-init:
         condition: service_completed_successfully
@@ -182,7 +190,7 @@ services:
 
   correlation-service:
     build:
-      context: .
+      context: ..
       dockerfile: deploy/docker/Dockerfile.kotlin
       args:
         SERVICE_NAME: correlation-service
@@ -200,6 +208,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    restart: unless-stopped
     depends_on:
       kafka-init:
         condition: service_completed_successfully
@@ -211,7 +220,7 @@ services:
 
   audit-service:
     build:
-      context: .
+      context: ..
       dockerfile: deploy/docker/Dockerfile.kotlin
       args:
         SERVICE_NAME: audit-service
@@ -228,6 +237,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    restart: unless-stopped
     depends_on:
       kafka-init:
         condition: service_completed_successfully
@@ -237,7 +247,7 @@ services:
 
   notification-service:
     build:
-      context: .
+      context: ..
       dockerfile: deploy/docker/Dockerfile.kotlin
       args:
         SERVICE_NAME: notification-service
@@ -254,6 +264,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    restart: unless-stopped
     depends_on:
       kafka-init:
         condition: service_completed_successfully
@@ -263,7 +274,7 @@ services:
 
   risk-orchestrator:
     build:
-      context: .
+      context: ..
       dockerfile: deploy/docker/Dockerfile.kotlin
       args:
         SERVICE_NAME: risk-orchestrator
@@ -287,6 +298,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    restart: unless-stopped
     depends_on:
       risk-engine:
         condition: service_healthy
@@ -310,7 +322,7 @@ services:
 
   regulatory-service:
     build:
-      context: .
+      context: ..
       dockerfile: deploy/docker/Dockerfile.kotlin
       args:
         SERVICE_NAME: regulatory-service
@@ -327,6 +339,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    restart: unless-stopped
     depends_on:
       risk-orchestrator:
         condition: service_healthy
@@ -336,7 +349,7 @@ services:
 
   gateway:
     build:
-      context: .
+      context: ..
       dockerfile: deploy/docker/Dockerfile.kotlin
       args:
         SERVICE_NAME: gateway
@@ -359,6 +372,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    restart: unless-stopped
     depends_on:
       regulatory-service:
         condition: service_healthy
@@ -368,20 +382,47 @@ services:
 
   ui:
     build:
-      context: .
+      context: ..
       dockerfile: deploy/docker/Dockerfile.ui
-    ports:
-      - "80:80"
+    expose:
+      - "80"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:80/healthz"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/healthz"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 5s
+    restart: unless-stopped
     depends_on:
       gateway:
         condition: service_healthy
     networks: [kinetix]
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ../deploy/docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    healthcheck:
+      test: ["CMD", "caddy", "version"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    depends_on:
+      ui:
+        condition: service_healthy
+    networks: [kinetix]
+
+volumes:
+  caddy_data:
+  caddy_config:
 
 networks:
   kinetix:
