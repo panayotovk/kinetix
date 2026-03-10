@@ -52,6 +52,12 @@ services:
       DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_position
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SEED_DATA: "true"
+      OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
+      OTEL_SERVICE_NAME: position-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: none
     expose:
       - "8081"
     healthcheck:
@@ -81,6 +87,12 @@ services:
       REDIS_URL: redis://redis:6379
       SEED_DATA: "true"
       FEED_ENABLED: "true"
+      OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
+      OTEL_SERVICE_NAME: price-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: none
     expose:
       - "8082"
     healthcheck:
@@ -111,6 +123,12 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       REDIS_URL: redis://redis:6379
       FEED_ENABLED: "true"
+      OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
+      OTEL_SERVICE_NAME: rates-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: none
     expose:
       - "8088"
     healthcheck:
@@ -140,6 +158,12 @@ services:
       DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_reference_data
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       REDIS_URL: redis://redis:6379
+      OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
+      OTEL_SERVICE_NAME: reference-data-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: none
     expose:
       - "8089"
     healthcheck:
@@ -170,6 +194,12 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       REDIS_URL: redis://redis:6379
       FEED_ENABLED: "true"
+      OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
+      OTEL_SERVICE_NAME: volatility-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: none
     expose:
       - "8090"
     healthcheck:
@@ -200,6 +230,12 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       REDIS_URL: redis://redis:6379
       FEED_ENABLED: "true"
+      OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
+      OTEL_SERVICE_NAME: correlation-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: none
     expose:
       - "8091"
     healthcheck:
@@ -229,6 +265,12 @@ services:
       DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_audit
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SEED_DATA: "true"
+      OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
+      OTEL_SERVICE_NAME: audit-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: none
     expose:
       - "8084"
     healthcheck:
@@ -256,6 +298,12 @@ services:
       DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_notification
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SEED_DATA: "true"
+      OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
+      OTEL_SERVICE_NAME: notification-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: none
     expose:
       - "8086"
     healthcheck:
@@ -290,6 +338,12 @@ services:
       REFERENCE_DATA_SERVICE_URL: http://reference-data-service:8089
       VOLATILITY_SERVICE_URL: http://volatility-service:8090
       CORRELATION_SERVICE_URL: http://correlation-service:8091
+      OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
+      OTEL_SERVICE_NAME: risk-orchestrator
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: none
     expose:
       - "8083"
     healthcheck:
@@ -331,6 +385,12 @@ services:
       DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_regulatory
       RISK_ORCHESTRATOR_URL: http://risk-orchestrator:8083
       SEED_DATA: "true"
+      OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
+      OTEL_SERVICE_NAME: regulatory-service
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: none
     expose:
       - "8085"
     healthcheck:
@@ -364,6 +424,12 @@ services:
       VOLATILITY_SERVICE_URL: http://volatility-service:8090
       CORRELATION_SERVICE_URL: http://correlation-service:8091
       REGULATORY_SERVICE_URL: http://regulatory-service:8085
+      OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
+      OTEL_SERVICE_NAME: gateway
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: none
     ports:
       - "8080:8080"
     healthcheck:
