@@ -54,7 +54,7 @@ data class TradeResponse(
     val quantity: String,
     val price: MoneyDto,
     val tradedAt: String,
-    val type: String = "NEW",
+    val eventType: String = "NEW",
     val status: String = "LIVE",
     val originalTradeId: String? = null,
 )
@@ -154,7 +154,7 @@ private fun Trade.toResponse() = TradeResponse(
     quantity = quantity.toPlainString(),
     price = price.toDto(),
     tradedAt = tradedAt.toString(),
-    type = type.name,
+    eventType = eventType.name,
     status = status.name,
     originalTradeId = originalTradeId?.value,
 )

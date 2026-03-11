@@ -3,7 +3,7 @@ package com.kinetix.audit.kafka
 import com.kinetix.audit.model.AuditEvent
 import com.kinetix.audit.persistence.AuditEventRepository
 import com.kinetix.common.kafka.RetryableConsumer
-import com.kinetix.common.kafka.events.TradeEvent
+import com.kinetix.common.kafka.events.TradeEventMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
@@ -35,7 +35,7 @@ class AuditEventConsumer(
             for (record in records) {
                 try {
                     retryableConsumer.process(record.key() ?: "", record.value()) {
-                        val event = json.decodeFromString<TradeEvent>(record.value())
+                        val event = json.decodeFromString<TradeEventMessage>(record.value())
                         MDC.put("correlationId", event.correlationId ?: "")
                         try {
                             val auditEvent = event.toAuditEvent(receivedAt = Instant.now())
@@ -58,7 +58,7 @@ class AuditEventConsumer(
         }
     }
 
-    private fun TradeEvent.toAuditEvent(receivedAt: Instant): AuditEvent = AuditEvent(
+    private fun TradeEventMessage.toAuditEvent(receivedAt: Instant): AuditEvent = AuditEvent(
         tradeId = tradeId,
         portfolioId = portfolioId,
         instrumentId = instrumentId,
@@ -71,6 +71,6 @@ class AuditEventConsumer(
         receivedAt = receivedAt,
         userId = userId,
         userRole = userRole,
-        eventType = eventType,
+        eventType = auditEventType,
     )
 }

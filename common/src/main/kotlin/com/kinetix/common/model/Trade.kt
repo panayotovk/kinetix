@@ -12,7 +12,7 @@ data class Trade(
     val quantity: BigDecimal,
     val price: Money,
     val tradedAt: Instant,
-    val type: TradeType = TradeType.NEW,
+    val eventType: TradeEventType = TradeEventType.NEW,
     val status: TradeStatus = TradeStatus.LIVE,
     val originalTradeId: TradeId? = null,
     val counterpartyId: String? = null,

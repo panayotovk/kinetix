@@ -1,6 +1,6 @@
 package com.kinetix.risk.kafka
 
-import com.kinetix.common.kafka.events.TradeEvent
+import com.kinetix.common.kafka.events.TradeEventMessage
 import com.kinetix.common.model.PortfolioId
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.model.ValuationResult
@@ -35,7 +35,7 @@ class TradeEventConsumerIntegrationTest : FunSpec({
 
         val job = launch { consumer.start() }
 
-        val event = TradeEvent(
+        val event = TradeEventMessage(
             tradeId = "trade-1",
             portfolioId = "port-1",
             instrumentId = "AAPL",
@@ -81,7 +81,7 @@ class TradeEventConsumerIntegrationTest : FunSpec({
 
         val producer = KafkaTestSetup.createProducer(bootstrapServers)
         for (portId in listOf("port-A", "port-B")) {
-            val event = TradeEvent(
+            val event = TradeEventMessage(
                 tradeId = "trade-$portId",
                 portfolioId = portId,
                 instrumentId = "AAPL",

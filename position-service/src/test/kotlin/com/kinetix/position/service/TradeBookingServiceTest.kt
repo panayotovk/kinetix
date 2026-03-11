@@ -161,7 +161,7 @@ class TradeBookingServiceTest : FunSpec({
 
         service.handle(command())
 
-        coVerify(exactly = 1) { publisher.publish(match { it.tradeId == TradeId("t-1") }) }
+        coVerify(exactly = 1) { publisher.publish(match { it.trade.tradeId == TradeId("t-1") }) }
     }
 
     test("does NOT publish trade event for duplicate trade") {

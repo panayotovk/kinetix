@@ -1,7 +1,7 @@
 package com.kinetix.position.kafka
 
-import com.kinetix.common.kafka.events.TradeEvent
-import com.kinetix.common.model.Trade
+import com.kinetix.common.kafka.events.TradeEventMessage
+import com.kinetix.common.model.TradeEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -17,10 +17,10 @@ class KafkaTradeEventPublisher(
 
     private val logger = LoggerFactory.getLogger(KafkaTradeEventPublisher::class.java)
 
-    override suspend fun publish(trade: Trade) {
-        val event = TradeEvent.from(trade)
-        val json = Json.encodeToString(event)
-        val record = ProducerRecord(topic, trade.portfolioId.value, json)
+    override suspend fun publish(event: TradeEvent) {
+        val message = TradeEventMessage.from(event)
+        val json = Json.encodeToString(message)
+        val record = ProducerRecord(topic, event.trade.portfolioId.value, json)
 
         try {
             withContext(Dispatchers.IO) {
@@ -29,7 +29,7 @@ class KafkaTradeEventPublisher(
         } catch (e: Exception) {
             logger.error(
                 "Failed to publish trade event to Kafka: tradeId={}, topic={}",
-                trade.tradeId.value, topic, e,
+                event.trade.tradeId.value, topic, e,
             )
         }
     }

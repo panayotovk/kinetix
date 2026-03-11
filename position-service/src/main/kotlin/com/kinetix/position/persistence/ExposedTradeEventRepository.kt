@@ -25,7 +25,7 @@ class ExposedTradeEventRepository(private val db: Database? = null) : TradeEvent
             it[priceCurrency] = trade.price.currency.currencyCode
             it[tradedAt] = trade.tradedAt.atOffset(ZoneOffset.UTC)
             it[createdAt] = OffsetDateTime.now(ZoneOffset.UTC)
-            it[tradeType] = trade.type.name
+            it[eventType] = trade.eventType.name
             it[status] = trade.status.name
             it[originalTradeId] = trade.originalTradeId?.value
             it[counterpartyId] = trade.counterpartyId
@@ -66,7 +66,7 @@ class ExposedTradeEventRepository(private val db: Database? = null) : TradeEvent
             Currency.getInstance(this[TradeEventsTable.priceCurrency]),
         ),
         tradedAt = this[TradeEventsTable.tradedAt].toInstant(),
-        type = TradeType.valueOf(this[TradeEventsTable.tradeType]),
+        eventType = TradeEventType.valueOf(this[TradeEventsTable.eventType]),
         status = TradeStatus.valueOf(this[TradeEventsTable.status]),
         originalTradeId = this[TradeEventsTable.originalTradeId]?.let { TradeId(it) },
         counterpartyId = this[TradeEventsTable.counterpartyId],

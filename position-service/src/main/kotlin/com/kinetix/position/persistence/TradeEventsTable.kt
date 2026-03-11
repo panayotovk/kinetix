@@ -14,7 +14,7 @@ object TradeEventsTable : Table("trade_events") {
     val priceCurrency = varchar("price_currency", 3)
     val tradedAt = timestampWithTimeZone("traded_at")
     val createdAt = timestampWithTimeZone("created_at")
-    val tradeType = varchar("trade_type", 10).default("NEW")
+    val eventType = varchar("event_type", 10).default("NEW")
     val status = varchar("status", 20).default("LIVE")
     val originalTradeId = varchar("original_trade_id", 255).nullable()
     val counterpartyId = varchar("counterparty_id", 255).nullable()

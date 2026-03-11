@@ -1,6 +1,6 @@
 package com.kinetix.position.kafka
 
-import com.kinetix.common.kafka.events.TradeEvent
+import com.kinetix.common.kafka.events.TradeEventMessage
 import com.kinetix.common.model.*
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -42,7 +42,7 @@ class KafkaTradeEventPublisherIntegrationTest : FunSpec({
         val producer = KafkaTestSetup.createProducer(bootstrapServers)
         val publisher = KafkaTradeEventPublisher(producer, topic)
 
-        publisher.publish(trade())
+        publisher.publish(TradeEvent(trade = trade()))
 
         val consumer = KafkaTestSetup.createConsumer(bootstrapServers, "roundtrip-test-group")
         consumer.subscribe(listOf(topic))
@@ -53,7 +53,7 @@ class KafkaTradeEventPublisherIntegrationTest : FunSpec({
         val record = records.first()
         record.key() shouldBe "port-1"
 
-        val event = Json.decodeFromString<TradeEvent>(record.value())
+        val event = Json.decodeFromString<TradeEventMessage>(record.value())
         event.tradeId shouldBe "t-1"
         event.portfolioId shouldBe "port-1"
         event.instrumentId shouldBe "AAPL"
@@ -73,8 +73,8 @@ class KafkaTradeEventPublisherIntegrationTest : FunSpec({
         val producer = KafkaTestSetup.createProducer(bootstrapServers)
         val publisher = KafkaTradeEventPublisher(producer, topic)
 
-        publisher.publish(trade(tradeId = "t-ord-1", portfolioId = "port-A"))
-        publisher.publish(trade(tradeId = "t-ord-2", portfolioId = "port-A"))
+        publisher.publish(TradeEvent(trade = trade(tradeId = "t-ord-1", portfolioId = "port-A")))
+        publisher.publish(TradeEvent(trade = trade(tradeId = "t-ord-2", portfolioId = "port-A")))
 
         val consumer = KafkaTestSetup.createConsumer(bootstrapServers, "ordering-test-group")
         consumer.subscribe(listOf(topic))
@@ -85,7 +85,7 @@ class KafkaTradeEventPublisherIntegrationTest : FunSpec({
         val partitions = records.map { it.partition() }.toSet()
         partitions.size shouldBe 1 // same portfolio → same partition
 
-        val events = records.map { Json.decodeFromString<TradeEvent>(it.value()) }
+        val events = records.map { Json.decodeFromString<TradeEventMessage>(it.value()) }
         events[0].tradeId shouldBe "t-ord-1"
         events[1].tradeId shouldBe "t-ord-2"
 

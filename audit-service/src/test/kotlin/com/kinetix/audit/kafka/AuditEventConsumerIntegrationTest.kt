@@ -1,7 +1,7 @@
 package com.kinetix.audit.kafka
 
 import com.kinetix.audit.persistence.DatabaseTestSetup
-import com.kinetix.common.kafka.events.TradeEvent
+import com.kinetix.common.kafka.events.TradeEventMessage
 import com.kinetix.audit.persistence.ExposedAuditEventRepository
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -27,7 +27,7 @@ class AuditEventConsumerIntegrationTest : FunSpec({
 
         val job = launch { consumer.start() }
 
-        val event = TradeEvent(
+        val event = TradeEventMessage(
             tradeId = "t-1",
             portfolioId = "port-1",
             instrumentId = "AAPL",
@@ -73,9 +73,9 @@ class AuditEventConsumerIntegrationTest : FunSpec({
 
         val producer = KafkaTestSetup.createProducer(bootstrapServers)
         val events = listOf(
-            TradeEvent("t-10", "port-2", "MSFT", "EQUITY", "BUY", "50", "300.00", "USD", "2025-01-15T10:00:00Z"),
-            TradeEvent("t-11", "port-2", "GOOG", "EQUITY", "SELL", "25", "180.00", "USD", "2025-01-15T11:00:00Z"),
-            TradeEvent("t-12", "port-2", "TSLA", "EQUITY", "BUY", "10", "250.00", "USD", "2025-01-15T12:00:00Z"),
+            TradeEventMessage("t-10", "port-2", "MSFT", "EQUITY", "BUY", "50", "300.00", "USD", "2025-01-15T10:00:00Z"),
+            TradeEventMessage("t-11", "port-2", "GOOG", "EQUITY", "SELL", "25", "180.00", "USD", "2025-01-15T11:00:00Z"),
+            TradeEventMessage("t-12", "port-2", "TSLA", "EQUITY", "BUY", "10", "250.00", "USD", "2025-01-15T12:00:00Z"),
         )
 
         for (event in events) {

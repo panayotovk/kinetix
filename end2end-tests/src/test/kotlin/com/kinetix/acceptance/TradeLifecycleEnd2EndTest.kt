@@ -170,7 +170,7 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
             then("amend trade is LIVE and original trade is AMENDED") {
                 amendResult.trade.tradeId shouldBe TradeId(amendTradeId)
                 amendResult.trade.status shouldBe TradeStatus.LIVE
-                amendResult.trade.type shouldBe TradeType.AMEND
+                amendResult.trade.eventType shouldBe TradeEventType.AMEND
                 amendResult.trade.originalTradeId shouldBe TradeId(originalTradeId)
             }
 

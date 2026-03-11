@@ -1,6 +1,6 @@
 package com.kinetix.common.model
 
-enum class TradeType {
+enum class TradeEventType {
     NEW,
     AMEND,
     CANCEL,

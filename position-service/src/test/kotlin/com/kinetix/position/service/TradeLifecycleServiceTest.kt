@@ -27,7 +27,7 @@ private fun trade(
     quantity: String = "100",
     price: String = "150.00",
     tradedAt: Instant = Instant.parse("2025-01-15T10:00:00Z"),
-    type: TradeType = TradeType.NEW,
+    eventType: TradeEventType = TradeEventType.NEW,
     status: TradeStatus = TradeStatus.LIVE,
     originalTradeId: TradeId? = null,
 ) = Trade(
@@ -39,7 +39,7 @@ private fun trade(
     quantity = BigDecimal(quantity),
     price = usd(price),
     tradedAt = tradedAt,
-    type = type,
+    eventType = eventType,
     status = status,
     originalTradeId = originalTradeId,
 )
@@ -106,7 +106,7 @@ class TradeLifecycleServiceTest : FunSpec({
         // After reversal: qty=0, after new trade: qty=200, avgCost=160
         result.position.quantity.compareTo(BigDecimal("200")) shouldBe 0
         result.position.averageCost shouldBe usd("160.00")
-        result.trade.type shouldBe TradeType.AMEND
+        result.trade.eventType shouldBe TradeEventType.AMEND
         result.trade.originalTradeId shouldBe TradeId("t-1")
     }
 
@@ -250,7 +250,7 @@ class TradeLifecycleServiceTest : FunSpec({
 
         service.handleAmend(command)
 
-        coVerify(exactly = 1) { publisher.publish(match { it.type == TradeType.AMEND }) }
+        coVerify(exactly = 1) { publisher.publish(match { it.trade.eventType == TradeEventType.AMEND }) }
     }
 
     test("cancel publishes trade event for the cancelled trade") {
@@ -269,6 +269,6 @@ class TradeLifecycleServiceTest : FunSpec({
 
         service.handleCancel(command)
 
-        coVerify(exactly = 1) { publisher.publish(match { it.status == TradeStatus.CANCELLED }) }
+        coVerify(exactly = 1) { publisher.publish(match { it.trade.status == TradeStatus.CANCELLED }) }
     }
 })

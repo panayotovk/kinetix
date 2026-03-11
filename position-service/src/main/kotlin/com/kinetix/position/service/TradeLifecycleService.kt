@@ -42,7 +42,7 @@ class TradeLifecycleService(
                 quantity = command.quantity,
                 price = command.price,
                 tradedAt = command.tradedAt,
-                type = TradeType.AMEND,
+                eventType = TradeEventType.AMEND,
                 status = TradeStatus.LIVE,
                 originalTradeId = command.originalTradeId,
             )
@@ -55,7 +55,7 @@ class TradeLifecycleService(
             BookTradeResult(amendTrade, finalPosition)
         }
 
-        tradeEventPublisher.publish(result.trade)
+        tradeEventPublisher.publish(TradeEvent(trade = result.trade))
         logger.info("Trade amended: originalTradeId={}, newTradeId={}", command.originalTradeId.value, command.newTradeId.value)
         return result
     }
@@ -84,7 +84,7 @@ class TradeLifecycleService(
             BookTradeResult(cancelledTrade, updatedPosition)
         }
 
-        tradeEventPublisher.publish(result.trade)
+        tradeEventPublisher.publish(TradeEvent(trade = result.trade))
         logger.info("Trade cancelled: tradeId={}", command.tradeId.value)
         return result
     }
@@ -103,7 +103,7 @@ class TradeLifecycleService(
             quantity = trade.quantity,
             price = trade.price,
             tradedAt = trade.tradedAt,
-            type = trade.type,
+            eventType = trade.eventType,
             status = trade.status,
         )
     }

@@ -76,7 +76,7 @@ class TradeBookingService(
         }
 
         if (isNewTrade) {
-            tradeEventPublisher.publish(result.trade)
+            tradeEventPublisher.publish(TradeEvent(trade = result.trade))
             logger.info("Trade booked: tradeId={}, portfolio={}, newPosition={}",
                 result.trade.tradeId.value, result.trade.portfolioId.value, result.position.quantity)
         }

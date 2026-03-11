@@ -1,6 +1,6 @@
 package com.kinetix.position.kafka
 
-import com.kinetix.common.kafka.events.TradeEvent
+import com.kinetix.common.kafka.events.TradeEventMessage
 import com.kinetix.common.model.*
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -28,30 +28,33 @@ private fun trade(tradeId: String = "t-1") = Trade(
 
 class TradeEventCorrelationIdTest : FunSpec({
 
-    test("TradeEvent.from generates correlationId when not provided") {
-        val event = TradeEvent.from(trade())
+    test("TradeEvent generates correlationId by default") {
+        val event = TradeEvent(trade = trade())
+        val message = TradeEventMessage.from(event)
 
-        event.correlationId.shouldNotBeNull()
-        event.correlationId!! shouldMatch UUID_REGEX
+        message.correlationId.shouldNotBeNull()
+        message.correlationId!! shouldMatch UUID_REGEX
     }
 
-    test("TradeEvent.from uses provided correlationId") {
-        val event = TradeEvent.from(trade(), correlationId = "my-correlation-id")
+    test("TradeEvent uses provided correlationId") {
+        val event = TradeEvent(trade = trade(), correlationId = "my-correlation-id")
+        val message = TradeEventMessage.from(event)
 
-        event.correlationId shouldBe "my-correlation-id"
+        message.correlationId shouldBe "my-correlation-id"
     }
 
     test("correlationId survives JSON round-trip") {
-        val event = TradeEvent.from(trade(), correlationId = "test-corr-123")
-        val json = Json.encodeToString(event)
-        val deserialized = Json.decodeFromString<TradeEvent>(json)
+        val event = TradeEvent(trade = trade(), correlationId = "test-corr-123")
+        val message = TradeEventMessage.from(event)
+        val json = Json.encodeToString(message)
+        val deserialized = Json.decodeFromString<TradeEventMessage>(json)
 
         deserialized.correlationId shouldBe "test-corr-123"
     }
 
     test("correlationId defaults to null for backward-compatible deserialization") {
         val jsonWithoutCorrelation = """{"tradeId":"t-1","portfolioId":"port-1","instrumentId":"AAPL","assetClass":"EQUITY","side":"BUY","quantity":"100","priceAmount":"150.00","priceCurrency":"USD","tradedAt":"2025-01-15T10:00:00Z"}"""
-        val event = Json.decodeFromString<TradeEvent>(jsonWithoutCorrelation)
+        val event = Json.decodeFromString<TradeEventMessage>(jsonWithoutCorrelation)
 
         event.correlationId shouldBe null
     }

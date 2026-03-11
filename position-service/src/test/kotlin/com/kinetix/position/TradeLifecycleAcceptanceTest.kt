@@ -80,7 +80,7 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
 
                 val amended = tradeRepo.findByTradeId(TradeId("t-amend-new"))
                 amended.shouldNotBeNull()
-                amended.type shouldBe TradeType.AMEND
+                amended.eventType shouldBe TradeEventType.AMEND
                 amended.originalTradeId shouldBe TradeId("t-amend-orig")
 
                 val position = positionRepo.findByKey(PortfolioId("port-amend-1"), InstrumentId("AAPL"))

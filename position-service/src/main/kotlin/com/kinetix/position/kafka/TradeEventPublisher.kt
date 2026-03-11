@@ -1,7 +1,7 @@
 package com.kinetix.position.kafka
 
-import com.kinetix.common.model.Trade
+import com.kinetix.common.model.TradeEvent
 
 interface TradeEventPublisher {
-    suspend fun publish(trade: Trade)
+    suspend fun publish(event: TradeEvent)
 }
