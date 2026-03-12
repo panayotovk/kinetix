@@ -9,9 +9,10 @@ import io.kotest.matchers.shouldBe
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
-private val NOW = Instant.parse("2026-01-15T10:00:00Z")
+private val NOW = Instant.now()
 
 private fun backtestRecord(
     id: String = UUID.randomUUID().toString(),
@@ -76,9 +77,9 @@ class ExposedBacktestResultRepositoryIntegrationTest : FunSpec({
     }
 
     test("should retrieve backtest history for portfolio") {
-        repository.save(backtestRecord(id = "r1", calculatedAt = Instant.parse("2026-01-10T10:00:00Z"), violationCount = 2))
-        repository.save(backtestRecord(id = "r2", calculatedAt = Instant.parse("2026-01-15T10:00:00Z"), violationCount = 5))
-        repository.save(backtestRecord(id = "r3", calculatedAt = Instant.parse("2026-01-20T10:00:00Z"), violationCount = 8))
+        repository.save(backtestRecord(id = "r1", calculatedAt = NOW.minus(10, ChronoUnit.DAYS), violationCount = 2))
+        repository.save(backtestRecord(id = "r2", calculatedAt = NOW.minus(5, ChronoUnit.DAYS), violationCount = 5))
+        repository.save(backtestRecord(id = "r3", calculatedAt = NOW, violationCount = 8))
 
         val history = repository.findByPortfolioId("port-1", limit = 10, offset = 0)
         history shouldHaveSize 3
@@ -97,9 +98,9 @@ class ExposedBacktestResultRepositoryIntegrationTest : FunSpec({
     }
 
     test("findByPortfolioId respects limit and offset") {
-        repository.save(backtestRecord(id = "r1", calculatedAt = Instant.parse("2026-01-10T10:00:00Z")))
-        repository.save(backtestRecord(id = "r2", calculatedAt = Instant.parse("2026-01-15T10:00:00Z")))
-        repository.save(backtestRecord(id = "r3", calculatedAt = Instant.parse("2026-01-20T10:00:00Z")))
+        repository.save(backtestRecord(id = "r1", calculatedAt = NOW.minus(10, ChronoUnit.DAYS)))
+        repository.save(backtestRecord(id = "r2", calculatedAt = NOW.minus(5, ChronoUnit.DAYS)))
+        repository.save(backtestRecord(id = "r3", calculatedAt = NOW))
 
         val page1 = repository.findByPortfolioId("port-1", limit = 2, offset = 0)
         page1 shouldHaveSize 2

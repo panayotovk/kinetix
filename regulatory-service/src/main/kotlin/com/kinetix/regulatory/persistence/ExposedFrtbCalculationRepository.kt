@@ -6,8 +6,10 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 
 class ExposedFrtbCalculationRepository(private val db: Database? = null) : FrtbCalculationRepository {
 
@@ -37,10 +39,18 @@ class ExposedFrtbCalculationRepository(private val db: Database? = null) : FrtbC
         portfolioId: String,
         limit: Int,
         offset: Int,
+        from: Instant?,
     ): List<FrtbCalculationRecord> = newSuspendedTransaction(db = db) {
+        val cutoff = OffsetDateTime.ofInstant(
+            from ?: Instant.now().minus(90, ChronoUnit.DAYS),
+            ZoneOffset.UTC,
+        )
         FrtbCalculationsTable
             .selectAll()
-            .where { FrtbCalculationsTable.portfolioId eq portfolioId }
+            .where {
+                (FrtbCalculationsTable.portfolioId eq portfolioId) and
+                    (FrtbCalculationsTable.calculatedAt greaterEq cutoff)
+            }
             .orderBy(FrtbCalculationsTable.calculatedAt, SortOrder.DESC)
             .limit(limit).offset(offset.toLong())
             .map { it.toRecord() }

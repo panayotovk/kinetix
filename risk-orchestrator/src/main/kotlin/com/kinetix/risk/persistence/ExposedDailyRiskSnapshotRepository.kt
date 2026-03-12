@@ -81,10 +81,14 @@ class ExposedDailyRiskSnapshotRepository(private val db: Database? = null) : Dai
 
     override suspend fun findByPortfolioId(
         portfolioId: PortfolioId,
+        fromDate: LocalDate,
     ): List<DailyRiskSnapshot> = newSuspendedTransaction(db = db) {
         DailyRiskSnapshotsTable
             .selectAll()
-            .where { DailyRiskSnapshotsTable.portfolioId eq portfolioId.value }
+            .where {
+                (DailyRiskSnapshotsTable.portfolioId eq portfolioId.value) and
+                    (DailyRiskSnapshotsTable.snapshotDate greaterEq fromDate.toMidnightUtc())
+            }
             .orderBy(DailyRiskSnapshotsTable.snapshotDate, SortOrder.DESC)
             .map { it.toDailyRiskSnapshot() }
     }

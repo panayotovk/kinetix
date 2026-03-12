@@ -8,5 +8,8 @@ interface PnlAttributionRepository {
     suspend fun save(attribution: PnlAttribution)
     suspend fun findByPortfolioIdAndDate(portfolioId: PortfolioId, date: LocalDate): PnlAttribution?
     suspend fun findLatestByPortfolioId(portfolioId: PortfolioId): PnlAttribution?
-    suspend fun findByPortfolioId(portfolioId: PortfolioId): List<PnlAttribution>
+    suspend fun findByPortfolioId(
+        portfolioId: PortfolioId,
+        fromDate: LocalDate = LocalDate.now().minusDays(90),
+    ): List<PnlAttribution>
 }

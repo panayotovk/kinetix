@@ -3,8 +3,10 @@ package com.kinetix.regulatory.persistence
 import com.kinetix.regulatory.model.BacktestResultRecord
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
+import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 
 class ExposedBacktestResultRepository(private val db: Database? = null) : BacktestResultRepository {
 
@@ -32,10 +34,18 @@ class ExposedBacktestResultRepository(private val db: Database? = null) : Backte
         portfolioId: String,
         limit: Int,
         offset: Int,
+        from: Instant?,
     ): List<BacktestResultRecord> = newSuspendedTransaction(db = db) {
+        val cutoff = OffsetDateTime.ofInstant(
+            from ?: Instant.now().minus(90, ChronoUnit.DAYS),
+            ZoneOffset.UTC,
+        )
         BacktestResultsTable
             .selectAll()
-            .where { BacktestResultsTable.portfolioId eq portfolioId }
+            .where {
+                (BacktestResultsTable.portfolioId eq portfolioId) and
+                    (BacktestResultsTable.calculatedAt greaterEq cutoff)
+            }
             .orderBy(BacktestResultsTable.calculatedAt, SortOrder.DESC)
             .limit(limit).offset(offset.toLong())
             .map { it.toRecord() }

@@ -15,8 +15,8 @@ import java.time.LocalDate
 private val PORTFOLIO = PortfolioId("port-1")
 private val AAPL = InstrumentId("AAPL")
 private val MSFT = InstrumentId("MSFT")
-private val TODAY = LocalDate.of(2025, 1, 15)
-private val YESTERDAY = LocalDate.of(2025, 1, 14)
+private val TODAY = LocalDate.now()
+private val YESTERDAY = LocalDate.now().minusDays(1)
 
 private fun snapshot(
     portfolioId: PortfolioId = PORTFOLIO,

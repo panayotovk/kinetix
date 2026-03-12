@@ -66,10 +66,14 @@ class ExposedPnlAttributionRepository(private val db: Database? = null) : PnlAtt
 
     override suspend fun findByPortfolioId(
         portfolioId: PortfolioId,
+        fromDate: LocalDate,
     ): List<PnlAttribution> = newSuspendedTransaction(db = db) {
         PnlAttributionsTable
             .selectAll()
-            .where { PnlAttributionsTable.portfolioId eq portfolioId.value }
+            .where {
+                (PnlAttributionsTable.portfolioId eq portfolioId.value) and
+                    (PnlAttributionsTable.attributionDate greaterEq fromDate.toKotlinxDate())
+            }
             .orderBy(PnlAttributionsTable.attributionDate, SortOrder.DESC)
             .map { it.toPnlAttribution() }
     }

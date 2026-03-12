@@ -17,8 +17,8 @@ import java.time.Instant
 import java.time.LocalDate
 
 private val PORTFOLIO = PortfolioId("port-1")
-private val TODAY = LocalDate.of(2025, 1, 15)
-private val YESTERDAY = LocalDate.of(2025, 1, 14)
+private val TODAY = LocalDate.now()
+private val YESTERDAY = LocalDate.now().minusDays(1)
 
 private fun bd(value: String) = BigDecimal(value)
 
@@ -67,7 +67,7 @@ private fun attribution(
     rhoPnl = bd(rhoPnl),
     unexplainedPnl = bd(unexplainedPnl),
     positionAttributions = positionAttributions,
-    calculatedAt = Instant.parse("2025-01-15T10:00:00Z"),
+    calculatedAt = Instant.now(),
 )
 
 class ExposedPnlAttributionRepositoryIntegrationTest : FunSpec({
