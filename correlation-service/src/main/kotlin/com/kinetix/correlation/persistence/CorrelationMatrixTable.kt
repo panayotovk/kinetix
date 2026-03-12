@@ -11,6 +11,7 @@ object CorrelationMatrixTable : Table("correlation_matrices") {
     val asOfDate = timestampWithTimeZone("as_of_date")
     val method = varchar("method", 50)
     val createdAt = timestampWithTimeZone("created_at")
+    val labelsHash = varchar("labels_hash", 32)
 
     override val primaryKey = PrimaryKey(id)
 }
