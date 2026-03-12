@@ -9,11 +9,13 @@ import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.batchUpsert
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.upsert
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
@@ -26,7 +28,7 @@ class ExposedDailyRiskSnapshotRepository(private val db: Database? = null) : Dai
             DailyRiskSnapshotsTable.instrumentId,
         ) {
             it[portfolioId] = snapshot.portfolioId.value
-            it[snapshotDate] = snapshot.snapshotDate.toKotlinxDate()
+            it[snapshotDate] = snapshot.snapshotDate.toMidnightUtc()
             it[instrumentId] = snapshot.instrumentId.value
             it[assetClass] = snapshot.assetClass.name
             it[quantity] = snapshot.quantity
@@ -41,25 +43,25 @@ class ExposedDailyRiskSnapshotRepository(private val db: Database? = null) : Dai
     }
 
     override suspend fun saveAll(snapshots: List<DailyRiskSnapshot>): Unit = newSuspendedTransaction(db = db) {
-        for (snapshot in snapshots) {
-            DailyRiskSnapshotsTable.upsert(
-                DailyRiskSnapshotsTable.portfolioId,
-                DailyRiskSnapshotsTable.snapshotDate,
-                DailyRiskSnapshotsTable.instrumentId,
-            ) {
-                it[portfolioId] = snapshot.portfolioId.value
-                it[snapshotDate] = snapshot.snapshotDate.toKotlinxDate()
-                it[instrumentId] = snapshot.instrumentId.value
-                it[assetClass] = snapshot.assetClass.name
-                it[quantity] = snapshot.quantity
-                it[marketPrice] = snapshot.marketPrice
-                it[delta] = snapshot.delta
-                it[gamma] = snapshot.gamma
-                it[vega] = snapshot.vega
-                it[theta] = snapshot.theta
-                it[rho] = snapshot.rho
-                it[createdAt] = OffsetDateTime.now(ZoneOffset.UTC)
-            }
+        DailyRiskSnapshotsTable.batchUpsert(
+            snapshots,
+            DailyRiskSnapshotsTable.portfolioId,
+            DailyRiskSnapshotsTable.snapshotDate,
+            DailyRiskSnapshotsTable.instrumentId,
+            shouldReturnGeneratedValues = false,
+        ) { snapshot ->
+            this[DailyRiskSnapshotsTable.portfolioId] = snapshot.portfolioId.value
+            this[DailyRiskSnapshotsTable.snapshotDate] = snapshot.snapshotDate.toMidnightUtc()
+            this[DailyRiskSnapshotsTable.instrumentId] = snapshot.instrumentId.value
+            this[DailyRiskSnapshotsTable.assetClass] = snapshot.assetClass.name
+            this[DailyRiskSnapshotsTable.quantity] = snapshot.quantity
+            this[DailyRiskSnapshotsTable.marketPrice] = snapshot.marketPrice
+            this[DailyRiskSnapshotsTable.delta] = snapshot.delta
+            this[DailyRiskSnapshotsTable.gamma] = snapshot.gamma
+            this[DailyRiskSnapshotsTable.vega] = snapshot.vega
+            this[DailyRiskSnapshotsTable.theta] = snapshot.theta
+            this[DailyRiskSnapshotsTable.rho] = snapshot.rho
+            this[DailyRiskSnapshotsTable.createdAt] = OffsetDateTime.now(ZoneOffset.UTC)
         }
     }
 
@@ -71,7 +73,7 @@ class ExposedDailyRiskSnapshotRepository(private val db: Database? = null) : Dai
             .selectAll()
             .where {
                 (DailyRiskSnapshotsTable.portfolioId eq portfolioId.value) and
-                    (DailyRiskSnapshotsTable.snapshotDate eq date.toKotlinxDate())
+                    (DailyRiskSnapshotsTable.snapshotDate eq date.toMidnightUtc())
             }
             .orderBy(DailyRiskSnapshotsTable.instrumentId, SortOrder.ASC)
             .map { it.toDailyRiskSnapshot() }
@@ -93,14 +95,14 @@ class ExposedDailyRiskSnapshotRepository(private val db: Database? = null) : Dai
     ): Unit = newSuspendedTransaction(db = db) {
         DailyRiskSnapshotsTable.deleteWhere {
             (DailyRiskSnapshotsTable.portfolioId eq portfolioId.value) and
-                (DailyRiskSnapshotsTable.snapshotDate eq date.toKotlinxDate())
+                (DailyRiskSnapshotsTable.snapshotDate eq date.toMidnightUtc())
         }
     }
 
     private fun ResultRow.toDailyRiskSnapshot(): DailyRiskSnapshot = DailyRiskSnapshot(
         id = this[DailyRiskSnapshotsTable.id],
         portfolioId = PortfolioId(this[DailyRiskSnapshotsTable.portfolioId]),
-        snapshotDate = this[DailyRiskSnapshotsTable.snapshotDate].toJavaDate(),
+        snapshotDate = this[DailyRiskSnapshotsTable.snapshotDate].toLocalDate(),
         instrumentId = InstrumentId(this[DailyRiskSnapshotsTable.instrumentId]),
         assetClass = AssetClass.valueOf(this[DailyRiskSnapshotsTable.assetClass]),
         quantity = this[DailyRiskSnapshotsTable.quantity],
@@ -113,8 +115,5 @@ class ExposedDailyRiskSnapshotRepository(private val db: Database? = null) : Dai
     )
 }
 
-internal fun LocalDate.toKotlinxDate(): kotlinx.datetime.LocalDate =
-    kotlinx.datetime.LocalDate(year, monthValue, dayOfMonth)
-
-internal fun kotlinx.datetime.LocalDate.toJavaDate(): LocalDate =
-    LocalDate.of(year, monthNumber, dayOfMonth)
+internal fun LocalDate.toMidnightUtc(): OffsetDateTime =
+    OffsetDateTime.of(this, LocalTime.MIDNIGHT, ZoneOffset.UTC)
