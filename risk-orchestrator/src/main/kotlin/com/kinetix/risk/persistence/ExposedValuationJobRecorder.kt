@@ -50,6 +50,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             it[promotedAt] = job.promotedAt?.let { ts -> OffsetDateTime.ofInstant(ts, ZoneOffset.UTC) }
             it[promotedBy] = job.promotedBy
             it[marketDataSnapshotId] = job.marketDataSnapshotId
+            it[manifestId] = job.manifestId
         }
     }
 
@@ -81,6 +82,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             it[assetClassGreeks] = job.assetClassGreeksSnapshot.takeIf { s -> s.isNotEmpty() }?.map { g -> g.toJson() }
             it[steps] = job.steps.map { step -> step.toJson() }
             it[error] = job.error
+            it[manifestId] = job.manifestId
         }
     }
 
@@ -417,5 +419,6 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         promotedAt = this[ValuationJobsTable.promotedAt]?.toInstant(),
         promotedBy = this[ValuationJobsTable.promotedBy],
         marketDataSnapshotId = this[ValuationJobsTable.marketDataSnapshotId],
+        manifestId = this[ValuationJobsTable.manifestId],
     )
 }
