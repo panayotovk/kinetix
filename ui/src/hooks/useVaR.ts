@@ -130,7 +130,12 @@ export function useVaR(portfolioId: string | null, valuationDate: string | null 
 
     try {
       const result = await fetchVaR(portfolioId, valuationDate)
-      setVarResult(result)
+      setVarResult((prev) => {
+        if (prev && result && prev.calculatedAt === result.calculatedAt && prev.varValue === result.varValue) {
+          return prev
+        }
+        return result
+      })
       setError(null)
 
       if (result && isLive) {

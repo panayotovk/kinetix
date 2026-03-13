@@ -9,7 +9,13 @@ export function useAlerts() {
   const load = useCallback(async () => {
     try {
       const data = await fetchAlerts(5)
-      setAlerts(data.filter((a) => !dismissedIds.current.has(a.id)))
+      const filtered = data.filter((a) => !dismissedIds.current.has(a.id))
+      setAlerts((prev) => {
+        if (prev.length === filtered.length && prev.every((a, i) => a.id === filtered[i].id)) {
+          return prev
+        }
+        return filtered
+      })
     } catch {
       // silently ignore fetch errors
     }
