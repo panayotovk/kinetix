@@ -1,4 +1,4 @@
-import { Download } from 'lucide-react'
+import { Download, Star } from 'lucide-react'
 import { Button } from './ui'
 import { RunSnapshotCard } from './RunSnapshotCard'
 import { RunDiffSummary } from './RunDiffSummary'
@@ -43,8 +43,26 @@ export function GenericRunComparisonPanel({
     exportToCsv(`comparison-${comparison.comparisonId}.csv`, headers, rows)
   }
 
+  const baseIsEod = comparison.baseRun.label.includes('Official EOD')
+  const targetIsEod = comparison.targetRun.label.includes('Official EOD')
+
   return (
     <div data-testid="run-comparison-panel" className="space-y-4">
+      {(baseIsEod || targetIsEod) && (
+        <div
+          data-testid="eod-auto-select-notice"
+          className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-2"
+        >
+          <Star className="h-3.5 w-3.5 flex-shrink-0" />
+          <span>
+            {baseIsEod && targetIsEod
+              ? 'Official EOD auto-selected for both dates'
+              : baseIsEod
+                ? `Official EOD auto-selected for base date`
+                : `Official EOD auto-selected for target date`}
+          </span>
+        </div>
+      )}
       <div className="flex justify-end">
         <Button
           data-testid="export-comparison-csv"

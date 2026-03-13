@@ -305,3 +305,168 @@ test.describe('EOD Promotion - Promote Button', () => {
     await expect(page.getByTestId('promote-error')).toContainText('Another Official EOD already exists')
   })
 })
+
+// ---------------------------------------------------------------------------
+// Demotion Workflow
+// ---------------------------------------------------------------------------
+
+test.describe('EOD Promotion - Demotion', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAllApiRoutes(page)
+  })
+
+  test('shows Remove designation link for promoted jobs and opens danger dialog', async ({ page }) => {
+    const detail = makeJobDetail({
+      jobId: 'job-eod-1',
+      runLabel: 'OFFICIAL_EOD',
+      promotedAt: '2025-01-15T18:30:00Z',
+      promotedBy: 'risk-manager',
+    })
+    await setupEodRoutes(page, makeJobHistory(), detail)
+
+    // Mock the PATCH endpoint for demotion
+    await page.route('**/api/v1/risk/jobs/*/label', (route: Route) => {
+      if (route.request().method() === 'PATCH') {
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            jobId: 'job-eod-1',
+            portfolioId: 'port-1',
+            valuationDate: '2025-01-15',
+            runLabel: 'ADHOC',
+            promotedAt: null,
+            promotedBy: null,
+          }),
+        })
+      } else {
+        route.fallback()
+      }
+    })
+
+    await goToRiskTab(page)
+    await page.waitForSelector('[data-testid="job-history-table"]')
+
+    // Expand the promoted job
+    await page.getByTestId('job-row-job-eod-1').click()
+    await page.waitForSelector('[data-testid="job-detail-panel"]')
+
+    // Remove designation link should be visible
+    await expect(page.getByTestId('demote-eod-job-eod-1')).toBeVisible()
+
+    // Click it to open the danger dialog
+    await page.getByTestId('demote-eod-job-eod-1').click()
+
+    // Danger confirmation dialog should appear
+    await expect(page.getByTestId('confirm-dialog')).toBeVisible()
+    await expect(page.getByText('Remove Official EOD Designation')).toBeVisible()
+    await expect(page.getByText('remove the Official EOD designation')).toBeVisible()
+
+    // Confirm demotion
+    await page.getByTestId('confirm-dialog-confirm').click()
+
+    // Dialog should close
+    await expect(page.getByText('remove the Official EOD designation')).not.toBeVisible()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Auto-Select Notice in Run Comparison
+// ---------------------------------------------------------------------------
+
+test.describe('EOD Promotion - Auto-Select Notice', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAllApiRoutes(page)
+  })
+
+  test('shows auto-select notice when Official EOD is used in comparison', async ({ page }) => {
+    await mockRiskTabRoutes(page, {
+      varResult: TEST_VAR_RESULT,
+      jobHistory: makeJobHistory(),
+    })
+
+    // Mock the day-over-day comparison endpoint to return Official EOD labels
+    await page.route('**/api/v1/risk/compare/*/day-over-day*', (route: Route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          comparisonId: 'cmp-1',
+          comparisonType: 'DAILY_VAR',
+          portfolioId: 'port-1',
+          baseRun: {
+            jobId: 'job-eod-base',
+            label: 'Official EOD 2025-01-14',
+            valuationDate: '2025-01-14',
+            calcType: 'PARAMETRIC',
+            confLevel: 'CL_95',
+            varValue: '125000',
+            es: '187500',
+            pv: '5000000',
+            delta: '0.5',
+            gamma: '0.01',
+            vega: '100',
+            theta: '-50',
+            rho: '25',
+            componentBreakdown: [],
+            positionRisk: [],
+            modelVersion: null,
+            parameters: {},
+            calculatedAt: '2025-01-14T18:00:00Z',
+          },
+          targetRun: {
+            jobId: 'job-target',
+            label: '2025-01-15',
+            valuationDate: '2025-01-15',
+            calcType: 'PARAMETRIC',
+            confLevel: 'CL_95',
+            varValue: '130000',
+            es: '195000',
+            pv: '5100000',
+            delta: '0.52',
+            gamma: '0.011',
+            vega: '105',
+            theta: '-52',
+            rho: '26',
+            componentBreakdown: [],
+            positionRisk: [],
+            modelVersion: null,
+            parameters: {},
+            calculatedAt: '2025-01-15T12:00:00Z',
+          },
+          portfolioDiff: {
+            varChange: '5000',
+            varChangePercent: '4',
+            esChange: '7500',
+            esChangePercent: '4',
+            pvChange: '100000',
+            deltaChange: '0.02',
+            gammaChange: '0.001',
+            vegaChange: '5',
+            thetaChange: '-2',
+            rhoChange: '1',
+          },
+          componentDiffs: [],
+          positionDiffs: [],
+          parameterDiffs: [],
+          attribution: null,
+        }),
+      })
+    })
+
+    await goToRiskTab(page)
+
+    // Navigate to Run Comparison sub-tab
+    await page.getByTestId('risk-subtab-run-compare').click()
+
+    // Click Compare with default dates
+    await page.getByTestId('compare-dates-btn').click()
+
+    // Wait for comparison results
+    await page.waitForSelector('[data-testid="run-comparison-panel"]')
+
+    // Auto-select notice should be visible
+    await expect(page.getByTestId('eod-auto-select-notice')).toBeVisible()
+    await expect(page.getByTestId('eod-auto-select-notice')).toContainText('Official EOD auto-selected for base date')
+  })
+})

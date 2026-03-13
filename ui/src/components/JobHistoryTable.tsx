@@ -48,7 +48,8 @@ function ElapsedDuration({ startedAt }: { startedAt: string }) {
 export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob, onCloseJob, selectedForCompare, onToggleCompareSelection, onJobPromoted }: JobHistoryTableProps) {
   const [searchTerms, setSearchTerms] = useState<Record<string, string>>({})
   const [promoteTarget, setPromoteTarget] = useState<string | null>(null)
-  const { state: promoteState, error: promoteError, promote, reset: resetPromotion } = useEodPromotion()
+  const [demoteTarget, setDemoteTarget] = useState<string | null>(null)
+  const { state: promoteState, error: promoteError, promote, demote, reset: resetPromotion } = useEodPromotion()
 
   if (runs.length === 0) {
     return (
@@ -233,10 +234,22 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                               </button>
                             )}
                             {run.runLabel === 'OFFICIAL_EOD' && (
-                              <div data-testid={`eod-info-${run.jobId}`} className="mt-2 text-xs text-amber-700">
-                                <Star className="h-3 w-3 mr-1 inline" />
-                                Official EOD — promoted by {run.promotedBy}
-                                {run.promotedAt && ` at ${new Date(run.promotedAt).toLocaleTimeString()}`}
+                              <div data-testid={`eod-info-${run.jobId}`} className="mt-2 flex items-center gap-3 text-xs text-amber-700">
+                                <span>
+                                  <Star className="h-3 w-3 mr-1 inline" />
+                                  Official EOD — promoted by {run.promotedBy}
+                                  {run.promotedAt && ` at ${new Date(run.promotedAt).toLocaleTimeString()}`}
+                                </span>
+                                <button
+                                  data-testid={`demote-eod-${run.jobId}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setDemoteTarget(run.jobId)
+                                  }}
+                                  className="text-red-500 hover:text-red-700 underline"
+                                >
+                                  Remove designation
+                                </button>
                               </div>
                             )}
                           </>
@@ -276,6 +289,35 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
         }}
         onCancel={() => {
           setPromoteTarget(null)
+          resetPromotion()
+        }}
+      />
+      <ConfirmDialog
+        open={demoteTarget !== null}
+        title="Remove Official EOD Designation"
+        message={
+          <>
+            <p>Are you sure you want to remove the Official EOD designation from this run?</p>
+            <p className="mt-2 text-xs text-slate-500">This will clear the authoritative EOD status. The run data will not be modified.</p>
+            {promoteError && (
+              <p className="mt-2 text-sm text-red-600" data-testid="demote-error">{promoteError}</p>
+            )}
+          </>
+        }
+        confirmLabel="Remove Designation"
+        variant="danger"
+        loading={promoteState === 'loading'}
+        onConfirm={async () => {
+          if (!demoteTarget) return
+          const result = await demote(demoteTarget, 'current-user')
+          if (result) {
+            setDemoteTarget(null)
+            resetPromotion()
+            onJobPromoted?.()
+          }
+        }}
+        onCancel={() => {
+          setDemoteTarget(null)
           resetPromotion()
         }}
       />
