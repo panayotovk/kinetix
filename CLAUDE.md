@@ -10,7 +10,7 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 - **Test behaviour, not implementation.** Tests should describe *what* the system does, not *how* it does it. Avoid coupling tests to internal details that may change.
 - **Name tests descriptively.** Test names should read as specifications — e.g. `"rejects a trade when the position limit is exceeded"` rather than `"testTradeLimit"`.
 - **Cover the right levels.** Use unit tests for business logic, integration tests for infrastructure boundaries (DB, Kafka, gRPC), and acceptance tests for end-to-end flows.
-- **Playwright E2E tests for every meaningful UI feature.** Any new tab, panel, dialog, or significant interactive workflow in the UI must include Playwright browser tests in `ui/e2e/`. Mock API routes using the patterns in `ui/e2e/fixtures.ts` and test user-visible behaviour: empty states, data rendering, user interactions, validation, and error paths. Do not consider a UI feature complete without E2E coverage.
+- **Every meaningful UI feature needs browser-level E2E coverage.** Do not consider a new tab, panel, dialog, or significant interactive workflow complete without Playwright tests.
 - **Keep tests fast and independent.** Each test should be self-contained, set up its own state, and not depend on execution order.
 
 ## Design Principles
@@ -29,7 +29,8 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 
 - **Kotlin tests** use Kotest `FunSpec` with `shouldBe` / `shouldThrow` matchers and MockK for mocking.
 - **Python tests** use pytest.
-- **UI tests** use Vitest.
+- **UI unit tests** use Vitest.
+- **UI browser tests** use Playwright and live in `ui/e2e/`. Mock API routes using the patterns in `ui/e2e/fixtures.ts` and test user-visible behaviour: empty states, data rendering, user interactions, validation, and error paths. Run via `npx playwright test` from the `ui/` directory.
 - **Acceptance tests** are named `*AcceptanceTest` and run via `./gradlew acceptanceTest`. These are contract and behaviour tests that live in each service module.
 - **Integration tests** are named `*IntegrationTest` and run via `./gradlew integrationTest`.
 - **End-to-end tests** are named `*End2EndTest` and run via `./gradlew :end2end-tests:end2EndTest`.
