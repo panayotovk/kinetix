@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { Activity } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { Activity, AlertCircle, AlertTriangle, CheckCircle } from 'lucide-react'
+import { useClickOutside } from '../hooks/useClickOutside'
 import type { DataQualityStatus } from '../types'
 
 interface DataQualityIndicatorProps {
@@ -9,6 +10,18 @@ interface DataQualityIndicatorProps {
 
 export function DataQualityIndicator({ status, loading }: DataQualityIndicatorProps) {
   const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const closeDropdown = useCallback(() => setOpen(false), [])
+  useClickOutside(containerRef, closeDropdown)
+
+  useEffect(() => {
+    if (!open) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [open])
 
   if (loading) {
     return (
@@ -35,18 +48,18 @@ export function DataQualityIndicator({ status, loading }: DataQualityIndicatorPr
         : 'dq-status-ok'
 
   return (
-    <div className="relative" data-testid="data-quality-indicator" onClick={() => setOpen((prev) => !prev)}>
+    <div ref={containerRef} className="relative" data-testid="data-quality-indicator" onClick={() => setOpen((prev) => !prev)}>
       <button
         className={`p-1.5 rounded-md hover:bg-surface-800 transition-colors ${colorClass}`}
         aria-label="Data quality status"
       >
-        <span data-testid={statusTestId} className={`inline-block h-2.5 w-2.5 rounded-full ${
-          status.overall === 'CRITICAL'
-            ? 'bg-red-500'
-            : status.overall === 'WARNING'
-              ? 'bg-amber-500'
-              : 'bg-green-500'
-        }`} />
+        {status.overall === 'CRITICAL' ? (
+          <AlertCircle data-testid={statusTestId} className="h-4 w-4" />
+        ) : status.overall === 'WARNING' ? (
+          <AlertTriangle data-testid={statusTestId} className="h-4 w-4" />
+        ) : (
+          <CheckCircle data-testid={statusTestId} className="h-4 w-4" />
+        )}
       </button>
 
       {open && (
@@ -61,13 +74,13 @@ export function DataQualityIndicator({ status, loading }: DataQualityIndicatorPr
                 key={check.name}
                 className="flex items-start gap-2 text-sm"
               >
-                <span className={`mt-0.5 inline-block h-2 w-2 rounded-full flex-shrink-0 ${
-                  check.status === 'CRITICAL'
-                    ? 'bg-red-500'
-                    : check.status === 'WARNING'
-                      ? 'bg-amber-500'
-                      : 'bg-green-500'
-                }`} />
+                {check.status === 'CRITICAL' ? (
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 text-red-500 flex-shrink-0" />
+                ) : check.status === 'WARNING' ? (
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                ) : (
+                  <CheckCircle className="mt-0.5 h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                )}
                 <div>
                   <div className="text-white font-medium">{check.name}</div>
                   <div className="text-slate-400 text-xs">{check.message}</div>
