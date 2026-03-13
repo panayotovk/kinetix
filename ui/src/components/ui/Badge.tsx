@@ -7,6 +7,7 @@ const variants = {
   success: 'bg-green-100 text-green-800',
   neutral: 'bg-slate-100 text-slate-700',
   eod: 'bg-amber-100 text-amber-800 ring-1 ring-amber-300',
+  preclose: 'bg-purple-100 text-purple-800 ring-1 ring-purple-300',
 } as const
 
 interface BadgeProps {

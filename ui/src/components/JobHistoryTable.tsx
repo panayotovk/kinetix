@@ -153,6 +153,11 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                           <Star className="h-3 w-3 mr-0.5 inline" />EOD
                         </Badge>
                       )}
+                      {run.runLabel === 'PRE_CLOSE' && (
+                        <Badge variant="preclose" data-testid={`preclose-badge-${run.jobId}`}>
+                          Pre-Close
+                        </Badge>
+                      )}
                     </span>
                   </td>
                   <td data-testid={`duration-${run.jobId}`} className="py-2 pr-3 text-slate-600">
