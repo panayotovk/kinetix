@@ -106,7 +106,7 @@ export function JobPickerDialog({
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto" style={{ maxHeight: '360px' }}>
+        <div className="flex-1 min-h-0 overflow-y-auto max-h-[360px]">
           {loading && (
             <div data-testid="job-picker-loading" className="flex justify-center py-8">
               <Spinner />
