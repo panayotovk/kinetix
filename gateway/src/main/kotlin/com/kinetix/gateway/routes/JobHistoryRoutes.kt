@@ -1,5 +1,7 @@
 package com.kinetix.gateway.routes
 
+import com.kinetix.common.security.Permission
+import com.kinetix.gateway.auth.requirePermission
 import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.dto.PaginatedJobsResponse
 import com.kinetix.gateway.dto.toResponse
@@ -82,20 +84,22 @@ fun Route.jobHistoryRoutes(client: RiskServiceClient) {
         }
     }
 
-    patch("/api/v1/risk/jobs/{jobId}/label", {
-        summary = "Promote or demote a job's EOD label"
-        tags = listOf("EOD Promotion")
-        request {
-            pathParameter<String>("jobId") { description = "Job identifier" }
-        }
-    }) {
-        val jobId = call.requirePathParam("jobId")
-        val body = call.receive<JsonObject>()
-        try {
-            val result = client.promoteJobLabel(jobId, body)
-            call.respond(result)
-        } catch (e: com.kinetix.gateway.client.UpstreamErrorException) {
-            call.respond(HttpStatusCode.fromValue(e.statusCode), mapOf("error" to e.message))
+    requirePermission(Permission.PROMOTE_EOD_RUN) {
+        patch("/api/v1/risk/jobs/{jobId}/label", {
+            summary = "Promote or demote a job's EOD label"
+            tags = listOf("EOD Promotion")
+            request {
+                pathParameter<String>("jobId") { description = "Job identifier" }
+            }
+        }) {
+            val jobId = call.requirePathParam("jobId")
+            val body = call.receive<JsonObject>()
+            try {
+                val result = client.promoteJobLabel(jobId, body)
+                call.respond(result)
+            } catch (e: com.kinetix.gateway.client.UpstreamErrorException) {
+                call.respond(HttpStatusCode.fromValue(e.statusCode), mapOf("error" to e.message))
+            }
         }
     }
 
