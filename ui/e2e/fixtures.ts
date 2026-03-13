@@ -710,6 +710,9 @@ export const TEST_JOB_HISTORY = {
       vega: null,
       theta: null,
       rho: null,
+      runLabel: null,
+      promotedAt: null,
+      promotedBy: null,
     },
   ],
   totalCount: 1,
@@ -768,6 +771,9 @@ export const TEST_JOB_DETAIL = {
   varValue: 125000.50,
   expectedShortfall: 187500.75,
   pvValue: 5000000.00,
+  runLabel: null,
+  promotedAt: null,
+  promotedBy: null,
   steps: [
     {
       name: 'FETCH_POSITIONS',
