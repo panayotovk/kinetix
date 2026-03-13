@@ -14,7 +14,6 @@ import type { RunComparisonResponseDto, VaRAttributionDto } from '../types'
 
 const mockCompareDayOverDay = vi.mocked(api.compareDayOverDay)
 const mockCompareByJobIds = vi.mocked(api.compareByJobIds)
-const mockCompareModelVersions = vi.mocked(api.compareModelVersions)
 const mockRequestAttribution = vi.mocked(api.requestAttribution)
 
 function makeComparison(overrides: Partial<RunComparisonResponseDto> = {}): RunComparisonResponseDto {

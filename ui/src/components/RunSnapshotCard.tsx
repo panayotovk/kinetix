@@ -1,4 +1,5 @@
-import { Card } from './ui'
+import { Star } from 'lucide-react'
+import { Badge, Card } from './ui'
 import { formatNum } from '../utils/format'
 import type { RunSnapshotDto } from '../types'
 
@@ -12,8 +13,13 @@ export function RunSnapshotCard({ snapshot, title }: RunSnapshotCardProps) {
     <Card data-testid="run-snapshot-card">
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
             {title ?? snapshot.label}
+            {snapshot.label.includes('Official EOD') && (
+              <Badge variant="eod" data-testid="snapshot-eod-badge">
+                <Star className="h-3 w-3 mr-0.5 inline" />EOD
+              </Badge>
+            )}
           </h3>
           <span className="text-xs text-slate-500 dark:text-slate-400">
             {snapshot.valuationDate}

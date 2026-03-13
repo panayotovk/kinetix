@@ -28,13 +28,17 @@ class RunComparisonService(
         targetDate: LocalDate,
         baseDate: LocalDate,
     ): RunComparison {
-        val baseJob = jobRecorder.findLatestCompletedByDate(portfolioId, baseDate)
+        val baseJob = jobRecorder.findOfficialEodByDate(portfolioId, baseDate)
+            ?: jobRecorder.findLatestCompletedByDate(portfolioId, baseDate)
             ?: throw IllegalArgumentException("No completed job for portfolio $portfolioId on $baseDate")
-        val targetJob = jobRecorder.findLatestCompletedByDate(portfolioId, targetDate)
+        val targetJob = jobRecorder.findOfficialEodByDate(portfolioId, targetDate)
+            ?: jobRecorder.findLatestCompletedByDate(portfolioId, targetDate)
             ?: throw IllegalArgumentException("No completed job for portfolio $portfolioId on $targetDate")
 
-        val base = baseJob.toRunSnapshot("$baseDate")
-        val target = targetJob.toRunSnapshot("$targetDate")
+        val baseLabel = if (baseJob.runLabel == com.kinetix.risk.model.RunLabel.OFFICIAL_EOD) "Official EOD $baseDate" else "$baseDate"
+        val targetLabel = if (targetJob.runLabel == com.kinetix.risk.model.RunLabel.OFFICIAL_EOD) "Official EOD $targetDate" else "$targetDate"
+        val base = baseJob.toRunSnapshot(baseLabel)
+        val target = targetJob.toRunSnapshot(targetLabel)
         return compareSnapshots(base, target, ComparisonType.RUN_OVER_RUN, portfolioId)
     }
 

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useVaR } from '../hooks/useVaR'
 import { usePositionRisk } from '../hooks/usePositionRisk'
 import { useVarLimit } from '../hooks/useVarLimit'

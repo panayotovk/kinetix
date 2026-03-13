@@ -53,6 +53,13 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
     }
 
     override suspend fun update(job: ValuationJob): Unit = newSuspendedTransaction(db = db) {
+        val existing = ValuationJobsTable
+            .selectAll()
+            .where { ValuationJobsTable.jobId eq job.jobId }
+            .firstOrNull()
+        if (existing != null && existing[ValuationJobsTable.promotedAt] != null) {
+            throw IllegalStateException("Cannot modify promoted Official EOD job ${job.jobId}")
+        }
         ValuationJobsTable.update({ ValuationJobsTable.jobId eq job.jobId }) {
             it[status] = job.status.name
             it[completedAt] = job.completedAt?.let { ts -> OffsetDateTime.ofInstant(ts, ZoneOffset.UTC) }

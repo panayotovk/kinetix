@@ -7,6 +7,7 @@ import com.kinetix.risk.model.ComparisonType
 import com.kinetix.risk.model.ComponentBreakdown
 import com.kinetix.risk.model.ConfidenceLevel
 import com.kinetix.risk.model.PositionRisk
+import com.kinetix.risk.model.RunLabel
 import com.kinetix.risk.model.RunStatus
 import com.kinetix.risk.model.TriggerType
 import com.kinetix.risk.model.ValuationJob
@@ -124,10 +125,12 @@ class RunComparisonServiceTest : FunSpec({
         ex.message shouldBe "Target job not found: $targetJobId"
     }
 
-    test("compareDayOverDay finds latest completed for each date") {
+    test("compareDayOverDay falls back to latest completed when no Official EOD exists") {
         val baseJob = completedJob(valuationDate = BASE_DATE, varValue = 4500.0)
         val targetJob = completedJob(valuationDate = TARGET_DATE, varValue = 5500.0)
 
+        coEvery { jobRecorder.findOfficialEodByDate("port-1", BASE_DATE) } returns null
+        coEvery { jobRecorder.findOfficialEodByDate("port-1", TARGET_DATE) } returns null
         coEvery { jobRecorder.findLatestCompletedByDate("port-1", BASE_DATE) } returns baseJob
         coEvery { jobRecorder.findLatestCompletedByDate("port-1", TARGET_DATE) } returns targetJob
 
@@ -145,7 +148,52 @@ class RunComparisonServiceTest : FunSpec({
         comparison.targetRun.label shouldBe "$TARGET_DATE"
     }
 
+    test("compareDayOverDay prefers Official EOD over latest completed") {
+        val officialEodJob = completedJob(
+            valuationDate = BASE_DATE,
+            varValue = 4000.0,
+        ).copy(runLabel = RunLabel.OFFICIAL_EOD)
+        val latestCompletedJob = completedJob(valuationDate = BASE_DATE, varValue = 4500.0)
+        val targetJob = completedJob(valuationDate = TARGET_DATE, varValue = 5500.0)
+
+        coEvery { jobRecorder.findOfficialEodByDate("port-1", BASE_DATE) } returns officialEodJob
+        coEvery { jobRecorder.findOfficialEodByDate("port-1", TARGET_DATE) } returns null
+        coEvery { jobRecorder.findLatestCompletedByDate("port-1", TARGET_DATE) } returns targetJob
+
+        val comparison = service.compareDayOverDay(
+            portfolioId = "port-1",
+            targetDate = TARGET_DATE,
+            baseDate = BASE_DATE,
+        )
+
+        comparison.baseRun.varValue shouldBe 4000.0
+        comparison.baseRun.label shouldBe "Official EOD $BASE_DATE"
+        comparison.targetRun.varValue shouldBe 5500.0
+        comparison.targetRun.label shouldBe "$TARGET_DATE"
+    }
+
+    test("compareDayOverDay labels both runs as Official EOD when both are promoted") {
+        val baseEod = completedJob(valuationDate = BASE_DATE, varValue = 4000.0)
+            .copy(runLabel = RunLabel.OFFICIAL_EOD)
+        val targetEod = completedJob(valuationDate = TARGET_DATE, varValue = 5500.0)
+            .copy(runLabel = RunLabel.OFFICIAL_EOD)
+
+        coEvery { jobRecorder.findOfficialEodByDate("port-1", BASE_DATE) } returns baseEod
+        coEvery { jobRecorder.findOfficialEodByDate("port-1", TARGET_DATE) } returns targetEod
+
+        val comparison = service.compareDayOverDay(
+            portfolioId = "port-1",
+            targetDate = TARGET_DATE,
+            baseDate = BASE_DATE,
+        )
+
+        comparison.baseRun.label shouldBe "Official EOD $BASE_DATE"
+        comparison.targetRun.label shouldBe "Official EOD $TARGET_DATE"
+    }
+
     test("compareDayOverDay throws when no completed job for base date") {
+        coEvery { jobRecorder.findOfficialEodByDate("port-1", BASE_DATE) } returns null
+        coEvery { jobRecorder.findOfficialEodByDate("port-1", TARGET_DATE) } returns null
         coEvery { jobRecorder.findLatestCompletedByDate("port-1", BASE_DATE) } returns null
         coEvery { jobRecorder.findLatestCompletedByDate("port-1", TARGET_DATE) } returns completedJob(valuationDate = TARGET_DATE)
 
