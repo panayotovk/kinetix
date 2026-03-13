@@ -310,7 +310,7 @@ export function JobHistory({ portfolioId, refreshSignal = 0, onCompareJobs }: Jo
                         <ChevronDown className="h-3 w-3" />
                       </button>
                       {pageSizeOpen && (
-                        <ul className="absolute left-full top-0 ml-0.5 flex items-center bg-white border border-slate-200 rounded shadow-sm z-10">
+                        <ul className="absolute right-full top-0 mr-0.5 flex items-center bg-white border border-slate-200 rounded shadow-sm z-10">
                           {[10, 20, 50].map((size) => (
                             <li key={size}>
                               <button
