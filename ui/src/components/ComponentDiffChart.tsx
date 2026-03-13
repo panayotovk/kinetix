@@ -1,3 +1,4 @@
+import { useRef, useState, useEffect } from 'react'
 import { Card } from './ui'
 import { formatNum } from '../utils/format'
 import type { ComponentDiffDto } from '../types'
@@ -8,22 +9,30 @@ interface ComponentDiffChartProps {
 
 const BAR_COLORS = {
   base: {
-    fill: 'fill-blue-400 dark:fill-blue-500',
+    bg: 'bg-blue-400 dark:bg-blue-500',
     text: 'text-blue-600 dark:text-blue-400',
   },
   target: {
-    fill: 'fill-indigo-400 dark:fill-indigo-500',
+    bg: 'bg-indigo-400 dark:bg-indigo-500',
     text: 'text-indigo-600 dark:text-indigo-400',
   },
 }
 
-const BAR_HEIGHT = 20
-const LABEL_WIDTH = 100
-const CHART_WIDTH = 400
-const ROW_GAP = 28 // space between base+target pair and next asset class
-const PAIR_GAP = 2 // gap between base and target bar within a pair
-
 export function ComponentDiffChart({ diffs }: ComponentDiffChartProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [containerWidth, setContainerWidth] = useState(0)
+
+  useEffect(() => {
+    if (!containerRef.current) return
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width)
+      }
+    })
+    observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [])
+
   if (diffs.length === 0) return null
 
   const maxVal = Math.max(
@@ -34,9 +43,9 @@ export function ComponentDiffChart({ diffs }: ComponentDiffChartProps) {
     1,
   )
 
-  const barAreaWidth = CHART_WIDTH - LABEL_WIDTH - 20
-  const rowHeight = BAR_HEIGHT * 2 + PAIR_GAP + ROW_GAP
-  const chartHeight = diffs.length * rowHeight + 10
+  const labelWidth = 90
+  const valueWidth = 70
+  const barAreaWidth = Math.max(containerWidth - labelWidth - valueWidth, 40)
 
   return (
     <Card data-testid="component-diff-chart">
@@ -48,70 +57,51 @@ export function ComponentDiffChart({ diffs }: ComponentDiffChartProps) {
           <span className={BAR_COLORS.base.text}>Base</span>
           <span className={BAR_COLORS.target.text}>Target</span>
         </div>
-        <svg
-          width="100%"
-          viewBox={`0 0 ${CHART_WIDTH} ${chartHeight}`}
-          className="overflow-visible"
+        <div
+          ref={containerRef}
+          className="min-w-0 space-y-3"
           role="img"
           aria-label="Component breakdown comparison chart"
         >
-          {diffs.map((d, i) => {
-            const y = i * rowHeight + 10
-            const baseWidth = (Math.abs(Number(d.baseContribution)) / maxVal) * barAreaWidth
-            const targetWidth = (Math.abs(Number(d.targetContribution)) / maxVal) * barAreaWidth
+          {diffs.map((d) => {
+            const basePct = (Math.abs(Number(d.baseContribution)) / maxVal) * 100
+            const targetPct = (Math.abs(Number(d.targetContribution)) / maxVal) * 100
 
             return (
-              <g key={d.assetClass}>
-                <text
-                  x={0}
-                  y={y + 12}
-                  className="fill-slate-600 dark:fill-slate-300"
-                  fontSize="11"
-                >
+              <div key={d.assetClass} className="space-y-1">
+                <div className="text-xs text-slate-600 dark:text-slate-300 truncate">
                   {d.assetClass}
-                </text>
-
+                </div>
                 {/* Base bar */}
-                <rect
-                  x={LABEL_WIDTH}
-                  y={y}
-                  width={baseWidth}
-                  height={BAR_HEIGHT}
-                  rx={3}
-                  className={BAR_COLORS.base.fill}
-                  aria-label={`Base ${d.assetClass}: ${formatNum(d.baseContribution)}`}
-                />
-                <text
-                  x={LABEL_WIDTH + baseWidth + 4}
-                  y={y + 14}
-                  className="fill-slate-500 dark:fill-slate-400"
-                  fontSize="10"
-                >
-                  {formatNum(d.baseContribution)}
-                </text>
-
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className={`h-5 rounded ${BAR_COLORS.base.bg}`}
+                      style={{ width: `${basePct}%` }}
+                      aria-label={`Base ${d.assetClass}: ${formatNum(d.baseContribution)}`}
+                    />
+                  </div>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 w-16 text-right flex-shrink-0 tabular-nums">
+                    {formatNum(d.baseContribution)}
+                  </span>
+                </div>
                 {/* Target bar */}
-                <rect
-                  x={LABEL_WIDTH}
-                  y={y + BAR_HEIGHT + PAIR_GAP}
-                  width={targetWidth}
-                  height={BAR_HEIGHT}
-                  rx={3}
-                  className={BAR_COLORS.target.fill}
-                  aria-label={`Target ${d.assetClass}: ${formatNum(d.targetContribution)}`}
-                />
-                <text
-                  x={LABEL_WIDTH + targetWidth + 4}
-                  y={y + BAR_HEIGHT + PAIR_GAP + 14}
-                  className="fill-slate-500 dark:fill-slate-400"
-                  fontSize="10"
-                >
-                  {formatNum(d.targetContribution)}
-                </text>
-              </g>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className={`h-5 rounded ${BAR_COLORS.target.bg}`}
+                      style={{ width: `${targetPct}%` }}
+                      aria-label={`Target ${d.assetClass}: ${formatNum(d.targetContribution)}`}
+                    />
+                  </div>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 w-16 text-right flex-shrink-0 tabular-nums">
+                    {formatNum(d.targetContribution)}
+                  </span>
+                </div>
+              </div>
             )
           })}
-        </svg>
+        </div>
       </div>
     </Card>
   )
