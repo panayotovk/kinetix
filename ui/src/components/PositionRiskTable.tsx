@@ -37,16 +37,16 @@ function pctColorClass(pct: number): string {
   return ''
 }
 
-const COLUMNS: { label: string; field: SortField; sortable: true }[] = [
-  { label: 'Market Value', field: 'marketValue', sortable: true },
-  { label: 'Delta ($/1%)', field: 'delta', sortable: true },
+const COLUMNS: { label: string; tooltip?: string; field: SortField; sortable: true }[] = [
+  { label: 'Mkt Value', field: 'marketValue', sortable: true },
+  { label: 'Delta', tooltip: '$/1% move', field: 'delta', sortable: true },
   { label: 'Gamma', field: 'gamma', sortable: true },
-  { label: 'Vega ($/1pp)', field: 'vega', sortable: true },
-  { label: 'Theta ($/day)', field: 'theta', sortable: true },
-  { label: 'Rho ($/bp)', field: 'rho', sortable: true },
-  { label: 'VaR Contribution', field: 'varContribution', sortable: true },
-  { label: 'ES Contribution', field: 'esContribution', sortable: true },
-  { label: '% of Total', field: 'percentageOfTotal', sortable: true },
+  { label: 'Vega', tooltip: '$/1pp vol', field: 'vega', sortable: true },
+  { label: 'Theta', tooltip: '$/day', field: 'theta', sortable: true },
+  { label: 'Rho', tooltip: '$/bp', field: 'rho', sortable: true },
+  { label: 'VaR Contrib', field: 'varContribution', sortable: true },
+  { label: 'ES Contrib', field: 'esContribution', sortable: true },
+  { label: '% Total', field: 'percentageOfTotal', sortable: true },
 ]
 
 export function PositionRiskTable({ data, loading, error }: PositionRiskTableProps) {
@@ -145,7 +145,7 @@ export function PositionRiskTable({ data, loading, error }: PositionRiskTablePro
 
         {!loading && !error && data.length > 0 && expanded && (
           <div data-testid="position-risk-table" className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            <table className="min-w-[900px] text-sm">
               <thead>
                 <tr className="text-left text-xs text-slate-500 border-b border-slate-200">
                   <th className="py-2 pr-3 pl-4">Instrument</th>
@@ -154,8 +154,9 @@ export function PositionRiskTable({ data, loading, error }: PositionRiskTablePro
                     <th
                       key={col.field}
                       data-testid={`sort-${col.field}`}
-                      className="py-2 pr-3 text-right cursor-pointer select-none"
+                      className="py-2 pr-3 text-right cursor-pointer select-none whitespace-nowrap"
                       onClick={() => handleSort(col.field)}
+                      title={col.tooltip}
                     >
                       {col.label} {sortIcon(col.field)}
                     </th>
