@@ -44,6 +44,12 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 
 - **Never delete or remove a test** (test file, test function, or test assertion) without my explicit permission. If a test is failing, fix the code under test or fix the test — do not delete it to make the build pass. Always explain the failure and ask before removing any test.
 
+## Commit Practices
+
+- **Commit frequently during implementation.** After completing each logical, working unit of change, create a commit. Do not wait until the entire task is finished to commit.
+- **Each commit should be self-contained.** The codebase must build and tests must pass after every commit. Never commit half-finished work that breaks the build.
+- **Don't batch unrelated changes.** Keep commits focused — one concern per commit. If a plan involves multiple steps, each step should typically be its own commit.
+
 ## Communication Style
 
 - **Always end with a summary.** When a task is done, finish with a single short sentence summarising what was accomplished.
