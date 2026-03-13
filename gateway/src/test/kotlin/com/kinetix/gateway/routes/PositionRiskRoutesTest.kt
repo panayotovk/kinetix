@@ -83,4 +83,28 @@ class PositionRiskRoutesTest : FunSpec({
             response.status shouldBe HttpStatusCode.NotFound
         }
     }
+
+    test("GET forwards valuationDate query parameter to the client") {
+        coEvery { riskClient.getPositionRisk("port-1", "2025-01-14") } returns samplePositionRisk
+
+        testApplication {
+            application { module(riskClient) }
+            val response = client.get("/api/v1/risk/positions/port-1?valuationDate=2025-01-14")
+
+            response.status shouldBe HttpStatusCode.OK
+            coVerify { riskClient.getPositionRisk("port-1", "2025-01-14") }
+        }
+    }
+
+    test("GET without valuationDate passes null to the client") {
+        coEvery { riskClient.getPositionRisk("port-1", null) } returns samplePositionRisk
+
+        testApplication {
+            application { module(riskClient) }
+            val response = client.get("/api/v1/risk/positions/port-1")
+
+            response.status shouldBe HttpStatusCode.OK
+            coVerify { riskClient.getPositionRisk("port-1", null) }
+        }
+    }
 })

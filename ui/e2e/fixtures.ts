@@ -653,6 +653,37 @@ export const TEST_VAR_RESULT = {
   computedOutputs: ['VAR', 'EXPECTED_SHORTFALL', 'GREEKS', 'PV'],
 }
 
+export const TEST_HISTORICAL_VAR_RESULT = {
+  portfolioId: 'port-1',
+  varValue: '98000.25',
+  expectedShortfall: '147000.38',
+  confidenceLevel: 'CL_95',
+  calculationType: 'PARAMETRIC',
+  componentBreakdown: [
+    { assetClass: 'EQUITY', varContribution: '63000.15', percentageOfTotal: '64' },
+    { assetClass: 'FX', varContribution: '35000.10', percentageOfTotal: '36' },
+  ],
+  calculatedAt: '2025-01-14T18:00:00Z',
+  greeks: {
+    portfolioId: 'port-1',
+    assetClassGreeks: [
+      { assetClass: 'EQUITY', delta: '1200.00', gamma: '20.00', vega: '650.00' },
+      { assetClass: 'FX', delta: '400.00', gamma: '8.00', vega: '150.00' },
+    ],
+    theta: '-280.00',
+    rho: '95.00',
+    calculatedAt: '2025-01-14T18:00:00Z',
+  },
+  pvValue: '4500000.00',
+  computedOutputs: ['VAR', 'EXPECTED_SHORTFALL', 'GREEKS', 'PV'],
+  valuationDate: '2025-01-14',
+}
+
+export const TEST_HISTORICAL_POSITION_RISK: PositionRiskFixture[] = [
+  { instrumentId: 'AAPL', assetClass: 'EQUITY', marketValue: '14800.00', delta: '148.00', gamma: '2.30', vega: '42.00', theta: '-11.50', rho: '7.50', varContribution: '4200.00', esContribution: '6300.00', percentageOfTotal: '38.00' },
+  { instrumentId: 'EUR_USD', assetClass: 'FX', marketValue: '10200.00', delta: '102.00', gamma: null, vega: null, theta: null, rho: '14.00', varContribution: '2800.00', esContribution: '4200.00', percentageOfTotal: '25.00' },
+]
+
 export const TEST_POSITION_RISK_FULL: PositionRiskFixture[] = [
   { instrumentId: 'AAPL', assetClass: 'EQUITY', marketValue: '15500.00', delta: '155.00', gamma: '2.50', vega: '45.00', theta: '-12.50', rho: '8.00', varContribution: '5000.00', esContribution: '7500.00', percentageOfTotal: '35.00' },
   { instrumentId: 'EUR_USD', assetClass: 'FX', marketValue: '10850.00', delta: '108.50', gamma: null, vega: null, theta: null, rho: '15.00', varContribution: '3000.00', esContribution: '4500.00', percentageOfTotal: '21.00' },
@@ -787,8 +818,10 @@ export const TEST_PNL_ATTRIBUTION = {
 export interface MockRiskTabOptions {
   varResult?: object | null
   varStatus?: number
+  historicalVarResult?: object | null
   positionRisk?: object[] | null
   positionRiskStatus?: number
+  historicalPositionRisk?: object[] | null
   jobHistory?: object | null
   jobDetail?: object | null
   rules?: object[]
@@ -903,13 +936,16 @@ export async function mockRiskTabRoutes(
 
   // 10. Position risk
   await page.route('**/api/v1/risk/positions/*', (route: Route) => {
-    if (opts.positionRisk === undefined || opts.positionRisk === null) {
+    const url = route.request().url()
+    const isHistorical = url.includes('valuationDate=')
+    const data = isHistorical ? (opts.historicalPositionRisk ?? opts.positionRisk) : opts.positionRisk
+    if (data === undefined || data === null) {
       route.fulfill({ status: opts.positionRiskStatus ?? 404, contentType: 'application/json', body: JSON.stringify([]) })
     } else {
       route.fulfill({
         status: opts.positionRiskStatus ?? 200,
         contentType: 'application/json',
-        body: JSON.stringify(opts.positionRisk),
+        body: JSON.stringify(data),
       })
     }
   })
@@ -929,13 +965,16 @@ export async function mockRiskTabRoutes(
         route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
       }
     } else {
-      if (opts.varResult === undefined || opts.varResult === null) {
+      const url = route.request().url()
+      const isHistorical = url.includes('valuationDate=')
+      const result = isHistorical ? (opts.historicalVarResult ?? opts.varResult) : opts.varResult
+      if (result === undefined || result === null) {
         route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
       } else {
         route.fulfill({
           status: opts.varStatus ?? 200,
           contentType: 'application/json',
-          body: JSON.stringify(opts.varResult),
+          body: JSON.stringify(result),
         })
       }
     }

@@ -154,6 +154,33 @@ class VaRRoutesTest : FunSpec({
         }
     }
 
+    // --- Valuation Date ---
+
+    test("GET forwards valuationDate query parameter to the client") {
+        val historicalResult = sampleResult.copy(valuationDate = "2025-01-14")
+        coEvery { riskClient.getLatestVaR("port-1", "2025-01-14") } returns historicalResult
+
+        testApplication {
+            application { module(riskClient) }
+            val response = client.get("/api/v1/risk/var/port-1?valuationDate=2025-01-14")
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["valuationDate"]?.jsonPrimitive?.content shouldBe "2025-01-14"
+            coVerify { riskClient.getLatestVaR("port-1", "2025-01-14") }
+        }
+    }
+
+    test("GET without valuationDate passes null to the client") {
+        coEvery { riskClient.getLatestVaR("port-1", null) } returns sampleResult
+
+        testApplication {
+            application { module(riskClient) }
+            val response = client.get("/api/v1/risk/var/port-1")
+            response.status shouldBe HttpStatusCode.OK
+            coVerify { riskClient.getLatestVaR("port-1", null) }
+        }
+    }
+
     // --- Regression ---
 
     test("GET /health still works with risk routes installed") {

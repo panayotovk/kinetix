@@ -3,7 +3,9 @@ import {
   mockAllApiRoutes,
   mockRiskTabRoutes,
   TEST_VAR_RESULT,
+  TEST_HISTORICAL_VAR_RESULT,
   TEST_POSITION_RISK_FULL,
+  TEST_HISTORICAL_POSITION_RISK,
   TEST_JOB_HISTORY,
   TEST_JOB_DETAIL,
   TEST_ALERTS,
@@ -936,5 +938,126 @@ test.describe('Job History', () => {
     await expect(page.getByTestId('stress-summary-card')).toBeVisible()
     await expect(page.getByTestId('job-history')).toBeVisible()
     await expect(page.getByTestId('risk-alert-banner')).toBeVisible()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Valuation Date Picker
+// ---------------------------------------------------------------------------
+
+test.describe('Valuation Date Picker', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockAllApiRoutes(page)
+  })
+
+  test('selecting Yesterday loads historical VaR and position risk data', async ({ page }) => {
+    await mockRiskTabRoutes(page, {
+      varResult: TEST_VAR_RESULT,
+      historicalVarResult: TEST_HISTORICAL_VAR_RESULT,
+      positionRisk: TEST_POSITION_RISK_FULL,
+      historicalPositionRisk: TEST_HISTORICAL_POSITION_RISK,
+    })
+
+    await goToRiskTab(page)
+    await page.waitForSelector('[data-testid="var-dashboard"]')
+
+    // Live mode: shows current VaR
+    await expect(page.getByTestId('var-dashboard')).toContainText('125,000')
+
+    // Click Yesterday
+    await page.getByTestId('vdate-yesterday').click()
+
+    // Should show historical badge
+    await expect(page.getByTestId('historical-badge')).toBeVisible()
+    await expect(page.getByTestId('historical-badge')).toContainText('Historical')
+
+    // Should show historical VaR value
+    await expect(page.getByTestId('var-dashboard')).toContainText('98,000')
+
+    // Should show the valuation date label
+    await expect(page.getByTestId('valuation-date-label')).toContainText('2025-01-14')
+  })
+
+  test('selecting Yesterday shows historical position risk data', async ({ page }) => {
+    await mockRiskTabRoutes(page, {
+      varResult: TEST_VAR_RESULT,
+      historicalVarResult: TEST_HISTORICAL_VAR_RESULT,
+      positionRisk: TEST_POSITION_RISK_FULL,
+      historicalPositionRisk: TEST_HISTORICAL_POSITION_RISK,
+    })
+
+    await goToRiskTab(page)
+    await page.waitForSelector('[data-testid="position-risk-section"]')
+
+    // Live mode: 3 positions
+    await expect(page.getByTestId('position-risk-section')).toContainText('GOOGL')
+
+    // Click Yesterday
+    await page.getByTestId('vdate-yesterday').click()
+
+    // Wait for historical data — GOOGL should disappear (only 2 positions in historical)
+    await expect(page.getByTestId('position-risk-section')).not.toContainText('GOOGL')
+    await expect(page.getByTestId('position-risk-section')).toContainText('AAPL')
+    await expect(page.getByTestId('position-risk-section')).toContainText('EUR_USD')
+  })
+
+  test('switching back to Today restores live data', async ({ page }) => {
+    await mockRiskTabRoutes(page, {
+      varResult: TEST_VAR_RESULT,
+      historicalVarResult: TEST_HISTORICAL_VAR_RESULT,
+      positionRisk: TEST_POSITION_RISK_FULL,
+      historicalPositionRisk: TEST_HISTORICAL_POSITION_RISK,
+    })
+
+    await goToRiskTab(page)
+    await page.waitForSelector('[data-testid="var-dashboard"]')
+
+    // Switch to Yesterday
+    await page.getByTestId('vdate-yesterday').click()
+    await expect(page.getByTestId('historical-badge')).toBeVisible()
+    await expect(page.getByTestId('var-dashboard')).toContainText('98,000')
+
+    // Switch back to Today
+    await page.getByTestId('vdate-today').click()
+
+    // Historical badge should disappear
+    await expect(page.getByTestId('historical-badge')).not.toBeVisible()
+
+    // Live VaR should be restored
+    await expect(page.getByTestId('var-dashboard')).toContainText('125,000')
+  })
+
+  test('valuationDate query parameter is sent to the API', async ({ page }) => {
+    const varRequests: string[] = []
+
+    await mockRiskTabRoutes(page, {
+      varResult: TEST_VAR_RESULT,
+      historicalVarResult: TEST_HISTORICAL_VAR_RESULT,
+      positionRisk: TEST_POSITION_RISK_FULL,
+      historicalPositionRisk: TEST_HISTORICAL_POSITION_RISK,
+    })
+
+    // Intercept VaR GET requests to capture URLs
+    await page.unroute('**/api/v1/risk/var/*')
+    await page.route('**/api/v1/risk/var/*', (route) => {
+      const url = route.request().url()
+      if (route.request().method() === 'GET') {
+        varRequests.push(url)
+      }
+      const isHistorical = url.includes('valuationDate=')
+      const result = isHistorical ? TEST_HISTORICAL_VAR_RESULT : TEST_VAR_RESULT
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(result) })
+    })
+
+    await goToRiskTab(page)
+    await page.waitForSelector('[data-testid="var-dashboard"]')
+
+    // Click Yesterday
+    await page.getByTestId('vdate-yesterday').click()
+    await expect(page.getByTestId('historical-badge')).toBeVisible()
+
+    // Verify at least one request included valuationDate
+    const historicalRequest = varRequests.find((u) => u.includes('valuationDate='))
+    expect(historicalRequest).toBeTruthy()
   })
 })
