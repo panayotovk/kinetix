@@ -5,6 +5,7 @@ import {
   TEST_VAR_RESULT,
   TEST_POSITION_RISK_FULL,
   TEST_JOB_HISTORY,
+  TEST_JOB_DETAIL,
   TEST_ALERTS,
   TEST_VAR_LIMIT_RULE,
   TEST_PNL_ATTRIBUTION,
@@ -850,15 +851,10 @@ test.describe('Job History', () => {
     // initial job history, then override the jobs route specifically.
     await mockRiskTabRoutes(page, {})
 
-    // Override job history: unroute existing, then re-register catch-all first,
-    // then the specific handler (so specific takes priority).
+    // Override job history: unroute existing, then re-register with pagination logic.
     await page.unroute('**/api/v1/risk/jobs/*')
     await page.route('**/api/v1/risk/jobs/*', (route) => {
       const url = route.request().url()
-      if (url.includes('/detail/')) {
-        route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
-        return
-      }
       const urlObj = new URL(url)
       const limit = parseInt(urlObj.searchParams.get('limit') ?? '10', 10)
       const offset = parseInt(urlObj.searchParams.get('offset') ?? '0', 10)
@@ -893,6 +889,32 @@ test.describe('Job History', () => {
 
     // Previous button becomes enabled
     await expect(page.getByTestId('pagination-prev')).toBeEnabled()
+  })
+
+  test('clicking a job row expands it and shows the job timeline', async ({ page }) => {
+    await mockRiskTabRoutes(page, {
+      jobHistory: TEST_JOB_HISTORY,
+      jobDetail: TEST_JOB_DETAIL,
+    })
+
+    await goToRiskTab(page)
+    await page.waitForSelector('[data-testid="job-history-table"]')
+
+    // Click the job row to expand it
+    await page.getByTestId('job-row-job-1').click()
+
+    // Wait for the detail panel to appear
+    await expect(page.getByTestId('job-detail-row-job-1')).toBeVisible()
+    await expect(page.getByTestId('job-detail-panel')).toBeVisible()
+
+    // Verify the job timeline shows the steps from the detail response
+    await expect(page.getByTestId('job-detail-panel')).toContainText('FETCH_POSITIONS')
+    await expect(page.getByTestId('job-detail-panel')).toContainText('FETCH_MARKET_DATA')
+    await expect(page.getByTestId('job-detail-panel')).toContainText('CALCULATE_RISK')
+
+    // Click close to collapse
+    await page.getByTestId('close-detail-job-1').click()
+    await expect(page.getByTestId('job-detail-row-job-1')).not.toBeVisible()
   })
 
   test('full Risk tab renders all major sections', async ({ page }) => {

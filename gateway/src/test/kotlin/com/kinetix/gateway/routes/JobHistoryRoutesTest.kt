@@ -1,6 +1,8 @@
 package com.kinetix.gateway.routes
 
+import com.kinetix.gateway.client.JobStepItem
 import com.kinetix.gateway.client.RiskServiceClient
+import com.kinetix.gateway.client.ValuationJobDetailItem
 import com.kinetix.gateway.client.ValuationJobSummaryItem
 import com.kinetix.gateway.module
 import io.kotest.core.spec.style.FunSpec
@@ -77,6 +79,63 @@ class JobHistoryRoutesTest : FunSpec({
             val response = client.get("/api/v1/risk/jobs/port-1?from=not-a-timestamp")
 
             response.status shouldBe HttpStatusCode.BadRequest
+        }
+    }
+
+    test("returns job detail with steps for a known job") {
+        val detail = ValuationJobDetailItem(
+            jobId = "11111111-1111-1111-1111-111111111111",
+            portfolioId = "port-1",
+            triggerType = "ON_DEMAND",
+            status = "COMPLETED",
+            startedAt = Instant.parse("2025-01-15T10:00:00Z"),
+            completedAt = Instant.parse("2025-01-15T10:00:00.150Z"),
+            durationMs = 150,
+            calculationType = "PARAMETRIC",
+            confidenceLevel = "CL_95",
+            varValue = 5000.0,
+            expectedShortfall = 6250.0,
+            pvValue = 1_800_000.0,
+            steps = listOf(
+                JobStepItem(
+                    name = "FETCH_POSITIONS",
+                    status = "COMPLETED",
+                    startedAt = Instant.parse("2025-01-15T10:00:00Z"),
+                    completedAt = Instant.parse("2025-01-15T10:00:00.020Z"),
+                    durationMs = 20,
+                    details = mapOf("positionCount" to "5"),
+                    error = null,
+                ),
+            ),
+            error = null,
+            valuationDate = "2025-01-15",
+        )
+        coEvery { riskClient.getValuationJobDetail("11111111-1111-1111-1111-111111111111") } returns detail
+
+        testApplication {
+            application { module(riskClient) }
+
+            val response = client.get("/api/v1/risk/jobs/detail/11111111-1111-1111-1111-111111111111")
+
+            response.status shouldBe HttpStatusCode.OK
+            val body = response.bodyAsText()
+            body shouldContain "FETCH_POSITIONS"
+            body shouldContain "positionCount"
+            body shouldContain "CL_95"
+            body shouldContain "5000.0"
+            body shouldContain "2025-01-15"
+        }
+    }
+
+    test("returns 404 for unknown job detail") {
+        coEvery { riskClient.getValuationJobDetail("99999999-9999-9999-9999-999999999999") } returns null
+
+        testApplication {
+            application { module(riskClient) }
+
+            val response = client.get("/api/v1/risk/jobs/detail/99999999-9999-9999-9999-999999999999")
+
+            response.status shouldBe HttpStatusCode.NotFound
         }
     }
 })

@@ -724,6 +724,52 @@ export const TEST_VAR_LIMIT_RULE = [
   },
 ]
 
+export const TEST_JOB_DETAIL = {
+  jobId: 'job-1',
+  portfolioId: 'port-1',
+  triggerType: 'ON_DEMAND',
+  status: 'COMPLETED',
+  startedAt: '2025-01-15T12:00:00Z',
+  completedAt: '2025-01-15T12:00:05Z',
+  durationMs: 5000,
+  calculationType: 'PARAMETRIC',
+  confidenceLevel: 'CL_95',
+  varValue: 125000.50,
+  expectedShortfall: 187500.75,
+  pvValue: 5000000.00,
+  steps: [
+    {
+      name: 'FETCH_POSITIONS',
+      status: 'COMPLETED',
+      startedAt: '2025-01-15T12:00:00Z',
+      completedAt: '2025-01-15T12:00:01Z',
+      durationMs: 1000,
+      details: { positionCount: '5' },
+      error: null,
+    },
+    {
+      name: 'FETCH_MARKET_DATA',
+      status: 'COMPLETED',
+      startedAt: '2025-01-15T12:00:01Z',
+      completedAt: '2025-01-15T12:00:02Z',
+      durationMs: 1000,
+      details: {},
+      error: null,
+    },
+    {
+      name: 'CALCULATE_RISK',
+      status: 'COMPLETED',
+      startedAt: '2025-01-15T12:00:02Z',
+      completedAt: '2025-01-15T12:00:05Z',
+      durationMs: 3000,
+      details: {},
+      error: null,
+    },
+  ],
+  error: null,
+  valuationDate: '2025-01-15',
+}
+
 export const TEST_PNL_ATTRIBUTION = {
   totalPnl: '15250.00',
   deltaPnl: '8500.00',
@@ -744,6 +790,7 @@ export interface MockRiskTabOptions {
   positionRisk?: object[] | null
   positionRiskStatus?: number
   jobHistory?: object | null
+  jobDetail?: object | null
   rules?: object[]
   alerts?: object[]
   sodStatus?: object | null
@@ -839,15 +886,19 @@ export async function mockRiskTabRoutes(
     }
   })
 
-  // 9. Job history
+  // 9. Job history (list)
   await page.route('**/api/v1/risk/jobs/*', (route: Route) => {
-    const url = route.request().url()
-    if (url.includes('/detail/')) {
-      route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
-      return
-    }
     const data = opts.jobHistory ?? { items: [], totalCount: 0 }
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(data) })
+  })
+
+  // 9b. Job detail (more specific — registered after so it takes priority)
+  await page.route('**/api/v1/risk/jobs/detail/*', (route: Route) => {
+    if (opts.jobDetail) {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(opts.jobDetail) })
+    } else {
+      route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
+    }
   })
 
   // 10. Position risk
