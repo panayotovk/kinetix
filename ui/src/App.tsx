@@ -119,6 +119,7 @@ function App() {
               data-testid="portfolio-selector"
               value={portfolioId ?? ''}
               onChange={(e) => handlePortfolioChange(e.target.value)}
+              aria-label="Select portfolio"
               className="bg-surface-800 border border-surface-700 text-white rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             >
               {portfolios.length > 1 && (
