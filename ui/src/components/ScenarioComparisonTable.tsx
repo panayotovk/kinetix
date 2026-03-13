@@ -60,7 +60,7 @@ export function ScenarioComparisonTable({
   const showCheckboxes = !!onToggleCheck
 
   return (
-    <div data-testid="scenario-comparison-table">
+    <div data-testid="scenario-comparison-table" className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b text-left text-slate-600 dark:text-slate-400">
@@ -116,7 +116,7 @@ export function ScenarioComparisonTable({
                     <ChevronRight className="h-4 w-4" />
                   )}
                 </td>
-                <td className="py-1.5 font-medium">
+                <td className="py-1.5 font-medium max-w-[240px] truncate">
                   {(() => {
                     const meta = scenarioMetadata?.find(
                       (s) => s.name === r.scenarioName || s.name.replace(/_/g, ' ') === r.scenarioName.replace(/_/g, ' '),
