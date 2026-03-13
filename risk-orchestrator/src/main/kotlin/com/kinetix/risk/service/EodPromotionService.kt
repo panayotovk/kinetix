@@ -54,6 +54,13 @@ class EodPromotionService(
 
             sample.stop(meterRegistry.timer("eod.promotion.duration"))
             meterRegistry.counter("eod.promotion.requests", "result", "success").increment()
+            meterRegistry.gauge(
+                "eod.promotion.last_timestamp",
+                listOf(
+                    io.micrometer.core.instrument.Tag.of("portfolio_id", promoted.portfolioId),
+                ),
+                promoted.promotedAt!!.epochSecond.toDouble(),
+            )
             return promoted
         } catch (e: Exception) {
             sample.stop(meterRegistry.timer("eod.promotion.duration"))

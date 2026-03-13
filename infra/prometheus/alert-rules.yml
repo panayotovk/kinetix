@@ -88,6 +88,50 @@ groups:
           summary: "JVM heap usage above 90% on {{ $labels.job }}"
           description: "{{ $labels.job }} heap usage is {{ $value | humanizePercentage }}"
 
+  - name: kinetix-eod
+    rules:
+      - alert: NoOfficialEodPromoted
+        expr: |
+          (
+            hour() >= 18
+            and day_of_week() >= 1 and day_of_week() <= 5
+            and absent(eod_promotion_last_timestamp)
+          )
+          or
+          (
+            hour() >= 18
+            and day_of_week() >= 1 and day_of_week() <= 5
+            and (time() - eod_promotion_last_timestamp) > 86400
+          )
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No Official EOD promoted today"
+          description: "No Official EOD run has been promoted by 18:00 on a business day. Regulatory reporting may be affected."
+
+      - alert: EodPromotionHighErrorRate
+        expr: >
+          sum(rate(eod_promotion_requests_total{result="error"}[5m]))
+          /
+          sum(rate(eod_promotion_requests_total[5m]))
+          > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "EOD promotion endpoint error rate exceeds 10%"
+          description: "EOD promotion error rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+
+      - alert: EodPromotionConflict
+        expr: increase(eod_promotion_requests_total{result="error"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "EOD promotion attempt failed"
+          description: "An EOD promotion request failed — possible conflict or validation error"
+
   - name: kinetix-database
     rules:
       - alert: DBPoolExhausted
