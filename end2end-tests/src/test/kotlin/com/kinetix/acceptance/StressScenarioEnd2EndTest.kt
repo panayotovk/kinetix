@@ -15,10 +15,14 @@ import io.ktor.server.testing.*
 import io.mockk.mockk
 import kotlinx.serialization.json.*
 import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.utility.DockerImageName
 
 class StressScenarioEnd2EndTest : BehaviorSpec({
 
-    val regulatoryDb = PostgreSQLContainer("postgres:17-alpine")
+    val regulatoryDb = PostgreSQLContainer(
+        DockerImageName.parse("timescale/timescaledb:latest-pg17")
+            .asCompatibleSubstituteFor("postgres")
+    )
         .withDatabaseName("regulatory_test")
         .withUsername("test")
         .withPassword("test")
