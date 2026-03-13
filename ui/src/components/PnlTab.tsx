@@ -46,7 +46,7 @@ export function PnlTab({ portfolioId }: PnlTabProps) {
     setComputedData(null)
   }, [sod])
 
-  if (pnlLoading && sod.loading) {
+  if (pnlLoading || sod.loading) {
     return (
       <div data-testid="pnl-loading" className="flex items-center justify-center py-12">
         <Spinner />
