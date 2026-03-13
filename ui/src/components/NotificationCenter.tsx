@@ -136,9 +136,9 @@ export function NotificationCenter({
             value={operator}
             onChange={(e) => setOperator(e.target.value)}
           >
-            <option value="GREATER_THAN">GREATER_THAN</option>
-            <option value="LESS_THAN">LESS_THAN</option>
-            <option value="EQUALS">EQUALS</option>
+            <option value="GREATER_THAN">Above</option>
+            <option value="LESS_THAN">Below</option>
+            <option value="EQUALS">Equal to</option>
           </Select>
           <Select
             data-testid="rule-severity-select"
@@ -149,7 +149,8 @@ export function NotificationCenter({
             <option value="WARNING">WARNING</option>
             <option value="INFO">INFO</option>
           </Select>
-          <div className="flex items-center gap-2">
+          <div className="col-span-3 flex flex-wrap items-center gap-4">
+            <span className="text-xs text-slate-500 font-medium">Channels:</span>
             {['IN_APP', 'EMAIL', 'WEBHOOK'].map((ch) => (
               <label key={ch} className="flex items-center gap-1 text-xs">
                 <input
