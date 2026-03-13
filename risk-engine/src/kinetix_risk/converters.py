@@ -132,6 +132,8 @@ def valuation_result_to_proto_response(
     portfolio_id: str,
     calculation_type,
     confidence_level,
+    model_version: str = "",
+    monte_carlo_seed: int = 0,
 ) -> risk_calculation_pb2.ValuationResponse:
     now = Timestamp()
     now.FromSeconds(int(time.time()))
@@ -171,6 +173,8 @@ def valuation_result_to_proto_response(
         calculated_at=now,
         computed_outputs=computed_proto,
         pv_value=result.pv_value or 0.0,
+        model_version=model_version,
+        monte_carlo_seed=monte_carlo_seed,
     )
     if greeks_summary is not None:
         response.greeks.CopyFrom(greeks_summary)

@@ -30,6 +30,7 @@ def calculate_portfolio_var(
     risk_free_rate: float = 0.0,
     historical_returns: "np.ndarray | None" = None,
     correlation_method: str | None = None,
+    seed: int | None = None,
 ) -> VaRResult:
     if not positions:
         raise ValueError("Cannot calculate VaR on empty positions list")
@@ -79,6 +80,7 @@ def calculate_portfolio_var(
         return calculate_monte_carlo_var(
             exposures, confidence_level, time_horizon_days, corr,
             num_simulations=num_simulations,
+            seed=seed,
         )
     else:
         raise ValueError(f"Unknown calculation type: {calculation_type}")

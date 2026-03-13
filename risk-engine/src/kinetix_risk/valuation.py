@@ -21,6 +21,7 @@ def calculate_valuation(
     volatility_provider: VolatilityProvider | None = None,
     correlation_matrix=None,
     portfolio_id: str = "",
+    seed: int | None = None,
 ) -> ValuationResult:
     outputs = requested_outputs if requested_outputs else _DEFAULT_OUTPUTS
 
@@ -45,6 +46,7 @@ def calculate_valuation(
             num_simulations=num_simulations,
             volatility_provider=volatility_provider or VolatilityProvider.static(),
             correlation_matrix=correlation_matrix,
+            seed=seed,
         )
         if "VAR" in outputs:
             computed.append("VAR")

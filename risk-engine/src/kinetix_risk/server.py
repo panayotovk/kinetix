@@ -18,6 +18,7 @@ from kinetix_risk.converters import (
     valuation_result_to_proto_response,
     var_result_to_proto_response,
 )
+from kinetix_risk.version import get_model_version
 from kinetix_risk.market_data_consumer import consume_market_data
 from kinetix_risk.metrics import risk_var_component_contribution, risk_var_expected_shortfall, risk_var_value
 from kinetix_risk.ml.model_store import ModelStore
@@ -83,6 +84,9 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
 
             requested_outputs = proto_valuation_outputs_to_names(request.requested_outputs)
 
+            # A seed of 0 means unseeded (non-deterministic); >0 means deterministic
+            seed = request.monte_carlo_seed if request.monte_carlo_seed > 0 else None
+
             result = calculate_valuation(
                 positions=positions,
                 calculation_type=calc_type,
@@ -93,6 +97,7 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
                 correlation_matrix=bundle.correlation_matrix,
                 requested_outputs=requested_outputs,
                 portfolio_id=request.portfolio_id.value,
+                seed=seed,
             )
 
             if result.var_result is not None:
@@ -110,6 +115,8 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
                 portfolio_id=request.portfolio_id.value,
                 calculation_type=request.calculation_type,
                 confidence_level=request.confidence_level,
+                model_version=get_model_version(),
+                monte_carlo_seed=request.monte_carlo_seed,
             )
         except ValueError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
