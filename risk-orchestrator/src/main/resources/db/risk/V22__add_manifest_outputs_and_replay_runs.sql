@@ -23,7 +23,7 @@ CREATE INDEX IF NOT EXISTS idx_run_manifests_output_digest
     WHERE output_digest IS NOT NULL;
 
 -- Index on input_digest for reproducibility verification queries.
--- Missing from V20 — needed for "find all manifests with identical inputs".
+-- Missing from V21 — needed for "find all manifests with identical inputs".
 CREATE INDEX IF NOT EXISTS idx_run_manifests_input_digest
     ON run_manifests (input_digest);
 

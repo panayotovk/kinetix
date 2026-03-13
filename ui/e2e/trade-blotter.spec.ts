@@ -379,7 +379,8 @@ test.describe('Trade Blotter - Edge Cases', () => {
     await page.getByTestId('tab-trades').click()
     await page.waitForSelector('[data-testid^="trade-row-"]')
 
-    await expect(page.locator('[data-testid^="trade-row-"]')).toHaveCount(100)
+    // Pagination limits to 50 rows per page
+    await expect(page.locator('[data-testid^="trade-row-"]')).toHaveCount(50)
   })
 
   test('zero-price trade displays $0.00 notional', async ({ page }) => {

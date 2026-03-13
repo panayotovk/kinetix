@@ -109,10 +109,10 @@ test.describe('Position Data Rendering', () => {
     // Positions count
     await expect(summary.locator('text=Positions').locator('..')).toContainText('3')
 
-    // Market Value = 15500 + 142500 + 10850 = 168850
-    await expect(summary).toContainText('$168,850.00')
+    // Market Value = 15500 + 142500 + 10850 = 168850 (compact format)
+    await expect(summary).toContainText('$168.8K')
 
-    // P&L = 500 + 2500 + 50 = 3050
-    await expect(summary).toContainText('$3,050.00')
+    // P&L = 500 + 2500 + 50 = 3050 (compact format)
+    await expect(summary).toContainText('$3K')
   })
 })

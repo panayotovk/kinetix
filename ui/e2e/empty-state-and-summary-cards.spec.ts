@@ -61,7 +61,7 @@ test.describe('Empty State and Summary Cards', () => {
     await page.waitForSelector('[data-testid="portfolio-summary"]')
 
     const summary = page.getByTestId('portfolio-summary')
-    await expect(summary).toContainText('$168,850.00')
+    await expect(summary).toContainText('$168.8K')
   })
 
   test('summary card P&L total reflects mixed positive/negative', async ({ page }) => {
@@ -72,7 +72,7 @@ test.describe('Empty State and Summary Cards', () => {
     await page.waitForSelector('[data-testid="portfolio-summary"]')
 
     const summary = page.getByTestId('portfolio-summary')
-    await expect(summary).toContainText('-$5,500.00')
+    await expect(summary).toContainText('-$5.5K')
 
     const pnlCard = summary.locator('text=Unrealized P&L').locator('..')
     await expect(pnlCard.locator('.text-red-600')).toBeVisible()

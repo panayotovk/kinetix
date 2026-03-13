@@ -529,7 +529,7 @@ test.describe('Position Risk Table - Sorting and Export', () => {
     const header = lines[0]
     expect(header).toContain('Instrument')
     expect(header).toContain('Asset Class')
-    expect(header).toContain('VaR Contribution')
+    expect(header).toContain('VaR Contrib')
 
     // 3 data rows + 1 header = 4 lines
     expect(lines).toHaveLength(4)
