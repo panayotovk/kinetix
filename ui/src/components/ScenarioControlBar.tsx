@@ -50,6 +50,7 @@ export function ScenarioControlBar({
         aria-label="Confidence level"
       >
         <option value="CL_95">95% CL</option>
+        <option value="CL_975">97.5% CL</option>
         <option value="CL_99">99% CL</option>
       </Select>
 

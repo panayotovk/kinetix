@@ -36,6 +36,7 @@ function gaugeColorLimitBased(ratio: number): string {
 
 function confidenceLabel(level: string): string {
   if (level === 'CL_99') return 'VaR (99%)'
+  if (level === 'CL_975') return 'VaR (97.5%)'
   return 'VaR (95%)'
 }
 
@@ -80,6 +81,14 @@ export function VaRGauge({ varValue, expectedShortfall, confidenceLevel, varLimi
                   className={`px-1.5 py-0.5 text-xs font-medium rounded-l transition-colors ${confidenceLevel === 'CL_95' ? 'bg-primary-100 text-primary-700' : 'text-slate-500 hover:bg-slate-50'}`}
                 >
                   95%
+                </button>
+                <button
+                  data-testid="confidence-toggle-975"
+                  onClick={() => onConfidenceLevelChange('CL_975')}
+                  disabled={disabled}
+                  className={`px-1.5 py-0.5 text-xs font-medium transition-colors ${confidenceLevel === 'CL_975' ? 'bg-primary-100 text-primary-700' : 'text-slate-500 hover:bg-slate-50'}`}
+                >
+                  97.5%
                 </button>
                 <button
                   data-testid="confidence-toggle-99"

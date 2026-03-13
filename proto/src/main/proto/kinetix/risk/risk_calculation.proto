@@ -19,6 +19,7 @@ enum ConfidenceLevel {
   CONFIDENCE_LEVEL_UNSPECIFIED = 0;
   CL_95 = 1;
   CL_99 = 2;
+  CL_975 = 3;
 }
 
 enum MarketDataType {

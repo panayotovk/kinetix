@@ -75,9 +75,10 @@ class VaRResultMapperTest : FunSpec({
         }
     }
 
-    test("maps both confidence levels") {
+    test("maps all confidence levels") {
         val clMappings = mapOf(
             ProtoConfidenceLevel.CL_95 to ConfidenceLevel.CL_95,
+            ProtoConfidenceLevel.CL_975 to ConfidenceLevel.CL_975,
             ProtoConfidenceLevel.CL_99 to ConfidenceLevel.CL_99,
         )
 

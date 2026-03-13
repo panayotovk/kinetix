@@ -23,6 +23,7 @@ private val PROTO_CALC_TYPE_TO_DOMAIN = mapOf(
 
 private val PROTO_CONFIDENCE_TO_DOMAIN = mapOf(
     ProtoConfidenceLevel.CL_95 to ConfidenceLevel.CL_95,
+    ProtoConfidenceLevel.CL_975 to ConfidenceLevel.CL_975,
     ProtoConfidenceLevel.CL_99 to ConfidenceLevel.CL_99,
 )
 

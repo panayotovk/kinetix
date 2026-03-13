@@ -12,6 +12,7 @@ enum class CalculationType {
 
 enum class ConfidenceLevel(val value: Double) {
     CL_95(0.95),
+    CL_975(0.975),
     CL_99(0.99),
 }
 
