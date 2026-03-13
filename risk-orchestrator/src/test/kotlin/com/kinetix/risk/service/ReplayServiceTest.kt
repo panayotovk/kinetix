@@ -22,8 +22,9 @@ class ReplayServiceTest : FunSpec({
     val riskEngineClient = mockk<RiskEngineClient>()
     val jobRecorder = mockk<ValuationJobRecorder>()
     val auditPublisher = mockk<RiskAuditEventPublisher>()
+    val replayRunRepo = mockk<ReplayRunRepository>()
 
-    val replayService = ReplayService(manifestRepo, blobStore, riskEngineClient, jobRecorder, auditPublisher)
+    val replayService = ReplayService(manifestRepo, blobStore, riskEngineClient, jobRecorder, auditPublisher, replayRunRepo)
 
     val testManifest = RunManifest(
         manifestId = UUID.randomUUID(),
@@ -72,8 +73,9 @@ class ReplayServiceTest : FunSpec({
     )
 
     beforeEach {
-        clearMocks(manifestRepo, blobStore, riskEngineClient, jobRecorder, auditPublisher)
+        clearMocks(manifestRepo, blobStore, riskEngineClient, jobRecorder, auditPublisher, replayRunRepo)
         coEvery { auditPublisher.publish(any()) } just Runs
+        coEvery { replayRunRepo.save(any()) } just Runs
     }
 
     test("returns ManifestNotFound when no manifest exists for job") {
@@ -316,5 +318,41 @@ class ReplayServiceTest : FunSpec({
         replayService.replay(jobId)
 
         coVerify(exactly = 0) { auditPublisher.publish(any()) }
+    }
+
+    test("persists replay run on successful replay") {
+        val jobId = testManifest.jobId
+
+        coEvery { manifestRepo.findByJobId(jobId) } returns testManifest
+        coEvery { manifestRepo.findPositionSnapshot(testManifest.manifestId) } returns testPositionEntries
+        coEvery { manifestRepo.findMarketDataRefs(testManifest.manifestId) } returns emptyList()
+        coEvery { riskEngineClient.valuate(any(), any(), any()) } returns testValuationResult
+        coEvery { jobRecorder.findByJobId(jobId) } returns null
+
+        replayService.replay(jobId)
+
+        val replayRunSlot = slot<ReplayRun>()
+        coVerify { replayRunRepo.save(capture(replayRunSlot)) }
+        val saved = replayRunSlot.captured
+        saved.manifestId shouldBe testManifest.manifestId
+        saved.originalJobId shouldBe jobId
+        saved.replayVarValue shouldBe 5000.0
+        saved.replayExpectedShortfall shouldBe 6250.0
+        saved.originalVarValue shouldBe 5000.0
+        saved.originalExpectedShortfall shouldBe 6250.0
+    }
+
+    test("replay succeeds even when replay run persistence fails") {
+        val jobId = testManifest.jobId
+
+        coEvery { manifestRepo.findByJobId(jobId) } returns testManifest
+        coEvery { manifestRepo.findPositionSnapshot(testManifest.manifestId) } returns testPositionEntries
+        coEvery { manifestRepo.findMarketDataRefs(testManifest.manifestId) } returns emptyList()
+        coEvery { riskEngineClient.valuate(any(), any(), any()) } returns testValuationResult
+        coEvery { jobRecorder.findByJobId(jobId) } returns null
+        coEvery { replayRunRepo.save(any()) } throws RuntimeException("DB down")
+
+        val result = replayService.replay(jobId)
+        result.shouldBeInstanceOf<ReplayResult.Success>()
     }
 })

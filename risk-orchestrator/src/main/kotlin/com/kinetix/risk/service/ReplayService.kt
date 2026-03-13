@@ -3,6 +3,8 @@ package com.kinetix.risk.service
 import com.kinetix.common.model.PortfolioId
 import com.kinetix.risk.client.RiskEngineClient
 import com.kinetix.risk.model.*
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.jsonArray
@@ -18,17 +20,25 @@ class ReplayService(
     private val riskEngineClient: RiskEngineClient,
     private val jobRecorder: ValuationJobRecorder,
     private val auditPublisher: RiskAuditEventPublisher? = null,
+    private val replayRunRepo: ReplayRunRepository? = null,
+    private val meterRegistry: MeterRegistry = SimpleMeterRegistry(),
 ) {
     private val logger = LoggerFactory.getLogger(ReplayService::class.java)
 
     suspend fun replay(jobId: UUID): ReplayResult {
+        val sample = io.micrometer.core.instrument.Timer.start(meterRegistry)
+
         // 1. Load the manifest
         val manifest = manifestRepo.findByJobId(jobId)
-            ?: return ReplayResult.ManifestNotFound
+        if (manifest == null) {
+            meterRegistry.counter("replay.requests", "result", "manifest_not_found").increment()
+            return ReplayResult.ManifestNotFound
+        }
 
         // 2. Load the position snapshot
         val positionEntries = manifestRepo.findPositionSnapshot(manifest.manifestId)
         if (positionEntries.isEmpty()) {
+            meterRegistry.counter("replay.requests", "result", "error").increment()
             return ReplayResult.Error("No position snapshot found for manifest ${manifest.manifestId}")
         }
 
@@ -43,6 +53,10 @@ class ReplayService(
                     "Blob resolution failed during replay of job {}: contentHash={}, dataType={}, instrumentId={}",
                     jobId, ref.contentHash, ref.dataType, ref.instrumentId,
                 )
+                meterRegistry.counter(
+                    "replay.blob_misses", "data_type", ref.dataType, "source_service", ref.sourceService,
+                ).increment()
+                meterRegistry.counter("replay.requests", "result", "blob_missing").increment()
                 return ReplayResult.BlobMissing(
                     manifestId = manifest.manifestId.toString(),
                     contentHash = ref.contentHash,
@@ -71,8 +85,10 @@ class ReplayService(
         val positions = replayProvider.getPositions(PortfolioId(manifest.portfolioId))
 
         // 6. Re-run the valuation
-        logger.info("Replaying job {} with manifest {} ({} positions, {} market data items)",
-            jobId, manifest.manifestId, positions.size, marketDataValues.size)
+        logger.info(
+            "Replaying job {} with manifest {} ({} positions, {} market data items)",
+            jobId, manifest.manifestId, positions.size, marketDataValues.size,
+        )
 
         val result = riskEngineClient.valuate(replayRequest, positions, marketDataValues)
 
@@ -91,10 +107,19 @@ class ReplayService(
         val originalVarValue = manifest.varValue ?: originalJob?.varValue
         val originalExpectedShortfall = manifest.expectedShortfall ?: originalJob?.expectedShortfall
 
+        // 9. Record metrics
+        sample.stop(meterRegistry.timer("replay.duration", "portfolio_id", manifest.portfolioId))
+        meterRegistry.counter("replay.requests", "result", "success").increment()
+        meterRegistry.counter(
+            "replay.digest_match", "matched", digestMatch.toString(), "portfolio_id", manifest.portfolioId,
+        ).increment()
+
         logger.info(
             "Replay complete for job {}: digest match={}, original VaR={}, replay VaR={}",
             jobId, digestMatch, originalVarValue, result.varValue,
         )
+
+        val replayOutputDigest = InputDigest.digestOutputs(result.varValue, result.expectedShortfall)
 
         val replayResult = ReplayResult.Success(
             manifest = manifest,
@@ -106,7 +131,32 @@ class ReplayService(
             originalExpectedShortfall = originalExpectedShortfall,
         )
 
-        // 9. Emit audit event
+        // 10. Persist replay run
+        val replayedAt = Instant.now()
+        try {
+            replayRunRepo?.save(
+                ReplayRun(
+                    replayId = UUID.randomUUID(),
+                    manifestId = manifest.manifestId,
+                    originalJobId = jobId,
+                    replayedAt = replayedAt,
+                    triggeredBy = "system",
+                    replayVarValue = result.varValue,
+                    replayExpectedShortfall = result.expectedShortfall,
+                    replayModelVersion = result.modelVersion,
+                    replayOutputDigest = replayOutputDigest,
+                    originalVarValue = originalVarValue,
+                    originalExpectedShortfall = originalExpectedShortfall,
+                    inputDigestMatch = digestMatch,
+                    originalInputDigest = manifest.inputDigest,
+                    replayInputDigest = replayInputDigest,
+                )
+            )
+        } catch (e: Exception) {
+            logger.warn("Failed to persist replay run for job {}", jobId, e)
+        }
+
+        // 11. Emit audit event
         try {
             auditPublisher?.publish(
                 RunReplayedAuditEvent(
@@ -114,7 +164,7 @@ class ReplayService(
                     portfolioId = manifest.portfolioId,
                     valuationDate = manifest.valuationDate.toString(),
                     manifestId = manifest.manifestId.toString(),
-                    replayedAt = Instant.now().toString(),
+                    replayedAt = replayedAt.toString(),
                     inputDigestMatch = digestMatch,
                     originalVarValue = originalVarValue,
                     replayVarValue = result.varValue,

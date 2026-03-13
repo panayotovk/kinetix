@@ -132,6 +132,48 @@ groups:
           summary: "EOD promotion attempt failed"
           description: "An EOD promotion request failed — possible conflict or validation error"
 
+  - name: kinetix-replay
+    rules:
+      - alert: ReplayBlobMissDetected
+        expr: increase(replay_blob_misses_total[1h]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Replay blob miss detected for {{ $labels.data_type }}/{{ $labels.source_service }}"
+          description: "A market data blob referenced by a manifest could not be resolved during replay. Data type: {{ $labels.data_type }}, source: {{ $labels.source_service }}"
+
+      - alert: ReplayDigestMismatch
+        expr: increase(replay_digest_match_total{matched="false"}[1h]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Replay digest mismatch for portfolio {{ $labels.portfolio_id }}"
+          description: "A replay produced a different input digest than the original run for portfolio {{ $labels.portfolio_id }}. Investigate model version or data changes."
+
+      - alert: ManifestPartialRateElevated
+        expr: >
+          rate(manifest_captured_total{status="PARTIAL"}[1h])
+          /
+          rate(manifest_captured_total[1h])
+          > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Manifest partial rate exceeds 5%"
+          description: "More than 5% of captured manifests have PARTIAL status — market data availability has degraded"
+
+      - alert: ReplaySlowP95
+        expr: histogram_quantile(0.95, rate(replay_duration_seconds_bucket[5m])) > 120
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Replay P95 latency exceeds 120s"
+          description: "P95 replay duration is {{ $value }}s"
+
   - name: kinetix-database
     rules:
       - alert: DBPoolExhausted
