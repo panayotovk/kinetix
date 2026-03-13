@@ -8,6 +8,7 @@ enum class Permission {
     READ_REGULATORY, GENERATE_REPORTS,
     MANAGE_ALERTS, READ_ALERTS,
     READ_AUDIT, MANAGE_USERS,
+    PROMOTE_EOD_RUN,
 }
 
 val ROLE_PERMISSIONS: Map<Role, Set<Permission>> = mapOf(
@@ -20,6 +21,7 @@ val ROLE_PERMISSIONS: Map<Role, Set<Permission>> = mapOf(
         Permission.READ_PORTFOLIOS, Permission.READ_POSITIONS,
         Permission.READ_RISK, Permission.CALCULATE_RISK,
         Permission.READ_ALERTS, Permission.MANAGE_ALERTS,
+        Permission.PROMOTE_EOD_RUN,
     ),
     Role.COMPLIANCE to setOf(
         Permission.READ_PORTFOLIOS, Permission.READ_POSITIONS,

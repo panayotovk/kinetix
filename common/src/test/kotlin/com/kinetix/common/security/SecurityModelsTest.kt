@@ -20,6 +20,7 @@ class SecurityModelsTest : FunSpec({
             "READ_REGULATORY", "GENERATE_REPORTS",
             "MANAGE_ALERTS", "READ_ALERTS",
             "READ_AUDIT", "MANAGE_USERS",
+            "PROMOTE_EOD_RUN",
         )
     }
 
@@ -27,7 +28,7 @@ class SecurityModelsTest : FunSpec({
         ROLE_PERMISSIONS[Role.ADMIN] shouldBe Permission.entries.toSet()
     }
 
-    test("TRADER role has trade-related permissions") {
+    test("TRADER role has trade-related permissions but not EOD promotion") {
         val traderPerms = ROLE_PERMISSIONS[Role.TRADER]!!
         traderPerms shouldContainAll setOf(
             Permission.READ_PORTFOLIOS, Permission.WRITE_TRADES,
@@ -35,14 +36,16 @@ class SecurityModelsTest : FunSpec({
         )
         (Permission.CALCULATE_RISK in traderPerms) shouldBe false
         (Permission.MANAGE_USERS in traderPerms) shouldBe false
+        (Permission.PROMOTE_EOD_RUN in traderPerms) shouldBe false
     }
 
-    test("RISK_MANAGER role has risk-related permissions") {
+    test("RISK_MANAGER role has risk-related permissions including EOD promotion") {
         val riskPerms = ROLE_PERMISSIONS[Role.RISK_MANAGER]!!
         riskPerms shouldContainAll setOf(
             Permission.READ_PORTFOLIOS, Permission.READ_POSITIONS,
             Permission.READ_RISK, Permission.CALCULATE_RISK,
             Permission.READ_ALERTS, Permission.MANAGE_ALERTS,
+            Permission.PROMOTE_EOD_RUN,
         )
         (Permission.WRITE_TRADES in riskPerms) shouldBe false
     }
