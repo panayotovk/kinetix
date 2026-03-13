@@ -23,6 +23,12 @@ interface Props {
   onRefresh: () => void
 }
 
+const isProduction = () =>
+  typeof window !== 'undefined' && window.location.hostname.includes('kinetixrisk.ai')
+
+const grafanaBase = () =>
+  isProduction() ? 'https://grafana.kinetixrisk.ai' : 'http://localhost:3000'
+
 const SERVICE_LABELS: Record<string, string> = {
   gateway: 'Gateway',
   'position-service': 'Position Service',
@@ -47,62 +53,63 @@ const SERVICE_ICONS: Record<string, LucideIcon> = {
   'correlation-service': GitMerge,
 }
 
-const SERVICE_DASHBOARD_URLS: Record<string, string> = {
-  gateway: 'http://localhost:3000/d/kinetix-service-overview',
-  'position-service': 'http://localhost:3000/d/kinetix-trade-flow',
-  'price-service': 'http://localhost:3000/d/kinetix-prices',
-  'risk-orchestrator': 'http://localhost:3000/d/kinetix-risk-orchestrator',
-  'notification-service': 'http://localhost:3000/d/kinetix-service-overview',
-  'rates-service': 'http://localhost:3000/d/kinetix-service-overview',
-  'reference-data-service': 'http://localhost:3000/d/kinetix-service-overview',
-  'volatility-service': 'http://localhost:3000/d/kinetix-service-overview',
-  'correlation-service': 'http://localhost:3000/d/kinetix-service-overview',
+const SERVICE_DASHBOARD_PATHS: Record<string, string> = {
+  gateway: '/d/kinetix-service-overview',
+  'position-service': '/d/kinetix-trade-flow',
+  'price-service': '/d/kinetix-prices',
+  'risk-orchestrator': '/d/kinetix-risk-orchestrator',
+  'notification-service': '/d/kinetix-service-overview',
+  'rates-service': '/d/kinetix-service-overview',
+  'reference-data-service': '/d/kinetix-service-overview',
+  'volatility-service': '/d/kinetix-service-overview',
+  'correlation-service': '/d/kinetix-service-overview',
 }
 
-const OBSERVABILITY_LINKS = [
+const OBSERVABILITY_LINK_DEFS = [
   {
     name: 'System Health',
-    url: 'http://localhost:3000/d/kinetix-system-health',
+    path: '/d/kinetix-system-health',
     description: 'Request rate, error rate, latency, JVM, Kafka lag',
   },
   {
     name: 'Service Overview',
-    url: 'http://localhost:3000/d/kinetix-service-overview',
+    path: '/d/kinetix-service-overview',
     description: 'Per-service request rate, errors, latency',
   },
   {
     name: 'Risk Overview',
-    url: 'http://localhost:3000/d/kinetix-risk-overview',
+    path: '/d/kinetix-risk-overview',
     description: 'VaR gauge, ES, component breakdown',
   },
   {
     name: 'Trade Flow',
-    url: 'http://localhost:3000/d/kinetix-trade-flow',
+    path: '/d/kinetix-trade-flow',
     description: 'Trade lifecycle, booking rate, amends & cancels',
   },
   {
     name: 'Database Health',
-    url: 'http://localhost:3000/d/kinetix-database-health',
+    path: '/d/kinetix-database-health',
     description: 'Connection pools, query latency, table sizes',
   },
   {
     name: 'Kafka Health',
-    url: 'http://localhost:3000/d/kinetix-kafka-health',
+    path: '/d/kinetix-kafka-health',
     description: 'Consumer lag, partition health, throughput',
   },
   {
     name: 'Service Logs',
-    url: 'http://localhost:3000/d/kinetix-service-logs',
+    path: '/d/kinetix-service-logs',
     description: 'Log volume, errors, warnings, full log lines',
   },
   {
     name: 'Prometheus',
-    url: 'http://localhost:9090',
+    path: null,
+    devOnlyUrl: 'http://localhost:9090',
     description: 'Raw metrics & alert rules',
   },
   {
     name: 'Grafana',
-    url: 'http://localhost:3000',
+    path: '',
     description: 'All dashboards',
   },
 ]
@@ -163,7 +170,8 @@ export function SystemDashboard({ health, loading, error, onRefresh }: Props) {
             {Object.entries(services).map(([key, svc]) => {
               const up = svc.status === 'UP'
               const Icon = SERVICE_ICONS[key]
-              const dashboardUrl = SERVICE_DASHBOARD_URLS[key]
+              const dashboardPath = SERVICE_DASHBOARD_PATHS[key]
+              const dashboardUrl = dashboardPath != null ? `${grafanaBase()}${dashboardPath}` : undefined
               return (
                 <Card key={key} data-testid={`service-card-${key}`}>
                   <div className="flex items-center gap-2">
@@ -205,22 +213,30 @@ export function SystemDashboard({ health, loading, error, onRefresh }: Props) {
         <div className="col-span-1">
           <h2 className="text-lg font-semibold mb-3">Observability</h2>
           <div data-testid="observability-links" className="space-y-2">
-            {OBSERVABILITY_LINKS.map((link) => (
-              <a
-                key={link.name}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-testid={`obs-link-${link.name.toLowerCase().replace(/\s+/g, '-')}`}
-                className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-slate-50 transition-colors group"
-              >
-                <div>
-                  <span className="font-medium text-primary-600">{link.name}</span>
-                  <p className="text-sm text-slate-500">{link.description}</p>
-                </div>
-                <ExternalLink className="h-3.5 w-3.5 flex-shrink-0 text-slate-400 group-hover:text-primary-500 transition-colors" />
-              </a>
-            ))}
+            {OBSERVABILITY_LINK_DEFS.map((link) => {
+              const url = link.path != null
+                ? `${grafanaBase()}${link.path}`
+                : link.devOnlyUrl ?? null
+
+              if (url == null && isProduction()) return null
+
+              return (
+                <a
+                  key={link.name}
+                  href={url ?? '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid={`obs-link-${link.name.toLowerCase().replace(/\s+/g, '-')}`}
+                  className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-slate-50 transition-colors group"
+                >
+                  <div>
+                    <span className="font-medium text-primary-600">{link.name}</span>
+                    <p className="text-sm text-slate-500">{link.description}</p>
+                  </div>
+                  <ExternalLink className="h-3.5 w-3.5 flex-shrink-0 text-slate-400 group-hover:text-primary-500 transition-colors" />
+                </a>
+              )
+            })}
           </div>
         </div>
       </div>
