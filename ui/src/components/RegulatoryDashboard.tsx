@@ -76,21 +76,21 @@ export function RegulatoryDashboard({
       {result && !loading && (
         <div data-testid="regulatory-results">
           <div data-testid="capital-summary" className="grid grid-cols-4 gap-3 mb-4">
-            <div className="bg-slate-50 rounded-lg p-3 text-center">
-              <div className="text-xs text-slate-500">Total Capital</div>
-              <div className="text-lg font-bold text-slate-800">{formatCurrency(result.totalCapitalCharge)}</div>
+            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 text-center">
+              <div className="text-xs text-slate-500 dark:text-slate-400">Total Capital</div>
+              <div className="text-lg font-bold text-slate-800 dark:text-slate-100">{formatCurrency(result.totalCapitalCharge)}</div>
             </div>
-            <div className="bg-indigo-50 rounded-lg p-3 text-center">
-              <div className="text-xs text-slate-500">SbM</div>
-              <div className="text-lg font-bold text-indigo-700">{formatCurrency(result.totalSbmCharge)}</div>
+            <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-lg p-3 text-center">
+              <div className="text-xs text-slate-500 dark:text-slate-400">SbM</div>
+              <div className="text-lg font-bold text-indigo-700 dark:text-indigo-300">{formatCurrency(result.totalSbmCharge)}</div>
             </div>
-            <div className="bg-orange-50 rounded-lg p-3 text-center">
-              <div className="text-xs text-slate-500">DRC</div>
-              <div className="text-lg font-bold text-orange-700">{formatCurrency(result.netDrc)}</div>
+            <div className="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-3 text-center">
+              <div className="text-xs text-slate-500 dark:text-slate-400">DRC</div>
+              <div className="text-lg font-bold text-orange-700 dark:text-orange-300">{formatCurrency(result.netDrc)}</div>
             </div>
-            <div className="bg-red-50 rounded-lg p-3 text-center">
-              <div className="text-xs text-slate-500">RRAO</div>
-              <div className="text-lg font-bold text-red-700">{formatCurrency(result.totalRrao)}</div>
+            <div className="bg-red-50 dark:bg-red-900/30 rounded-lg p-3 text-center">
+              <div className="text-xs text-slate-500 dark:text-slate-400">RRAO</div>
+              <div className="text-lg font-bold text-red-700 dark:text-red-300">{formatCurrency(result.totalRrao)}</div>
             </div>
           </div>
 
