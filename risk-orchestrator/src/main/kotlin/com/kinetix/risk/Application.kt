@@ -82,11 +82,14 @@ import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import java.util.Properties
 
+private val MeterRegistryKey = io.ktor.util.AttributeKey<io.micrometer.core.instrument.MeterRegistry>("MeterRegistry")
+
 fun main(args: Array<String>): Unit = EngineMain.main(args)
 
 fun Application.module() {
     log.info("Starting risk-orchestrator")
     val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+    attributes.put(MeterRegistryKey, appMicrometerRegistry)
     install(MicrometerMetrics) { registry = appMicrometerRegistry }
     install(ContentNegotiation) { json() }
     install(CallLogging) {
@@ -241,7 +244,8 @@ fun Application.moduleWithRoutes() {
     val kafkaProducer = KafkaProducer<String, String>(producerProps)
     val resultPublisher = KafkaRiskResultPublisher(kafkaProducer)
     val eodEventPublisher = com.kinetix.risk.kafka.KafkaOfficialEodPublisher(kafkaProducer)
-    val eodPromotionService = com.kinetix.risk.service.EodPromotionService(jobRecorder, eodEventPublisher)
+    val meterRegistry = attributes.getOrNull(MeterRegistryKey) ?: io.micrometer.core.instrument.simple.SimpleMeterRegistry()
+    val eodPromotionService = com.kinetix.risk.service.EodPromotionService(jobRecorder, eodEventPublisher, meterRegistry)
 
     val varCalculationService = VaRCalculationService(
         effectivePositionProvider, effectiveRiskEngineClient, resultPublisher,
