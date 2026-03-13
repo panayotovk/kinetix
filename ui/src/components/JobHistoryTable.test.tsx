@@ -18,6 +18,7 @@ const runs: ValuationJobSummaryDto[] = [
     expectedShortfall: 6250.0,
     pvValue: 1800000.0,
     delta: 0, gamma: 0, vega: 0, theta: 0, rho: 0,
+    runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
   },
   {
     jobId: 'job-2',
@@ -33,6 +34,7 @@ const runs: ValuationJobSummaryDto[] = [
     expectedShortfall: null,
     pvValue: null,
     delta: null, gamma: null, vega: null, theta: null, rho: null,
+    runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
   },
 ]
 
@@ -61,6 +63,7 @@ const jobDetail: ValuationJobDetailDto = {
     },
   ],
   error: null,
+  runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
 }
 
 const jobDetail2: ValuationJobDetailDto = {
@@ -88,6 +91,7 @@ const jobDetail2: ValuationJobDetailDto = {
     },
   ],
   error: 'timeout',
+  runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
 }
 
 const defaultProps = {
@@ -354,6 +358,7 @@ describe('JobHistoryTable', () => {
         expectedShortfall: null,
         pvValue: null,
         delta: null, gamma: null, vega: null, theta: null, rho: null,
+        runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
       }
 
       render(<JobHistoryTable runs={[runningJob]} {...defaultProps} />)
@@ -393,6 +398,7 @@ describe('JobHistoryTable', () => {
         expectedShortfall: null,
         pvValue: null,
         delta: null, gamma: null, vega: null, theta: null, rho: null,
+        runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
       }
 
       const { unmount } = render(<JobHistoryTable runs={[runningJob]} {...defaultProps} />)

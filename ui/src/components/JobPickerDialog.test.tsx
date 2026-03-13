@@ -25,6 +25,7 @@ const completedJobs: ValuationJobSummaryDto[] = [
     expectedShortfall: 600.0,
     pvValue: null,
     delta: null, gamma: null, vega: null, theta: null, rho: null,
+    runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
   },
   {
     jobId: 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff',
@@ -40,6 +41,7 @@ const completedJobs: ValuationJobSummaryDto[] = [
     expectedShortfall: 550.0,
     pvValue: null,
     delta: null, gamma: null, vega: null, theta: null, rho: null,
+    runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
   },
 ]
 

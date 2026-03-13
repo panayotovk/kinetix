@@ -1,4 +1,4 @@
--- V20 rollback: Remove run manifest tables
+-- V21 rollback: Remove run manifest tables
 DROP TABLE IF EXISTS run_manifest_market_data;
 DROP TABLE IF EXISTS run_market_data_blobs;
 DROP TABLE IF EXISTS run_position_snapshots;

@@ -27,6 +27,9 @@ function makeJob(
     vega: null,
     theta: null,
     rho: null,
+    runLabel: null,
+    promotedAt: null,
+    promotedBy: null, manifestId: null,
   }
 }
 

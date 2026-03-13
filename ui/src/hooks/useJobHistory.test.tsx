@@ -28,6 +28,7 @@ const jobSummary = {
   vega: 0,
   theta: 0,
   rho: 0,
+  runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
 }
 
 const jobSummary2 = {
@@ -48,6 +49,7 @@ const jobSummary2 = {
   vega: 0,
   theta: 0,
   rho: 0,
+  runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
 }
 
 const jobDetail = {
@@ -65,6 +67,7 @@ const jobDetail = {
     },
   ],
   error: null,
+  runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
 }
 
 const jobDetail2 = {
@@ -82,6 +85,7 @@ const jobDetail2 = {
     },
   ],
   error: null,
+  runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
 }
 
 describe('useJobHistory', () => {

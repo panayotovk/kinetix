@@ -43,6 +43,7 @@ describe('useVaR', () => {
           vega: 0,
           theta: 0,
           rho: 0,
+            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
         },
         {
           jobId: 'j2',
@@ -62,6 +63,7 @@ describe('useVaR', () => {
           vega: 0,
           theta: 0,
           rho: 0,
+            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
         },
       ])
     mockFetchVaR.mockResolvedValue(null)
@@ -102,6 +104,7 @@ describe('useVaR', () => {
           vega: 0,
           theta: 0,
           rho: 0,
+            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
         },
         {
           jobId: 'j2',
@@ -121,6 +124,7 @@ describe('useVaR', () => {
           vega: null,
           theta: null,
           rho: null,
+          runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
         },
         {
           jobId: 'j3',
@@ -140,6 +144,7 @@ describe('useVaR', () => {
           vega: null,
           theta: null,
           rho: null,
+          runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
         },
       ])
     mockFetchVaR.mockResolvedValue(null)
@@ -174,6 +179,7 @@ describe('useVaR', () => {
           vega: 0,
           theta: 0,
           rho: 0,
+            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
         },
         {
           jobId: 'j1',
@@ -193,6 +199,7 @@ describe('useVaR', () => {
           vega: 0,
           theta: 0,
           rho: 0,
+            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
         },
       ])
     mockFetchVaR.mockResolvedValue(null)
@@ -227,6 +234,7 @@ describe('useVaR', () => {
           vega: 0,
           theta: 0,
           rho: 0,
+            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
         },
       ])
     mockFetchVaR.mockResolvedValue({
@@ -354,6 +362,7 @@ describe('useVaR', () => {
           vega: 5001.0,
           theta: -120.5,
           rho: 200.0,
+          runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
         },
         {
           jobId: 'j2',
@@ -373,6 +382,7 @@ describe('useVaR', () => {
           vega: 5200.3,
           theta: -135.2,
           rho: 210.0,
+          runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
         },
       ])
     mockFetchVaR.mockResolvedValue(null)
@@ -411,6 +421,7 @@ describe('useVaR', () => {
           vega: null,
           theta: null,
           rho: null,
+          runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
         },
       ])
     mockFetchVaR.mockResolvedValue(null)
@@ -448,6 +459,7 @@ describe('useVaR', () => {
           vega: 0,
           theta: 0,
           rho: 0,
+            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
         },
       ])
     mockFetchVaR.mockResolvedValue(null)
@@ -481,6 +493,7 @@ describe('useVaR', () => {
           vega: 0,
           theta: 0,
           rho: 0,
+            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
         },
       ])
     mockFetchVaR.mockResolvedValue(null)
@@ -552,6 +565,7 @@ describe('useVaR', () => {
           vega: 0,
           theta: 0,
           rho: 0,
+            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
         },
         {
           jobId: 'j2',
@@ -571,6 +585,7 @@ describe('useVaR', () => {
           vega: 0,
           theta: 0,
           rho: 0,
+            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
         },
       ])
     mockFetchVaR.mockResolvedValue(null)
@@ -645,7 +660,7 @@ describe('useVaR', () => {
         varValue: 1200000,
         expectedShortfall: 1500000,
         pvValue: 10000000,
-        delta: 0, gamma: 0, vega: 0, theta: 0, rho: 0,
+        delta: 0, gamma: 0, vega: 0, theta: 0, rho: 0, runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
       },
     ])
     mockFetchVaR.mockResolvedValue(null)
@@ -675,7 +690,7 @@ describe('useVaR', () => {
         varValue: 1200000,
         expectedShortfall: 1500000,
         pvValue: 10000000,
-        delta: 0, gamma: 0, vega: 0, theta: 0, rho: 0,
+        delta: 0, gamma: 0, vega: 0, theta: 0, rho: 0, runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
       },
       {
         jobId: 'j-old',
@@ -690,7 +705,7 @@ describe('useVaR', () => {
         varValue: 900000,
         expectedShortfall: 1100000,
         pvValue: 8000000,
-        delta: 0, gamma: 0, vega: 0, theta: 0, rho: 0,
+        delta: 0, gamma: 0, vega: 0, theta: 0, rho: 0, runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
       },
     ])
 
@@ -819,6 +834,7 @@ describe('useVaR', () => {
           vega: null,
           theta: null,
           rho: null,
+            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
         },
       ])
     })
