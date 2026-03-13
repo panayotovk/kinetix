@@ -33,6 +33,8 @@ export function TradeBlotter({ portfolioId }: TradeBlotterProps) {
   const { trades, loading, error } = useTradeHistory(portfolioId)
   const [instrumentFilter, setInstrumentFilter] = useState('')
   const [sideFilter, setSideFilter] = useState<'' | 'BUY' | 'SELL'>('')
+  const [page, setPage] = useState(0)
+  const PAGE_SIZE = 50
 
   const filtered = useMemo(() => {
     let result = [...trades]
@@ -50,6 +52,20 @@ export function TradeBlotter({ portfolioId }: TradeBlotterProps) {
 
     return result
   }, [trades, instrumentFilter, sideFilter])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages - 1)
+  const paginatedTrades = filtered.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE)
+
+  const handleInstrumentFilter = (value: string) => {
+    setInstrumentFilter(value)
+    setPage(0)
+  }
+
+  const handleSideFilter = (value: '' | 'BUY' | 'SELL') => {
+    setSideFilter(value)
+    setPage(0)
+  }
 
   if (loading) {
     return <p className="text-gray-500">Loading trades...</p>
@@ -78,13 +94,13 @@ export function TradeBlotter({ portfolioId }: TradeBlotterProps) {
           type="text"
           placeholder="Filter by instrument..."
           value={instrumentFilter}
-          onChange={(e) => setInstrumentFilter(e.target.value)}
+          onChange={(e) => handleInstrumentFilter(e.target.value)}
           className="border border-slate-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         />
         <select
           data-testid="filter-side"
           value={sideFilter}
-          onChange={(e) => setSideFilter(e.target.value as '' | 'BUY' | 'SELL')}
+          onChange={(e) => handleSideFilter(e.target.value as '' | 'BUY' | 'SELL')}
           className="border border-slate-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         >
           <option value="">All Sides</option>
@@ -117,45 +133,78 @@ export function TradeBlotter({ portfolioId }: TradeBlotterProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((trade) => (
-                <tr
-                  key={trade.tradeId}
-                  data-testid={`trade-row-${trade.tradeId}`}
-                  className="hover:bg-slate-50 transition-colors"
-                >
-                  <td className="px-4 py-2 text-sm text-slate-600">
-                    {formatTimestamp(trade.tradedAt)}
-                  </td>
-                  <td className="px-4 py-2 text-sm font-medium">{trade.instrumentId}</td>
-                  <td
-                    data-testid={`trade-side-${trade.tradeId}`}
-                    className={`px-4 py-2 text-sm font-medium ${
-                      trade.side === 'BUY' ? 'text-green-600' : 'text-red-600'
-                    }`}
-                  >
-                    {trade.side}
-                  </td>
-                  <td className="px-4 py-2 text-sm text-right">{formatQuantity(trade.quantity)}</td>
-                  <td className="px-4 py-2 text-sm text-right">
-                    {formatMoney(trade.price.amount, trade.price.currency)}
-                  </td>
-                  <td
-                    data-testid={`trade-notional-${trade.tradeId}`}
-                    className="px-4 py-2 text-sm text-right"
-                  >
-                    {formatMoney(String(notional(trade)), trade.price.currency)}
-                  </td>
-                  <td className="px-4 py-2 text-sm">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      FILLED
-                    </span>
+              {paginatedTrades.length === 0 && filtered.length === 0 && trades.length > 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center">
+                    <EmptyState title="No trades match your filters." />
                   </td>
                 </tr>
-              ))}
+              ) : (
+                paginatedTrades.map((trade) => (
+                  <tr
+                    key={trade.tradeId}
+                    data-testid={`trade-row-${trade.tradeId}`}
+                    className="hover:bg-slate-50 transition-colors"
+                  >
+                    <td className="px-4 py-2 text-sm text-slate-600">
+                      {formatTimestamp(trade.tradedAt)}
+                    </td>
+                    <td className="px-4 py-2 text-sm font-medium">{trade.instrumentId}</td>
+                    <td
+                      data-testid={`trade-side-${trade.tradeId}`}
+                      className={`px-4 py-2 text-sm font-medium ${
+                        trade.side === 'BUY' ? 'text-green-600' : 'text-red-600'
+                      }`}
+                    >
+                      {trade.side}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-right">{formatQuantity(trade.quantity)}</td>
+                    <td className="px-4 py-2 text-sm text-right">
+                      {formatMoney(trade.price.amount, trade.price.currency)}
+                    </td>
+                    <td
+                      data-testid={`trade-notional-${trade.tradeId}`}
+                      className="px-4 py-2 text-sm text-right"
+                    >
+                      {formatMoney(String(notional(trade)), trade.price.currency)}
+                    </td>
+                    <td className="px-4 py-2 text-sm">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        FILLED
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </Card>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-3 text-sm text-slate-600">
+          <span>
+            Showing {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, filtered.length)} of {filtered.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              disabled={safePage === 0}
+              onClick={() => setPage((p) => p - 1)}
+              className="px-3 py-1 rounded border border-slate-300 disabled:opacity-40 hover:bg-slate-50 transition-colors"
+            >
+              Previous
+            </button>
+            <span>Page {safePage + 1} of {totalPages}</span>
+            <button
+              disabled={safePage >= totalPages - 1}
+              onClick={() => setPage((p) => p + 1)}
+              className="px-3 py-1 rounded border border-slate-300 disabled:opacity-40 hover:bg-slate-50 transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
