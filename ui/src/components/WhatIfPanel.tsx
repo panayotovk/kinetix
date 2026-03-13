@@ -275,15 +275,15 @@ export function WhatIfPanel({
           Add another trade
         </button>
 
+        {/* Results live region */}
+        <div data-testid="whatif-results-live" aria-live="polite">
+
         {/* Error message */}
         {error && (
-          <div data-testid="whatif-error" className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-md px-3 py-2">
+          <div data-testid="whatif-error" role="alert" className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-md px-3 py-2">
             {error}
           </div>
         )}
-
-        {/* Results live region */}
-        <div data-testid="whatif-results-live" aria-live="polite">
 
         {/* Comparison table */}
         {result && impact && (
