@@ -30,6 +30,7 @@ class VaRCalculationService(
     private val marketDataFetcher: MarketDataFetcher? = null,
     private val jobRecorder: ValuationJobRecorder = NoOpValuationJobRecorder(),
     private val positionDependencyGrouper: PositionDependencyGrouper = PositionDependencyGrouper(),
+    private val runManifestCapture: RunManifestCapture? = null,
 ) {
     private val logger = LoggerFactory.getLogger(VaRCalculationService::class.java)
 
@@ -209,12 +210,36 @@ class VaRCalculationService(
                 )
             )
 
+            // Step 3b: Generate MC seed if needed and capture run manifest
+            val effectiveRequest = if (request.calculationType == CalculationType.MONTE_CARLO && request.monteCarloSeed == 0L) {
+                request.copy(monteCarloSeed = System.nanoTime())
+            } else {
+                request
+            }
+
+            var manifestId: UUID? = null
+            if (runManifestCapture != null) {
+                try {
+                    val manifest = runManifestCapture.capture(
+                        jobId = jobId,
+                        request = effectiveRequest,
+                        positions = positions,
+                        fetchResults = fetchResults,
+                        modelVersion = "",  // model version not yet known; updated after valuation
+                        valuationDate = valuationDate,
+                    )
+                    manifestId = manifest.manifestId
+                } catch (e: Exception) {
+                    logger.warn("Failed to capture run manifest for job {}", jobId, e)
+                }
+            }
+
             // Step 4: Calculate VaR (+ Greeks if requested)
             val calcStart = Instant.now()
             val timer = meterRegistry.timer("var.calculation.duration")
             val sample = io.micrometer.core.instrument.Timer.start(meterRegistry)
 
-            val result = riskEngineClient.valuate(request, positions, marketData)
+            val result = riskEngineClient.valuate(effectiveRequest, positions, marketData)
 
             sample.stop(timer)
             meterRegistry.counter(
@@ -309,6 +334,7 @@ class VaRCalculationService(
                 computedOutputsSnapshot = result.computedOutputs,
                 assetClassGreeksSnapshot = result.greeks?.assetClassGreeks ?: emptyList(),
                 steps = steps,
+                manifestId = manifestId,
             )
             updateJobSafely(job)
 
