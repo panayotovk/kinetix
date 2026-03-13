@@ -257,6 +257,7 @@ export interface ValuationJobSummaryDto {
   runLabel: string | null
   promotedAt: string | null
   promotedBy: string | null
+  manifestId: string | null
 }
 
 export interface HypotheticalTradeDto {
@@ -367,6 +368,41 @@ export interface ValuationJobDetailDto {
   runLabel: string | null
   promotedAt: string | null
   promotedBy: string | null
+  manifestId: string | null
+}
+
+export interface RunManifestDto {
+  manifestId: string
+  jobId: string
+  portfolioId: string
+  valuationDate: string
+  capturedAt: string
+  modelVersion: string
+  calculationType: string
+  confidenceLevel: string
+  timeHorizonDays: number
+  numSimulations: number
+  monteCarloSeed: number
+  positionCount: number
+  positionDigest: string
+  marketDataDigest: string
+  inputDigest: string
+  status: string
+  varValue: number | null
+  expectedShortfall: number | null
+  outputDigest: string | null
+}
+
+export interface ReplayResponseDto {
+  manifest: RunManifestDto
+  replayVarValue: number | null
+  replayExpectedShortfall: number | null
+  replayModelVersion: string | null
+  inputDigestMatch: boolean
+  originalInputDigest: string
+  replayInputDigest: string
+  originalVarValue: number | null
+  originalExpectedShortfall: number | null
 }
 
 export interface CurrencyExposureDto {

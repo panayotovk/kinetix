@@ -1,9 +1,10 @@
 import { Fragment, useEffect, useState } from 'react'
-import { Info, Search, Star } from 'lucide-react'
+import { Info, Search, Star, RefreshCw } from 'lucide-react'
 import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
 import { Badge, Spinner } from './ui'
 import { ConfirmDialog } from './ui/ConfirmDialog'
 import { JobTimeline } from './JobTimeline'
+import { ReplayPanel } from './ReplayPanel'
 import { formatTimeOnly, formatDuration, formatMoney } from '../utils/format'
 import { useEodPromotion } from '../hooks/useEodPromotion'
 
@@ -49,6 +50,7 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
   const [searchTerms, setSearchTerms] = useState<Record<string, string>>({})
   const [promoteTarget, setPromoteTarget] = useState<string | null>(null)
   const [demoteTarget, setDemoteTarget] = useState<string | null>(null)
+  const [replayOpenFor, setReplayOpenFor] = useState<string | null>(null)
   const { state: promoteState, error: promoteError, promote, demote, reset: resetPromotion } = useEodPromotion()
 
   if (runs.length === 0) {
@@ -260,6 +262,30 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                                 >
                                   Remove designation
                                 </button>
+                              </div>
+                            )}
+                            {run.status === 'COMPLETED' && run.manifestId && (
+                              <div className="mt-3">
+                                {replayOpenFor === run.jobId ? (
+                                  <div className="border-t border-slate-200 pt-3">
+                                    <ReplayPanel
+                                      jobId={run.jobId}
+                                      onClose={() => setReplayOpenFor(null)}
+                                    />
+                                  </div>
+                                ) : (
+                                  <button
+                                    data-testid={`replay-toggle-${run.jobId}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setReplayOpenFor(run.jobId)
+                                    }}
+                                    className="px-3 py-1 text-xs font-medium text-slate-600 border border-slate-300 rounded hover:bg-slate-100 transition-colors inline-flex items-center gap-1.5"
+                                  >
+                                    <RefreshCw className="h-3 w-3" />
+                                    Reproducibility
+                                  </button>
+                                )}
                               </div>
                             )}
                           </>

@@ -713,6 +713,7 @@ export const TEST_JOB_HISTORY = {
       runLabel: null,
       promotedAt: null,
       promotedBy: null,
+      manifestId: 'manifest-abc-123',
     },
   ],
   totalCount: 1,
@@ -774,6 +775,7 @@ export const TEST_JOB_DETAIL = {
   runLabel: null,
   promotedAt: null,
   promotedBy: null,
+  manifestId: 'manifest-abc-123',
   steps: [
     {
       name: 'FETCH_POSITIONS',
@@ -807,6 +809,52 @@ export const TEST_JOB_DETAIL = {
   valuationDate: '2025-01-15',
 }
 
+export const TEST_RUN_MANIFEST = {
+  manifestId: 'manifest-abc-123',
+  jobId: 'job-1',
+  portfolioId: 'port-1',
+  valuationDate: '2025-01-15',
+  capturedAt: '2025-01-15T12:00:02Z',
+  modelVersion: '1.4.2-abc9876',
+  calculationType: 'PARAMETRIC',
+  confidenceLevel: 'CL_95',
+  timeHorizonDays: 1,
+  numSimulations: 10000,
+  monteCarloSeed: 0,
+  positionCount: 5,
+  positionDigest: 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2',
+  marketDataDigest: 'b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3',
+  inputDigest: 'c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4',
+  status: 'COMPLETE',
+  varValue: 125000.50,
+  expectedShortfall: 187500.75,
+  outputDigest: 'd4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5',
+}
+
+export const TEST_REPLAY_RESPONSE_MATCH = {
+  manifest: TEST_RUN_MANIFEST,
+  replayVarValue: 125000.50,
+  replayExpectedShortfall: 187500.75,
+  replayModelVersion: '1.4.2-abc9876',
+  inputDigestMatch: true,
+  originalInputDigest: TEST_RUN_MANIFEST.inputDigest,
+  replayInputDigest: TEST_RUN_MANIFEST.inputDigest,
+  originalVarValue: 125000.50,
+  originalExpectedShortfall: 187500.75,
+}
+
+export const TEST_REPLAY_RESPONSE_MISMATCH = {
+  manifest: TEST_RUN_MANIFEST,
+  replayVarValue: 124850.25,
+  replayExpectedShortfall: 187000.00,
+  replayModelVersion: '1.4.3-def1234',
+  inputDigestMatch: false,
+  originalInputDigest: TEST_RUN_MANIFEST.inputDigest,
+  replayInputDigest: 'e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6',
+  originalVarValue: 125000.50,
+  originalExpectedShortfall: 187500.75,
+}
+
 export const TEST_PNL_ATTRIBUTION = {
   totalPnl: '15250.00',
   deltaPnl: '8500.00',
@@ -838,6 +886,9 @@ export interface MockRiskTabOptions {
   stressResult?: object | null
   postVarResult?: object | null
   postVarDelay?: number
+  manifestResponse?: object | null
+  replayResponse?: object | null
+  replayStatus?: number
 }
 
 /**
@@ -922,6 +973,37 @@ export async function mockRiskTabRoutes(
       })
     } else {
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(opts.sodStatus) })
+    }
+  })
+
+  // 8b. Replay POST
+  await page.route('**/api/v1/risk/runs/*/replay', (route: Route) => {
+    if (route.request().method() === 'POST') {
+      const status = opts.replayStatus ?? 200
+      route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: JSON.stringify(opts.replayResponse ?? null),
+      })
+    } else {
+      route.fallback()
+    }
+  })
+
+  // 8c. Manifest GET
+  await page.route('**/api/v1/risk/runs/*/manifest', (route: Route) => {
+    if (opts.manifestResponse) {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(opts.manifestResponse),
+      })
+    } else {
+      route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify(null),
+      })
     }
   })
 
