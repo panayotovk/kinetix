@@ -24,6 +24,8 @@ PATTERNS = [
     ("**/build/test-results/acceptanceTest/**/*.xml", "acceptance"),
     ("**/build/test-results/integrationTest/**/*.xml", "integration"),
     ("**/build/test-results/end2EndTest/**/*.xml", "e2e"),
+    ("**/risk-engine/**/unit.xml", "unit"),
+    ("**/risk-engine/**/integration.xml", "integration"),
     ("**/risk-engine/**/pytest.xml", "unit"),
     ("**/ui/test-results/e2e/junit.xml", "e2e"),
     ("**/ui/**/junit.xml", "unit"),
@@ -32,7 +34,8 @@ PATTERNS = [
     ("**/acceptance-test-xml-*/**/*.xml", "acceptance"),
     ("**/integration-test-xml-*/**/*.xml", "integration"),
     ("**/e2e-test-xml/**/*.xml", "e2e"),
-    ("**/python-test-xml/pytest.xml", "unit"),
+    ("**/python-unit-test-xml/unit.xml", "unit"),
+    ("**/python-integration-test-xml/integration.xml", "integration"),
     ("**/ui-test-xml/junit.xml", "unit"),
     ("**/playwright-e2e-xml-*/junit.xml", "e2e"),
 ]
@@ -85,9 +88,14 @@ def _extract_component(xml_path: Path, root: Path, test_type: str) -> str | None
     if "e2e-test-xml" in parts:
         return "end2end-tests"
 
-    # pytest: risk-engine/**/pytest.xml or python-test-xml/pytest.xml
+    # pytest: risk-engine/**/pytest.xml
     if xml_path.name == "pytest.xml":
-        if "risk-engine" in parts or "python-test-xml" in parts:
+        if "risk-engine" in parts:
+            return "risk-engine"
+
+    # pytest CI artifacts: python-unit-test-xml/ or python-integration-test-xml/
+    for part in parts:
+        if part.startswith("python-") and part.endswith("-test-xml"):
             return "risk-engine"
 
     # vitest: ui/**/junit.xml or ui-test-xml/junit.xml

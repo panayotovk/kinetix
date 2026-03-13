@@ -249,7 +249,7 @@ jobs:
           path: 'end2end-tests/build/test-results/end2EndTest/**/*.xml'
           retention-days: 1
 
-  python-build:
+  python-unit-tests:
     needs: changes
     if: needs.changes.outputs.python == 'true' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -266,21 +266,54 @@ jobs:
           python-version: '3.12'
       - name: Install dependencies
         run: uv sync
-      - name: Run tests
-        run: uv run pytest --tb=short --junitxml=reports/pytest.xml
-      - name: Upload test report
+      - name: Unit tests
+        run: uv run pytest -m "not integration and not performance" --tb=short --junitxml=reports/unit.xml
+      - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: python-test-reports
+          name: python-unit-test-reports
           path: risk-engine/reports/
           retention-days: 14
       - name: Upload test XML
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: python-test-xml
-          path: risk-engine/reports/pytest.xml
+          name: python-unit-test-xml
+          path: risk-engine/reports/unit.xml
+          retention-days: 1
+
+  python-integration-tests:
+    needs: python-unit-tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: risk-engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: uv sync
+      - name: Integration tests
+        run: uv run pytest -m integration --tb=short --junitxml=reports/integration.xml
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-integration-test-reports
+          path: risk-engine/reports/
+          retention-days: 14
+      - name: Upload test XML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-integration-test-xml
+          path: risk-engine/reports/integration.xml
           retention-days: 1
 
   ui-build:
@@ -396,7 +429,7 @@ jobs:
         run: promtool test rules alert-rules-test.yml
 
   test-summary:
-    needs: [kotlin-unit-tests, kotlin-acceptance-tests, kotlin-integration, end-to-end-tests, python-build, ui-build, ui-e2e-tests]
+    needs: [kotlin-unit-tests, kotlin-acceptance-tests, kotlin-integration, end-to-end-tests, python-unit-tests, python-integration-tests, ui-build, ui-e2e-tests]
     if: always() && !cancelled()
     runs-on: ubuntu-latest
     steps:
