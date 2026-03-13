@@ -27,15 +27,15 @@ describe('PositionRiskTable', () => {
       const expectedHeaders = [
         'Instrument',
         'Asset Class',
-        'Market Value',
-        'Delta ($/1%)',
+        'Mkt Value',
+        'Delta',
         'Gamma',
-        'Vega ($/1pp)',
-        'Theta ($/day)',
-        'Rho ($/bp)',
-        'VaR Contribution',
-        'ES Contribution',
-        '% of Total',
+        'Vega',
+        'Theta',
+        'Rho',
+        'VaR Contrib',
+        'ES Contrib',
+        '% Total',
       ]
       const allHeaders = screen.getAllByRole('columnheader')
       const headerTexts = allHeaders.map((h) => h.textContent?.trim() ?? '')

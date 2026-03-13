@@ -135,8 +135,8 @@ describe('PositionGrid', () => {
     const summary = screen.getByTestId('portfolio-summary')
     expect(summary).toBeInTheDocument()
     expect(within(summary).getByText('2')).toBeInTheDocument()
-    expect(within(summary).getByText('$25,500.00')).toBeInTheDocument()
-    expect(within(summary).getByText('$300.00')).toBeInTheDocument()
+    expect(within(summary).getByText('$25.5K')).toBeInTheDocument()
+    expect(within(summary).getByText('$300')).toBeInTheDocument()
   })
 
   it('formats quantity values cleanly', () => {
