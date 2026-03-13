@@ -34,4 +34,6 @@ data class ValuationJob(
     val runLabel: RunLabel? = null,
     val promotedAt: Instant? = null,
     val promotedBy: String? = null,
+    /** Opaque identifier for the market data snapshot used in this calculation, enabling reproducibility. */
+    val marketDataSnapshotId: String? = null,
 )

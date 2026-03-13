@@ -35,6 +35,7 @@ object ValuationJobsTable : Table("valuation_jobs") {
     val runLabel = varchar("run_label", 20).nullable()
     val promotedAt = timestampWithTimeZone("promoted_at").nullable()
     val promotedBy = varchar("promoted_by", 255).nullable()
+    val marketDataSnapshotId = varchar("market_data_snapshot_id", 255).nullable()
 
     override val primaryKey = PrimaryKey(jobId)
 }

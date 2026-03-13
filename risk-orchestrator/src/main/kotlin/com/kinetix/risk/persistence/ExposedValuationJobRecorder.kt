@@ -49,6 +49,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             it[runLabel] = job.runLabel?.name
             it[promotedAt] = job.promotedAt?.let { ts -> OffsetDateTime.ofInstant(ts, ZoneOffset.UTC) }
             it[promotedBy] = job.promotedBy
+            it[marketDataSnapshotId] = job.marketDataSnapshotId
         }
     }
 
@@ -393,5 +394,6 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         runLabel = this[ValuationJobsTable.runLabel]?.let { RunLabel.valueOf(it) },
         promotedAt = this[ValuationJobsTable.promotedAt]?.toInstant(),
         promotedBy = this[ValuationJobsTable.promotedBy],
+        marketDataSnapshotId = this[ValuationJobsTable.marketDataSnapshotId],
     )
 }
