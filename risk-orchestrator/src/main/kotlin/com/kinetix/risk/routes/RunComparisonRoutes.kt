@@ -1,6 +1,7 @@
 package com.kinetix.risk.routes
 
 import com.kinetix.common.model.PortfolioId
+import com.kinetix.risk.cache.QuantDiffCache
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.client.RiskEngineClient
 import com.kinetix.risk.mapper.toResponse
@@ -22,8 +23,16 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.Timer
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.withTimeout
 import java.time.LocalDate
 import java.util.UUID
+
+private const val MAX_BLOB_SIZE_BYTES = 1_048_576 // 1 MB
+private const val QUANT_DIFF_TIMEOUT_MS = 30_000L
 
 fun Route.runComparisonRoutes(
     runComparisonService: RunComparisonService,
@@ -34,6 +43,8 @@ fun Route.runComparisonRoutes(
     manifestRepo: RunManifestRepository? = null,
     blobStore: MarketDataBlobStore? = null,
     marketDataQuantDiffer: MarketDataQuantDiffer? = null,
+    quantDiffCache: QuantDiffCache? = null,
+    meterRegistry: MeterRegistry = SimpleMeterRegistry(),
 ) {
     // Compare two runs by job IDs
     post("/api/v1/risk/compare/{portfolioId}") {
@@ -157,7 +168,12 @@ fun Route.runComparisonRoutes(
 
     // Lazy quantitative diff for a specific market data item between two manifests
     if (manifestRepo != null && blobStore != null && marketDataQuantDiffer != null) {
+        val quantDiffSemaphore = Semaphore(2)
+
         get("/api/v1/risk/compare/{portfolioId}/market-data-quant") {
+            val sample = Timer.start(meterRegistry)
+            meterRegistry.counter("manifest.diff.requests.total").increment()
+
             val dataType = call.request.queryParameters["dataType"]
                 ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "dataType is required"))
             val instrumentId = call.request.queryParameters["instrumentId"]
@@ -174,25 +190,71 @@ fun Route.runComparisonRoutes(
                 return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid targetManifestId"))
             }
 
-            val baseRefs = manifestRepo.findMarketDataRefs(baseUuid)
-            val targetRefs = manifestRepo.findMarketDataRefs(targetUuid)
+            // Rate limit: max 2 concurrent diff computations
+            if (!quantDiffSemaphore.tryAcquire()) {
+                meterRegistry.counter("manifest.diff.rejected.total", "reason", "concurrency").increment()
+                return@get call.respond(
+                    HttpStatusCode.TooManyRequests,
+                    mapOf("error" to "Too many concurrent diff requests, please retry"),
+                )
+            }
 
-            val baseRef = baseRefs.find { it.dataType == dataType && it.instrumentId == instrumentId }
-                ?: return@get call.respond(HttpStatusCode.NotFound, mapOf("error" to "Base market data ref not found"))
-            val targetRef = targetRefs.find { it.dataType == dataType && it.instrumentId == instrumentId }
-                ?: return@get call.respond(HttpStatusCode.NotFound, mapOf("error" to "Target market data ref not found"))
+            try {
+                val baseRefs = manifestRepo.findMarketDataRefs(baseUuid)
+                val targetRefs = manifestRepo.findMarketDataRefs(targetUuid)
 
-            val basePayload = blobStore.get(baseRef.contentHash)
-                ?: return@get call.respond(HttpStatusCode.NotFound, mapOf("error" to "Base blob not found"))
-            val targetPayload = blobStore.get(targetRef.contentHash)
-                ?: return@get call.respond(HttpStatusCode.NotFound, mapOf("error" to "Target blob not found"))
+                val baseRef = baseRefs.find { it.dataType == dataType && it.instrumentId == instrumentId }
+                    ?: return@get call.respond(HttpStatusCode.NotFound, mapOf("error" to "Base market data ref not found"))
+                val targetRef = targetRefs.find { it.dataType == dataType && it.instrumentId == instrumentId }
+                    ?: return@get call.respond(HttpStatusCode.NotFound, mapOf("error" to "Target market data ref not found"))
 
-            val magnitude = marketDataQuantDiffer.computeMagnitude(dataType, basePayload, targetPayload)
-            call.respond(MarketDataQuantDiffResponse(
-                dataType = dataType,
-                instrumentId = instrumentId,
-                magnitude = magnitude.name,
-            ))
+                // Check cache first (content-addressed, so hash pair is a stable key)
+                val cached = quantDiffCache?.get(baseRef.contentHash, targetRef.contentHash)
+                if (cached != null) {
+                    meterRegistry.counter("manifest.diff.cache.hits.total").increment()
+                    sample.stop(meterRegistry.timer("manifest.diff.duration.seconds"))
+                    return@get call.respond(MarketDataQuantDiffResponse(
+                        dataType = dataType,
+                        instrumentId = instrumentId,
+                        magnitude = cached.name,
+                    ))
+                }
+
+                val basePayload = blobStore.get(baseRef.contentHash)
+                    ?: return@get call.respond(HttpStatusCode.NotFound, mapOf("error" to "Base blob not found"))
+                val targetPayload = blobStore.get(targetRef.contentHash)
+                    ?: return@get call.respond(HttpStatusCode.NotFound, mapOf("error" to "Target blob not found"))
+
+                // Memory protection: reject blobs larger than 1 MB
+                meterRegistry.summary("manifest.blob.size.bytes").record(basePayload.length.toDouble())
+                meterRegistry.summary("manifest.blob.size.bytes").record(targetPayload.length.toDouble())
+                if (basePayload.length > MAX_BLOB_SIZE_BYTES || targetPayload.length > MAX_BLOB_SIZE_BYTES) {
+                    meterRegistry.counter("manifest.diff.rejected.total", "reason", "blob_too_large").increment()
+                    return@get call.respond(
+                        HttpStatusCode.UnprocessableEntity,
+                        mapOf("error" to "Blob payload exceeds size limit (${MAX_BLOB_SIZE_BYTES / 1024}KB)"),
+                    )
+                }
+
+                // Timeout protection for deserialization and computation
+                val result = withTimeout(QUANT_DIFF_TIMEOUT_MS) {
+                    marketDataQuantDiffer.computeQuantDiff(dataType, basePayload, targetPayload)
+                }
+
+                // Cache the result
+                quantDiffCache?.put(baseRef.contentHash, targetRef.contentHash, result.magnitude)
+
+                sample.stop(meterRegistry.timer("manifest.diff.duration.seconds"))
+                call.respond(MarketDataQuantDiffResponse(
+                    dataType = dataType,
+                    instrumentId = instrumentId,
+                    magnitude = result.magnitude.name,
+                    summary = result.summary,
+                    caveats = result.caveats,
+                ))
+            } finally {
+                quantDiffSemaphore.release()
+            }
         }
     }
 }

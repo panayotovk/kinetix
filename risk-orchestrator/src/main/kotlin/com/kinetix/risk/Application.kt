@@ -7,7 +7,10 @@ import com.kinetix.proto.risk.MarketDataDependenciesServiceGrpcKt
 import com.kinetix.proto.risk.RiskCalculationServiceGrpcKt
 import com.kinetix.proto.risk.RegulatoryReportingServiceGrpcKt
 import com.kinetix.proto.risk.StressTestServiceGrpcKt
+import com.kinetix.risk.cache.InMemoryQuantDiffCache
 import com.kinetix.risk.cache.InMemoryVaRCache
+import com.kinetix.risk.cache.QuantDiffCache
+import com.kinetix.risk.cache.RedisQuantDiffCache
 import com.kinetix.risk.cache.RedisVaRCache
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.mapper.toValuationResult
@@ -40,6 +43,8 @@ import com.kinetix.risk.service.MarketDataQuantDiffer
 import com.kinetix.risk.service.RunComparisonService
 import com.kinetix.risk.service.SnapshotDiffer
 import com.kinetix.risk.service.VaRAttributionService
+import com.kinetix.risk.persistence.ExposedBlobRetentionRepository
+import com.kinetix.risk.schedule.ScheduledBlobRetentionJob
 import com.kinetix.risk.schedule.ScheduledSodSnapshotJob
 import com.kinetix.risk.schedule.ScheduledVaRCalculator
 import com.kinetix.risk.service.DefaultRunManifestCapture
@@ -262,18 +267,26 @@ fun Application.moduleWithRoutes() {
         jobRecorder = jobRecorder,
         runManifestCapture = runManifestCapture,
     )
-    val varCache: VaRCache = run {
-        val redisUrl = environment.config.propertyOrNull("redis.url")?.getString().orEmpty()
-        if (redisUrl.isNotBlank()) {
-            val ttl = environment.config.propertyOrNull("redis.ttlSeconds")?.getString()?.toLongOrNull() ?: 300L
-            val client = RedisClient.create(redisUrl)
-            val connection = client.connect()
-            log.info("Using RedisVaRCache at {}", redisUrl)
-            RedisVaRCache(connection, ttl)
-        } else {
-            log.info("No REDIS_URL configured, using InMemoryVaRCache")
-            InMemoryVaRCache()
-        }
+    val redisUrl = environment.config.propertyOrNull("redis.url")?.getString().orEmpty()
+    val redisConnection = if (redisUrl.isNotBlank()) {
+        val client = RedisClient.create(redisUrl)
+        client.connect()
+    } else null
+
+    val varCache: VaRCache = if (redisConnection != null) {
+        val ttl = environment.config.propertyOrNull("redis.ttlSeconds")?.getString()?.toLongOrNull() ?: 300L
+        log.info("Using RedisVaRCache at {}", redisUrl)
+        RedisVaRCache(redisConnection, ttl)
+    } else {
+        log.info("No REDIS_URL configured, using InMemoryVaRCache")
+        InMemoryVaRCache()
+    }
+
+    val quantDiffCache: QuantDiffCache = if (redisConnection != null) {
+        log.info("Using RedisQuantDiffCache (24hr TTL)")
+        RedisQuantDiffCache(redisConnection)
+    } else {
+        InMemoryQuantDiffCache()
     }
 
     val sodSnapshotService = SodSnapshotService(
@@ -362,7 +375,7 @@ fun Application.moduleWithRoutes() {
         riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService, stressLimitCheckService = stressLimitCheckService, jobRecorder = jobRecorder)
         jobHistoryRoutes(jobRecorder)
         eodPromotionRoutes(eodPromotionService)
-        runComparisonRoutes(runComparisonService, jobRecorder, varAttributionService, effectiveRiskEngineClient, effectivePositionProvider, manifestRepo, blobStore, marketDataQuantDiffer)
+        runComparisonRoutes(runComparisonService, jobRecorder, varAttributionService, effectiveRiskEngineClient, effectivePositionProvider, manifestRepo, blobStore, marketDataQuantDiffer, quantDiffCache, meterRegistry)
     }
 
     launch {
@@ -428,6 +441,11 @@ fun Application.moduleWithRoutes() {
                 is com.kinetix.risk.client.ClientResponse.Success -> r.value
                 is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
             } },
+        ).start()
+    }
+    launch {
+        ScheduledBlobRetentionJob(
+            blobRetentionRepository = ExposedBlobRetentionRepository(riskDb),
         ).start()
     }
 }
