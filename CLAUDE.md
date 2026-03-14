@@ -100,7 +100,7 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 
 ## Guardrails
 
-- **Never delete or remove a test** (test file, test function, or test assertion) without my explicit permission. If a test is failing, fix the code under test or fix the test — do not delete it to make the build pass. Always explain the failure and ask before removing any test.
+- **Never delete, disable, or skip a test** (test file, test function, or test assertion) without my explicit permission. This includes marking tests as ignored, disabled, skipped, or xfail (e.g. `@Ignore`, `@Disabled`, `xconfig`, `pytest.mark.skip`, `test.skip`, `.todo`). If a test is failing, fix the code under test or fix the test — do not delete, skip, or suppress it to make the build pass. Always explain the failure and ask before removing or disabling any test.
 - **Never force-push or rewrite published git history** without my explicit permission.
 - **Never modify CI/CD pipeline files** without my approval.
 - **Never add a new library/dependency** without my approval.
