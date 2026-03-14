@@ -86,6 +86,8 @@ const MOCK_INPUT_CHANGES = {
   modelVersionChanged: true,
   baseModelVersion: 'v2.3.1',
   targetModelVersion: 'v2.4.0',
+  baseManifestId: 'manifest-base-001',
+  targetManifestId: 'manifest-target-001',
   positionChanges: [
     { instrumentId: 'TSLA', assetClass: 'EQUITY', changeType: 'ADDED', baseQuantity: null, targetQuantity: '200', quantityDelta: '200', baseMarketPrice: null, targetMarketPrice: '245.50', priceDelta: null, currency: 'USD' },
     { instrumentId: 'AAPL', assetClass: 'EQUITY', changeType: 'QUANTITY_CHANGED', baseQuantity: '100', targetQuantity: '150', quantityDelta: '50', baseMarketPrice: '170.00', targetMarketPrice: '175.00', priceDelta: '5', currency: 'USD' },
@@ -115,6 +117,8 @@ const MOCK_COMPARISON_IDENTICAL_INPUTS = {
     targetModelVersion: 'v2.3.1',
     positionChanges: [],
     marketDataChanges: [],
+    baseManifestId: null,
+    targetManifestId: null,
   },
 }
 
@@ -433,5 +437,34 @@ test.describe('Input Changes Panel', () => {
     // Collapse
     await button.click()
     await expect(page.getByTestId('position-changes-section')).not.toBeVisible()
+  })
+
+  test('lazy-loads magnitude for CHANGED items without magnitude', async ({ page }) => {
+    const lazyInputChanges = {
+      ...MOCK_INPUT_CHANGES,
+      marketDataChanges: [
+        { dataType: 'SPOT_PRICE', instrumentId: 'AAPL', assetClass: 'EQUITY', changeType: 'CHANGED', magnitude: null },
+      ],
+    }
+    const comparison = { ...MOCK_COMPARISON, inputChanges: lazyInputChanges }
+    await mockComparisonRoutes(page, { comparison })
+
+    // Mock the quant diff endpoint
+    await page.route('**/api/v1/risk/compare/*/market-data-quant*', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ dataType: 'SPOT_PRICE', instrumentId: 'AAPL', magnitude: 'MEDIUM', diagnostic: true }),
+      })
+    })
+
+    await navigateToRunCompare(page)
+    await page.getByTestId('compare-dates-btn').click()
+
+    // Expand the input changes panel
+    await page.getByTestId('input-changes-panel').getByRole('button').click()
+
+    // Should show the lazy-loaded magnitude
+    await expect(page.getByTestId('magnitude-medium')).toBeVisible()
   })
 })

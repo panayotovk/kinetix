@@ -8,4 +8,6 @@ data class InputChangeSummary(
     val targetModelVersion: String,
     val positionChanges: List<PositionInputChange>,
     val marketDataChanges: List<MarketDataInputChange>,
+    val baseManifestId: String? = null,
+    val targetManifestId: String? = null,
 )

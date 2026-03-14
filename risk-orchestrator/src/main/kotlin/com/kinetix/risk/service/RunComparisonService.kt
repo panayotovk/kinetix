@@ -72,7 +72,11 @@ class RunComparisonService(
         val targetRefs = if (baseManifest.marketDataDigest != targetManifest.marketDataDigest)
             repo.findMarketDataRefs(targetManifest.manifestId) else emptyList()
 
-        return differ.computeInputChanges(baseManifest, targetManifest, basePositions, targetPositions, baseRefs, targetRefs)
+        val summary = differ.computeInputChanges(baseManifest, targetManifest, basePositions, targetPositions, baseRefs, targetRefs)
+        return summary.copy(
+            baseManifestId = baseManifestId.toString(),
+            targetManifestId = targetManifestId.toString(),
+        )
     }
 
     fun compareSnapshots(

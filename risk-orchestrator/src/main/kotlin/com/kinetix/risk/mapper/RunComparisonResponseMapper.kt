@@ -127,6 +127,8 @@ fun InputChangeSummary.toDto(): InputChangesSummaryDto = InputChangesSummaryDto(
     targetModelVersion = targetModelVersion,
     positionChanges = positionChanges.map { it.toDto() },
     marketDataChanges = marketDataChanges.map { it.toDto() },
+    baseManifestId = baseManifestId,
+    targetManifestId = targetManifestId,
 )
 
 fun PositionInputChange.toDto(): PositionInputChangeDto = PositionInputChangeDto(

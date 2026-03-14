@@ -566,6 +566,15 @@ export interface InputChangesSummaryDto {
   targetModelVersion: string
   positionChanges: PositionInputChangeDto[]
   marketDataChanges: MarketDataInputChangeDto[]
+  baseManifestId: string | null
+  targetManifestId: string | null
+}
+
+export interface MarketDataQuantDiffDto {
+  dataType: string
+  instrumentId: string
+  magnitude: 'LARGE' | 'MEDIUM' | 'SMALL'
+  diagnostic: boolean
 }
 
 export interface RunComparisonResponseDto {

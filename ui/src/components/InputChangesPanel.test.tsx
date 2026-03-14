@@ -14,6 +14,8 @@ function emptyInputChanges(
     targetModelVersion: '1.0.0',
     positionChanges: [],
     marketDataChanges: [],
+    baseManifestId: null,
+    targetManifestId: null,
     ...overrides,
   }
 }

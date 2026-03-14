@@ -11,4 +11,6 @@ data class InputChangesSummaryDto(
     val targetModelVersion: String,
     val positionChanges: List<PositionInputChangeDto>,
     val marketDataChanges: List<MarketDataInputChangeDto>,
+    val baseManifestId: String? = null,
+    val targetManifestId: String? = null,
 )

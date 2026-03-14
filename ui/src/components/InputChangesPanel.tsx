@@ -1,13 +1,15 @@
-import { useState } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
 import { Card } from './ui'
 import { MagnitudeIndicator } from './MagnitudeIndicator'
 import { formatNum } from '../utils/format'
-import type { InputChangesSummaryDto, ParameterDiffDto } from '../types'
+import { fetchMarketDataQuantDiff } from '../api/runComparison'
+import type { InputChangesSummaryDto, ParameterDiffDto, MarketDataInputChangeDto } from '../types'
 
 interface InputChangesPanelProps {
   inputChanges: InputChangesSummaryDto | null
   parameterDiffs: ParameterDiffDto[]
+  portfolioId?: string
 }
 
 function ChangeTypeBadge({ changeType }: { changeType: string }) {
@@ -35,8 +37,68 @@ function ChangeTypeBadge({ changeType }: { changeType: string }) {
   }
 }
 
-export function InputChangesPanel({ inputChanges, parameterDiffs }: InputChangesPanelProps) {
+type MagnitudeState = 'LARGE' | 'MEDIUM' | 'SMALL' | 'loading' | 'error' | null
+
+function mdKey(md: MarketDataInputChangeDto): string {
+  return `${md.dataType}:${md.instrumentId}`
+}
+
+export function InputChangesPanel({ inputChanges, parameterDiffs, portfolioId }: InputChangesPanelProps) {
   const [expanded, setExpanded] = useState(false)
+  const [magnitudes, setMagnitudes] = useState<Record<string, MagnitudeState>>({})
+
+  const canFetchMagnitude = !!(
+    portfolioId &&
+    inputChanges?.baseManifestId &&
+    inputChanges?.targetManifestId
+  )
+
+  const fetchMagnitudes = useCallback(async () => {
+    if (!inputChanges || !canFetchMagnitude) return
+
+    const changesToFetch = inputChanges.marketDataChanges.filter(
+      (md) => md.changeType === 'CHANGED' && md.magnitude === null,
+    )
+    if (changesToFetch.length === 0) return
+
+    // Mark all as loading
+    setMagnitudes((prev) => {
+      const next = { ...prev }
+      for (const md of changesToFetch) {
+        const key = mdKey(md)
+        if (!next[key]) next[key] = 'loading'
+      }
+      return next
+    })
+
+    // Fetch in parallel
+    await Promise.allSettled(
+      changesToFetch.map(async (md) => {
+        const key = mdKey(md)
+        try {
+          const result = await fetchMarketDataQuantDiff(
+            portfolioId!,
+            md.dataType,
+            md.instrumentId,
+            inputChanges.baseManifestId!,
+            inputChanges.targetManifestId!,
+          )
+          setMagnitudes((prev) => ({
+            ...prev,
+            [key]: result?.magnitude ?? 'error',
+          }))
+        } catch {
+          setMagnitudes((prev) => ({ ...prev, [key]: 'error' }))
+        }
+      }),
+    )
+  }, [inputChanges, canFetchMagnitude, portfolioId])
+
+  useEffect(() => {
+    if (expanded) {
+      fetchMagnitudes()
+    }
+  }, [expanded, fetchMagnitudes])
 
   if (inputChanges === null) {
     return (
@@ -58,6 +120,11 @@ export function InputChangesPanel({ inputChanges, parameterDiffs }: InputChanges
 
   const showModelParamsSection =
     inputChanges.modelVersionChanged || parameterDiffs.length > 0
+
+  function resolveMagnitude(md: MarketDataInputChangeDto): MagnitudeState {
+    if (md.magnitude) return md.magnitude
+    return magnitudes[mdKey(md)] ?? null
+  }
 
   return (
     <Card data-testid="input-changes-panel">
@@ -215,21 +282,41 @@ export function InputChangesPanel({ inputChanges, parameterDiffs }: InputChanges
                 Market Data Changes
               </h4>
               <div className="space-y-1">
-                {inputChanges.marketDataChanges.map((md, idx) => (
-                  <div
-                    key={`${md.dataType}-${md.instrumentId}-${idx}`}
-                    className="flex items-center gap-3 text-sm py-1"
-                  >
-                    <span className="text-slate-600 dark:text-slate-300 font-medium w-28 shrink-0">
-                      {md.dataType}
-                    </span>
-                    <span className="text-slate-700 dark:text-slate-200 w-28 shrink-0">
-                      {md.instrumentId}
-                    </span>
-                    <ChangeTypeBadge changeType={md.changeType} />
-                    {md.magnitude && <MagnitudeIndicator magnitude={md.magnitude} />}
-                  </div>
-                ))}
+                {inputChanges.marketDataChanges.map((md, idx) => {
+                  const magnitude = resolveMagnitude(md)
+                  return (
+                    <div
+                      key={`${md.dataType}-${md.instrumentId}-${idx}`}
+                      className="flex items-center gap-3 text-sm py-1"
+                    >
+                      <span className="text-slate-600 dark:text-slate-300 font-medium w-28 shrink-0">
+                        {md.dataType}
+                      </span>
+                      <span className="text-slate-700 dark:text-slate-200 w-28 shrink-0">
+                        {md.instrumentId}
+                      </span>
+                      <ChangeTypeBadge changeType={md.changeType} />
+                      {magnitude === 'loading' && (
+                        <Loader2
+                          className="h-3.5 w-3.5 animate-spin text-slate-400"
+                          data-testid="magnitude-loading"
+                          aria-label="Loading magnitude"
+                        />
+                      )}
+                      {magnitude === 'error' && (
+                        <span
+                          className="text-xs text-slate-400 italic"
+                          data-testid="magnitude-error"
+                        >
+                          unavailable
+                        </span>
+                      )}
+                      {(magnitude === 'LARGE' || magnitude === 'MEDIUM' || magnitude === 'SMALL') && (
+                        <MagnitudeIndicator magnitude={magnitude} />
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
