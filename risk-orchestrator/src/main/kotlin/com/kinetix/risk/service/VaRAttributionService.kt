@@ -65,21 +65,14 @@ class VaRAttributionService(
         val theta = baseJob.theta ?: 0.0
         val timeDecayEffect = theta * daysBetween
 
-        // Steps 4–5: Vol and correlation effects require market-data overrides that go
-        // beyond the current MarketDataFetcher surface. Deferred to a future increment;
-        // their contribution is absorbed into unexplained for now.
-        val volEffect = 0.0
-        val corrEffect = 0.0
-        val modelEffect = 0.0
-
-        val unexplained = totalChange - positionEffect - volEffect - corrEffect - timeDecayEffect - modelEffect
+        val unexplained = totalChange - positionEffect - timeDecayEffect
 
         return VaRAttribution(
             totalChange = totalChange,
             positionEffect = positionEffect,
-            volEffect = volEffect,
-            corrEffect = corrEffect,
-            modelEffect = modelEffect,
+            volEffect = null,
+            corrEffect = null,
+            modelEffect = null,
             timeDecayEffect = timeDecayEffect,
             unexplained = unexplained,
         )

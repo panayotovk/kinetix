@@ -531,8 +531,8 @@ export interface ParameterDiffDto {
 export interface VaRAttributionDto {
   totalChange: string
   positionEffect: string
-  volEffect: string
-  corrEffect: string
+  volEffect: string | null
+  corrEffect: string | null
   timeDecayEffect: string
   unexplained: string
 }

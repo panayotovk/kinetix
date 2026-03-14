@@ -45,7 +45,7 @@ export function VaRAttributionPanel({ attribution, loading, onRequest }: VaRAttr
 
   if (!attribution) return null
 
-  const effects = [
+  const effects: { label: string; value: string | null; bold: boolean }[] = [
     { label: 'Total Change', value: attribution.totalChange, bold: true },
     { label: 'Position Effect', value: attribution.positionEffect, bold: false },
     { label: 'Volatility Effect', value: attribution.volEffect, bold: false },
@@ -54,7 +54,8 @@ export function VaRAttributionPanel({ attribution, loading, onRequest }: VaRAttr
     { label: 'Unexplained', value: attribution.unexplained, bold: false },
   ]
 
-  const maxAbs = Math.max(...effects.map((e) => Math.abs(Number(e.value))), 1)
+  const computedEffects = effects.filter((e) => e.value !== null)
+  const maxAbs = Math.max(...computedEffects.map((e) => Math.abs(Number(e.value))), 1)
 
   return (
     <Card data-testid="var-attribution-panel">
@@ -63,6 +64,24 @@ export function VaRAttributionPanel({ attribution, loading, onRequest }: VaRAttr
       </h3>
       <div className="space-y-2" role="list" aria-label="VaR attribution effects">
         {effects.map((e) => {
+          if (e.value === null) {
+            return (
+              <div key={e.label} className="flex items-center gap-2" role="listitem">
+                <span className="text-xs w-28 shrink-0 text-slate-600 dark:text-slate-300">
+                  {e.label}
+                </span>
+                <div className="flex-1 h-5 relative" aria-hidden="true" />
+                <span
+                  data-testid={`attr-${e.label.toLowerCase().replace(/\s+/g, '-')}`}
+                  className="text-xs w-20 text-right shrink-0 text-slate-400 dark:text-slate-500 italic"
+                  title="Not yet computed — absorbed into unexplained"
+                >
+                  N/A
+                </span>
+              </div>
+            )
+          }
+
           const numVal = Number(e.value)
           const barWidth = (Math.abs(numVal) / maxAbs) * 100
           const isPositive = numVal >= 0

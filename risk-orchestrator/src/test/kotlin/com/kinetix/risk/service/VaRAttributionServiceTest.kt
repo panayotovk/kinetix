@@ -104,7 +104,7 @@ class VaRAttributionServiceTest : FunSpec({
 
         val result = service.attributeVaRChange(PortfolioId("port-1"), baseJob, targetJob)
 
-        val explained = result.positionEffect + result.volEffect + result.corrEffect + result.timeDecayEffect
+        val explained = result.positionEffect + (result.volEffect ?: 0.0) + (result.corrEffect ?: 0.0) + result.timeDecayEffect
         val expectedUnexplained = result.totalChange - explained
         result.unexplained shouldBe expectedUnexplained.plusOrMinus(0.01)
     }

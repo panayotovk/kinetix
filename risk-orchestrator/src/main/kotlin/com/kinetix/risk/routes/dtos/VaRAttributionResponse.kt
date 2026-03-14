@@ -6,8 +6,8 @@ import kotlinx.serialization.Serializable
 data class VaRAttributionResponse(
     val totalChange: String,
     val positionEffect: String,
-    val volEffect: String,
-    val corrEffect: String,
+    val volEffect: String?,
+    val corrEffect: String?,
     val timeDecayEffect: String,
     val unexplained: String,
 )

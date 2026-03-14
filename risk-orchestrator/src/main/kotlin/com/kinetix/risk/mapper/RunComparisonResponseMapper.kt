@@ -106,8 +106,8 @@ fun ParameterDiff.toDto(): ParameterDiffDto = ParameterDiffDto(
 fun VaRAttribution.toResponse(): VaRAttributionResponse = VaRAttributionResponse(
     totalChange = "%.2f".format(totalChange),
     positionEffect = "%.2f".format(positionEffect),
-    volEffect = "%.2f".format(volEffect),
-    corrEffect = "%.2f".format(corrEffect),
+    volEffect = volEffect?.let { "%.2f".format(it) },
+    corrEffect = corrEffect?.let { "%.2f".format(it) },
     timeDecayEffect = "%.2f".format(timeDecayEffect),
     unexplained = "%.2f".format(unexplained),
 )
