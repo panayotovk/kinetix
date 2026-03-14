@@ -13,4 +13,5 @@ data class RunComparison(
     val positionDiffs: List<PositionDiff>,
     val parameterDiffs: List<ParameterDiff>,
     val attribution: VaRAttribution?,
+    val inputChanges: InputChangeSummary? = null,
 )
