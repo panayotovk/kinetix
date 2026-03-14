@@ -342,4 +342,24 @@ class HttpRiskServiceClient(
         if (!response.status.isSuccess()) handleErrorResponse(response)
         return response.body()
     }
+
+    override suspend fun getMarketDataQuantDiff(
+        portfolioId: String,
+        dataType: String,
+        instrumentId: String,
+        baseManifestId: String,
+        targetManifestId: String,
+    ): JsonObject? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/compare/$portfolioId/market-data-quant") {
+            url {
+                parameters.append("dataType", dataType)
+                parameters.append("instrumentId", instrumentId)
+                parameters.append("baseManifestId", baseManifestId)
+                parameters.append("targetManifestId", targetManifestId)
+            }
+        }
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
 }

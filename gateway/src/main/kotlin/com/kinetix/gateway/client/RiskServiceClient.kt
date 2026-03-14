@@ -313,4 +313,5 @@ interface RiskServiceClient {
     suspend fun compareModel(portfolioId: String, request: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject
     suspend fun promoteJobLabel(jobId: String, body: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject
     suspend fun getOfficialEod(portfolioId: String, date: String): kotlinx.serialization.json.JsonObject?
+    suspend fun getMarketDataQuantDiff(portfolioId: String, dataType: String, instrumentId: String, baseManifestId: String, targetManifestId: String): kotlinx.serialization.json.JsonObject?
 }

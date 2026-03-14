@@ -98,4 +98,33 @@ fun Route.runComparisonRoutes(client: RiskServiceClient) {
         val result = client.compareModel(portfolioId, body)
         call.respond(result)
     }
+
+    get("/api/v1/risk/compare/{portfolioId}/market-data-quant", {
+        summary = "Quantitative diff for a specific market data item between two manifests"
+        tags = listOf("Run Comparison")
+        request {
+            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            queryParameter<String>("dataType") { description = "Market data type (e.g. SPOT_PRICE)" }
+            queryParameter<String>("instrumentId") { description = "Instrument identifier" }
+            queryParameter<String>("baseManifestId") { description = "Base manifest UUID" }
+            queryParameter<String>("targetManifestId") { description = "Target manifest UUID" }
+        }
+    }) {
+        val portfolioId = call.requirePathParam("portfolioId")
+        val dataType = call.request.queryParameters["dataType"]
+            ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "dataType is required"))
+        val instrumentId = call.request.queryParameters["instrumentId"]
+            ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "instrumentId is required"))
+        val baseManifestId = call.request.queryParameters["baseManifestId"]
+            ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "baseManifestId is required"))
+        val targetManifestId = call.request.queryParameters["targetManifestId"]
+            ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "targetManifestId is required"))
+
+        val result = client.getMarketDataQuantDiff(portfolioId, dataType, instrumentId, baseManifestId, targetManifestId)
+        if (result != null) {
+            call.respond(result)
+        } else {
+            call.respond(HttpStatusCode.NotFound)
+        }
+    }
 }

@@ -9,9 +9,13 @@ import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ComparisonType
 import com.kinetix.risk.model.ConfidenceLevel
 import com.kinetix.risk.model.VaRCalculationRequest
+import com.kinetix.risk.routes.dtos.MarketDataQuantDiffResponse
 import com.kinetix.risk.routes.dtos.ModelComparisonRequestBody
 import com.kinetix.risk.routes.dtos.RunComparisonRequestBody
+import com.kinetix.risk.service.MarketDataBlobStore
+import com.kinetix.risk.service.MarketDataQuantDiffer
 import com.kinetix.risk.service.RunComparisonService
+import com.kinetix.risk.service.RunManifestRepository
 import com.kinetix.risk.service.VaRAttributionService
 import com.kinetix.risk.service.ValuationJobRecorder
 import io.ktor.http.*
@@ -27,6 +31,9 @@ fun Route.runComparisonRoutes(
     varAttributionService: VaRAttributionService? = null,
     riskEngineClient: RiskEngineClient? = null,
     positionProvider: PositionProvider? = null,
+    manifestRepo: RunManifestRepository? = null,
+    blobStore: MarketDataBlobStore? = null,
+    marketDataQuantDiffer: MarketDataQuantDiffer? = null,
 ) {
     // Compare two runs by job IDs
     post("/api/v1/risk/compare/{portfolioId}") {
@@ -145,6 +152,47 @@ fun Route.runComparisonRoutes(
                 portfolioId,
             )
             call.respond(comparison.toResponse())
+        }
+    }
+
+    // Lazy quantitative diff for a specific market data item between two manifests
+    if (manifestRepo != null && blobStore != null && marketDataQuantDiffer != null) {
+        get("/api/v1/risk/compare/{portfolioId}/market-data-quant") {
+            val dataType = call.request.queryParameters["dataType"]
+                ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "dataType is required"))
+            val instrumentId = call.request.queryParameters["instrumentId"]
+                ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "instrumentId is required"))
+            val baseManifestId = call.request.queryParameters["baseManifestId"]
+                ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "baseManifestId is required"))
+            val targetManifestId = call.request.queryParameters["targetManifestId"]
+                ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "targetManifestId is required"))
+
+            val baseUuid = try { UUID.fromString(baseManifestId) } catch (_: Exception) {
+                return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid baseManifestId"))
+            }
+            val targetUuid = try { UUID.fromString(targetManifestId) } catch (_: Exception) {
+                return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid targetManifestId"))
+            }
+
+            val baseRefs = manifestRepo.findMarketDataRefs(baseUuid)
+            val targetRefs = manifestRepo.findMarketDataRefs(targetUuid)
+
+            val baseRef = baseRefs.find { it.dataType == dataType && it.instrumentId == instrumentId }
+                ?: return@get call.respond(HttpStatusCode.NotFound, mapOf("error" to "Base market data ref not found"))
+            val targetRef = targetRefs.find { it.dataType == dataType && it.instrumentId == instrumentId }
+                ?: return@get call.respond(HttpStatusCode.NotFound, mapOf("error" to "Target market data ref not found"))
+
+            val basePayload = blobStore.get(baseRef.contentHash)
+                ?: return@get call.respond(HttpStatusCode.NotFound, mapOf("error" to "Base blob not found"))
+            val targetPayload = blobStore.get(targetRef.contentHash)
+                ?: return@get call.respond(HttpStatusCode.NotFound, mapOf("error" to "Target blob not found"))
+
+            val magnitude = marketDataQuantDiffer.computeMagnitude(dataType, basePayload, targetPayload)
+            call.respond(MarketDataQuantDiffResponse(
+                dataType = dataType,
+                instrumentId = instrumentId,
+                magnitude = magnitude.name,
+            ))
         }
     }
 }
