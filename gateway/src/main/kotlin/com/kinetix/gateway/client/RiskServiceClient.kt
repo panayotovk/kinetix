@@ -203,6 +203,33 @@ data class ValuationJobDetailItem(
     val promotedBy: String? = null,
 )
 
+data class EodTimelineEntryItem(
+    val valuationDate: String,
+    val jobId: String,
+    val varValue: Double?,
+    val expectedShortfall: Double?,
+    val pvValue: Double?,
+    val delta: Double?,
+    val gamma: Double?,
+    val vega: Double?,
+    val theta: Double?,
+    val rho: Double?,
+    val promotedAt: String?,
+    val promotedBy: String?,
+    val varChange: Double?,
+    val varChangePct: Double?,
+    val esChange: Double?,
+    val calculationType: String?,
+    val confidenceLevel: Double?,
+)
+
+data class EodTimelineSummary(
+    val portfolioId: String,
+    val from: String,
+    val to: String,
+    val entries: List<EodTimelineEntryItem>,
+)
+
 data class SodBaselineStatusSummary(
     val exists: Boolean,
     val baselineDate: String?,
@@ -314,4 +341,5 @@ interface RiskServiceClient {
     suspend fun promoteJobLabel(jobId: String, body: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject
     suspend fun getOfficialEod(portfolioId: String, date: String): kotlinx.serialization.json.JsonObject?
     suspend fun getMarketDataQuantDiff(portfolioId: String, dataType: String, instrumentId: String, baseManifestId: String, targetManifestId: String): kotlinx.serialization.json.JsonObject?
+    suspend fun getEodTimeline(portfolioId: String, from: String, to: String): EodTimelineSummary?
 }

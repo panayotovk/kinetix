@@ -1,5 +1,7 @@
 package com.kinetix.gateway.client
 
+import com.kinetix.gateway.client.dtos.EodTimelineClientDto
+import com.kinetix.gateway.client.dtos.toDomain
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -361,5 +363,18 @@ class HttpRiskServiceClient(
         if (response.status == HttpStatusCode.NotFound) return null
         if (!response.status.isSuccess()) handleErrorResponse(response)
         return response.body()
+    }
+
+    override suspend fun getEodTimeline(portfolioId: String, from: String, to: String): EodTimelineSummary? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/eod-timeline/$portfolioId") {
+            url {
+                parameters.append("from", from)
+                parameters.append("to", to)
+            }
+        }
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        val dto: EodTimelineClientDto = response.body()
+        return dto.toDomain()
     }
 }

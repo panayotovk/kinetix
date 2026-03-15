@@ -19,6 +19,7 @@ import com.kinetix.gateway.dto.*
 import com.kinetix.gateway.routes.backtestProxyRoutes
 import com.kinetix.gateway.routes.dataQualityRoutes
 import com.kinetix.gateway.routes.dependenciesRoutes
+import com.kinetix.gateway.routes.eodTimelineRoutes
 import com.kinetix.gateway.routes.jobHistoryRoutes
 import com.kinetix.gateway.routes.priceRoutes
 import com.kinetix.gateway.routes.notificationRoutes
@@ -170,6 +171,7 @@ fun Application.module(riskClient: RiskServiceClient) {
         regulatoryRoutes(riskClient)
         dependenciesRoutes(riskClient)
         jobHistoryRoutes(riskClient)
+        eodTimelineRoutes(riskClient)
         sodSnapshotRoutes(riskClient)
         runComparisonRoutes(riskClient)
     }
@@ -206,6 +208,7 @@ fun Application.module(
         regulatoryRoutes(riskClient)
         dependenciesRoutes(riskClient)
         jobHistoryRoutes(riskClient)
+        eodTimelineRoutes(riskClient)
         sodSnapshotRoutes(riskClient)
         runComparisonRoutes(riskClient)
     }
