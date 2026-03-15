@@ -38,6 +38,7 @@ import com.kinetix.risk.routes.riskRoutes
 import com.kinetix.risk.routes.jobHistoryRoutes
 import com.kinetix.risk.routes.eodPromotionRoutes
 import com.kinetix.risk.routes.runComparisonRoutes
+import com.kinetix.risk.routes.eodTimelineRoutes
 import com.kinetix.risk.service.InputChangeDiffer
 import com.kinetix.risk.service.MarketDataQuantDiffer
 import com.kinetix.risk.service.RunComparisonService
@@ -375,6 +376,7 @@ fun Application.moduleWithRoutes() {
         riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService, stressLimitCheckService = stressLimitCheckService, jobRecorder = jobRecorder)
         jobHistoryRoutes(jobRecorder)
         eodPromotionRoutes(eodPromotionService)
+        eodTimelineRoutes(jobRecorder)
         runComparisonRoutes(runComparisonService, jobRecorder, varAttributionService, effectiveRiskEngineClient, effectivePositionProvider, manifestRepo, blobStore, marketDataQuantDiffer, quantDiffCache, meterRegistry)
     }
 
