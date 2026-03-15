@@ -1070,6 +1070,161 @@ export async function mockRiskTabRoutes(
 }
 
 // ---------------------------------------------------------------------------
+// EOD Timeline fixture data and mock helpers
+// ---------------------------------------------------------------------------
+
+export interface EodTimelineEntryFixture {
+  valuationDate: string
+  jobId: string
+  varValue: number | null
+  expectedShortfall: number | null
+  pvValue: number | null
+  delta: number | null
+  gamma: number | null
+  vega: number | null
+  theta: number | null
+  rho: number | null
+  promotedAt: string | null
+  promotedBy: string | null
+  varChange: number | null
+  varChangePct: number | null
+  esChange: number | null
+  calculationType: string | null
+  confidenceLevel: number | null
+}
+
+export const TEST_EOD_TIMELINE_ENTRIES: EodTimelineEntryFixture[] = [
+  {
+    valuationDate: '2026-03-13',
+    jobId: 'job-eod-13',
+    varValue: 108000,
+    expectedShortfall: 162000,
+    pvValue: 5200000,
+    delta: 0.52,
+    gamma: 0.011,
+    vega: 220,
+    theta: -52,
+    rho: 26,
+    promotedAt: '2026-03-13T19:05:00Z',
+    promotedBy: 'risk-manager',
+    varChange: 8000,
+    varChangePct: 8.0,
+    esChange: 12000,
+    calculationType: 'PARAMETRIC',
+    confidenceLevel: 0.99,
+  },
+  {
+    valuationDate: '2026-03-12',
+    jobId: 'job-eod-12',
+    varValue: 100000,
+    expectedShortfall: 150000,
+    pvValue: 5000000,
+    delta: 0.5,
+    gamma: 0.01,
+    vega: 200,
+    theta: -50,
+    rho: 25,
+    promotedAt: '2026-03-12T19:00:00Z',
+    promotedBy: 'risk-manager',
+    varChange: null,
+    varChangePct: null,
+    esChange: null,
+    calculationType: 'PARAMETRIC',
+    confidenceLevel: 0.99,
+  },
+  {
+    valuationDate: '2026-03-11',
+    jobId: 'job-eod-11',
+    varValue: 95000,
+    expectedShortfall: 142500,
+    pvValue: 4900000,
+    delta: 0.48,
+    gamma: 0.009,
+    vega: 190,
+    theta: -48,
+    rho: 24,
+    promotedAt: '2026-03-11T18:55:00Z',
+    promotedBy: 'risk-manager',
+    varChange: -5000,
+    varChangePct: -5.0,
+    esChange: -7500,
+    calculationType: 'PARAMETRIC',
+    confidenceLevel: 0.99,
+  },
+  {
+    // Missing EOD — no varValue
+    valuationDate: '2026-03-10',
+    jobId: '',
+    varValue: null,
+    expectedShortfall: null,
+    pvValue: null,
+    delta: null,
+    gamma: null,
+    vega: null,
+    theta: null,
+    rho: null,
+    promotedAt: null,
+    promotedBy: null,
+    varChange: null,
+    varChangePct: null,
+    esChange: null,
+    calculationType: null,
+    confidenceLevel: null,
+  },
+  {
+    valuationDate: '2026-03-07',
+    jobId: 'job-eod-07',
+    varValue: 102000,
+    expectedShortfall: 153000,
+    pvValue: 5050000,
+    delta: 0.51,
+    gamma: 0.010,
+    vega: 205,
+    theta: -51,
+    rho: 25,
+    promotedAt: '2026-03-07T19:10:00Z',
+    promotedBy: 'risk-manager',
+    varChange: 2000,
+    varChangePct: 2.0,
+    esChange: 3000,
+    calculationType: 'PARAMETRIC',
+    confidenceLevel: 0.99,
+  },
+]
+
+export const TEST_EOD_TIMELINE_RESPONSE = {
+  portfolioId: 'port-1',
+  from: '2026-02-01',
+  to: '2026-03-15',
+  entries: TEST_EOD_TIMELINE_ENTRIES,
+}
+
+export const TEST_EOD_TIMELINE_EMPTY = {
+  portfolioId: 'port-1',
+  from: '2026-02-01',
+  to: '2026-03-15',
+  entries: [],
+}
+
+/**
+ * Sets up mock routes for the EOD timeline endpoint.
+ * Call AFTER mockAllApiRoutes — this must come before the catch-all risk/** handler.
+ */
+export async function mockEodTimelineRoutes(
+  page: Page,
+  response: object = TEST_EOD_TIMELINE_RESPONSE,
+  status = 200,
+): Promise<void> {
+  await page.route('**/api/v1/risk/eod-timeline/**', (route: Route) => {
+    route.fulfill({
+      status,
+      contentType: 'application/json',
+      body: JSON.stringify(status === 200 ? response : { error: 'Internal server error' }),
+    })
+  })
+}
+
+// ---------------------------------------------------------------------------
 // Existing types and helpers below
 // ---------------------------------------------------------------------------
 
