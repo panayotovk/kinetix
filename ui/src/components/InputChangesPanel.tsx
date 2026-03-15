@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
 import { Card } from './ui'
 import { MagnitudeIndicator } from './MagnitudeIndicator'
@@ -102,12 +102,6 @@ export function InputChangesPanel({ inputChanges, parameterDiffs, portfolioId }:
     )
   }, [inputChanges, canFetchMagnitude, portfolioId])
 
-  useEffect(() => {
-    if (expanded) {
-      fetchMagnitudes()
-    }
-  }, [expanded, fetchMagnitudes])
-
   if (inputChanges === null) {
     return (
       <Card data-testid="input-changes-unavailable">
@@ -139,7 +133,12 @@ export function InputChangesPanel({ inputChanges, parameterDiffs, portfolioId }:
       <button
         type="button"
         className="w-full flex items-center gap-2 text-left"
-        onClick={() => setExpanded((prev) => !prev)}
+        onClick={() => {
+          setExpanded((prev) => {
+            if (!prev) fetchMagnitudes()
+            return !prev
+          })
+        }}
         aria-expanded={expanded}
         aria-controls="input-changes-body"
       >
