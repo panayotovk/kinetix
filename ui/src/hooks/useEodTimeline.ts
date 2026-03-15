@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { fetchEodTimeline } from '../api/eodTimeline'
 import type { EodTimelineEntryDto } from '../types'
 
@@ -40,20 +40,29 @@ export function useEodTimeline(portfolioId: string | null): UseEodTimelineResult
 
   const abortRef = useRef<AbortController | null>(null)
 
-  useEffect(() => {
-    if (!portfolioId) {
+  // Set loading/reset state during render when deps change
+  // (React-supported "set state during render" pattern)
+  const loadKey = portfolioId ? `${portfolioId}|${from}|${to}|${refreshSignal}` : ''
+  const [prevLoadKey, setPrevLoadKey] = useState('')
+
+  if (loadKey !== prevLoadKey) {
+    setPrevLoadKey(loadKey)
+    if (loadKey) {
+      setLoading(true)
+      setError(null)
+    } else {
       setEntries([])
       setLoading(false)
       setError(null)
-      return
     }
+  }
+
+  useEffect(() => {
+    if (!portfolioId) return
 
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
-
-    setLoading(true)
-    setError(null)
 
     fetchEodTimeline(portfolioId, from, to)
       .then((data) => {
