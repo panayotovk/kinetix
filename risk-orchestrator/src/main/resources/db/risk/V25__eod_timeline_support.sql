@@ -2,7 +2,7 @@
 -- official_eod_designations joins. The existing UNIQUE(job_id, started_at)
 -- composite index requires started_at for chunk exclusion; this index
 -- serves pure job_id lookups without a timestamp hint.
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_valuation_jobs_job_id
+CREATE INDEX IF NOT EXISTS idx_valuation_jobs_job_id
     ON valuation_jobs (job_id);
 
 -- Reverse-lookup index on official_eod_designations for cross-portfolio
