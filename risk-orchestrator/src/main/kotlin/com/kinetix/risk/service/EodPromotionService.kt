@@ -110,7 +110,14 @@ class EodPromotionService(
             throw EodPromotionException.NotPromoted(jobId)
         }
 
-        return jobRecorder.demoteOfficialEod(jobId)
+        val demoted = jobRecorder.demoteOfficialEod(jobId)
+        logger.warn(
+            "eod_demotion_performed job_id={} portfolio_id={} demoted_by={}",
+            jobId,
+            demoted.portfolioId,
+            demotedBy,
+        )
+        return demoted
     }
 
     suspend fun findOfficialEod(portfolioId: String, valuationDate: LocalDate): ValuationJob? {
