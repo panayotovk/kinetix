@@ -938,6 +938,71 @@ class VaRCalculationServiceTest : FunSpec({
         risk.vega.shouldBeNull()
     }
 
+    test("passes run label through to both RUNNING and COMPLETED recorded jobs") {
+        val savedJob = slot<ValuationJob>()
+        val updatedJob = slot<ValuationJob>()
+        coEvery { jobRecorder.save(capture(savedJob)) } just Runs
+        coEvery { jobRecorder.update(capture(updatedJob)) } just Runs
+        coEvery { positionProvider.getPositions(any()) } returns listOf(position())
+        coEvery { riskEngineClient.valuate(any(), any()) } returns varResult()
+        coEvery { resultPublisher.publish(any(), any()) } just Runs
+
+        service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            ),
+            runLabel = RunLabel.SOD,
+        )
+
+        savedJob.captured.runLabel shouldBe RunLabel.SOD
+        updatedJob.captured.runLabel shouldBe RunLabel.SOD
+    }
+
+    test("passes run label through to FAILED job when risk engine throws") {
+        val updatedJob = slot<ValuationJob>()
+        coEvery { jobRecorder.update(capture(updatedJob)) } just Runs
+        coEvery { positionProvider.getPositions(any()) } returns listOf(position())
+        coEvery { riskEngineClient.valuate(any(), any()) } throws RuntimeException("Engine down")
+
+        try {
+            service.calculateVaR(
+                VaRCalculationRequest(
+                    portfolioId = PortfolioId("port-1"),
+                    calculationType = CalculationType.PARAMETRIC,
+                    confidenceLevel = ConfidenceLevel.CL_95,
+                ),
+                runLabel = RunLabel.SOD,
+            )
+        } catch (_: RuntimeException) {
+            // expected
+        }
+
+        updatedJob.captured.runLabel shouldBe RunLabel.SOD
+    }
+
+    test("defaults run label to null when not provided") {
+        val savedJob = slot<ValuationJob>()
+        val updatedJob = slot<ValuationJob>()
+        coEvery { jobRecorder.save(capture(savedJob)) } just Runs
+        coEvery { jobRecorder.update(capture(updatedJob)) } just Runs
+        coEvery { positionProvider.getPositions(any()) } returns listOf(position())
+        coEvery { riskEngineClient.valuate(any(), any()) } returns varResult()
+        coEvery { resultPublisher.publish(any(), any()) } just Runs
+
+        service.calculateVaR(
+            VaRCalculationRequest(
+                portfolioId = PortfolioId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        savedJob.captured.runLabel shouldBe null
+        updatedJob.captured.runLabel shouldBe null
+    }
+
     test("positionRisk uses absolute market value for weighting when positions have mixed directions") {
         val positions = listOf(
             position(instrumentId = "AAPL", marketPrice = "200.00", quantity = "100"),

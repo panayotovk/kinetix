@@ -38,6 +38,7 @@ class VaRCalculationService(
         request: VaRCalculationRequest,
         triggerType: TriggerType = TriggerType.ON_DEMAND,
         correlationId: String? = null,
+        runLabel: RunLabel? = null,
     ): ValuationResult? {
         val jobId = UUID.randomUUID()
         val jobStartedAt = Instant.now()
@@ -55,6 +56,7 @@ class VaRCalculationService(
                 valuationDate = valuationDate,
                 calculationType = request.calculationType.name,
                 confidenceLevel = request.confidenceLevel.name,
+                runLabel = runLabel,
             )
         )
 
@@ -349,6 +351,7 @@ class VaRCalculationService(
                 assetClassGreeksSnapshot = result.greeks?.assetClassGreeks ?: emptyList(),
                 steps = steps,
                 manifestId = manifestId,
+                runLabel = runLabel,
             )
             updateJobSafely(job)
 
@@ -369,6 +372,7 @@ class VaRCalculationService(
                 confidenceLevel = request.confidenceLevel.name,
                 steps = steps,
                 error = jobError,
+                runLabel = runLabel,
             )
             updateJobSafely(job)
             throw e

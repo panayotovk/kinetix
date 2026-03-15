@@ -82,6 +82,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             it[assetClassGreeks] = job.assetClassGreeksSnapshot.takeIf { s -> s.isNotEmpty() }?.map { g -> g.toJson() }
             it[steps] = job.steps.map { step -> step.toJson() }
             it[error] = job.error
+            it[runLabel] = job.runLabel?.name
             it[manifestId] = job.manifestId
         }
     }
