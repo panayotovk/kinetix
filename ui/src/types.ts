@@ -603,6 +603,35 @@ export interface ModelComparisonRequestDto {
   targetNumSimulations?: number
 }
 
+// --- EOD Timeline Types ---
+
+export interface EodTimelineEntryDto {
+  valuationDate: string
+  jobId: string
+  varValue: number | null
+  expectedShortfall: number | null
+  pvValue: number | null
+  delta: number | null
+  gamma: number | null
+  vega: number | null
+  theta: number | null
+  rho: number | null
+  promotedAt: string | null
+  promotedBy: string | null
+  varChange: number | null
+  varChangePct: number | null
+  esChange: number | null
+  calculationType: string | null
+  confidenceLevel: number | null
+}
+
+export interface EodTimelineResponseDto {
+  portfolioId: string
+  from: string
+  to: string
+  entries: EodTimelineEntryDto[]
+}
+
 export interface BacktestComparisonDto {
   baseCalculationType: string
   baseConfidenceLevel: string
