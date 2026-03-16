@@ -91,8 +91,33 @@ Source: `docs/test-gap-remediation-plan.md`
 - Exposed 0.58.0 + Kotest: exceptions inside newSuspendedTransaction cannot be caught by shouldThrow. Workaround: move validation before transactional.run{} block.
 - risk-engine Dockerfile needs PYTHONPATH=/app/src env var for module resolution (uv sync doesn't install project in editable mode)
 
+## User
+- [User profile](user_profile.md) — experienced developer, values clean readable code
+
 ## Workflow Preferences
 - [Commit granularity](feedback_commit_granularity.md) — smaller, incremental commits per logical layer
+
+## Instrument Type Model -- COMPLETED
+Source: `docs/plans/instrument-types.md` (3 phases, 13 commits)
+
+### Phase A: Kotlin Type Hierarchy & Instrument Master
+- [x] A1. Sealed interface InstrumentType with 11 typed subtypes (common module)
+- [x] A2. Instruments table migration + repository (reference-data-service, JSONB attributes)
+- [x] A3. Instrument REST routes + service + acceptance tests (7 tests)
+- [x] A4. Dev data seeder with sample instruments for all 11 types
+- [x] A5. Proto extension: InstrumentTypeEnum + 5 attribute messages + Position fields
+- [x] A6. Position-service V9 migration + instrument_type on Trade/Position models
+
+### Phase B: Risk Engine Integration
+- [x] B1. Python position subtypes (BondPosition, FuturePosition, FxPosition, SwapPosition)
+- [x] B2. Black-Scholes Merton dividend yield extension (q parameter throughout)
+- [x] B3. Converter upgrade: proto instrument_type → typed Python positions
+- [x] B4. Delta-adjusted VaR via position_resolver.py + valuation.py wiring
+
+### Phase C: UI & Gateway
+- [x] C1. Risk-orchestrator InstrumentServiceClient + Position proto enrichment
+- [x] C2. Gateway instrument routes + position/trade response enrichment
+- [x] C3. UI instrument type/name columns + 6 Playwright tests
 
 ## Key Patterns
 - Kotlin services: Ktor, Exposed ORM, Kotest FunSpec, MockK
