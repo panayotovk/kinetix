@@ -524,4 +524,118 @@ describe('VaRTrendChart', () => {
       expect(overlay).toBeInTheDocument()
     })
   })
+
+  describe('leading void and gap indicators', () => {
+    it('renders leading void when data starts after the time range begins', () => {
+      // Data starts at 11:00 but time range starts at 08:00 — large leading void
+      const timeRange: TimeRange = {
+        from: '2025-01-15T08:00:00Z',
+        to: '2025-01-15T13:00:00Z',
+        label: 'Custom',
+      }
+
+      render(<VaRTrendChart history={history} timeRange={timeRange} />)
+
+      expect(screen.getByTestId('leading-void')).toBeInTheDocument()
+    })
+
+    it('does not render leading void when data starts near the time range start', () => {
+      // Data starts at 10:00 and time range starts at 10:00 — no leading void
+      const timeRange: TimeRange = {
+        from: '2025-01-15T10:00:00Z',
+        to: '2025-01-15T12:00:00Z',
+        label: 'Custom',
+      }
+
+      render(<VaRTrendChart history={history} timeRange={timeRange} />)
+
+      expect(screen.queryByTestId('leading-void')).not.toBeInTheDocument()
+    })
+
+    it('shows "No data" text when the leading void is wide', () => {
+      // Data starts at 11:00 but time range starts at 06:00 — very wide void (>30%)
+      const lateHistory: VaRHistoryEntry[] = [
+        { varValue: 100, expectedShortfall: 120, calculatedAt: '2025-01-15T11:00:00Z', confidenceLevel: 'CL_95' },
+        { varValue: 110, expectedShortfall: 130, calculatedAt: '2025-01-15T11:30:00Z', confidenceLevel: 'CL_95' },
+      ]
+      const timeRange: TimeRange = {
+        from: '2025-01-15T06:00:00Z',
+        to: '2025-01-15T12:00:00Z',
+        label: 'Custom',
+      }
+
+      render(<VaRTrendChart history={lateHistory} timeRange={timeRange} />)
+
+      const voidGroup = screen.getByTestId('leading-void')
+      const noDataTexts = voidGroup.querySelectorAll('text')
+      const hasNoDataLabel = Array.from(noDataTexts).some((t) => t.textContent === 'No data')
+      expect(hasNoDataLabel).toBe(true)
+    })
+
+    it('shows coverage annotation with data start time and count', () => {
+      const timeRange: TimeRange = {
+        from: '2025-01-15T08:00:00Z',
+        to: '2025-01-15T13:00:00Z',
+        label: 'Custom',
+      }
+
+      render(<VaRTrendChart history={history} timeRange={timeRange} />)
+
+      const annotation = screen.getByTestId('coverage-annotation')
+      expect(annotation).toHaveTextContent('5 calculations')
+    })
+
+    it('does not show coverage annotation when there is no leading void', () => {
+      const timeRange: TimeRange = {
+        from: '2025-01-15T10:00:00Z',
+        to: '2025-01-15T12:00:00Z',
+        label: 'Custom',
+      }
+
+      render(<VaRTrendChart history={history} timeRange={timeRange} />)
+
+      expect(screen.queryByTestId('coverage-annotation')).not.toBeInTheDocument()
+    })
+
+    it('renders gap regions for large gaps between data points', () => {
+      // Create history with a large gap in the middle
+      const gappedHistory: VaRHistoryEntry[] = [
+        { varValue: 100, expectedShortfall: 120, calculatedAt: '2025-01-15T10:00:00Z', confidenceLevel: 'CL_95' },
+        { varValue: 110, expectedShortfall: 130, calculatedAt: '2025-01-15T10:15:00Z', confidenceLevel: 'CL_95' },
+        { varValue: 120, expectedShortfall: 140, calculatedAt: '2025-01-15T10:30:00Z', confidenceLevel: 'CL_95' },
+        // 3-hour gap (much larger than the 15-min interval)
+        { varValue: 130, expectedShortfall: 150, calculatedAt: '2025-01-15T13:30:00Z', confidenceLevel: 'CL_95' },
+        { varValue: 140, expectedShortfall: 160, calculatedAt: '2025-01-15T13:45:00Z', confidenceLevel: 'CL_95' },
+        { varValue: 150, expectedShortfall: 170, calculatedAt: '2025-01-15T14:00:00Z', confidenceLevel: 'CL_95' },
+      ]
+
+      render(<VaRTrendChart history={gappedHistory} />)
+
+      const gaps = screen.getAllByTestId('gap-region')
+      expect(gaps.length).toBe(1)
+    })
+
+    it('does not render gap regions when data is evenly spaced', () => {
+      render(<VaRTrendChart history={history} />)
+
+      expect(screen.queryByTestId('gap-region')).not.toBeInTheDocument()
+    })
+
+    it('suppresses tooltip in the leading void zone', () => {
+      const timeRange: TimeRange = {
+        from: '2025-01-15T08:00:00Z',
+        to: '2025-01-15T13:00:00Z',
+        label: 'Custom',
+      }
+
+      render(<VaRTrendChart history={history} timeRange={timeRange} />)
+
+      const svg = screen.getByTestId('var-trend-chart').querySelector('svg')!
+
+      // Move mouse to the far left — inside the void zone
+      fireEvent.mouseMove(svg, { clientX: 10, clientY: 100 })
+
+      expect(screen.queryByTestId('var-trend-tooltip')).not.toBeInTheDocument()
+    })
+  })
 })

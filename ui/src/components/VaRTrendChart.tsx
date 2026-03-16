@@ -204,6 +204,38 @@ export function VaRTrendChart({ history, isLoading, timeRange, onZoom, zoomDepth
     }))
   }, [history, plotWidth, plotHeight, min, max, timeExtent, toX])
 
+  // Leading void: detect when data starts after the time range begins
+  const firstDataX = points.length > 0 ? points[0].x : null
+  const hasLeadingVoid = firstDataX !== null && firstDataX > PADDING.left + 8
+
+  // Mid-series gap detection: find stretches between data points that are
+  // significantly larger than the typical interval
+  const gapRegions = useMemo(() => {
+    if (history.length < 3 || !timeExtent) return []
+
+    const intervals: number[] = []
+    for (let i = 1; i < history.length; i++) {
+      intervals.push(
+        new Date(history[i].calculatedAt).getTime() - new Date(history[i - 1].calculatedAt).getTime(),
+      )
+    }
+    intervals.sort((a, b) => a - b)
+    const median = intervals[Math.floor(intervals.length / 2)]
+    const threshold = median * 3
+
+    const regions: { x1: number; x2: number }[] = []
+    for (let i = 1; i < history.length; i++) {
+      const gap = new Date(history[i].calculatedAt).getTime() - new Date(history[i - 1].calculatedAt).getTime()
+      if (gap > threshold) {
+        regions.push({
+          x1: toX(new Date(history[i - 1].calculatedAt).getTime()),
+          x2: toX(new Date(history[i].calculatedAt).getTime()),
+        })
+      }
+    }
+    return regions
+  }, [history, timeExtent, toX])
+
   const polylinePoints = points.map((p) => `${p.x},${p.y}`).join(' ')
 
   const areaPoints = useMemo(() => {
@@ -255,6 +287,12 @@ export function VaRTrendChart({ history, isLoading, timeRange, onZoom, zoomDepth
       const rect = el.getBoundingClientRect()
       const mouseX = e.clientX - rect.left
 
+      // Suppress tooltip in the leading void zone
+      if (firstDataX !== null && mouseX < firstDataX) {
+        setHoveredIndex(null)
+        return
+      }
+
       let closest = 0
       let closestDist = Infinity
       for (let i = 0; i < points.length; i++) {
@@ -267,7 +305,7 @@ export function VaRTrendChart({ history, isLoading, timeRange, onZoom, zoomDepth
 
       setHoveredIndex(closest)
     },
-    [points, brushHandlers],
+    [points, brushHandlers, firstDataX],
   )
 
   const handleMouseLeave = useCallback(() => {
@@ -379,6 +417,12 @@ export function VaRTrendChart({ history, isLoading, timeRange, onZoom, zoomDepth
         </button>
       </div>
 
+      {hasLeadingVoid && (
+        <p data-testid="coverage-annotation" className="text-xs text-slate-500 mb-1">
+          Data from {formatTimeOnly(history[0].calculatedAt)} ({history.length} calculations)
+        </p>
+      )}
+
       <svg
         width="100%"
         height={CHART_HEIGHT}
@@ -420,6 +464,63 @@ export function VaRTrendChart({ history, isLoading, timeRange, onZoom, zoomDepth
           >
             {label.text}
           </text>
+        ))}
+
+        {/* Leading void — no data before the first calculation */}
+        {hasLeadingVoid && (
+          <g data-testid="leading-void">
+            <rect
+              x={PADDING.left}
+              y={PADDING.top}
+              width={firstDataX! - PADDING.left}
+              height={plotHeight}
+              fill="rgba(15, 23, 42, 0.35)"
+            />
+            <line
+              x1={firstDataX!}
+              y1={PADDING.top}
+              x2={firstDataX!}
+              y2={PADDING.top + plotHeight}
+              stroke="#475569"
+              strokeWidth={1}
+              strokeDasharray="3 3"
+            />
+            <text
+              x={firstDataX! + 4}
+              y={PADDING.top + 12}
+              fill="#64748b"
+              fontSize={9}
+            >
+              First calculation
+            </text>
+            {(firstDataX! - PADDING.left) / plotWidth > 0.3 && (
+              <text
+                x={PADDING.left + (firstDataX! - PADDING.left) / 2}
+                y={PADDING.top + plotHeight / 2}
+                textAnchor="middle"
+                fill="#334155"
+                fontSize={10}
+              >
+                No data
+              </text>
+            )}
+          </g>
+        )}
+
+        {/* Mid-series gap regions */}
+        {gapRegions.map((gap, i) => (
+          <rect
+            key={i}
+            data-testid="gap-region"
+            x={gap.x1}
+            y={PADDING.top}
+            width={gap.x2 - gap.x1}
+            height={plotHeight}
+            fill="rgba(71, 85, 105, 0.25)"
+            stroke="#475569"
+            strokeWidth={0.5}
+            strokeDasharray="2 4"
+          />
         ))}
 
         {/* ES area fill */}

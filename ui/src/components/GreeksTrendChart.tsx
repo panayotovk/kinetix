@@ -213,6 +213,40 @@ export function GreeksTrendChart({ history, isLoading, timeRange, onZoom, zoomDe
     return labels
   }, [greeksHistory, plotWidth, timeExtent])
 
+  // Leading void: detect when data starts after the time range begins
+  const firstSeriesX = useMemo(() => {
+    if (greeksHistory.length < 2 || !timeExtent) return null
+    return toX(new Date(greeksHistory[0].calculatedAt).getTime())
+  }, [greeksHistory, timeExtent, toX])
+  const hasLeadingVoid = firstSeriesX !== null && firstSeriesX > PADDING.left + 8
+
+  // Mid-series gap detection
+  const gapRegions = useMemo(() => {
+    if (greeksHistory.length < 3 || !timeExtent) return []
+
+    const intervals: number[] = []
+    for (let i = 1; i < greeksHistory.length; i++) {
+      intervals.push(
+        new Date(greeksHistory[i].calculatedAt).getTime() - new Date(greeksHistory[i - 1].calculatedAt).getTime(),
+      )
+    }
+    intervals.sort((a, b) => a - b)
+    const median = intervals[Math.floor(intervals.length / 2)]
+    const threshold = median * 3
+
+    const regions: { x1: number; x2: number }[] = []
+    for (let i = 1; i < greeksHistory.length; i++) {
+      const gap = new Date(greeksHistory[i].calculatedAt).getTime() - new Date(greeksHistory[i - 1].calculatedAt).getTime()
+      if (gap > threshold) {
+        regions.push({
+          x1: toX(new Date(greeksHistory[i - 1].calculatedAt).getTime()),
+          x2: toX(new Date(greeksHistory[i].calculatedAt).getTime()),
+        })
+      }
+    }
+    return regions
+  }, [greeksHistory, timeExtent, toX])
+
   const seriesPoints = useMemo(() => {
     if (greeksHistory.length < 2) return null
 
@@ -242,6 +276,12 @@ export function GreeksTrendChart({ history, isLoading, timeRange, onZoom, zoomDe
       const rect = el.getBoundingClientRect()
       const mouseX = e.clientX - rect.left
 
+      // Suppress tooltip in the leading void zone
+      if (firstSeriesX !== null && mouseX < firstSeriesX) {
+        setHoveredIndex(null)
+        return
+      }
+
       const points = seriesPoints[0].points
       let closest = 0
       let closestDist = Infinity
@@ -255,7 +295,7 @@ export function GreeksTrendChart({ history, isLoading, timeRange, onZoom, zoomDe
 
       setHoveredIndex(closest)
     },
-    [seriesPoints, brushHandlers],
+    [seriesPoints, brushHandlers, firstSeriesX],
   )
 
   const handleMouseLeave = useCallback(() => {
@@ -355,6 +395,12 @@ export function GreeksTrendChart({ history, isLoading, timeRange, onZoom, zoomDe
         })}
       </div>
 
+      {hasLeadingVoid && (
+        <p data-testid="coverage-annotation" className="text-xs text-slate-500 mb-1">
+          Data from {formatTimeOnly(greeksHistory[0].calculatedAt)} ({greeksHistory.length} calculations)
+        </p>
+      )}
+
       <svg
         width="100%"
         height={CHART_HEIGHT}
@@ -396,6 +442,63 @@ export function GreeksTrendChart({ history, isLoading, timeRange, onZoom, zoomDe
           >
             {label.text}
           </text>
+        ))}
+
+        {/* Leading void — no data before the first calculation */}
+        {hasLeadingVoid && (
+          <g data-testid="leading-void">
+            <rect
+              x={PADDING.left}
+              y={PADDING.top}
+              width={firstSeriesX! - PADDING.left}
+              height={plotHeight}
+              fill="rgba(15, 23, 42, 0.35)"
+            />
+            <line
+              x1={firstSeriesX!}
+              y1={PADDING.top}
+              x2={firstSeriesX!}
+              y2={PADDING.top + plotHeight}
+              stroke="#475569"
+              strokeWidth={1}
+              strokeDasharray="3 3"
+            />
+            <text
+              x={firstSeriesX! + 4}
+              y={PADDING.top + 12}
+              fill="#64748b"
+              fontSize={9}
+            >
+              First calculation
+            </text>
+            {(firstSeriesX! - PADDING.left) / plotWidth > 0.3 && (
+              <text
+                x={PADDING.left + (firstSeriesX! - PADDING.left) / 2}
+                y={PADDING.top + plotHeight / 2}
+                textAnchor="middle"
+                fill="#334155"
+                fontSize={10}
+              >
+                No data
+              </text>
+            )}
+          </g>
+        )}
+
+        {/* Mid-series gap regions */}
+        {gapRegions.map((gap, i) => (
+          <rect
+            key={i}
+            data-testid="gap-region"
+            x={gap.x1}
+            y={PADDING.top}
+            width={gap.x2 - gap.x1}
+            height={plotHeight}
+            fill="rgba(71, 85, 105, 0.25)"
+            stroke="#475569"
+            strokeWidth={0.5}
+            strokeDasharray="2 4"
+          />
         ))}
 
         {/* Series lines */}
