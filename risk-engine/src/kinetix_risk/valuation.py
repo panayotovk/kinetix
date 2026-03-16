@@ -6,6 +6,7 @@ from kinetix_risk.models import (
     ValuationResult,
 )
 from kinetix_risk.portfolio_risk import calculate_portfolio_var
+from kinetix_risk.position_resolver import resolve_positions
 from kinetix_risk.volatility import VolatilityProvider
 
 _DEFAULT_OUTPUTS = ["VAR", "EXPECTED_SHORTFALL"]
@@ -28,6 +29,9 @@ def calculate_valuation(
     if not positions:
         return ValuationResult(var_result=None, greeks_result=None, computed_outputs=[], pv_value=None)
 
+    # Resolve typed positions to linear exposures (e.g., delta-adjusted for options)
+    resolved = resolve_positions(positions)
+
     need_var = "VAR" in outputs or "EXPECTED_SHORTFALL" in outputs
     need_greeks = "GREEKS" in outputs
     need_pv = "PV" in outputs
@@ -39,7 +43,7 @@ def calculate_valuation(
 
     if need_var:
         var_result = calculate_portfolio_var(
-            positions=positions,
+            positions=resolved,
             calculation_type=calculation_type,
             confidence_level=confidence_level,
             time_horizon_days=time_horizon_days,
@@ -56,7 +60,7 @@ def calculate_valuation(
     if need_greeks:
         base_var = var_result.var_value if var_result is not None else None
         greeks_result = calculate_greeks(
-            positions=positions,
+            positions=resolved,
             calculation_type=calculation_type,
             confidence_level=confidence_level,
             time_horizon_days=time_horizon_days,

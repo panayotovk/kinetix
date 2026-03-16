@@ -31,6 +31,7 @@ class OptionPosition:
     currency: str = "USD"
     dividend_yield: float = 0.0
     contract_multiplier: float = 1.0
+    asset_class: AssetClass = AssetClass.EQUITY
 
 
 class CalculationType(Enum):
