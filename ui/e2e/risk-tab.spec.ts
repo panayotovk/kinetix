@@ -912,7 +912,7 @@ test.describe('Job History', () => {
     // Verify the job timeline shows the steps from the detail response
     await expect(page.getByTestId('job-detail-panel')).toContainText('Fetch Positions')
     await expect(page.getByTestId('job-detail-panel')).toContainText('Fetch Dependencies')
-    await expect(page.getByTestId('job-detail-panel')).toContainText('CALCULATE_RISK')
+    await expect(page.getByTestId('job-detail-panel')).toContainText('Valuation')
 
     // Click close to collapse
     await page.getByTestId('close-detail-job-1').click()
