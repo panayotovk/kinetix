@@ -9,9 +9,10 @@ def _d1(option: OptionPosition) -> float:
     S = option.spot_price
     K = option.strike
     r = option.risk_free_rate
+    q = option.dividend_yield
     T = option.expiry_days / 365.0
     vol = option.implied_vol
-    return (math.log(S / K) + (r + 0.5 * vol ** 2) * T) / (vol * math.sqrt(T))
+    return (math.log(S / K) + (r - q + 0.5 * vol ** 2) * T) / (vol * math.sqrt(T))
 
 
 def _d2(option: OptionPosition) -> float:
@@ -23,51 +24,57 @@ def bs_price(option: OptionPosition) -> float:
     S = option.spot_price
     K = option.strike
     r = option.risk_free_rate
+    q = option.dividend_yield
     T = option.expiry_days / 365.0
     d1 = _d1(option)
     d2 = _d2(option)
     if option.option_type == OptionType.CALL:
-        return S * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d2)
+        return S * math.exp(-q * T) * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d2)
     else:
-        return K * math.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
+        return K * math.exp(-r * T) * norm.cdf(-d2) - S * math.exp(-q * T) * norm.cdf(-d1)
 
 
 def bs_delta(option: OptionPosition) -> float:
+    q = option.dividend_yield
+    T = option.expiry_days / 365.0
     d1 = _d1(option)
     if option.option_type == OptionType.CALL:
-        return float(norm.cdf(d1))
+        return float(math.exp(-q * T) * norm.cdf(d1))
     else:
-        return float(norm.cdf(d1) - 1.0)
+        return float(math.exp(-q * T) * (norm.cdf(d1) - 1.0))
 
 
 def bs_gamma(option: OptionPosition) -> float:
     S = option.spot_price
+    q = option.dividend_yield
     T = option.expiry_days / 365.0
     vol = option.implied_vol
     d1 = _d1(option)
-    return float(norm.pdf(d1) / (S * vol * math.sqrt(T)))
+    return float(math.exp(-q * T) * norm.pdf(d1) / (S * vol * math.sqrt(T)))
 
 
 def bs_vega(option: OptionPosition) -> float:
     S = option.spot_price
+    q = option.dividend_yield
     T = option.expiry_days / 365.0
     d1 = _d1(option)
-    return float(S * norm.pdf(d1) * math.sqrt(T))
+    return float(S * math.exp(-q * T) * norm.pdf(d1) * math.sqrt(T))
 
 
 def bs_theta(option: OptionPosition) -> float:
     S = option.spot_price
     K = option.strike
     r = option.risk_free_rate
+    q = option.dividend_yield
     T = option.expiry_days / 365.0
     vol = option.implied_vol
     d1 = _d1(option)
     d2 = _d2(option)
-    common = -(S * norm.pdf(d1) * vol) / (2.0 * math.sqrt(T))
+    common = -(S * math.exp(-q * T) * norm.pdf(d1) * vol) / (2.0 * math.sqrt(T))
     if option.option_type == OptionType.CALL:
-        return float(common - r * K * math.exp(-r * T) * norm.cdf(d2))
+        return float(common + q * S * math.exp(-q * T) * norm.cdf(d1) - r * K * math.exp(-r * T) * norm.cdf(d2))
     else:
-        return float(common + r * K * math.exp(-r * T) * norm.cdf(-d2))
+        return float(common - q * S * math.exp(-q * T) * norm.cdf(-d1) + r * K * math.exp(-r * T) * norm.cdf(-d2))
 
 
 def bs_rho(option: OptionPosition) -> float:
@@ -84,19 +91,19 @@ def bs_rho(option: OptionPosition) -> float:
 def bs_vanna(option: OptionPosition) -> float:
     from kinetix_risk.cross_greeks import calculate_vanna
     T = option.expiry_days / 365.0
-    return calculate_vanna(option.spot_price, option.strike, T, option.risk_free_rate, option.implied_vol)
+    return calculate_vanna(option.spot_price, option.strike, T, option.risk_free_rate, option.implied_vol, option.dividend_yield)
 
 
 def bs_volga(option: OptionPosition) -> float:
     from kinetix_risk.cross_greeks import calculate_volga
     T = option.expiry_days / 365.0
-    return calculate_volga(option.spot_price, option.strike, T, option.risk_free_rate, option.implied_vol)
+    return calculate_volga(option.spot_price, option.strike, T, option.risk_free_rate, option.implied_vol, option.dividend_yield)
 
 
 def bs_charm(option: OptionPosition) -> float:
     from kinetix_risk.cross_greeks import calculate_charm
     T = option.expiry_days / 365.0
-    return calculate_charm(option.spot_price, option.strike, T, option.risk_free_rate, option.implied_vol, option.option_type)
+    return calculate_charm(option.spot_price, option.strike, T, option.risk_free_rate, option.implied_vol, option.option_type, option.dividend_yield)
 
 
 def bs_greeks(option: OptionPosition) -> dict:

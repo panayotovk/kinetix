@@ -15,15 +15,15 @@ from scipy.stats import norm
 from kinetix_risk.models import OptionType
 
 
-def _d1(S: float, K: float, T: float, r: float, sigma: float) -> float:
-    return (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
+def _d1(S: float, K: float, T: float, r: float, sigma: float, q: float = 0.0) -> float:
+    return (math.log(S / K) + (r - q + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
 
 
-def _d2(S: float, K: float, T: float, r: float, sigma: float) -> float:
-    return _d1(S, K, T, r, sigma) - sigma * math.sqrt(T)
+def _d2(S: float, K: float, T: float, r: float, sigma: float, q: float = 0.0) -> float:
+    return _d1(S, K, T, r, sigma, q) - sigma * math.sqrt(T)
 
 
-def calculate_vanna(S: float, K: float, T: float, r: float, sigma: float) -> float:
+def calculate_vanna(S: float, K: float, T: float, r: float, sigma: float, q: float = 0.0) -> float:
     """Calculate Vanna: d(delta)/d(vol) = d(vega)/d(S).
 
     Vanna = -e^{-d1^2/2} * d2 / (sigma * sqrt(2*pi*T))
@@ -37,8 +37,8 @@ def calculate_vanna(S: float, K: float, T: float, r: float, sigma: float) -> flo
     but the cleanest analytical form is:
         vanna = -(norm.pdf(d1) * d2) / sigma
     """
-    d1 = _d1(S, K, T, r, sigma)
-    d2 = _d2(S, K, T, r, sigma)
+    d1 = _d1(S, K, T, r, sigma, q)
+    d2 = _d2(S, K, T, r, sigma, q)
     sqrt_t = math.sqrt(T)
     # Vanna = (vega / S) * (1 - d1/(sigma*sqrt(T)))
     # vega = S * norm.pdf(d1) * sqrt(T)
@@ -48,7 +48,7 @@ def calculate_vanna(S: float, K: float, T: float, r: float, sigma: float) -> flo
     return float(-norm.pdf(d1) * d2 / sigma)
 
 
-def calculate_volga(S: float, K: float, T: float, r: float, sigma: float) -> float:
+def calculate_volga(S: float, K: float, T: float, r: float, sigma: float, q: float = 0.0) -> float:
     """Calculate Volga (Vomma): d(vega)/d(vol) = d^2(price)/d(vol)^2.
 
     Volga = vega * d1 * d2 / sigma
@@ -56,8 +56,8 @@ def calculate_volga(S: float, K: float, T: float, r: float, sigma: float) -> flo
 
     Volga is non-negative away from ATM and zero at ATM where d1*d2 crosses zero.
     """
-    d1 = _d1(S, K, T, r, sigma)
-    d2 = _d2(S, K, T, r, sigma)
+    d1 = _d1(S, K, T, r, sigma, q)
+    d2 = _d2(S, K, T, r, sigma, q)
     sqrt_t = math.sqrt(T)
     vega = S * float(norm.pdf(d1)) * sqrt_t
     return float(vega * d1 * d2 / sigma)
@@ -70,6 +70,7 @@ def calculate_charm(
     r: float,
     sigma: float,
     option_type: OptionType = OptionType.CALL,
+    q: float = 0.0,
 ) -> float:
     """Calculate Charm: -d(delta)/d(T), the rate of delta decay.
 
@@ -78,12 +79,12 @@ def calculate_charm(
 
     For a put, charm_put = charm_call + r*exp(-r*T)  (from put-call parity).
     """
-    d1 = _d1(S, K, T, r, sigma)
-    d2 = _d2(S, K, T, r, sigma)
+    d1 = _d1(S, K, T, r, sigma, q)
+    d2 = _d2(S, K, T, r, sigma, q)
     sqrt_t = math.sqrt(T)
     pdf_d1 = float(norm.pdf(d1))
 
-    charm_call = -pdf_d1 * (2 * r * T - d2 * sigma * sqrt_t) / (2 * T * sigma * sqrt_t)
+    charm_call = -pdf_d1 * (2 * (r - q) * T - d2 * sigma * sqrt_t) / (2 * T * sigma * sqrt_t)
 
     if option_type == OptionType.CALL:
         return float(charm_call)
