@@ -182,8 +182,17 @@ export function useVaR(portfolioId: string | null, valuationDate: string | null 
   loadHistoryRef.current = loadHistory
 
   useEffect(() => {
-    if (portfolioId) loadHistoryRef.current()
-  }, [portfolioId, fetchVersion])
+    if (!portfolioId) return
+
+    loadHistoryRef.current()
+
+    if (!isLive) return
+
+    // Re-fetch chart data periodically so sliding time ranges stay in sync
+    // with the filteredHistory window that re-resolves from Date.now()
+    const interval = setInterval(() => loadHistoryRef.current(), POLL_INTERVAL)
+    return () => clearInterval(interval)
+  }, [portfolioId, fetchVersion, isLive])
 
   const refresh = useCallback(async () => {
     if (!portfolioId) return

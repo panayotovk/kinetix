@@ -749,6 +749,112 @@ describe('useVaR', () => {
     })
   })
 
+  describe('sliding window chart data refresh', () => {
+    const NOW = new Date('2025-01-15T12:00:00Z')
+
+    it('re-fetches chart data periodically for sliding presets in live mode', async () => {
+      vi.setSystemTime(NOW)
+
+      mockFetchVaR.mockResolvedValue(varResult)
+      mockFetchHistory.mockResolvedValue({
+        points: [
+          { bucket: '2025-01-14T12:00:00Z', varValue: 100000, expectedShortfall: 120000, confidenceLevel: 'CL_95', delta: null, gamma: null, vega: null, theta: null, rho: null, pvValue: null, jobCount: 1, completedCount: 1, failedCount: 0, runningCount: 0 },
+          { bucket: '2025-01-15T11:00:00Z', varValue: 200000, expectedShortfall: 240000, confidenceLevel: 'CL_95', delta: null, gamma: null, vega: null, theta: null, rho: null, pvValue: null, jobCount: 1, completedCount: 1, failedCount: 0, runningCount: 0 },
+        ],
+        bucketSizeMs: 900000,
+      })
+
+      renderHook(() => useVaR('port-1'))
+
+      await waitFor(() => {
+        expect(mockFetchHistory).toHaveBeenCalledTimes(1)
+      })
+
+      // Advance multiple poll intervals — chart data should be re-fetched
+      await act(async () => {
+        vi.advanceTimersByTime(30_000)
+      })
+
+      await waitFor(() => {
+        expect(mockFetchHistory).toHaveBeenCalledTimes(2)
+      })
+
+      await act(async () => {
+        vi.advanceTimersByTime(30_000)
+      })
+
+      await waitFor(() => {
+        expect(mockFetchHistory).toHaveBeenCalledTimes(3)
+      })
+    })
+
+    it('does not re-fetch chart data periodically in historical mode', async () => {
+      vi.setSystemTime(NOW)
+
+      mockFetchVaR.mockResolvedValue(varResult)
+      mockFetchHistory.mockResolvedValue({ points: [], bucketSizeMs: 900000 })
+
+      renderHook(() => useVaR('port-1', '2025-01-15'))
+
+      await waitFor(() => {
+        expect(mockFetchHistory).toHaveBeenCalledTimes(1)
+      })
+
+      await act(async () => {
+        vi.advanceTimersByTime(60_000)
+      })
+
+      // Should still be 1 — no periodic re-fetch in historical mode
+      expect(mockFetchHistory).toHaveBeenCalledTimes(1)
+    })
+
+    it('filteredHistory does not lose data at window start as time passes', async () => {
+      vi.setSystemTime(NOW)
+
+      mockFetchVaR.mockResolvedValue(varResult)
+      // Chart data bucket near the start of the 24h window
+      const nearStartBucket = new Date(NOW.getTime() - 23 * 60 * 60 * 1000).toISOString()
+      const midBucket = new Date(NOW.getTime() - 2 * 60 * 60 * 1000).toISOString()
+      mockFetchHistory.mockResolvedValue({
+        points: [
+          { bucket: nearStartBucket, varValue: 100000, expectedShortfall: 120000, confidenceLevel: 'CL_95', delta: null, gamma: null, vega: null, theta: null, rho: null, pvValue: null, jobCount: 1, completedCount: 1, failedCount: 0, runningCount: 0 },
+          { bucket: midBucket, varValue: 200000, expectedShortfall: 240000, confidenceLevel: 'CL_95', delta: null, gamma: null, vega: null, theta: null, rho: null, pvValue: null, jobCount: 1, completedCount: 1, failedCount: 0, runningCount: 0 },
+        ],
+        bucketSizeMs: 900000,
+      })
+
+      const { result } = renderHook(() => useVaR('port-1'))
+
+      // Wait for both chart data and polling VaR — chart data adds 2, polling adds 1
+      await waitFor(() => {
+        expect(result.current.filteredHistory.length).toBeGreaterThanOrEqual(2)
+      })
+
+      // Verify the near-start bucket is present
+      expect(result.current.filteredHistory.some((e) => e.varValue === 100000)).toBe(true)
+
+      // Advance time by 10 minutes — the start-of-window bucket should still be visible
+      // because chart data has been re-fetched with a fresh window
+      const freshNearStart = new Date(NOW.getTime() + 10 * 60 * 1000 - 23 * 60 * 60 * 1000).toISOString()
+      mockFetchHistory.mockResolvedValue({
+        points: [
+          { bucket: freshNearStart, varValue: 100000, expectedShortfall: 120000, confidenceLevel: 'CL_95', delta: null, gamma: null, vega: null, theta: null, rho: null, pvValue: null, jobCount: 1, completedCount: 1, failedCount: 0, runningCount: 0 },
+          { bucket: midBucket, varValue: 200000, expectedShortfall: 240000, confidenceLevel: 'CL_95', delta: null, gamma: null, vega: null, theta: null, rho: null, pvValue: null, jobCount: 1, completedCount: 1, failedCount: 0, runningCount: 0 },
+        ],
+        bucketSizeMs: 900000,
+      })
+
+      await act(async () => {
+        vi.advanceTimersByTime(10 * 60 * 1000)
+      })
+
+      await waitFor(() => {
+        // Near-start bucket should still be present — not filtered out by sliding window drift
+        expect(result.current.filteredHistory.some((e) => e.varValue === 100000)).toBe(true)
+      })
+    })
+  })
+
   describe('historyLoading', () => {
     it('is false immediately when portfolioId is null', () => {
       const { result } = renderHook(() => useVaR(null))
