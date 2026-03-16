@@ -152,7 +152,7 @@ fun Application.moduleWithRoutes() {
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {
         launch {
-            DevDataSeeder(dividendYieldRepository, creditSpreadRepository).seed()
+            DevDataSeeder(dividendYieldRepository, creditSpreadRepository, instrumentRepository).seed()
         }
     }
 }
