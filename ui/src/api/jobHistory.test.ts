@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchValuationJobs, fetchValuationJobDetail, fetchValuationJobsForChart } from './jobHistory'
+import { fetchValuationJobs, fetchValuationJobDetail, fetchChartData } from './jobHistory'
 
 describe('jobHistory API', () => {
   const mockFetch = vi.fn()
@@ -135,32 +135,39 @@ describe('jobHistory API', () => {
     })
   })
 
-  describe('fetchValuationJobsForChart', () => {
-    it('fetches with large limit and no offset', async () => {
+  describe('fetchChartData', () => {
+    const chartResponse = {
+      points: [{ bucket: '2025-01-15T10:00:00Z', varValue: 5000, expectedShortfall: 6250, confidenceLevel: 'CL_95', delta: null, gamma: null, vega: null, theta: null, rho: null, pvValue: null, jobCount: 1, completedCount: 1, failedCount: 0, runningCount: 0 }],
+      bucketSizeMs: 300000,
+    }
+
+    it('calls the chart endpoint with from and to params', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ items: [jobSummary], totalCount: 1 }),
+        json: () => Promise.resolve(chartResponse),
       })
 
-      const result = await fetchValuationJobsForChart('port-1', '2025-01-15T09:00:00Z', '2025-01-15T11:00:00Z')
+      const result = await fetchChartData('port-1', '2025-01-15T09:00:00Z', '2025-01-15T11:00:00Z')
 
-      expect(result).toEqual([jobSummary])
+      expect(result).toEqual(chartResponse)
       expect(mockFetch).toHaveBeenCalledWith(
-        '/api/v1/risk/jobs/port-1?limit=10000&offset=0&from=2025-01-15T09%3A00%3A00Z&to=2025-01-15T11%3A00%3A00Z',
+        '/api/v1/risk/jobs/port-1/chart?from=2025-01-15T09%3A00%3A00Z&to=2025-01-15T11%3A00%3A00Z',
       )
     })
 
-    it('returns items array from response', async () => {
+    it('encodes special characters in portfolioId', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ items: [jobSummary, jobSummary], totalCount: 2 }),
+        json: () => Promise.resolve(chartResponse),
       })
 
-      const result = await fetchValuationJobsForChart('port-1')
+      await fetchChartData('port/1', '2025-01-15T09:00:00Z', '2025-01-15T11:00:00Z')
 
-      expect(result).toHaveLength(2)
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/v1/risk/jobs/port%2F1/chart?from=2025-01-15T09%3A00%3A00Z&to=2025-01-15T11%3A00%3A00Z',
+      )
     })
 
     it('throws on error response', async () => {
@@ -170,7 +177,7 @@ describe('jobHistory API', () => {
         statusText: 'Internal Server Error',
       })
 
-      await expect(fetchValuationJobsForChart('port-1')).rejects.toThrow(
+      await expect(fetchChartData('port-1', '2025-01-15T09:00:00Z', '2025-01-15T11:00:00Z')).rejects.toThrow(
         'Failed to fetch chart data: 500 Internal Server Error',
       )
     })

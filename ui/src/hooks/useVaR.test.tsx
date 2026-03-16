@@ -6,12 +6,12 @@ vi.mock('../api/risk')
 vi.mock('../api/jobHistory')
 
 import { fetchVaR, triggerVaRCalculation } from '../api/risk'
-import { fetchValuationJobsForChart } from '../api/jobHistory'
+import { fetchChartData } from '../api/jobHistory'
 import { useVaR } from './useVaR'
 
 const mockFetchVaR = vi.mocked(fetchVaR)
 const mockTriggerVaR = vi.mocked(triggerVaRCalculation)
-const mockFetchHistory = vi.mocked(fetchValuationJobsForChart)
+const mockFetchHistory = vi.mocked(fetchChartData)
 
 const varResult: VaRResultDto = {
   portfolioId: 'port-1',
@@ -758,7 +758,7 @@ describe('useVaR', () => {
 
     it('is true on initial mount with a portfolioId before history resolves', () => {
       mockFetchVaR.mockReturnValue(new Promise(() => {}))
-      mockFetchHistory.mockReturnValue(new Promise(() => {}))
+      mockFetchHistory.mockReturnValue(new Promise(() => {}) as never)
 
       const { result } = renderHook(() => useVaR('port-1'))
 
@@ -767,7 +767,7 @@ describe('useVaR', () => {
 
     it('goes false after loadHistory resolves successfully', async () => {
       mockFetchVaR.mockResolvedValue(null)
-      mockFetchHistory.mockResolvedValue([])
+      mockFetchHistory.mockResolvedValue({ points: [], bucketSizeMs: 3600000 })
 
       const { result } = renderHook(() => useVaR('port-1'))
 
@@ -778,7 +778,7 @@ describe('useVaR', () => {
 
     it('goes false after loadHistory rejects (skeleton does not stay forever)', async () => {
       mockFetchVaR.mockResolvedValue(null)
-      mockFetchHistory.mockRejectedValue(new Error('network failure'))
+      mockFetchHistory.mockRejectedValue(new Error('network failure') as never)
 
       const { result } = renderHook(() => useVaR('port-1'))
 

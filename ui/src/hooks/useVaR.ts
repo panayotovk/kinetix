@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchVaR, triggerVaRCalculation } from '../api/risk'
-import { fetchValuationJobsForChart } from '../api/jobHistory'
+import { fetchChartData } from '../api/jobHistory'
 import type { VaRResultDto, GreeksResultDto, TimeRange } from '../types'
 import { resolveTimeRange } from '../utils/resolveTimeRange'
 
@@ -83,16 +83,16 @@ export function useVaR(portfolioId: string | null, valuationDate: string | null 
 
     try {
       const { from, to } = resolveTimeRange(timeRangeRef.current)
-      const items = await fetchValuationJobsForChart(portfolioId, from, to)
-      const historical = items
-        .filter((job) => job.status === 'COMPLETED' && job.varValue != null && job.completedAt != null)
-        .map((job) => ({
-          varValue: job.varValue!,
-          expectedShortfall: job.expectedShortfall ?? 0,
-          calculatedAt: job.completedAt!,
-          confidenceLevel: job.confidenceLevel ?? 'CL_95',
-          ...(job.delta != null && job.gamma != null && job.vega != null
-            ? { delta: job.delta, gamma: job.gamma, vega: job.vega, ...(job.theta != null ? { theta: job.theta } : {}) }
+      const response = await fetchChartData(portfolioId, from, to)
+      const historical = response.points
+        .filter((p) => p.varValue != null)
+        .map((p) => ({
+          varValue: p.varValue!,
+          expectedShortfall: p.expectedShortfall ?? 0,
+          calculatedAt: p.bucket,
+          confidenceLevel: p.confidenceLevel ?? 'CL_95',
+          ...(p.delta != null && p.gamma != null && p.vega != null
+            ? { delta: p.delta, gamma: p.gamma, vega: p.vega, ...(p.theta != null ? { theta: p.theta } : {}) }
             : {}),
         }))
         .sort((a, b) => new Date(a.calculatedAt).getTime() - new Date(b.calculatedAt).getTime())

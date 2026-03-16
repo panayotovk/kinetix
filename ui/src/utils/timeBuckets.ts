@@ -1,3 +1,4 @@
+import type { ChartDataPoint } from '../api/jobHistory'
 import type { ValuationJobSummaryDto } from '../types'
 
 export interface BucketJob {
@@ -96,4 +97,16 @@ export function bucketJobs(jobs: ValuationJobSummaryDto[], from: string, to: str
   }
 
   return buckets
+}
+
+export function chartPointsToBuckets(points: ChartDataPoint[], bucketSizeMs: number): TimeBucket[] {
+  return points.map((p) => ({
+    from: new Date(p.bucket),
+    to: new Date(new Date(p.bucket).getTime() + bucketSizeMs),
+    started: p.jobCount,
+    completed: p.completedCount,
+    failed: p.failedCount,
+    running: p.runningCount,
+    jobs: [],
+  }))
 }

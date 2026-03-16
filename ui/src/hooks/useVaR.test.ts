@@ -8,15 +8,15 @@ vi.mock('../api/risk', () => ({
 }))
 
 vi.mock('../api/jobHistory', () => ({
-  fetchValuationJobsForChart: vi.fn(),
+  fetchChartData: vi.fn(),
 }))
 
 import { fetchVaR } from '../api/risk'
-import { fetchValuationJobsForChart } from '../api/jobHistory'
-import type { ValuationJobSummaryDto } from '../types'
+import { fetchChartData } from '../api/jobHistory'
+import type { ChartDataResponse } from '../api/jobHistory'
 
 const mockFetchVaR = vi.mocked(fetchVaR)
-const mockFetchChartJobs = vi.mocked(fetchValuationJobsForChart)
+const mockFetchChartData = vi.mocked(fetchChartData)
 
 describe('useVaR', () => {
   beforeEach(() => {
@@ -24,48 +24,43 @@ describe('useVaR', () => {
   })
 
   it('populates history from job history on initial load', async () => {
-    mockFetchChartJobs.mockResolvedValue([
+    mockFetchChartData.mockResolvedValue({
+      points: [
         {
-          jobId: 'j1',
-          portfolioId: 'port-1',
-          triggerType: 'SCHEDULED',
-          status: 'COMPLETED',
-          startedAt: '2025-01-15T09:00:00Z',
-          completedAt: '2025-01-15T09:01:00Z',
-          durationMs: 60000,
-          calculationType: 'HISTORICAL',
-          confidenceLevel: 'CL_95',
+          bucket: '2025-01-15T09:01:00Z',
           varValue: 1200000,
           expectedShortfall: 1500000,
-          pvValue: 10000000,
+          confidenceLevel: 'CL_95',
           delta: 0,
           gamma: 0,
           vega: 0,
           theta: 0,
           rho: 0,
-            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
+          pvValue: 10000000,
+          jobCount: 1,
+          completedCount: 1,
+          failedCount: 0,
+          runningCount: 0,
         },
         {
-          jobId: 'j2',
-          portfolioId: 'port-1',
-          triggerType: 'SCHEDULED',
-          status: 'COMPLETED',
-          startedAt: '2025-01-15T10:00:00Z',
-          completedAt: '2025-01-15T10:01:00Z',
-          durationMs: 60000,
-          calculationType: 'HISTORICAL',
-          confidenceLevel: 'CL_95',
+          bucket: '2025-01-15T10:01:00Z',
           varValue: 1300000,
           expectedShortfall: 1600000,
-          pvValue: 11000000,
+          confidenceLevel: 'CL_95',
           delta: 0,
           gamma: 0,
           vega: 0,
           theta: 0,
           rho: 0,
-            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
+          pvValue: 11000000,
+          jobCount: 1,
+          completedCount: 1,
+          failedCount: 0,
+          runningCount: 0,
         },
-      ])
+      ],
+      bucketSizeMs: 3600000,
+    })
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -74,7 +69,7 @@ describe('useVaR', () => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(mockFetchChartJobs).toHaveBeenCalledWith(
+    expect(mockFetchChartData).toHaveBeenCalledWith(
       'port-1',
       expect.any(String),
       expect.any(String),
@@ -85,68 +80,59 @@ describe('useVaR', () => {
   })
 
   it('filters out non-COMPLETED jobs and jobs with null varValue', async () => {
-    mockFetchChartJobs.mockResolvedValue([
+    mockFetchChartData.mockResolvedValue({
+      points: [
         {
-          jobId: 'j1',
-          portfolioId: 'port-1',
-          triggerType: 'SCHEDULED',
-          status: 'COMPLETED',
-          startedAt: '2025-01-15T09:00:00Z',
-          completedAt: '2025-01-15T09:01:00Z',
-          durationMs: 60000,
-          calculationType: 'HISTORICAL',
-          confidenceLevel: 'CL_95',
+          bucket: '2025-01-15T09:01:00Z',
           varValue: 1200000,
           expectedShortfall: 1500000,
-          pvValue: 10000000,
+          confidenceLevel: 'CL_95',
           delta: 0,
           gamma: 0,
           vega: 0,
           theta: 0,
           rho: 0,
-            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
+          pvValue: 10000000,
+          jobCount: 1,
+          completedCount: 1,
+          failedCount: 0,
+          runningCount: 0,
         },
         {
-          jobId: 'j2',
-          portfolioId: 'port-1',
-          triggerType: 'SCHEDULED',
-          status: 'FAILED',
-          startedAt: '2025-01-15T10:00:00Z',
-          completedAt: null,
-          durationMs: null,
-          calculationType: null,
+          bucket: '2025-01-15T10:00:00Z',
+          varValue: null,
+          expectedShortfall: null,
           confidenceLevel: null,
-          varValue: null,
-          expectedShortfall: null,
-          pvValue: null,
           delta: null,
           gamma: null,
           vega: null,
           theta: null,
           rho: null,
-          runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
+          pvValue: null,
+          jobCount: 1,
+          completedCount: 0,
+          failedCount: 1,
+          runningCount: 0,
         },
         {
-          jobId: 'j3',
-          portfolioId: 'port-1',
-          triggerType: 'SCHEDULED',
-          status: 'COMPLETED',
-          startedAt: '2025-01-15T11:00:00Z',
-          completedAt: '2025-01-15T11:01:00Z',
-          durationMs: 60000,
-          calculationType: 'HISTORICAL',
-          confidenceLevel: 'CL_95',
+          bucket: '2025-01-15T11:01:00Z',
           varValue: null,
           expectedShortfall: null,
-          pvValue: null,
+          confidenceLevel: 'CL_95',
           delta: null,
           gamma: null,
           vega: null,
           theta: null,
           rho: null,
-          runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
+          pvValue: null,
+          jobCount: 1,
+          completedCount: 1,
+          failedCount: 0,
+          runningCount: 0,
         },
-      ])
+      ],
+      bucketSizeMs: 3600000,
+    })
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -159,49 +145,44 @@ describe('useVaR', () => {
     expect(result.current.history[0].varValue).toBe(1200000)
   })
 
-  it('sorts history by completedAt ascending', async () => {
-    mockFetchChartJobs.mockResolvedValue([
+  it('sorts history by bucket ascending', async () => {
+    mockFetchChartData.mockResolvedValue({
+      points: [
         {
-          jobId: 'j2',
-          portfolioId: 'port-1',
-          triggerType: 'SCHEDULED',
-          status: 'COMPLETED',
-          startedAt: '2025-01-15T10:00:00Z',
-          completedAt: '2025-01-15T10:01:00Z',
-          durationMs: 60000,
-          calculationType: 'HISTORICAL',
-          confidenceLevel: 'CL_95',
+          bucket: '2025-01-15T10:01:00Z',
           varValue: 1300000,
           expectedShortfall: 1600000,
-          pvValue: 11000000,
+          confidenceLevel: 'CL_95',
           delta: 0,
           gamma: 0,
           vega: 0,
           theta: 0,
           rho: 0,
-            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
+          pvValue: 11000000,
+          jobCount: 1,
+          completedCount: 1,
+          failedCount: 0,
+          runningCount: 0,
         },
         {
-          jobId: 'j1',
-          portfolioId: 'port-1',
-          triggerType: 'SCHEDULED',
-          status: 'COMPLETED',
-          startedAt: '2025-01-15T09:00:00Z',
-          completedAt: '2025-01-15T09:01:00Z',
-          durationMs: 60000,
-          calculationType: 'HISTORICAL',
-          confidenceLevel: 'CL_95',
+          bucket: '2025-01-15T09:01:00Z',
           varValue: 1200000,
           expectedShortfall: 1500000,
-          pvValue: 10000000,
+          confidenceLevel: 'CL_95',
           delta: 0,
           gamma: 0,
           vega: 0,
           theta: 0,
           rho: 0,
-            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
+          pvValue: 10000000,
+          jobCount: 1,
+          completedCount: 1,
+          failedCount: 0,
+          runningCount: 0,
         },
-      ])
+      ],
+      bucketSizeMs: 3600000,
+    })
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -215,28 +196,27 @@ describe('useVaR', () => {
   })
 
   it('appends polled VaR result to pre-loaded history without duplicating', async () => {
-    mockFetchChartJobs.mockResolvedValue([
+    mockFetchChartData.mockResolvedValue({
+      points: [
         {
-          jobId: 'j1',
-          portfolioId: 'port-1',
-          triggerType: 'SCHEDULED',
-          status: 'COMPLETED',
-          startedAt: '2025-01-15T09:00:00Z',
-          completedAt: '2025-01-15T09:01:00Z',
-          durationMs: 60000,
-          calculationType: 'HISTORICAL',
-          confidenceLevel: 'CL_95',
+          bucket: '2025-01-15T09:01:00Z',
           varValue: 1200000,
           expectedShortfall: 1500000,
-          pvValue: 10000000,
+          confidenceLevel: 'CL_95',
           delta: 0,
           gamma: 0,
           vega: 0,
           theta: 0,
           rho: 0,
-            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
+          pvValue: 10000000,
+          jobCount: 1,
+          completedCount: 1,
+          failedCount: 0,
+          runningCount: 0,
         },
-      ])
+      ],
+      bucketSizeMs: 3600000,
+    })
     mockFetchVaR.mockResolvedValue({
       portfolioId: 'port-1',
       calculationType: 'HISTORICAL',
@@ -261,13 +241,13 @@ describe('useVaR', () => {
   it('does not fetch job history when portfolioId is null', () => {
     const { result } = renderHook(() => useVaR(null))
 
-    expect(mockFetchChartJobs).not.toHaveBeenCalled()
+    expect(mockFetchChartData).not.toHaveBeenCalled()
     expect(result.current.history).toHaveLength(0)
     expect(result.current.loading).toBe(false)
   })
 
   it('gracefully handles job history fetch failure', async () => {
-    mockFetchChartJobs.mockRejectedValue(new Error('Network error'))
+    mockFetchChartData.mockRejectedValue(new Error('Network error'))
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -281,7 +261,7 @@ describe('useVaR', () => {
   })
 
   it('accumulates aggregate Greeks into history entry when VaR result includes greeks', async () => {
-    mockFetchChartJobs.mockResolvedValue([])
+    mockFetchChartData.mockResolvedValue({ points: [], bucketSizeMs: 3600000 })
     mockFetchVaR.mockResolvedValue({
       portfolioId: 'port-1',
       calculationType: 'HISTORICAL',
@@ -317,7 +297,7 @@ describe('useVaR', () => {
   })
 
   it('leaves Greeks fields undefined when VaR result has no greeks', async () => {
-    mockFetchChartJobs.mockResolvedValue([])
+    mockFetchChartData.mockResolvedValue({ points: [], bucketSizeMs: 3600000 })
     mockFetchVaR.mockResolvedValue({
       portfolioId: 'port-1',
       calculationType: 'HISTORICAL',
@@ -343,48 +323,43 @@ describe('useVaR', () => {
   })
 
   it('populates Greeks from job history when available', async () => {
-    mockFetchChartJobs.mockResolvedValue([
+    mockFetchChartData.mockResolvedValue({
+      points: [
         {
-          jobId: 'j1',
-          portfolioId: 'port-1',
-          triggerType: 'SCHEDULED',
-          status: 'COMPLETED',
-          startedAt: '2025-01-15T09:00:00Z',
-          completedAt: '2025-01-15T09:01:00Z',
-          durationMs: 60000,
-          calculationType: 'HISTORICAL',
-          confidenceLevel: 'CL_95',
+          bucket: '2025-01-15T09:01:00Z',
           varValue: 1200000,
           expectedShortfall: 1500000,
-          pvValue: 10000000,
+          confidenceLevel: 'CL_95',
           delta: 1500.8,
           gamma: 61.0,
           vega: 5001.0,
           theta: -120.5,
           rho: 200.0,
-          runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
+          pvValue: 10000000,
+          jobCount: 1,
+          completedCount: 1,
+          failedCount: 0,
+          runningCount: 0,
         },
         {
-          jobId: 'j2',
-          portfolioId: 'port-1',
-          triggerType: 'SCHEDULED',
-          status: 'COMPLETED',
-          startedAt: '2025-01-15T10:00:00Z',
-          completedAt: '2025-01-15T10:01:00Z',
-          durationMs: 60000,
-          calculationType: 'HISTORICAL',
-          confidenceLevel: 'CL_95',
+          bucket: '2025-01-15T10:01:00Z',
           varValue: 1300000,
           expectedShortfall: 1600000,
-          pvValue: 11000000,
+          confidenceLevel: 'CL_95',
           delta: 1600.2,
           gamma: 65.5,
           vega: 5200.3,
           theta: -135.2,
           rho: 210.0,
-          runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
+          pvValue: 11000000,
+          jobCount: 1,
+          completedCount: 1,
+          failedCount: 0,
+          runningCount: 0,
         },
-      ])
+      ],
+      bucketSizeMs: 3600000,
+    })
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -402,28 +377,27 @@ describe('useVaR', () => {
   })
 
   it('leaves Greeks undefined when job history has null Greeks', async () => {
-    mockFetchChartJobs.mockResolvedValue([
+    mockFetchChartData.mockResolvedValue({
+      points: [
         {
-          jobId: 'j1',
-          portfolioId: 'port-1',
-          triggerType: 'SCHEDULED',
-          status: 'COMPLETED',
-          startedAt: '2025-01-15T09:00:00Z',
-          completedAt: '2025-01-15T09:01:00Z',
-          durationMs: 60000,
-          calculationType: 'HISTORICAL',
-          confidenceLevel: 'CL_95',
+          bucket: '2025-01-15T09:01:00Z',
           varValue: 1200000,
           expectedShortfall: 1500000,
-          pvValue: 10000000,
+          confidenceLevel: 'CL_95',
           delta: null,
           gamma: null,
           vega: null,
           theta: null,
           rho: null,
-          runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
+          pvValue: 10000000,
+          jobCount: 1,
+          completedCount: 1,
+          failedCount: 0,
+          runningCount: 0,
         },
-      ])
+      ],
+      bucketSizeMs: 3600000,
+    })
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -440,28 +414,27 @@ describe('useVaR', () => {
   })
 
   it('history entries include confidenceLevel from job history', async () => {
-    mockFetchChartJobs.mockResolvedValue([
+    mockFetchChartData.mockResolvedValue({
+      points: [
         {
-          jobId: 'j1',
-          portfolioId: 'port-1',
-          triggerType: 'SCHEDULED',
-          status: 'COMPLETED',
-          startedAt: '2025-01-15T09:00:00Z',
-          completedAt: '2025-01-15T09:01:00Z',
-          durationMs: 60000,
-          calculationType: 'HISTORICAL',
-          confidenceLevel: 'CL_99',
+          bucket: '2025-01-15T09:01:00Z',
           varValue: 1200000,
           expectedShortfall: 1500000,
-          pvValue: 10000000,
+          confidenceLevel: 'CL_99',
           delta: 0,
           gamma: 0,
           vega: 0,
           theta: 0,
           rho: 0,
-            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
+          pvValue: 10000000,
+          jobCount: 1,
+          completedCount: 1,
+          failedCount: 0,
+          runningCount: 0,
         },
-      ])
+      ],
+      bucketSizeMs: 3600000,
+    })
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -474,28 +447,27 @@ describe('useVaR', () => {
   })
 
   it('defaults confidenceLevel to CL_95 for old jobs without confidenceLevel', async () => {
-    mockFetchChartJobs.mockResolvedValue([
+    mockFetchChartData.mockResolvedValue({
+      points: [
         {
-          jobId: 'j1',
-          portfolioId: 'port-1',
-          triggerType: 'SCHEDULED',
-          status: 'COMPLETED',
-          startedAt: '2025-01-15T09:00:00Z',
-          completedAt: '2025-01-15T09:01:00Z',
-          durationMs: 60000,
-          calculationType: 'HISTORICAL',
-          confidenceLevel: null,
+          bucket: '2025-01-15T09:01:00Z',
           varValue: 1200000,
           expectedShortfall: 1500000,
-          pvValue: 10000000,
+          confidenceLevel: null,
           delta: 0,
           gamma: 0,
           vega: 0,
           theta: 0,
           rho: 0,
-            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
+          pvValue: 10000000,
+          jobCount: 1,
+          completedCount: 1,
+          failedCount: 0,
+          runningCount: 0,
         },
-      ])
+      ],
+      bucketSizeMs: 3600000,
+    })
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -508,7 +480,7 @@ describe('useVaR', () => {
   })
 
   it('history entry from polled VaR result includes confidenceLevel', async () => {
-    mockFetchChartJobs.mockResolvedValue([])
+    mockFetchChartData.mockResolvedValue({ points: [], bucketSizeMs: 3600000 })
     mockFetchVaR.mockResolvedValue({
       portfolioId: 'port-1',
       calculationType: 'HISTORICAL',
@@ -529,7 +501,7 @@ describe('useVaR', () => {
   })
 
   it('selectedConfidenceLevel defaults to CL_95', async () => {
-    mockFetchChartJobs.mockResolvedValue([])
+    mockFetchChartData.mockResolvedValue({ points: [], bucketSizeMs: 3600000 })
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -546,48 +518,43 @@ describe('useVaR', () => {
     const recentTime1 = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString()
     const recentTime2 = new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString()
 
-    mockFetchChartJobs.mockResolvedValue([
+    mockFetchChartData.mockResolvedValue({
+      points: [
         {
-          jobId: 'j1',
-          portfolioId: 'port-1',
-          triggerType: 'SCHEDULED',
-          status: 'COMPLETED',
-          startedAt: recentTime1,
-          completedAt: recentTime1,
-          durationMs: 60000,
-          calculationType: 'HISTORICAL',
-          confidenceLevel: 'CL_95',
+          bucket: recentTime1,
           varValue: 1200000,
           expectedShortfall: 1500000,
-          pvValue: 10000000,
+          confidenceLevel: 'CL_95',
           delta: 0,
           gamma: 0,
           vega: 0,
           theta: 0,
           rho: 0,
-            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
+          pvValue: 10000000,
+          jobCount: 1,
+          completedCount: 1,
+          failedCount: 0,
+          runningCount: 0,
         },
         {
-          jobId: 'j2',
-          portfolioId: 'port-1',
-          triggerType: 'SCHEDULED',
-          status: 'COMPLETED',
-          startedAt: recentTime2,
-          completedAt: recentTime2,
-          durationMs: 60000,
-          calculationType: 'HISTORICAL',
-          confidenceLevel: 'CL_99',
+          bucket: recentTime2,
           varValue: 2500000,
           expectedShortfall: 3000000,
-          pvValue: 10000000,
+          confidenceLevel: 'CL_99',
           delta: 0,
           gamma: 0,
           vega: 0,
           theta: 0,
           rho: 0,
-            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
+          pvValue: 10000000,
+          jobCount: 1,
+          completedCount: 1,
+          failedCount: 0,
+          runningCount: 0,
         },
-      ])
+      ],
+      bucketSizeMs: 3600000,
+    })
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -610,7 +577,7 @@ describe('useVaR', () => {
   })
 
   it('changing confidence level resets zoom stack', async () => {
-    mockFetchChartJobs.mockResolvedValue([])
+    mockFetchChartData.mockResolvedValue({ points: [], bucketSizeMs: 3600000 })
     mockFetchVaR.mockResolvedValue({
       portfolioId: 'port-1',
       calculationType: 'HISTORICAL',
@@ -646,23 +613,20 @@ describe('useVaR', () => {
     const now = new Date()
     const recent = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString()
 
-    mockFetchChartJobs.mockResolvedValue([
-      {
-        jobId: 'j1',
-        portfolioId: 'port-1',
-        triggerType: 'SCHEDULED',
-        status: 'COMPLETED',
-        startedAt: recent,
-        completedAt: recent,
-        durationMs: 60000,
-        calculationType: 'HISTORICAL',
-        confidenceLevel: 'CL_95',
-        varValue: 1200000,
-        expectedShortfall: 1500000,
-        pvValue: 10000000,
-        delta: 0, gamma: 0, vega: 0, theta: 0, rho: 0, runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
-      },
-    ])
+    mockFetchChartData.mockResolvedValue({
+      points: [
+        {
+          bucket: recent,
+          varValue: 1200000,
+          expectedShortfall: 1500000,
+          confidenceLevel: 'CL_95',
+          delta: 0, gamma: 0, vega: 0, theta: 0, rho: 0,
+          pvValue: 10000000,
+          jobCount: 1, completedCount: 1, failedCount: 0, runningCount: 0,
+        },
+      ],
+      bucketSizeMs: 3600000,
+    })
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -671,43 +635,34 @@ describe('useVaR', () => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(mockFetchChartJobs).toHaveBeenCalledTimes(1)
+    expect(mockFetchChartData).toHaveBeenCalledTimes(1)
     expect(result.current.history).toHaveLength(1)
 
     // Change time range — should re-fetch
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
-    mockFetchChartJobs.mockResolvedValue([
-      {
-        jobId: 'j1',
-        portfolioId: 'port-1',
-        triggerType: 'SCHEDULED',
-        status: 'COMPLETED',
-        startedAt: recent,
-        completedAt: recent,
-        durationMs: 60000,
-        calculationType: 'HISTORICAL',
-        confidenceLevel: 'CL_95',
-        varValue: 1200000,
-        expectedShortfall: 1500000,
-        pvValue: 10000000,
-        delta: 0, gamma: 0, vega: 0, theta: 0, rho: 0, runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
-      },
-      {
-        jobId: 'j-old',
-        portfolioId: 'port-1',
-        triggerType: 'SCHEDULED',
-        status: 'COMPLETED',
-        startedAt: sevenDaysAgo,
-        completedAt: sevenDaysAgo,
-        durationMs: 60000,
-        calculationType: 'HISTORICAL',
-        confidenceLevel: 'CL_95',
-        varValue: 900000,
-        expectedShortfall: 1100000,
-        pvValue: 8000000,
-        delta: 0, gamma: 0, vega: 0, theta: 0, rho: 0, runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
-      },
-    ])
+    mockFetchChartData.mockResolvedValue({
+      points: [
+        {
+          bucket: recent,
+          varValue: 1200000,
+          expectedShortfall: 1500000,
+          confidenceLevel: 'CL_95',
+          delta: 0, gamma: 0, vega: 0, theta: 0, rho: 0,
+          pvValue: 10000000,
+          jobCount: 1, completedCount: 1, failedCount: 0, runningCount: 0,
+        },
+        {
+          bucket: sevenDaysAgo,
+          varValue: 900000,
+          expectedShortfall: 1100000,
+          confidenceLevel: 'CL_95',
+          delta: 0, gamma: 0, vega: 0, theta: 0, rho: 0,
+          pvValue: 8000000,
+          jobCount: 1, completedCount: 1, failedCount: 0, runningCount: 0,
+        },
+      ],
+      bucketSizeMs: 3600000,
+    })
 
     act(() => {
       result.current.setTimeRange({
@@ -718,7 +673,7 @@ describe('useVaR', () => {
     })
 
     await waitFor(() => {
-      expect(mockFetchChartJobs).toHaveBeenCalledTimes(2)
+      expect(mockFetchChartData).toHaveBeenCalledTimes(2)
     })
 
     await waitFor(() => {
@@ -727,7 +682,7 @@ describe('useVaR', () => {
   })
 
   it('re-fetches history on zoom', async () => {
-    mockFetchChartJobs.mockResolvedValue([])
+    mockFetchChartData.mockResolvedValue({ points: [], bucketSizeMs: 3600000 })
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -736,19 +691,19 @@ describe('useVaR', () => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(mockFetchChartJobs).toHaveBeenCalledTimes(1)
+    expect(mockFetchChartData).toHaveBeenCalledTimes(1)
 
     act(() => {
       result.current.zoomIn({ from: '2025-01-15T10:00:00Z', to: '2025-01-15T11:00:00Z', label: 'Custom' })
     })
 
     await waitFor(() => {
-      expect(mockFetchChartJobs).toHaveBeenCalledTimes(2)
+      expect(mockFetchChartData).toHaveBeenCalledTimes(2)
     })
   })
 
   it('re-fetches history on resetZoom', async () => {
-    mockFetchChartJobs.mockResolvedValue([])
+    mockFetchChartData.mockResolvedValue({ points: [], bucketSizeMs: 3600000 })
     mockFetchVaR.mockResolvedValue(null)
 
     const { result } = renderHook(() => useVaR('port-1'))
@@ -762,7 +717,7 @@ describe('useVaR', () => {
     })
 
     await waitFor(() => {
-      expect(mockFetchChartJobs).toHaveBeenCalledTimes(2)
+      expect(mockFetchChartData).toHaveBeenCalledTimes(2)
     })
 
     act(() => {
@@ -770,7 +725,7 @@ describe('useVaR', () => {
     })
 
     await waitFor(() => {
-      expect(mockFetchChartJobs).toHaveBeenCalledTimes(3)
+      expect(mockFetchChartData).toHaveBeenCalledTimes(3)
     })
   })
 
@@ -798,11 +753,11 @@ describe('useVaR', () => {
     })
 
     // History API returns the same job but with null Greeks (pre-V12 migration)
-    let resolveHistory!: (value: ValuationJobSummaryDto[]) => void
-    const historyPromise = new Promise<ValuationJobSummaryDto[]>((resolve) => {
+    let resolveHistory!: (value: ChartDataResponse) => void
+    const historyPromise = new Promise<ChartDataResponse>((resolve) => {
       resolveHistory = resolve
     })
-    mockFetchChartJobs.mockReturnValue(historyPromise)
+    mockFetchChartData.mockReturnValue(historyPromise)
 
     const { result } = renderHook(() => useVaR('port-1'))
 
@@ -815,28 +770,27 @@ describe('useVaR', () => {
 
     // Now resolve history with matching timestamp but null Greeks
     await act(async () => {
-      resolveHistory([
-        {
-          jobId: 'j1',
-          portfolioId: 'port-1',
-          triggerType: 'SCHEDULED',
-          status: 'COMPLETED',
-          startedAt: timestamp,
-          completedAt: timestamp,
-          durationMs: 60000,
-          calculationType: 'HISTORICAL',
-          confidenceLevel: 'CL_95',
-          varValue: 1400000,
-          expectedShortfall: 1700000,
-          pvValue: 10000000,
-          delta: null,
-          gamma: null,
-          vega: null,
-          theta: null,
-          rho: null,
-            runLabel: null, promotedAt: null, promotedBy: null, manifestId: null,
-        },
-      ])
+      resolveHistory({
+        points: [
+          {
+            bucket: timestamp,
+            varValue: 1400000,
+            expectedShortfall: 1700000,
+            confidenceLevel: 'CL_95',
+            delta: null,
+            gamma: null,
+            vega: null,
+            theta: null,
+            rho: null,
+            pvValue: 10000000,
+            jobCount: 1,
+            completedCount: 1,
+            failedCount: 0,
+            runningCount: 0,
+          },
+        ],
+        bucketSizeMs: 3600000,
+      })
     })
 
     // After merge, the entry should still retain its Greeks from the polled result
@@ -849,7 +803,7 @@ describe('useVaR', () => {
 
   describe('historical mode (valuationDate)', () => {
     it('isLive is true when valuationDate is null', async () => {
-      mockFetchChartJobs.mockResolvedValue([])
+      mockFetchChartData.mockResolvedValue({ points: [], bucketSizeMs: 3600000 })
       mockFetchVaR.mockResolvedValue(null)
 
       const { result } = renderHook(() => useVaR('port-1', null))
@@ -862,7 +816,7 @@ describe('useVaR', () => {
     })
 
     it('isLive is true when valuationDate is omitted', async () => {
-      mockFetchChartJobs.mockResolvedValue([])
+      mockFetchChartData.mockResolvedValue({ points: [], bucketSizeMs: 3600000 })
       mockFetchVaR.mockResolvedValue(null)
 
       const { result } = renderHook(() => useVaR('port-1'))
@@ -875,7 +829,7 @@ describe('useVaR', () => {
     })
 
     it('isLive is false when valuationDate is set', async () => {
-      mockFetchChartJobs.mockResolvedValue([])
+      mockFetchChartData.mockResolvedValue({ points: [], bucketSizeMs: 3600000 })
       mockFetchVaR.mockResolvedValue(null)
 
       const { result } = renderHook(() => useVaR('port-1', '2025-03-10'))
@@ -888,7 +842,7 @@ describe('useVaR', () => {
     })
 
     it('passes valuationDate to fetchVaR in historical mode', async () => {
-      mockFetchChartJobs.mockResolvedValue([])
+      mockFetchChartData.mockResolvedValue({ points: [], bucketSizeMs: 3600000 })
       mockFetchVaR.mockResolvedValue(null)
 
       renderHook(() => useVaR('port-1', '2025-03-10'))
@@ -899,7 +853,7 @@ describe('useVaR', () => {
     })
 
     it('does not append historical result to history array', async () => {
-      mockFetchChartJobs.mockResolvedValue([])
+      mockFetchChartData.mockResolvedValue({ points: [], bucketSizeMs: 3600000 })
       mockFetchVaR.mockResolvedValue({
         portfolioId: 'port-1',
         calculationType: 'HISTORICAL',
@@ -932,7 +886,7 @@ describe('useVaR', () => {
     })
 
     it('does not poll in historical mode', async () => {
-      mockFetchChartJobs.mockResolvedValue([])
+      mockFetchChartData.mockResolvedValue({ points: [], bucketSizeMs: 3600000 })
       mockFetchVaR.mockResolvedValue(null)
 
       renderHook(() => useVaR('port-1', '2025-03-10'))
@@ -963,7 +917,7 @@ describe('useVaR', () => {
     })
 
     it('skips poll when a previous request is still in flight', async () => {
-      mockFetchChartJobs.mockResolvedValue([])
+      mockFetchChartData.mockResolvedValue({ points: [], bucketSizeMs: 3600000 })
 
       let resolveSlowFetch: (value: null) => void
       const slowPromise = new Promise<null>((resolve) => {

@@ -11,7 +11,7 @@ const mockUseJobHistory = vi.mocked(useJobHistory)
 
 const defaultHookResult = {
   runs: [],
-  chartRuns: [],
+  chartData: null,
   expandedJobs: {} as Record<string, ValuationJobDetailDto>,
   loadingJobIds: new Set<string>(),
   loading: false,

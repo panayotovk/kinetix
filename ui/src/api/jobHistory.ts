@@ -26,29 +26,43 @@ export async function fetchValuationJobs(
   return response.json()
 }
 
-const CHART_LIMIT = 10_000
+export interface ChartDataPoint {
+  bucket: string
+  varValue: number | null
+  expectedShortfall: number | null
+  confidenceLevel: string | null
+  delta: number | null
+  gamma: number | null
+  vega: number | null
+  theta: number | null
+  rho: number | null
+  pvValue: number | null
+  jobCount: number
+  completedCount: number
+  failedCount: number
+  runningCount: number
+}
 
-export async function fetchValuationJobsForChart(
+export interface ChartDataResponse {
+  points: ChartDataPoint[]
+  bucketSizeMs: number
+}
+
+export async function fetchChartData(
   portfolioId: string,
-  from?: string,
-  to?: string,
-): Promise<ValuationJobSummaryDto[]> {
-  const params = new URLSearchParams({
-    limit: CHART_LIMIT.toString(),
-    offset: '0',
-  })
-  if (from) params.set('from', from)
-  if (to) params.set('to', to)
+  from: string,
+  to: string,
+): Promise<ChartDataResponse> {
+  const params = new URLSearchParams({ from, to })
   const response = await fetch(
-    `/api/v1/risk/jobs/${encodeURIComponent(portfolioId)}?${params}`,
+    `/api/v1/risk/jobs/${encodeURIComponent(portfolioId)}/chart?${params}`,
   )
   if (!response.ok) {
     throw new Error(
       `Failed to fetch chart data: ${response.status} ${response.statusText}`,
     )
   }
-  const data: { items: ValuationJobSummaryDto[] } = await response.json()
-  return data.items
+  return response.json()
 }
 
 export async function fetchValuationJobDetail(

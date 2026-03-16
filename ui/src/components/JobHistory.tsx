@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ChevronsLeft, ChevronsRight, History, Search, Star } from 'lucide-react'
 
 import type { ValuationJobSummaryDto } from '../types'
 import { useJobHistory } from '../hooks/useJobHistory'
-import { useTimeBuckets } from '../hooks/useTimeBuckets'
+import { chartPointsToBuckets } from '../utils/timeBuckets'
 import { jobMatchesSearch } from '../utils/jobSearch'
 import { JobHistoryTable } from './JobHistoryTable'
 import { JobTimechart } from './JobTimechart'
@@ -76,7 +76,7 @@ export function JobHistory({ portfolioId, refreshSignal = 0, onCompareJobs }: Jo
       return next
     })
   }
-  const { runs, chartRuns, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, refresh, zoomIn, resetZoom, zoomDepth, page, pageSize, setPageSize, totalCount, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage } = useJobHistory(
+  const { runs, chartData, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, refresh, zoomIn, resetZoom, zoomDepth, page, pageSize, setPageSize, totalCount, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage } = useJobHistory(
     portfolioId,
   )
   const [pageInput, setPageInput] = useState(String(page + 1))
@@ -139,7 +139,10 @@ export function JobHistory({ portfolioId, refreshSignal = 0, onCompareJobs }: Jo
     })
   }
 
-  const buckets = useTimeBuckets(chartRuns.length > 0 ? chartRuns : runs, timeRange)
+  const buckets = useMemo(
+    () => chartData ? chartPointsToBuckets(chartData.points, chartData.bucketSizeMs) : [],
+    [chartData],
+  )
 
   const runningJob = runs.find((r) => r.status === 'RUNNING')
   const runningPhaseLabel = runningJob?.currentPhase
