@@ -2,6 +2,8 @@ package com.kinetix.gateway.dto
 
 import com.kinetix.common.model.*
 import com.kinetix.gateway.client.AlertEventItem
+import com.kinetix.gateway.client.ChartDataPointItem
+import com.kinetix.gateway.client.ChartDataSummary
 import com.kinetix.gateway.client.AlertRuleItem
 import com.kinetix.gateway.client.ValuationJobDetailItem
 import com.kinetix.gateway.client.ValuationJobSummaryItem
@@ -902,6 +904,52 @@ data class ValuationJobDetailResponse(
 data class PaginatedJobsResponse(
     val items: List<ValuationJobSummaryResponse>,
     val totalCount: Long,
+)
+
+@Serializable
+data class ChartDataPointResponse(
+    val bucket: String,
+    val varValue: Double? = null,
+    val expectedShortfall: Double? = null,
+    val confidenceLevel: String? = null,
+    val delta: Double? = null,
+    val gamma: Double? = null,
+    val vega: Double? = null,
+    val theta: Double? = null,
+    val rho: Double? = null,
+    val pvValue: Double? = null,
+    val jobCount: Int,
+    val completedCount: Int,
+    val failedCount: Int,
+    val runningCount: Int,
+)
+
+@Serializable
+data class ChartDataGatewayResponse(
+    val points: List<ChartDataPointResponse>,
+    val bucketSizeMs: Long,
+)
+
+fun ChartDataPointItem.toResponse(): ChartDataPointResponse = ChartDataPointResponse(
+    bucket = bucket,
+    varValue = varValue,
+    expectedShortfall = expectedShortfall,
+    confidenceLevel = confidenceLevel,
+    delta = delta,
+    gamma = gamma,
+    vega = vega,
+    theta = theta,
+    rho = rho,
+    pvValue = pvValue,
+    jobCount = jobCount,
+    completedCount = completedCount,
+    failedCount = failedCount,
+    runningCount = runningCount,
+)
+
+fun ChartDataSummary.toResponse(): ChartDataGatewayResponse = ChartDataGatewayResponse(
+    points = points.map { it.toResponse() },
+    bucketSizeMs = bucketSizeMs,
 )
 
 // --- Job History mappers ---

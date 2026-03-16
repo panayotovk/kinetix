@@ -305,6 +305,28 @@ data class PositionRiskSummaryItem(
     val percentageOfTotal: String,
 )
 
+data class ChartDataPointItem(
+    val bucket: String,
+    val varValue: Double?,
+    val expectedShortfall: Double?,
+    val confidenceLevel: String?,
+    val delta: Double?,
+    val gamma: Double?,
+    val vega: Double?,
+    val theta: Double?,
+    val rho: Double?,
+    val pvValue: Double?,
+    val jobCount: Int,
+    val completedCount: Int,
+    val failedCount: Int,
+    val runningCount: Int,
+)
+
+data class ChartDataSummary(
+    val points: List<ChartDataPointItem>,
+    val bucketSizeMs: Long,
+)
+
 data class WhatIfResultSummary(
     val baseVaR: String,
     val baseExpectedShortfall: String,
@@ -347,4 +369,5 @@ interface RiskServiceClient {
     suspend fun getOfficialEod(portfolioId: String, date: String): kotlinx.serialization.json.JsonObject?
     suspend fun getMarketDataQuantDiff(portfolioId: String, dataType: String, instrumentId: String, baseManifestId: String, targetManifestId: String): kotlinx.serialization.json.JsonObject?
     suspend fun getEodTimeline(portfolioId: String, from: String, to: String): EodTimelineSummary?
+    suspend fun getChartData(portfolioId: String, from: Instant, to: Instant): ChartDataSummary
 }

@@ -5,6 +5,7 @@ import com.kinetix.gateway.auth.requirePermission
 import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.dto.PaginatedJobsResponse
 import com.kinetix.gateway.dto.toResponse
+import com.kinetix.gateway.dto.ChartDataGatewayResponse
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.patch
 import io.ktor.http.*
@@ -16,6 +17,46 @@ import java.time.Instant
 import java.time.format.DateTimeParseException
 
 fun Route.jobHistoryRoutes(client: RiskServiceClient) {
+
+    get("/api/v1/risk/jobs/{portfolioId}/chart", {
+        summary = "Get aggregated chart data"
+        tags = listOf("Job History")
+        request {
+            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            queryParameter<String>("from") {
+                description = "Start timestamp (ISO-8601)"
+                required = true
+            }
+            queryParameter<String>("to") {
+                description = "End timestamp (ISO-8601)"
+                required = true
+            }
+        }
+    }) {
+        val portfolioId = call.requirePathParam("portfolioId")
+
+        val from = try {
+            call.request.queryParameters["from"]?.let { Instant.parse(it) }
+        } catch (_: DateTimeParseException) {
+            call.respond(HttpStatusCode.BadRequest, "Invalid 'from' timestamp")
+            return@get
+        }
+
+        val to = try {
+            call.request.queryParameters["to"]?.let { Instant.parse(it) }
+        } catch (_: DateTimeParseException) {
+            call.respond(HttpStatusCode.BadRequest, "Invalid 'to' timestamp")
+            return@get
+        }
+
+        if (from == null || to == null) {
+            call.respond(HttpStatusCode.BadRequest, "Both 'from' and 'to' are required")
+            return@get
+        }
+
+        val data = client.getChartData(portfolioId, from, to)
+        call.respond(data.toResponse())
+    }
 
     get("/api/v1/risk/jobs/{portfolioId}", {
         summary = "List valuation jobs"

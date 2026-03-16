@@ -1,5 +1,6 @@
 package com.kinetix.gateway.client
 
+import com.kinetix.gateway.client.dtos.ChartDataClientDto
 import com.kinetix.gateway.client.dtos.EodTimelineClientDto
 import com.kinetix.gateway.client.dtos.toDomain
 import io.ktor.client.*
@@ -363,6 +364,18 @@ class HttpRiskServiceClient(
         if (response.status == HttpStatusCode.NotFound) return null
         if (!response.status.isSuccess()) handleErrorResponse(response)
         return response.body()
+    }
+
+    override suspend fun getChartData(portfolioId: String, from: Instant, to: Instant): ChartDataSummary {
+        val response = httpClient.get("$baseUrl/api/v1/risk/jobs/$portfolioId/chart") {
+            url {
+                parameters.append("from", from.toString())
+                parameters.append("to", to.toString())
+            }
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        val dto: ChartDataClientDto = response.body()
+        return dto.toDomain()
     }
 
     override suspend fun getEodTimeline(portfolioId: String, from: String, to: String): EodTimelineSummary? {
