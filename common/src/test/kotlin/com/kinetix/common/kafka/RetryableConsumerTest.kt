@@ -129,6 +129,77 @@ class RetryableConsumerTest : FunSpec({
         recordSlot.captured.topic() shouldBe "price.updates.dlq"
     }
 
+    test("should call livenessTracker recordSuccess on successful processing") {
+        val tracker = ConsumerLivenessTracker(topic = "test.topic", groupId = "test-group")
+        val retryable = RetryableConsumer(
+            topic = "test.topic",
+            maxRetries = 3,
+            livenessTracker = tracker,
+        )
+
+        retryable.process("key-1", "value-1") { "ok" }
+
+        tracker.recordsProcessedTotal shouldBe 1
+    }
+
+    test("should call livenessTracker recordSuccess after transient failures") {
+        val tracker = ConsumerLivenessTracker(topic = "test.topic", groupId = "test-group")
+        val retryable = RetryableConsumer(
+            topic = "test.topic",
+            maxRetries = 3,
+            baseDelayMs = 1,
+            livenessTracker = tracker,
+        )
+
+        var callCount = 0
+        retryable.process("key-1", "value-1") {
+            callCount++
+            if (callCount < 2) throw RuntimeException("transient")
+            "recovered"
+        }
+
+        tracker.recordsProcessedTotal shouldBe 1
+        tracker.consecutiveErrorCount shouldBe 0
+    }
+
+    test("should call livenessTracker recordError and recordDlqSend on permanent failure with DLQ") {
+        val tracker = ConsumerLivenessTracker(topic = "test.topic", groupId = "test-group")
+        val dlqProducer = mockk<KafkaProducer<String, String>>()
+        every { dlqProducer.send(any()) } returns CompletableFuture.completedFuture(null)
+
+        val retryable = RetryableConsumer(
+            topic = "test.topic",
+            maxRetries = 1,
+            baseDelayMs = 1,
+            dlqProducer = dlqProducer,
+            livenessTracker = tracker,
+        )
+
+        shouldThrow<RuntimeException> {
+            retryable.process("key", "value") { throw RuntimeException("permanent") }
+        }
+
+        tracker.recordsSentToDlqTotal shouldBe 1
+        tracker.consecutiveErrorCount shouldBe 1
+    }
+
+    test("should call livenessTracker recordError on permanent failure without DLQ") {
+        val tracker = ConsumerLivenessTracker(topic = "test.topic", groupId = "test-group")
+        val retryable = RetryableConsumer(
+            topic = "test.topic",
+            maxRetries = 1,
+            baseDelayMs = 1,
+            livenessTracker = tracker,
+        )
+
+        shouldThrow<RuntimeException> {
+            retryable.process("key", "value") { throw RuntimeException("permanent") }
+        }
+
+        tracker.consecutiveErrorCount shouldBe 1
+        tracker.recordsSentToDlqTotal shouldBe 0
+    }
+
     test("should not send to DLQ when dlqProducer is null") {
         val retryable = RetryableConsumer(
             topic = "test.topic",

@@ -10,6 +10,7 @@ class RetryableConsumer(
     private val maxRetries: Int = 3,
     private val baseDelayMs: Long = 1000,
     private val dlqProducer: KafkaProducer<String, String>? = null,
+    private val livenessTracker: ConsumerLivenessTracker? = null,
 ) {
     private val logger = LoggerFactory.getLogger(RetryableConsumer::class.java)
     private val dlqTopic = "$topic.dlq"
@@ -19,7 +20,9 @@ class RetryableConsumer(
 
         for (attempt in 0..maxRetries) {
             try {
-                return handler()
+                val result = handler()
+                livenessTracker?.recordSuccess()
+                return result
             } catch (e: Exception) {
                 lastException = e
                 if (attempt < maxRetries) {
@@ -39,6 +42,7 @@ class RetryableConsumer(
                 topic, key, dlqTopic,
             )
             dlqProducer.send(ProducerRecord(dlqTopic, key, value))
+            livenessTracker?.recordDlqSend()
         } else {
             logger.error(
                 "Max retries exhausted for topic={}, key={}. No DLQ producer configured.",
@@ -46,6 +50,7 @@ class RetryableConsumer(
             )
         }
 
+        livenessTracker?.recordError()
         throw lastException!!
     }
 }
