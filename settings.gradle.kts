@@ -30,4 +30,5 @@ include(
     "correlation-service",
     "end2end-tests",
     "schema-tests",
+    "smoke-tests",
 )
