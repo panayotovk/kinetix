@@ -46,6 +46,45 @@ kafka:
       - name: risk.results
         partitions: 3
         replicationFactor: 1
+      - name: risk.anomalies
+        partitions: 3
+        replicationFactor: 1
+      - name: risk.audit
+        partitions: 3
+        replicationFactor: 1
+      - name: rates.yield-curves
+        partitions: 3
+        replicationFactor: 1
+      - name: rates.risk-free
+        partitions: 3
+        replicationFactor: 1
+      - name: rates.forwards
+        partitions: 3
+        replicationFactor: 1
+      - name: reference-data.dividends
+        partitions: 3
+        replicationFactor: 1
+      - name: reference-data.credit-spreads
+        partitions: 3
+        replicationFactor: 1
+      - name: volatility.surfaces
+        partitions: 3
+        replicationFactor: 1
+      - name: correlation.matrices
+        partitions: 3
+        replicationFactor: 1
+      - name: trades.lifecycle.dlq
+        partitions: 1
+        replicationFactor: 1
+      - name: price.updates.dlq
+        partitions: 1
+        replicationFactor: 1
+      - name: risk.results.dlq
+        partitions: 1
+        replicationFactor: 1
+      - name: risk.anomalies.dlq
+        partitions: 1
+        replicationFactor: 1
   persistence:
     size: 10Gi
 

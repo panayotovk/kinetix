@@ -51,6 +51,7 @@ jobs:
               - 'reference-data-service/**'
               - 'volatility-service/**'
               - 'end2end-tests/**'
+              - 'smoke-tests/**'
             python:
               - 'risk-engine/**'
             ui:

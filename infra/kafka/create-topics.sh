@@ -5,6 +5,25 @@ BOOTSTRAP="${KAFKA_BOOTSTRAP:-localhost:9092}"
 KAFKA_TOPICS="${KAFKA_TOPICS_CMD:-/opt/kafka/bin/kafka-topics.sh}"
 REPLICATION="${REPLICATION_FACTOR:-1}"
 
+# Wait for broker to be ready before creating topics.
+wait_for_broker() {
+  local max_attempts=30
+  local attempt=1
+  while [ $attempt -le $max_attempts ]; do
+    if $KAFKA_TOPICS --bootstrap-server "$BOOTSTRAP" --list >/dev/null 2>&1; then
+      echo "Broker ready after $attempt attempt(s)"
+      return 0
+    fi
+    echo "Waiting for broker (attempt $attempt/$max_attempts)..."
+    sleep 2
+    attempt=$((attempt + 1))
+  done
+  echo "ERROR: Broker not ready after $max_attempts attempts"
+  exit 1
+}
+
+wait_for_broker
+
 # Create a topic with the given name and partition count.
 create_topic() {
   local name="$1"
