@@ -61,6 +61,8 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 - **Every meaningful UI feature needs browser-level E2E coverage.** Do not consider a new tab, panel, dialog, or significant interactive workflow complete without Playwright tests.
 - **Keep tests fast and independent.** Each test should be self-contained, set up its own state, and not depend on execution order.
 - **Run tests after every change.** After making changes, run the full test suite for every affected module — not just new tests. Do not consider work complete until all tests pass.
+- **Run linting before pushing UI changes.** Always run `cd ui && npm run lint` before committing UI code. ESLint catches errors (e.g. `react-hooks/set-state-in-effect`) that unit tests do not.
+- **Validate Flyway migrations locally.** Flyway migrations run inside transactions — never use `CREATE INDEX CONCURRENTLY` or other transaction-incompatible statements. Review new migrations for this before committing.
 - **Every change needs test coverage.** New functionality must have tests that verify it works. Bug fixes must have a test that reproduces the bug before the fix. Refactors must not reduce existing test coverage. If changing behaviour that existing tests cover, update those tests to match — do not leave them failing.
 
 ## Project Conventions
