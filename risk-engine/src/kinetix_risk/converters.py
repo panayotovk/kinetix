@@ -5,9 +5,11 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from kinetix.common import types_pb2
 from kinetix.risk import market_data_dependencies_pb2, regulatory_reporting_pb2, risk_calculation_pb2, stress_testing_pb2
 from kinetix_risk.models import (
-    AssetClass, CalculationType, ConfidenceLevel, FrtbResult, FrtbRiskClass,
-    GreeksResult, PositionRisk, PositionStressImpact, StressScenario,
-    StressTestResult, VaRResult, ValuationResult,
+    AssetClass, BondPosition, CalculationType, ConfidenceLevel,
+    FrtbResult, FrtbRiskClass, FuturePosition, FxPosition,
+    GreeksResult, OptionPosition, OptionType, PositionRisk,
+    PositionStressImpact, StressScenario, StressTestResult,
+    SwapPosition, VaRResult, ValuationResult,
 )
 
 _PROTO_ASSET_CLASS_TO_DOMAIN = {
@@ -32,6 +34,28 @@ _PROTO_CALC_TYPE_TO_DOMAIN = {
 }
 
 
+_OPTION_INSTRUMENT_TYPES = {
+    types_pb2.EQUITY_OPTION,
+    types_pb2.FX_OPTION,
+    types_pb2.COMMODITY_OPTION,
+}
+
+_BOND_INSTRUMENT_TYPES = {
+    types_pb2.GOVERNMENT_BOND,
+    types_pb2.CORPORATE_BOND,
+}
+
+_FUTURE_INSTRUMENT_TYPES = {
+    types_pb2.EQUITY_FUTURE,
+    types_pb2.COMMODITY_FUTURE,
+}
+
+_FX_INSTRUMENT_TYPES = {
+    types_pb2.FX_SPOT,
+    types_pb2.FX_FORWARD,
+}
+
+
 def proto_positions_to_domain(proto_positions) -> list[PositionRisk]:
     result = []
     for p in proto_positions:
@@ -40,12 +64,95 @@ def proto_positions_to_domain(proto_positions) -> list[PositionRisk]:
             continue
         market_value = float(p.market_value.amount) if p.market_value.amount else 0.0
         currency = p.market_value.currency or "USD"
-        result.append(PositionRisk(
-            instrument_id=p.instrument_id.value,
-            asset_class=asset_class,
-            market_value=market_value,
-            currency=currency,
-        ))
+        instrument_id = p.instrument_id.value
+
+        inst_type = p.instrument_type
+
+        if inst_type in _OPTION_INSTRUMENT_TYPES and p.HasField("option_attrs"):
+            attrs = p.option_attrs
+            option_type = OptionType.CALL if attrs.option_type == "CALL" else OptionType.PUT
+            # expiry_days and spot_price/implied_vol are not in proto — they must be
+            # enriched at the orchestrator level or defaulted. For now, create an
+            # OptionPosition with placeholder values that the position_resolver can use.
+            result.append(OptionPosition(
+                instrument_id=instrument_id,
+                underlying_id=attrs.underlying_id,
+                option_type=option_type,
+                strike=attrs.strike,
+                expiry_days=0,  # must be enriched with market data
+                spot_price=0.0,  # must be enriched with market data
+                implied_vol=0.0,  # must be enriched with market data
+                risk_free_rate=0.05,
+                quantity=p.quantity,
+                currency=currency,
+                dividend_yield=attrs.dividend_yield,
+                contract_multiplier=attrs.contract_multiplier if attrs.contract_multiplier > 0 else 1.0,
+            ))
+        elif inst_type in _BOND_INSTRUMENT_TYPES and p.HasField("bond_attrs"):
+            attrs = p.bond_attrs
+            result.append(BondPosition(
+                instrument_id=instrument_id,
+                asset_class=asset_class,
+                market_value=market_value,
+                currency=currency,
+                face_value=attrs.face_value,
+                coupon_rate=attrs.coupon_rate,
+                coupon_frequency=attrs.coupon_frequency,
+                maturity_date=attrs.maturity_date,
+                issuer=attrs.issuer,
+                credit_rating=attrs.credit_rating or "UNRATED",
+                seniority=attrs.seniority or "SENIOR_UNSECURED",
+                day_count_convention=attrs.day_count_convention or "ACT/ACT",
+            ))
+        elif inst_type in _FUTURE_INSTRUMENT_TYPES and p.HasField("future_attrs"):
+            attrs = p.future_attrs
+            result.append(FuturePosition(
+                instrument_id=instrument_id,
+                asset_class=asset_class,
+                market_value=market_value,
+                currency=currency,
+                underlying_id=attrs.underlying_id,
+                expiry_date=attrs.expiry_date,
+                contract_size=attrs.contract_size if attrs.contract_size > 0 else 1.0,
+            ))
+        elif inst_type in _FX_INSTRUMENT_TYPES and p.HasField("fx_attrs"):
+            attrs = p.fx_attrs
+            result.append(FxPosition(
+                instrument_id=instrument_id,
+                asset_class=asset_class,
+                market_value=market_value,
+                currency=currency,
+                base_currency=attrs.base_currency,
+                quote_currency=attrs.quote_currency,
+                delivery_date=attrs.delivery_date,
+                forward_rate=attrs.forward_rate,
+            ))
+        elif inst_type == types_pb2.INTEREST_RATE_SWAP and p.HasField("swap_attrs"):
+            attrs = p.swap_attrs
+            result.append(SwapPosition(
+                instrument_id=instrument_id,
+                asset_class=asset_class,
+                market_value=market_value,
+                currency=currency,
+                notional=attrs.notional,
+                fixed_rate=attrs.fixed_rate,
+                float_index=attrs.float_index,
+                float_spread=attrs.float_spread,
+                effective_date=attrs.effective_date,
+                maturity_date=attrs.maturity_date,
+                pay_receive=attrs.pay_receive or "PAY_FIXED",
+                fixed_frequency=attrs.fixed_frequency if attrs.fixed_frequency > 0 else 2,
+                float_frequency=attrs.float_frequency if attrs.float_frequency > 0 else 4,
+                day_count_convention=attrs.day_count_convention or "ACT/360",
+            ))
+        else:
+            # Fallback: plain PositionRisk for unspecified or unknown types
+            result.append(PositionRisk(
+                instrument_id=instrument_id,
+                asset_class=asset_class,
+                market_value=market_value,
+                currency=currency,
+            ))
     return result
 
 
