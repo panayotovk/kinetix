@@ -92,7 +92,7 @@ export function InputChangesPanel({ inputChanges, parameterDiffs, portfolioId }:
           setMagnitudes((prev) => ({
             ...prev,
             [key]: result
-              ? { magnitude: result.magnitude, summary: result.summary, caveats: result.caveats }
+              ? { magnitude: result.magnitude, summary: result.summary ?? null, caveats: result.caveats ?? [] }
               : { magnitude: 'error', summary: null, caveats: [] },
           }))
         } catch {

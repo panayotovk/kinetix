@@ -49,8 +49,8 @@ test.describe('EOD History tab — loading and empty states', () => {
     await goToEodTab(page)
 
     await expect(page.getByTestId('eod-chart-empty')).toBeVisible()
-    // Grid-level empty state
-    await expect(page.getByTestId('eod-grid-empty')).toBeVisible()
+    // Tab-level empty state (EodTimelineTab renders EmptyState instead of EodDailyGrid)
+    await expect(page.getByRole('heading', { name: 'No EOD history for this period' })).toBeVisible()
   })
 
   test('shows error state with retry button on API failure', async ({ page }) => {
