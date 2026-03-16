@@ -1056,21 +1056,13 @@ class VaRCalculationServiceTest : FunSpec({
             )
         )
 
-        val phaseSlots = mutableListOf<JobPhaseName>()
         coVerify(ordering = Ordering.ORDERED) {
-            jobRecorder.updateCurrentPhase(any(), capture(phaseSlots))
-            jobRecorder.updateCurrentPhase(any(), capture(phaseSlots))
-            jobRecorder.updateCurrentPhase(any(), capture(phaseSlots))
-            jobRecorder.updateCurrentPhase(any(), capture(phaseSlots))
-            jobRecorder.updateCurrentPhase(any(), capture(phaseSlots))
+            jobRecorder.updateCurrentPhase(any(), JobPhaseName.FETCH_POSITIONS)
+            jobRecorder.updateCurrentPhase(any(), JobPhaseName.DISCOVER_DEPENDENCIES)
+            jobRecorder.updateCurrentPhase(any(), JobPhaseName.FETCH_MARKET_DATA)
+            jobRecorder.updateCurrentPhase(any(), JobPhaseName.VALUATION)
+            jobRecorder.updateCurrentPhase(any(), JobPhaseName.PUBLISH_RESULT)
         }
-        phaseSlots shouldBe listOf(
-            JobPhaseName.FETCH_POSITIONS,
-            JobPhaseName.DISCOVER_DEPENDENCIES,
-            JobPhaseName.FETCH_MARKET_DATA,
-            JobPhaseName.VALUATION,
-            JobPhaseName.PUBLISH_RESULT,
-        )
     }
 
     test("does not fail the calculation if updateCurrentPhase throws") {
