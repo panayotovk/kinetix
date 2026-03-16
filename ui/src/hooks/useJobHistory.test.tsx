@@ -55,7 +55,7 @@ const jobSummary2 = {
 const jobDetail = {
   ...jobSummary,
   confidenceLevel: 'CL_95',
-  steps: [
+  phases: [
     {
       name: 'FETCH_POSITIONS',
       status: 'COMPLETED',
@@ -73,7 +73,7 @@ const jobDetail = {
 const jobDetail2 = {
   ...jobSummary2,
   confidenceLevel: 'CL_99',
-  steps: [
+  phases: [
     {
       name: 'FETCH_POSITIONS',
       status: 'COMPLETED',

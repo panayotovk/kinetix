@@ -776,7 +776,7 @@ export const TEST_JOB_DETAIL = {
   promotedAt: null,
   promotedBy: null,
   manifestId: 'manifest-abc-123',
-  steps: [
+  phases: [
     {
       name: 'FETCH_POSITIONS',
       status: 'COMPLETED',
@@ -796,7 +796,7 @@ export const TEST_JOB_DETAIL = {
       error: null,
     },
     {
-      name: 'CALCULATE_RISK',
+      name: 'VALUATION',
       status: 'COMPLETED',
       startedAt: '2025-01-15T12:00:02Z',
       completedAt: '2025-01-15T12:00:05Z',

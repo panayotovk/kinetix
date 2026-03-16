@@ -95,7 +95,7 @@ describe('buildSearchableText', () => {
   it('includes detail steps and errors when detail is provided', () => {
     const detail = {
       ...mockJob,
-      steps: [
+      phases: [
         {
           name: 'FETCH_POSITIONS',
           status: 'COMPLETED',

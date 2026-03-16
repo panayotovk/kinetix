@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ChevronsLeft, ChevronsRight, History, Search, Star } from 'lucide-react'
 
 import type { ValuationJobSummaryDto } from '../types'
@@ -20,8 +20,28 @@ function formatJobTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
+const PHASE_DISPLAY: Record<string, string> = {
+  FETCH_POSITIONS: 'Loading Positions',
+  DISCOVER_DEPENDENCIES: 'Loading Positions',
+  FETCH_MARKET_DATA: 'Fetching Market Data',
+  VALUATION: 'Calculating Risk',
+  PUBLISH_RESULT: 'Calculating Risk',
+}
+
+function formatElapsed(iso: string): string {
+  const ms = Math.max(0, Date.now() - new Date(iso).getTime())
+  const secs = Math.floor(ms / 1000)
+  const mins = Math.floor(secs / 60)
+  return `${mins}:${String(secs % 60).padStart(2, '0')}`
+}
+
 function buildSummaryText(runs: ValuationJobSummaryDto[], totalCount: number): string {
   if (runs.length === 0) return 'No calculations'
+  const running = runs.find((r) => r.status === 'RUNNING')
+  if (running && running.currentPhase) {
+    const label = PHASE_DISPLAY[running.currentPhase] ?? running.currentPhase
+    return `Running: ${label} (${formatElapsed(running.startedAt)}) · ${totalCount} job${totalCount !== 1 ? 's' : ''}`
+  }
   const last = runs[0]
   const time = formatJobTime(last.startedAt)
   const status = last.status === 'COMPLETED' ? 'success' : last.status
@@ -121,6 +141,25 @@ export function JobHistory({ portfolioId, refreshSignal = 0, onCompareJobs }: Jo
 
   const buckets = useTimeBuckets(chartRuns.length > 0 ? chartRuns : runs, timeRange)
 
+  const runningJob = runs.find((r) => r.status === 'RUNNING')
+  const runningPhaseLabel = runningJob?.currentPhase
+    ? (PHASE_DISPLAY[runningJob.currentPhase] ?? runningJob.currentPhase)
+    : ''
+  const prevPhaseRef = useRef(runningPhaseLabel)
+  const liveText = useMemo(() => {
+    if (runningPhaseLabel && runningPhaseLabel !== prevPhaseRef.current) {
+      prevPhaseRef.current = runningPhaseLabel
+      return runningJob ? `Job ${runningJob.jobId.slice(0, 8)}: ${runningPhaseLabel}` : ''
+    }
+    if (!runningJob) {
+      prevPhaseRef.current = ''
+      return ''
+    }
+    return prevPhaseRef.current
+      ? `Job ${runningJob.jobId.slice(0, 8)}: ${prevPhaseRef.current}`
+      : ''
+  }, [runningJob, runningPhaseLabel])
+
   const filteredRuns = runs
     .filter((r) => !eodFilter || r.runLabel === 'OFFICIAL_EOD')
     .filter((r) => !search.trim() || jobMatchesSearch(r, search, expandedJobs[r.jobId]))
@@ -156,7 +195,7 @@ export function JobHistory({ portfolioId, refreshSignal = 0, onCompareJobs }: Jo
       )}
 
       {!expanded && !loading && !error && (
-        <div data-testid="job-history-summary" className="mt-2 text-xs text-slate-500">
+        <div data-testid="job-history-summary" className={`mt-2 text-xs ${runs.some((r) => r.status === 'RUNNING') ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500'}`}>
           {buildSummaryText(runs, totalCount)}
         </div>
       )}
@@ -335,6 +374,9 @@ export function JobHistory({ portfolioId, refreshSignal = 0, onCompareJobs }: Jo
               )}
             </>
         </div>}
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {liveText}
+      </div>
     </Card>
   )
 }

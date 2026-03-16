@@ -51,7 +51,7 @@ const jobDetail: ValuationJobDetailDto = {
   varValue: 5000.0,
   expectedShortfall: 6250.0,
   pvValue: 1800000.0,
-  steps: [
+  phases: [
     {
       name: 'FETCH_POSITIONS',
       status: 'COMPLETED',
@@ -79,7 +79,7 @@ const jobDetail2: ValuationJobDetailDto = {
   varValue: null,
   expectedShortfall: null,
   pvValue: null,
-  steps: [
+  phases: [
     {
       name: 'FETCH_POSITIONS',
       status: 'FAILED',
@@ -228,7 +228,7 @@ describe('JobHistoryTable', () => {
   it('passes search term to JobTimeline for filtering', () => {
     const detailWithPositions: ValuationJobDetailDto = {
       ...jobDetail,
-      steps: [
+      phases: [
         {
           name: 'FETCH_POSITIONS',
           status: 'COMPLETED',
@@ -268,8 +268,8 @@ describe('JobHistoryTable', () => {
 
     fireEvent.change(screen.getByTestId('detail-search-job-1'), { target: { value: 'AAPL' } })
 
-    expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
-    expect(screen.queryByTestId('job-step-VALUATION')).not.toBeInTheDocument()
+    expect(screen.getByTestId('job-phase-FETCH_POSITIONS')).toBeInTheDocument()
+    expect(screen.queryByTestId('job-phase-VALUATION')).not.toBeInTheDocument()
   })
 
   it('displays truncated job ID in each row', () => {

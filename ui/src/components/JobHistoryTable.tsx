@@ -4,6 +4,7 @@ import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
 import { Badge, Spinner } from './ui'
 import { ConfirmDialog } from './ui/ConfirmDialog'
 import { JobTimeline } from './JobTimeline'
+import { PhaseStepperMini } from './PhaseStepperMini'
 import { ReplayPanel } from './ReplayPanel'
 import { formatTimeOnly, formatDuration, formatMoney } from '../utils/format'
 import { useEodPromotion } from '../hooks/useEodPromotion'
@@ -171,6 +172,9 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                         </Badge>
                       )}
                     </span>
+                    {run.status === 'RUNNING' && run.currentPhase && (
+                      <PhaseStepperMini currentPhase={run.currentPhase} />
+                    )}
                   </td>
                   <td data-testid={`duration-${run.jobId}`} className="py-2 pr-3 text-slate-600">
                     {run.status === 'RUNNING'
@@ -233,7 +237,7 @@ export function JobHistoryTable({ runs, expandedJobs, loadingJobIds, onSelectJob
                         )}
                         {detail && !isLoading && (
                           <>
-                            <JobTimeline steps={detail.steps} search={searchTerms[run.jobId] ?? ''} />
+                            <JobTimeline phases={detail.phases} search={searchTerms[run.jobId] ?? ''} />
                             {detail.error && (
                               <p className="mt-2 text-xs text-red-600">Error: {detail.error}</p>
                             )}

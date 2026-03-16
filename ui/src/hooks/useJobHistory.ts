@@ -150,6 +150,28 @@ export function useJobHistory(portfolioId: string | null): UseJobHistoryResult {
     if (portfolioId) loadChartRef.current()
   }, [portfolioId, fetchVersion])
 
+  // Auto-refresh expanded detail panels for RUNNING jobs on each poll tick
+  useEffect(() => {
+    if (!portfolioId) return
+    const refreshRunningDetails = async () => {
+      const runningExpandedIds = runs
+        .filter((r) => r.status === 'RUNNING' && r.jobId in expandedJobs)
+        .map((r) => r.jobId)
+      for (const jobId of runningExpandedIds) {
+        try {
+          const detail = await fetchValuationJobDetail(jobId)
+          if (detail) {
+            setExpandedJobs((prev) => ({ ...prev, [jobId]: detail }))
+          }
+        } catch {
+          // Non-critical — table data still available
+        }
+      }
+    }
+    const interval = setInterval(refreshRunningDetails, POLL_INTERVAL)
+    return () => clearInterval(interval)
+  }, [portfolioId, runs, expandedJobs])
+
   const toggleJob = useCallback(async (jobId: string) => {
     if (jobId in expandedJobs) {
       setExpandedJobs((prev) => {

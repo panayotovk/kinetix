@@ -225,7 +225,7 @@ export interface TimeRange {
   label: string
 }
 
-export interface JobStepDto {
+export interface JobPhaseDto {
   name: string
   status: string
   startedAt: string
@@ -258,6 +258,7 @@ export interface ValuationJobSummaryDto {
   promotedAt: string | null
   promotedBy: string | null
   manifestId: string | null
+  currentPhase?: string | null
 }
 
 export interface HypotheticalTradeDto {
@@ -362,7 +363,7 @@ export interface ValuationJobDetailDto {
   varValue: number | null
   expectedShortfall: number | null
   pvValue: number | null
-  steps: JobStepDto[]
+  phases: JobPhaseDto[]
   error: string | null
   valuationDate?: string
   runLabel: string | null

@@ -1,9 +1,9 @@
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import type { JobStepDto } from '../types'
+import type { JobPhaseDto } from '../types'
 import { JobTimeline } from './JobTimeline'
 
-const steps: JobStepDto[] = [
+const phases: JobPhaseDto[] = [
   {
     name: 'FETCH_POSITIONS',
     status: 'COMPLETED',
@@ -82,18 +82,18 @@ const steps: JobStepDto[] = [
 
 describe('JobTimeline', () => {
   it('renders all 5 job steps', () => {
-    render(<JobTimeline steps={steps} />)
+    render(<JobTimeline phases={phases} />)
 
     expect(screen.getByTestId('job-timeline')).toBeInTheDocument()
-    expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
-    expect(screen.getByTestId('job-step-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
-    expect(screen.getByTestId('job-step-FETCH_MARKET_DATA')).toBeInTheDocument()
-    expect(screen.getByTestId('job-step-VALUATION')).toBeInTheDocument()
-    expect(screen.getByTestId('job-step-PUBLISH_RESULT')).toBeInTheDocument()
+    expect(screen.getByTestId('job-phase-FETCH_POSITIONS')).toBeInTheDocument()
+    expect(screen.getByTestId('job-phase-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
+    expect(screen.getByTestId('job-phase-FETCH_MARKET_DATA')).toBeInTheDocument()
+    expect(screen.getByTestId('job-phase-VALUATION')).toBeInTheDocument()
+    expect(screen.getByTestId('job-phase-PUBLISH_RESULT')).toBeInTheDocument()
   })
 
   it('displays human-readable step labels', () => {
-    render(<JobTimeline steps={steps} />)
+    render(<JobTimeline phases={phases} />)
 
     expect(screen.getByText('Fetch Positions')).toBeInTheDocument()
     expect(screen.getByText('Discover Dependencies')).toBeInTheDocument()
@@ -103,27 +103,27 @@ describe('JobTimeline', () => {
   })
 
   it('shows duration formatted as seconds for each step', () => {
-    render(<JobTimeline steps={steps} />)
+    render(<JobTimeline phases={phases} />)
 
     expect(screen.getAllByText('0.0s')).toHaveLength(4)
     expect(screen.getByText('0.1s')).toBeInTheDocument()
   })
 
   it('shows green status dot for completed steps', () => {
-    render(<JobTimeline steps={[steps[0]]} />)
+    render(<JobTimeline phases={[phases[0]]} />)
 
     expect(screen.getByTestId('step-dot-COMPLETED')).toBeInTheDocument()
   })
 
   it('shows amber status dot when a completed step has missing market data items', () => {
-    render(<JobTimeline steps={[steps[2]]} />)
+    render(<JobTimeline phases={[phases[2]]} />)
 
     expect(screen.getByTestId('step-dot-PARTIAL')).toBeInTheDocument()
   })
 
   it('shows green status dot when all market data items are fetched', () => {
-    const allFetchedStep: JobStepDto = {
-      ...steps[2],
+    const allFetchedStep: JobPhaseDto = {
+      ...phases[2],
       details: {
         requested: '2',
         fetched: '2',
@@ -133,25 +133,25 @@ describe('JobTimeline', () => {
         ]),
       },
     }
-    render(<JobTimeline steps={[allFetchedStep]} />)
+    render(<JobTimeline phases={[allFetchedStep]} />)
 
     expect(screen.getByTestId('step-dot-COMPLETED')).toBeInTheDocument()
   })
 
   it('shows red status dot for failed steps', () => {
-    const failedStep: JobStepDto = {
-      ...steps[0],
+    const failedStep: JobPhaseDto = {
+      ...phases[0],
       status: 'FAILED',
       error: 'Connection timeout',
     }
-    render(<JobTimeline steps={[failedStep]} />)
+    render(<JobTimeline phases={[failedStep]} />)
 
     expect(screen.getByTestId('step-dot-FAILED')).toBeInTheDocument()
     expect(screen.getByText('Connection timeout')).toBeInTheDocument()
   })
 
   it('expands step details on toggle click', () => {
-    render(<JobTimeline steps={steps} />)
+    render(<JobTimeline phases={phases} />)
 
     expect(screen.queryByTestId('details-FETCH_POSITIONS')).not.toBeInTheDocument()
 
@@ -162,7 +162,7 @@ describe('JobTimeline', () => {
   })
 
   it('renders expandable positions in FETCH_POSITIONS details', () => {
-    render(<JobTimeline steps={steps} />)
+    render(<JobTimeline phases={phases} />)
 
     fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
 
@@ -174,7 +174,7 @@ describe('JobTimeline', () => {
   })
 
   it('expands position to show JSON', () => {
-    render(<JobTimeline steps={steps} />)
+    render(<JobTimeline phases={phases} />)
 
     fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
     fireEvent.click(screen.getByTestId('position-AAPL'))
@@ -187,7 +187,7 @@ describe('JobTimeline', () => {
   })
 
   it('does not render positions key as a regular detail', () => {
-    render(<JobTimeline steps={steps} />)
+    render(<JobTimeline phases={phases} />)
 
     fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
 
@@ -195,7 +195,7 @@ describe('JobTimeline', () => {
   })
 
   it('renders expandable dependencies in DISCOVER_DEPENDENCIES details', () => {
-    render(<JobTimeline steps={steps} />)
+    render(<JobTimeline phases={phases} />)
 
     fireEvent.click(screen.getByTestId('toggle-DISCOVER_DEPENDENCIES'))
 
@@ -207,7 +207,7 @@ describe('JobTimeline', () => {
   })
 
   it('expands dependency to show JSON', () => {
-    render(<JobTimeline steps={steps} />)
+    render(<JobTimeline phases={phases} />)
 
     fireEvent.click(screen.getByTestId('toggle-DISCOVER_DEPENDENCIES'))
     fireEvent.click(screen.getByTestId('dependency-AAPL-SPOT_PRICE'))
@@ -220,7 +220,7 @@ describe('JobTimeline', () => {
   })
 
   it('does not render dependencies key as a regular detail', () => {
-    render(<JobTimeline steps={steps} />)
+    render(<JobTimeline phases={phases} />)
 
     fireEvent.click(screen.getByTestId('toggle-DISCOVER_DEPENDENCIES'))
 
@@ -228,55 +228,55 @@ describe('JobTimeline', () => {
   })
 
   it('renders empty list without errors', () => {
-    render(<JobTimeline steps={[]} />)
+    render(<JobTimeline phases={[]} />)
 
     expect(screen.getByTestId('job-timeline')).toBeInTheDocument()
   })
 
   describe('search prop filters steps by content', () => {
     it('shows all steps when search is empty', () => {
-      render(<JobTimeline steps={steps} search="" />)
+      render(<JobTimeline phases={phases} search="" />)
 
-      expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
-      expect(screen.getByTestId('job-step-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
-      expect(screen.getByTestId('job-step-FETCH_MARKET_DATA')).toBeInTheDocument()
-      expect(screen.getByTestId('job-step-VALUATION')).toBeInTheDocument()
-      expect(screen.getByTestId('job-step-PUBLISH_RESULT')).toBeInTheDocument()
+      expect(screen.getByTestId('job-phase-FETCH_POSITIONS')).toBeInTheDocument()
+      expect(screen.getByTestId('job-phase-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
+      expect(screen.getByTestId('job-phase-FETCH_MARKET_DATA')).toBeInTheDocument()
+      expect(screen.getByTestId('job-phase-VALUATION')).toBeInTheDocument()
+      expect(screen.getByTestId('job-phase-PUBLISH_RESULT')).toBeInTheDocument()
     })
 
     it('filters steps to those whose details contain the search term', () => {
-      render(<JobTimeline steps={steps} search="AAPL" />)
+      render(<JobTimeline phases={phases} search="AAPL" />)
 
-      expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
-      expect(screen.getByTestId('job-step-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
-      expect(screen.getByTestId('job-step-FETCH_MARKET_DATA')).toBeInTheDocument()
-      expect(screen.getByTestId('job-step-VALUATION')).toBeInTheDocument()
-      expect(screen.queryByTestId('job-step-PUBLISH_RESULT')).not.toBeInTheDocument()
+      expect(screen.getByTestId('job-phase-FETCH_POSITIONS')).toBeInTheDocument()
+      expect(screen.getByTestId('job-phase-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
+      expect(screen.getByTestId('job-phase-FETCH_MARKET_DATA')).toBeInTheDocument()
+      expect(screen.getByTestId('job-phase-VALUATION')).toBeInTheDocument()
+      expect(screen.queryByTestId('job-phase-PUBLISH_RESULT')).not.toBeInTheDocument()
     })
 
     it('matches step detail key-value pairs', () => {
-      render(<JobTimeline steps={steps} search="risk.results" />)
+      render(<JobTimeline phases={phases} search="risk.results" />)
 
-      expect(screen.getByTestId('job-step-PUBLISH_RESULT')).toBeInTheDocument()
-      expect(screen.queryByTestId('job-step-FETCH_POSITIONS')).not.toBeInTheDocument()
+      expect(screen.getByTestId('job-phase-PUBLISH_RESULT')).toBeInTheDocument()
+      expect(screen.queryByTestId('job-phase-FETCH_POSITIONS')).not.toBeInTheDocument()
     })
 
     it('matches step label name', () => {
-      render(<JobTimeline steps={steps} search="Valuation" />)
+      render(<JobTimeline phases={phases} search="Valuation" />)
 
-      expect(screen.getByTestId('job-step-VALUATION')).toBeInTheDocument()
-      expect(screen.queryByTestId('job-step-FETCH_POSITIONS')).not.toBeInTheDocument()
+      expect(screen.getByTestId('job-phase-VALUATION')).toBeInTheDocument()
+      expect(screen.queryByTestId('job-phase-FETCH_POSITIONS')).not.toBeInTheDocument()
     })
 
     it('is case-insensitive', () => {
-      render(<JobTimeline steps={steps} search="aapl" />)
+      render(<JobTimeline phases={phases} search="aapl" />)
 
-      expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
-      expect(screen.getByTestId('job-step-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
+      expect(screen.getByTestId('job-phase-FETCH_POSITIONS')).toBeInTheDocument()
+      expect(screen.getByTestId('job-phase-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
     })
 
     it('auto-expands matching steps when search is active', () => {
-      render(<JobTimeline steps={steps} search="AAPL" />)
+      render(<JobTimeline phases={phases} search="AAPL" />)
 
       expect(screen.getByTestId('details-FETCH_POSITIONS')).toBeInTheDocument()
       expect(screen.getByTestId('details-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
@@ -285,7 +285,7 @@ describe('JobTimeline', () => {
     })
 
     it('filters items within matching steps to only those that match', () => {
-      render(<JobTimeline steps={steps} search="AAPL" />)
+      render(<JobTimeline phases={phases} search="AAPL" />)
 
       expect(screen.getByTestId('position-AAPL')).toBeInTheDocument()
       expect(screen.queryByTestId('position-TSLA')).not.toBeInTheDocument()
@@ -299,23 +299,23 @@ describe('JobTimeline', () => {
     })
 
     it('treats spaces as AND for step filtering', () => {
-      render(<JobTimeline steps={steps} search="AAPL EQUITY" />)
+      render(<JobTimeline phases={phases} search="AAPL EQUITY" />)
 
-      expect(screen.getByTestId('job-step-FETCH_POSITIONS')).toBeInTheDocument()
-      expect(screen.getByTestId('job-step-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
-      expect(screen.getByTestId('job-step-FETCH_MARKET_DATA')).toBeInTheDocument()
-      expect(screen.getByTestId('job-step-VALUATION')).toBeInTheDocument()
+      expect(screen.getByTestId('job-phase-FETCH_POSITIONS')).toBeInTheDocument()
+      expect(screen.getByTestId('job-phase-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
+      expect(screen.getByTestId('job-phase-FETCH_MARKET_DATA')).toBeInTheDocument()
+      expect(screen.getByTestId('job-phase-VALUATION')).toBeInTheDocument()
     })
 
     it('treats spaces as AND for item filtering within steps', () => {
-      render(<JobTimeline steps={steps} search="SPOT AAPL" />)
+      render(<JobTimeline phases={phases} search="SPOT AAPL" />)
 
       expect(screen.getByTestId('dependency-AAPL-SPOT_PRICE')).toBeInTheDocument()
       expect(screen.queryByTestId('dependency-USD_SOFR-YIELD_CURVE')).not.toBeInTheDocument()
     })
 
     it('shows no-results message when nothing matches', () => {
-      render(<JobTimeline steps={steps} search="NONEXISTENT" />)
+      render(<JobTimeline phases={phases} search="NONEXISTENT" />)
 
       expect(screen.getByText('No steps match your search.')).toBeInTheDocument()
     })
@@ -323,14 +323,14 @@ describe('JobTimeline', () => {
 
   describe('in-step item filtering', () => {
     it('shows a filter input when positions step is expanded', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
 
       expect(screen.getByTestId('filter-FETCH_POSITIONS')).toBeInTheDocument()
     })
 
     it('filters positions by instrument ID', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
 
       fireEvent.change(screen.getByTestId('filter-FETCH_POSITIONS'), { target: { value: 'TSLA' } })
@@ -340,7 +340,7 @@ describe('JobTimeline', () => {
     })
 
     it('filters positions by any field value', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
 
       fireEvent.change(screen.getByTestId('filter-FETCH_POSITIONS'), { target: { value: '17000' } })
@@ -350,14 +350,14 @@ describe('JobTimeline', () => {
     })
 
     it('shows a filter input when dependencies step is expanded', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-DISCOVER_DEPENDENCIES'))
 
       expect(screen.getByTestId('filter-DISCOVER_DEPENDENCIES')).toBeInTheDocument()
     })
 
     it('filters dependencies by instrument ID', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-DISCOVER_DEPENDENCIES'))
 
       fireEvent.change(screen.getByTestId('filter-DISCOVER_DEPENDENCIES'), { target: { value: 'USD_SOFR' } })
@@ -367,7 +367,7 @@ describe('JobTimeline', () => {
     })
 
     it('filters dependencies by data type', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-DISCOVER_DEPENDENCIES'))
 
       fireEvent.change(screen.getByTestId('filter-DISCOVER_DEPENDENCIES'), { target: { value: 'YIELD' } })
@@ -377,7 +377,7 @@ describe('JobTimeline', () => {
     })
 
     it('is case-insensitive', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
 
       fireEvent.change(screen.getByTestId('filter-FETCH_POSITIONS'), { target: { value: 'tsla' } })
@@ -387,7 +387,7 @@ describe('JobTimeline', () => {
     })
 
     it('treats spaces as AND in the item filter', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
 
       fireEvent.change(screen.getByTestId('filter-FETCH_POSITIONS'), { target: { value: 'EQUITY 170' } })
@@ -399,7 +399,7 @@ describe('JobTimeline', () => {
 
   describe('market data items in FETCH_MARKET_DATA', () => {
     it('renders expandable market data items', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
 
       expect(screen.getByTestId('details-FETCH_MARKET_DATA')).toBeInTheDocument()
@@ -409,7 +409,7 @@ describe('JobTimeline', () => {
     })
 
     it('displays label as dataType — instrumentId', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
 
       expect(screen.getByText('SPOT_PRICE — AAPL')).toBeInTheDocument()
@@ -418,7 +418,7 @@ describe('JobTimeline', () => {
     })
 
     it('shows red dot only for MISSING items, no dot for FETCHED items', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
 
       expect(screen.queryByTestId('market-data-dot-FETCHED')).not.toBeInTheDocument()
@@ -426,7 +426,7 @@ describe('JobTimeline', () => {
     })
 
     it('expands market data item to show JSON', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
       fireEvent.click(screen.getByTestId('market-data-AAPL-SPOT_PRICE'))
 
@@ -438,7 +438,7 @@ describe('JobTimeline', () => {
     })
 
     it('uses neutral background for FETCHED items and red-tinted background for MISSING items', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
       fireEvent.click(screen.getByTestId('market-data-AAPL-SPOT_PRICE'))
       fireEvent.click(screen.getByTestId('market-data-AAPL-HISTORICAL_PRICES'))
@@ -451,21 +451,21 @@ describe('JobTimeline', () => {
     })
 
     it('does not render marketDataItems key as a regular detail', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
 
       expect(screen.queryByText('marketDataItems:')).not.toBeInTheDocument()
     })
 
     it('shows a filter input when market data step is expanded', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
 
       expect(screen.getByTestId('filter-FETCH_MARKET_DATA')).toBeInTheDocument()
     })
 
     it('filters market data items by instrument ID', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
 
       fireEvent.change(screen.getByTestId('filter-FETCH_MARKET_DATA'), { target: { value: 'USD_SOFR' } })
@@ -476,7 +476,7 @@ describe('JobTimeline', () => {
     })
 
     it('filters market data items by data type', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
 
       fireEvent.change(screen.getByTestId('filter-FETCH_MARKET_DATA'), { target: { value: 'SPOT' } })
@@ -486,7 +486,7 @@ describe('JobTimeline', () => {
     })
 
     it('filters market data items by status', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
 
       fireEvent.change(screen.getByTestId('filter-FETCH_MARKET_DATA'), { target: { value: 'MISSING' } })
@@ -497,7 +497,7 @@ describe('JobTimeline', () => {
     })
 
     it('renders issue diagnostics block for MISSING items with issue data', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
       fireEvent.click(screen.getByTestId('market-data-AAPL-HISTORICAL_PRICES'))
 
@@ -509,7 +509,7 @@ describe('JobTimeline', () => {
     })
 
     it('issue diagnostics block has red styling and monospace font', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
       fireEvent.click(screen.getByTestId('market-data-AAPL-HISTORICAL_PRICES'))
 
@@ -521,7 +521,7 @@ describe('JobTimeline', () => {
     })
 
     it('does not render issue diagnostics block for FETCHED items', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
       fireEvent.click(screen.getByTestId('market-data-AAPL-SPOT_PRICE'))
 
@@ -529,7 +529,7 @@ describe('JobTimeline', () => {
     })
 
     it('does not render issue diagnostics block for MISSING items without issue data', () => {
-      const stepsNoIssue: JobStepDto[] = steps.map((s) =>
+      const stepsNoIssue: JobPhaseDto[] = phases.map((s) =>
         s.name === 'FETCH_MARKET_DATA'
           ? {
               ...s,
@@ -544,7 +544,7 @@ describe('JobTimeline', () => {
             }
           : s,
       )
-      render(<JobTimeline steps={stepsNoIssue} />)
+      render(<JobTimeline phases={stepsNoIssue} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
       fireEvent.click(screen.getByTestId('market-data-AAPL-HISTORICAL_PRICES'))
 
@@ -552,7 +552,7 @@ describe('JobTimeline', () => {
     })
 
     it('excludes issue field from resource JSON block', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
       fireEvent.click(screen.getByTestId('market-data-AAPL-HISTORICAL_PRICES'))
 
@@ -563,7 +563,7 @@ describe('JobTimeline', () => {
     })
 
     it('renders a separate copy button for issue diagnostics', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_MARKET_DATA'))
       fireEvent.click(screen.getByTestId('market-data-AAPL-HISTORICAL_PRICES'))
 
@@ -584,22 +584,22 @@ describe('JobTimeline', () => {
       ],
     }
 
-    const stepsWithPosDeps: JobStepDto[] = [
+    const stepsWithPosDeps: JobPhaseDto[] = [
       {
-        ...steps[0],
+        ...phases[0],
         details: {
-          ...steps[0].details,
+          ...phases[0].details,
           dependenciesByPosition: JSON.stringify(dependenciesByPosition),
         },
       },
-      steps[1],
-      steps[2],
-      steps[3],
-      steps[4],
+      phases[1],
+      phases[2],
+      phases[3],
+      phases[4],
     ]
 
     it('shows dependencies toggle within expanded position when dependenciesByPosition is present', () => {
-      render(<JobTimeline steps={stepsWithPosDeps} />)
+      render(<JobTimeline phases={stepsWithPosDeps} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
       fireEvent.click(screen.getByTestId('position-AAPL'))
 
@@ -608,7 +608,7 @@ describe('JobTimeline', () => {
     })
 
     it('expanding dependencies section shows individual dependency items', () => {
-      render(<JobTimeline steps={stepsWithPosDeps} />)
+      render(<JobTimeline phases={stepsWithPosDeps} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
       fireEvent.click(screen.getByTestId('position-AAPL'))
       fireEvent.click(screen.getByTestId('pos-deps-toggle-AAPL'))
@@ -618,7 +618,7 @@ describe('JobTimeline', () => {
     })
 
     it('expanding a dependency item shows its JSON', () => {
-      render(<JobTimeline steps={stepsWithPosDeps} />)
+      render(<JobTimeline phases={stepsWithPosDeps} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
       fireEvent.click(screen.getByTestId('position-AAPL'))
       fireEvent.click(screen.getByTestId('pos-deps-toggle-AAPL'))
@@ -633,7 +633,7 @@ describe('JobTimeline', () => {
       const writeText = vi.fn().mockResolvedValue(undefined)
       Object.assign(navigator, { clipboard: { writeText } })
 
-      render(<JobTimeline steps={stepsWithPosDeps} />)
+      render(<JobTimeline phases={stepsWithPosDeps} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
       fireEvent.click(screen.getByTestId('position-AAPL'))
 
@@ -650,7 +650,7 @@ describe('JobTimeline', () => {
       const writeText = vi.fn().mockResolvedValue(undefined)
       Object.assign(navigator, { clipboard: { writeText } })
 
-      render(<JobTimeline steps={stepsWithPosDeps} />)
+      render(<JobTimeline phases={stepsWithPosDeps} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
       fireEvent.click(screen.getByTestId('position-AAPL'))
       fireEvent.click(screen.getByTestId('pos-deps-toggle-AAPL'))
@@ -666,7 +666,7 @@ describe('JobTimeline', () => {
     })
 
     it('shared dependencies appear under all positions', () => {
-      render(<JobTimeline steps={stepsWithPosDeps} />)
+      render(<JobTimeline phases={stepsWithPosDeps} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
 
       fireEvent.click(screen.getByTestId('position-AAPL'))
@@ -679,7 +679,7 @@ describe('JobTimeline', () => {
     })
 
     it('does not show dependencies section when dependenciesByPosition is absent', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
       fireEvent.click(screen.getByTestId('position-AAPL'))
 
@@ -687,7 +687,7 @@ describe('JobTimeline', () => {
     })
 
     it('does not render dependenciesByPosition as a plain detail key-value', () => {
-      render(<JobTimeline steps={stepsWithPosDeps} />)
+      render(<JobTimeline phases={stepsWithPosDeps} />)
       fireEvent.click(screen.getByTestId('toggle-FETCH_POSITIONS'))
 
       expect(screen.queryByText('dependenciesByPosition:')).not.toBeInTheDocument()
@@ -696,7 +696,7 @@ describe('JobTimeline', () => {
 
   describe('per-position VaR breakdown in VALUATION', () => {
     it('renders expandable position breakdown items in VALUATION details', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-VALUATION'))
 
       expect(screen.getByTestId('details-VALUATION')).toBeInTheDocument()
@@ -705,7 +705,7 @@ describe('JobTimeline', () => {
     })
 
     it('expands position breakdown item to show VaR and ES as JSON with copy button', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-VALUATION'))
       fireEvent.click(screen.getByTestId('var-breakdown-AAPL'))
 
@@ -720,21 +720,21 @@ describe('JobTimeline', () => {
     })
 
     it('does not render positionBreakdown key as a regular detail', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-VALUATION'))
 
       expect(screen.queryByText('positionBreakdown:')).not.toBeInTheDocument()
     })
 
     it('shows filter input when VALUATION step has position breakdown', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-VALUATION'))
 
       expect(screen.getByTestId('filter-VALUATION')).toBeInTheDocument()
     })
 
     it('filters position breakdown items by instrument ID', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-VALUATION'))
 
       fireEvent.change(screen.getByTestId('filter-VALUATION'), { target: { value: 'TSLA' } })
@@ -744,7 +744,7 @@ describe('JobTimeline', () => {
     })
 
     it('renames marketValue to pv in position breakdown JSON', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-VALUATION'))
       fireEvent.click(screen.getByTestId('var-breakdown-AAPL'))
 
@@ -754,7 +754,7 @@ describe('JobTimeline', () => {
     })
 
     it('includes delta, gamma, vega in position breakdown JSON', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-VALUATION'))
       fireEvent.click(screen.getByTestId('var-breakdown-AAPL'))
 
@@ -765,7 +765,7 @@ describe('JobTimeline', () => {
     })
 
     it('renders valuation results as a JSON block with copy button', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-VALUATION'))
 
       const jsonBlock = screen.getByTestId('valuation-result-json')
@@ -778,7 +778,7 @@ describe('JobTimeline', () => {
     })
 
     it('valuation results JSON excludes positionBreakdown', () => {
-      render(<JobTimeline steps={steps} />)
+      render(<JobTimeline phases={phases} />)
       fireEvent.click(screen.getByTestId('toggle-VALUATION'))
 
       const jsonBlock = screen.getByTestId('valuation-result-json')

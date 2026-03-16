@@ -187,7 +187,7 @@ describe('JobHistory', () => {
       varValue: 5000.0,
       expectedShortfall: 6250.0,
       pvValue: 1800000.0,
-      steps: [
+      phases: [
         {
           name: 'FETCH_POSITIONS',
           status: 'COMPLETED',
@@ -509,7 +509,7 @@ describe('JobHistory', () => {
           varValue: 5000.0,
           expectedShortfall: 6250.0,
           pvValue: 1800000.0,
-          steps: [
+          phases: [
             {
               name: 'FETCH_POSITIONS',
               status: 'COMPLETED',
@@ -542,7 +542,7 @@ describe('JobHistory', () => {
           varValue: 3000.0,
           expectedShortfall: 4000.0,
           pvValue: null,
-          steps: [
+          phases: [
             {
               name: 'FETCH_POSITIONS',
               status: 'COMPLETED',
@@ -1206,7 +1206,7 @@ describe('JobHistory', () => {
           varValue: null,
           expectedShortfall: null,
           pvValue: null,
-          steps: [],
+          phases: [],
           error: null,
           runLabel: null,
           promotedAt: null,

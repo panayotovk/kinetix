@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, Copy, Check, Search } from 'lucide-react'
-import type { JobStepDto } from '../types'
+import type { JobPhaseDto } from '../types'
 import { formatDuration } from '../utils/format'
 
 interface JobTimelineProps {
-  steps: JobStepDto[]
+  phases: JobPhaseDto[]
   search?: string
 }
 
-const STEP_LABELS: Record<string, string> = {
+const PHASE_LABELS: Record<string, string> = {
   FETCH_POSITIONS: 'Fetch Positions',
   DISCOVER_DEPENDENCIES: 'Discover Dependencies',
   FETCH_MARKET_DATA: 'Fetch Dependencies',
@@ -24,11 +24,11 @@ function StatusDotInline({ status }: { status: string }) {
         ? 'bg-amber-500'
         : status === 'FAILED'
           ? 'bg-red-500'
-          : 'bg-slate-300'
+          : 'bg-blue-400 animate-pulse'
   return <span data-testid={`step-dot-${status}`} className={`inline-block h-3 w-3 rounded-full ${color} shrink-0`} />
 }
 
-function effectiveStepStatus(step: JobStepDto): string {
+function effectiveStepStatus(step: JobPhaseDto): string {
   if (step.status !== 'COMPLETED') return step.status
   const raw = step.details['marketDataItems']
   if (!raw) return step.status
@@ -86,9 +86,9 @@ interface MarketDataItem {
   [key: string]: string | Record<string, string> | undefined
 }
 
-function stepMatchesSearch(step: JobStepDto, term: string): boolean {
+function stepMatchesSearch(step: JobPhaseDto, term: string): boolean {
   const tokens = term.toLowerCase().split(/\s+/).filter(Boolean)
-  const parts = [STEP_LABELS[step.name] ?? step.name, ...Object.values(step.details)]
+  const parts = [PHASE_LABELS[step.name] ?? step.name, ...Object.values(step.details)]
   if (step.error) parts.push(step.error)
   const text = parts.join(' ').toLowerCase()
   return tokens.every((t) => text.includes(t))
@@ -116,7 +116,7 @@ function FilterInput({ testId, value, onChange }: { testId: string; value: strin
   )
 }
 
-export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
+export function JobTimeline({ phases, search = '' }: JobTimelineProps) {
   const [expanded, setExpanded] = useState<Record<number, boolean>>({})
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({})
   const [itemFilters, setItemFilters] = useState<Record<string, string>>({})
@@ -186,8 +186,8 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
   }
 
   const filteredSteps = isSearchActive
-    ? steps.filter((step) => stepMatchesSearch(step, search))
-    : steps
+    ? phases.filter((step) => stepMatchesSearch(step, search))
+    : phases
 
   if (isSearchActive && filteredSteps.length === 0) {
     return (
@@ -201,13 +201,13 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
     <div data-testid="job-timeline" className="relative pl-4">
       <div className="absolute left-[5px] top-2 bottom-2 w-px bg-slate-300" />
       {filteredSteps.map((step) => {
-        const stepIndex = steps.indexOf(step)
+        const stepIndex = phases.indexOf(step)
         const isOpen = isSearchActive || (expanded[stepIndex] ?? false)
         const hasDetails = Object.keys(step.details).length > 0
         const filter = itemFilters[step.name] ?? ''
 
         return (
-          <div key={stepIndex} data-testid={`job-step-${step.name}`} className="relative mb-3 last:mb-0">
+          <div key={stepIndex} data-testid={`job-phase-${step.name}`} className="relative mb-3 last:mb-0">
             <div
               data-testid={`toggle-${step.name}`}
               onClick={hasDetails ? () => toggle(stepIndex) : undefined}
@@ -218,7 +218,7 @@ export function JobTimeline({ steps, search = '' }: JobTimelineProps) {
                 isOpen ? <ChevronDown className="h-3 w-3 text-slate-400" /> : <ChevronRight className="h-3 w-3 text-slate-400" />
               )}
               <span className="text-sm font-medium text-slate-700">
-                {STEP_LABELS[step.name] ?? step.name}
+                {PHASE_LABELS[step.name] ?? step.name}
               </span>
               {step.durationMs != null && (
                 <span className="text-xs text-slate-400">{formatDuration(step.durationMs)}</span>

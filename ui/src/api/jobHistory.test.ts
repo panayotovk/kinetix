@@ -28,7 +28,7 @@ describe('jobHistory API', () => {
   const jobDetail = {
     ...jobSummary,
     confidenceLevel: 'CL_95',
-    steps: [
+    phases: [
       {
         name: 'FETCH_POSITIONS',
         status: 'COMPLETED',

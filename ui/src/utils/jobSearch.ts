@@ -19,7 +19,7 @@ export function buildSearchableText(
   ]
 
   if (detail) {
-    for (const step of detail.steps) {
+    for (const step of detail.phases) {
       parts.push(...Object.values(step.details))
       if (step.error) parts.push(step.error)
     }
