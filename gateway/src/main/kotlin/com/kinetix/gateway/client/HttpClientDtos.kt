@@ -314,6 +314,7 @@ data class ValuationJobSummaryClientDto(
     val completedAt: String? = null,
     val durationMs: Long? = null,
     val calculationType: String? = null,
+    val confidenceLevel: String? = null,
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
     val pvValue: Double? = null,
@@ -327,6 +328,7 @@ data class ValuationJobSummaryClientDto(
     val promotedAt: String? = null,
     val promotedBy: String? = null,
     val currentPhase: String? = null,
+    val manifestId: String? = null,
 )
 
 @Serializable
@@ -350,6 +352,7 @@ data class ValuationJobDetailClientDto(
     val promotedAt: String? = null,
     val promotedBy: String? = null,
     val currentPhase: String? = null,
+    val manifestId: String? = null,
 )
 
 @Serializable
@@ -653,6 +656,7 @@ fun ValuationJobSummaryClientDto.toDomain() = ValuationJobSummaryItem(
     completedAt = completedAt?.let { Instant.parse(it) },
     durationMs = durationMs,
     calculationType = calculationType,
+    confidenceLevel = confidenceLevel,
     varValue = varValue,
     expectedShortfall = expectedShortfall,
     pvValue = pvValue,
@@ -666,6 +670,7 @@ fun ValuationJobSummaryClientDto.toDomain() = ValuationJobSummaryItem(
     promotedAt = promotedAt,
     promotedBy = promotedBy,
     currentPhase = currentPhase,
+    manifestId = manifestId,
 )
 
 fun ValuationJobDetailClientDto.toDomain() = ValuationJobDetailItem(
@@ -688,6 +693,7 @@ fun ValuationJobDetailClientDto.toDomain() = ValuationJobDetailItem(
     promotedAt = promotedAt,
     promotedBy = promotedBy,
     currentPhase = currentPhase,
+    manifestId = manifestId,
 )
 
 fun SodBaselineStatusClientDto.toDomain() = SodBaselineStatusSummary(

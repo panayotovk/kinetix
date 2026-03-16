@@ -168,6 +168,7 @@ data class ValuationJobSummaryItem(
     val completedAt: Instant?,
     val durationMs: Long?,
     val calculationType: String?,
+    val confidenceLevel: String? = null,
     val varValue: Double?,
     val expectedShortfall: Double?,
     val pvValue: Double?,
@@ -181,6 +182,7 @@ data class ValuationJobSummaryItem(
     val promotedAt: String? = null,
     val promotedBy: String? = null,
     val currentPhase: String? = null,
+    val manifestId: String? = null,
 )
 
 data class ValuationJobDetailItem(
@@ -203,6 +205,7 @@ data class ValuationJobDetailItem(
     val promotedAt: String? = null,
     val promotedBy: String? = null,
     val currentPhase: String? = null,
+    val manifestId: String? = null,
 )
 
 data class EodTimelineEntryItem(

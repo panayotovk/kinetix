@@ -127,6 +127,70 @@ class JobHistoryRoutesTest : FunSpec({
         }
     }
 
+    test("summary response includes confidenceLevel and manifestId") {
+        val jobWithManifest = ValuationJobSummaryItem(
+            jobId = "job-1",
+            portfolioId = "port-1",
+            triggerType = "ON_DEMAND",
+            status = "COMPLETED",
+            startedAt = Instant.parse("2025-01-15T10:00:00Z"),
+            completedAt = Instant.parse("2025-01-15T10:00:05Z"),
+            durationMs = 5000,
+            calculationType = "PARAMETRIC",
+            confidenceLevel = "CL_95",
+            varValue = 5000.0,
+            expectedShortfall = 6250.0,
+            pvValue = 100000.0,
+            delta = null, gamma = null, vega = null, theta = null, rho = null,
+            manifestId = "manifest-abc-123",
+        )
+        coEvery { riskClient.listValuationJobs("port-1", 20, 0, null, null) } returns Pair(listOf(jobWithManifest), 1L)
+
+        testApplication {
+            application { module(riskClient) }
+
+            val response = client.get("/api/v1/risk/jobs/port-1")
+
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            val item = body["items"]!!.jsonArray[0].jsonObject
+            item["confidenceLevel"]?.jsonPrimitive?.content shouldBe "CL_95"
+            item["manifestId"]?.jsonPrimitive?.content shouldBe "manifest-abc-123"
+        }
+    }
+
+    test("detail response includes manifestId") {
+        val detail = ValuationJobDetailItem(
+            jobId = "11111111-1111-1111-1111-111111111111",
+            portfolioId = "port-1",
+            triggerType = "ON_DEMAND",
+            status = "COMPLETED",
+            startedAt = Instant.parse("2025-01-15T10:00:00Z"),
+            completedAt = Instant.parse("2025-01-15T10:00:05Z"),
+            durationMs = 5000,
+            calculationType = "PARAMETRIC",
+            confidenceLevel = "CL_95",
+            varValue = 5000.0,
+            expectedShortfall = 6250.0,
+            pvValue = 100000.0,
+            phases = emptyList(),
+            error = null,
+            valuationDate = "2025-01-15",
+            manifestId = "manifest-xyz-789",
+        )
+        coEvery { riskClient.getValuationJobDetail("11111111-1111-1111-1111-111111111111") } returns detail
+
+        testApplication {
+            application { module(riskClient) }
+
+            val response = client.get("/api/v1/risk/jobs/detail/11111111-1111-1111-1111-111111111111")
+
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["manifestId"]?.jsonPrimitive?.content shouldBe "manifest-xyz-789"
+        }
+    }
+
     test("returns 404 for unknown job detail") {
         coEvery { riskClient.getValuationJobDetail("99999999-9999-9999-9999-999999999999") } returns null
 

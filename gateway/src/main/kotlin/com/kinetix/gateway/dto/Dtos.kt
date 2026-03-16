@@ -857,6 +857,7 @@ data class ValuationJobSummaryResponse(
     val completedAt: String? = null,
     val durationMs: Long? = null,
     val calculationType: String? = null,
+    val confidenceLevel: String? = null,
     val varValue: Double? = null,
     val expectedShortfall: Double? = null,
     val pvValue: Double? = null,
@@ -870,6 +871,7 @@ data class ValuationJobSummaryResponse(
     val promotedAt: String? = null,
     val promotedBy: String? = null,
     val currentPhase: String? = null,
+    val manifestId: String? = null,
 )
 
 @Serializable
@@ -893,6 +895,7 @@ data class ValuationJobDetailResponse(
     val promotedAt: String? = null,
     val promotedBy: String? = null,
     val currentPhase: String? = null,
+    val manifestId: String? = null,
 )
 
 @Serializable
@@ -922,6 +925,7 @@ fun ValuationJobSummaryItem.toResponse(): ValuationJobSummaryResponse = Valuatio
     completedAt = completedAt?.toString(),
     durationMs = durationMs,
     calculationType = calculationType,
+    confidenceLevel = confidenceLevel,
     varValue = varValue,
     expectedShortfall = expectedShortfall,
     pvValue = pvValue,
@@ -935,6 +939,7 @@ fun ValuationJobSummaryItem.toResponse(): ValuationJobSummaryResponse = Valuatio
     promotedAt = promotedAt,
     promotedBy = promotedBy,
     currentPhase = currentPhase,
+    manifestId = manifestId,
 )
 
 fun ValuationJobDetailItem.toResponse(): ValuationJobDetailResponse = ValuationJobDetailResponse(
@@ -957,6 +962,7 @@ fun ValuationJobDetailItem.toResponse(): ValuationJobDetailResponse = ValuationJ
     promotedAt = promotedAt,
     promotedBy = promotedBy,
     currentPhase = currentPhase,
+    manifestId = manifestId,
 )
 
 // --- Stress Scenario Governance DTOs ---

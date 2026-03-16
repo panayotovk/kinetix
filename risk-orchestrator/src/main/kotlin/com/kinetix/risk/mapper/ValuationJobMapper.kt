@@ -29,6 +29,7 @@ fun ValuationJob.toSummaryResponse(): ValuationJobSummaryResponse = ValuationJob
     promotedAt = promotedAt?.toString(),
     promotedBy = promotedBy,
     currentPhase = currentPhase?.name,
+    manifestId = manifestId?.toString(),
 )
 
 fun ValuationJob.toDetailResponse(): ValuationJobDetailResponse = ValuationJobDetailResponse(
@@ -51,6 +52,7 @@ fun ValuationJob.toDetailResponse(): ValuationJobDetailResponse = ValuationJobDe
     promotedAt = promotedAt?.toString(),
     promotedBy = promotedBy,
     currentPhase = currentPhase?.name,
+    manifestId = manifestId?.toString(),
 )
 
 fun ValuationJob.toValuationResult(): ValuationResult? {

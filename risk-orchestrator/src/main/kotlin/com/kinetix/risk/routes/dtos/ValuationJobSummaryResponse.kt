@@ -26,4 +26,5 @@ data class ValuationJobSummaryResponse(
     val promotedAt: String? = null,
     val promotedBy: String? = null,
     val currentPhase: String? = null,
+    val manifestId: String? = null,
 )
