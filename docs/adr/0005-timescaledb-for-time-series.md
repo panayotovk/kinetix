@@ -7,7 +7,7 @@ Accepted
 Risk calculation results and market data history are time-series data requiring efficient time-range queries, aggregation, and retention policies. Options: TimescaleDB (PostgreSQL extension), QuestDB, InfluxDB, plain PostgreSQL with partitioning.
 
 ## Decision
-Use TimescaleDB 2.17 as a PostgreSQL extension for time-series storage.
+Use TimescaleDB (latest for PostgreSQL 17) as a PostgreSQL extension for time-series storage.
 
 ## Consequences
 

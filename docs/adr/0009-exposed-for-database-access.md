@@ -7,7 +7,7 @@ Accepted
 Kotlin services need a database access layer for PostgreSQL and TimescaleDB. Options: Exposed (JetBrains), jOOQ, Hibernate/JPA, plain JDBC with coroutines.
 
 ## Decision
-Use Exposed 0.57 (JetBrains Kotlin SQL framework) with its DSL API.
+Use Exposed 0.58.0 (JetBrains Kotlin SQL framework) with its DSL API.
 
 ## Consequences
 

@@ -12,3 +12,17 @@
 | [0008](0008-grafana-stack-for-observability.md) | Use Grafana stack for observability | Accepted |
 | [0009](0009-exposed-for-database-access.md) | Use Exposed for database access | Accepted |
 | [0010](0010-react-vite-for-frontend.md) | Use React + Vite for frontend | Accepted |
+| [0011](0011-database-per-service-isolation.md) | Database-per-service isolation | Accepted |
+| [0012](0012-api-gateway-aggregation-pattern.md) | API gateway aggregation pattern | Accepted |
+| [0013](0013-keycloak-for-authentication-and-rbac.md) | Keycloak for authentication and RBAC | Accepted |
+| [0014](0014-resilience-patterns-dlq-circuit-breaker.md) | Resilience patterns — DLQ and circuit breaker | Accepted |
+| [0015](0015-redis-with-lettuce-for-shared-caching.md) | Redis with Lettuce for shared caching | Accepted |
+| [0016](0016-websocket-for-real-time-ui-updates.md) | WebSocket for real-time UI updates | Accepted |
+| [0017](0017-hash-chained-audit-trail.md) | Hash-chained audit trail | Accepted |
+| [0018](0018-run-reproducibility-via-manifests.md) | Run reproducibility via manifests | Accepted |
+| [0019](0019-official-eod-labeling-with-promotion-governance.md) | Official EOD/SOD labeling with promotion governance | Accepted |
+| [0020](0020-sealed-interface-instrument-type-hierarchy.md) | Sealed interface instrument type hierarchy | Accepted |
+| [0021](0021-risk-orchestration-architecture.md) | Risk orchestration architecture | Accepted |
+| [0022](0022-correlation-id-propagation.md) | Correlation ID propagation | Accepted |
+| [0023](0023-hierarchical-limit-management.md) | Hierarchical limit management | Accepted |
+| [0024](0024-unified-valuation-rpc.md) | Unified valuation RPC | Accepted |

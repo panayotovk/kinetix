@@ -4,10 +4,10 @@
 Accepted
 
 ## Context
-We need a web/service framework for the Kotlin backend services. The main contenders are Spring Boot 3.x (most popular JVM framework), Ktor 3.4 (JetBrains Kotlin-native framework), and Micronaut (compile-time DI, GraalVM-friendly).
+We need a web/service framework for the Kotlin backend services. The main contenders are Spring Boot 3.x (most popular JVM framework), Ktor 3.1.3 (JetBrains Kotlin-native framework), and Micronaut (compile-time DI, GraalVM-friendly).
 
 ## Decision
-Use Ktor 3.4 for all Kotlin services.
+Use Ktor 3.1.3 for all Kotlin services.
 
 ## Consequences
 
