@@ -1,7 +1,7 @@
 package com.kinetix.position.seed
 
 import com.kinetix.common.model.InstrumentId
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.common.model.Position
 import com.kinetix.position.persistence.PositionRepository
 import com.kinetix.position.service.BookTradeCommand
@@ -22,7 +22,7 @@ class DevDataSeederTest : FunSpec({
     }
 
     test("seeds all trades when database is empty") {
-        coEvery { positionRepository.findDistinctPortfolioIds() } returns emptyList()
+        coEvery { positionRepository.findDistinctBookIds() } returns emptyList()
         coEvery { tradeBookingService.handle(any()) } answers {
             val cmd = firstArg<BookTradeCommand>()
             BookTradeResult(
@@ -48,8 +48,8 @@ class DevDataSeederTest : FunSpec({
     }
 
     test("skips seeding when portfolios already exist") {
-        coEvery { positionRepository.findDistinctPortfolioIds() } returns listOf(
-            PortfolioId("equity-growth"),
+        coEvery { positionRepository.findDistinctBookIds() } returns listOf(
+            BookId("equity-growth"),
         )
 
         seeder.seed()
@@ -58,7 +58,7 @@ class DevDataSeederTest : FunSpec({
     }
 
     test("updates market prices after booking trades") {
-        coEvery { positionRepository.findDistinctPortfolioIds() } returns emptyList()
+        coEvery { positionRepository.findDistinctBookIds() } returns emptyList()
         coEvery { tradeBookingService.handle(any()) } answers {
             val cmd = firstArg<BookTradeCommand>()
             BookTradeResult(

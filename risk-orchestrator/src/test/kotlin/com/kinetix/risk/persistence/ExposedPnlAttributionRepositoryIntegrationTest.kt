@@ -2,7 +2,7 @@ package com.kinetix.risk.persistence
 
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.PnlAttribution
 import com.kinetix.risk.model.PositionPnlAttribution
 import io.kotest.core.spec.style.FunSpec
@@ -16,14 +16,14 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 
-private val PORTFOLIO = PortfolioId("port-1")
+private val PORTFOLIO = BookId("port-1")
 private val TODAY = LocalDate.now()
 private val YESTERDAY = LocalDate.now().minusDays(1)
 
 private fun bd(value: String) = BigDecimal(value)
 
 private fun attribution(
-    portfolioId: PortfolioId = PORTFOLIO,
+    portfolioId: BookId = PORTFOLIO,
     date: LocalDate = TODAY,
     totalPnl: String = "10.00",
     deltaPnl: String = "3.00",
@@ -83,7 +83,7 @@ class ExposedPnlAttributionRepositoryIntegrationTest : FunSpec({
         val attr = attribution()
         repository.save(attr)
 
-        val found = repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
         found.shouldNotBeNull()
         found.portfolioId shouldBe PORTFOLIO
         found.date shouldBe TODAY
@@ -99,7 +99,7 @@ class ExposedPnlAttributionRepositoryIntegrationTest : FunSpec({
     test("persists position attributions as JSONB") {
         repository.save(attribution())
 
-        val found = repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
         found.shouldNotBeNull()
         found.positionAttributions shouldHaveSize 2
         found.positionAttributions[0].instrumentId shouldBe InstrumentId("AAPL")
@@ -114,7 +114,7 @@ class ExposedPnlAttributionRepositoryIntegrationTest : FunSpec({
         val attr = attribution(positionAttributions = emptyList())
         repository.save(attr)
 
-        val found = repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
         found.shouldNotBeNull()
         found.positionAttributions shouldHaveSize 0
     }
@@ -123,53 +123,53 @@ class ExposedPnlAttributionRepositoryIntegrationTest : FunSpec({
         repository.save(attribution(totalPnl = "10.00"))
         repository.save(attribution(totalPnl = "15.00"))
 
-        val found = repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
         found.shouldNotBeNull()
         found.totalPnl.compareTo(bd("15.00")) shouldBe 0
     }
 
     test("returns null for unknown portfolio and date") {
-        repository.findByPortfolioIdAndDate(PortfolioId("unknown"), TODAY).shouldBeNull()
+        repository.findByBookIdAndDate(BookId("unknown"), TODAY).shouldBeNull()
     }
 
-    test("findLatestByPortfolioId returns most recent attribution") {
+    test("findLatestByBookId returns most recent attribution") {
         repository.save(attribution(date = YESTERDAY, totalPnl = "8.00"))
         repository.save(attribution(date = TODAY, totalPnl = "10.00"))
 
-        val found = repository.findLatestByPortfolioId(PORTFOLIO)
+        val found = repository.findLatestByBookId(PORTFOLIO)
         found.shouldNotBeNull()
         found.date shouldBe TODAY
         found.totalPnl.compareTo(bd("10.00")) shouldBe 0
     }
 
-    test("findLatestByPortfolioId returns null for unknown portfolio") {
-        repository.findLatestByPortfolioId(PortfolioId("unknown")).shouldBeNull()
+    test("findLatestByBookId returns null for unknown portfolio") {
+        repository.findLatestByBookId(BookId("unknown")).shouldBeNull()
     }
 
-    test("findByPortfolioId returns all attributions ordered by date descending") {
+    test("findByBookId returns all attributions ordered by date descending") {
         repository.save(attribution(date = YESTERDAY, totalPnl = "8.00"))
         repository.save(attribution(date = TODAY, totalPnl = "10.00"))
 
-        val found = repository.findByPortfolioId(PORTFOLIO)
+        val found = repository.findByBookId(PORTFOLIO)
         found shouldHaveSize 2
         found[0].date shouldBe TODAY
         found[1].date shouldBe YESTERDAY
     }
 
-    test("findByPortfolioId returns empty for unknown portfolio") {
-        repository.findByPortfolioId(PortfolioId("unknown")) shouldHaveSize 0
+    test("findByBookId returns empty for unknown portfolio") {
+        repository.findByBookId(BookId("unknown")) shouldHaveSize 0
     }
 
     test("attributions for different portfolios are isolated") {
-        val portfolio2 = PortfolioId("port-2")
+        val portfolio2 = BookId("port-2")
         repository.save(attribution(portfolioId = PORTFOLIO, totalPnl = "10.00"))
         repository.save(attribution(portfolioId = portfolio2, totalPnl = "20.00"))
 
-        val port1 = repository.findByPortfolioId(PORTFOLIO)
+        val port1 = repository.findByBookId(PORTFOLIO)
         port1 shouldHaveSize 1
         port1[0].totalPnl.compareTo(bd("10.00")) shouldBe 0
 
-        val port2 = repository.findByPortfolioId(portfolio2)
+        val port2 = repository.findByBookId(portfolio2)
         port2 shouldHaveSize 1
         port2[0].totalPnl.compareTo(bd("20.00")) shouldBe 0
     }

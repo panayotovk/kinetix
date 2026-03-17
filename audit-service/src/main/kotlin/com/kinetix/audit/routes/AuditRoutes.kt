@@ -41,7 +41,7 @@ fun Route.auditRoutes(repository: AuditEventRepository) {
                 .coerceIn(1, MAX_PAGE_LIMIT)
 
             val events = if (portfolioId != null) {
-                repository.findByPortfolioId(portfolioId)
+                repository.findByBookId(portfolioId)
             } else {
                 repository.findPage(afterId, limit)
             }

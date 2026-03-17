@@ -27,7 +27,7 @@ private fun trade(
     counterpartyId: String? = null,
 ) = Trade(
     tradeId = TradeId(tradeId),
-    bookId = PortfolioId(portfolioId),
+    bookId = BookId(portfolioId),
     instrumentId = InstrumentId(instrumentId),
     assetClass = assetClass,
     side = side,
@@ -53,9 +53,9 @@ class CounterpartyExposureServiceTest : FunSpec({
             trade(tradeId = "t-3", side = Side.SELL, quantity = "50", price = "150.00", counterpartyId = "CP-002"),
         )
 
-        coEvery { tradeEventRepo.findByPortfolioId(PortfolioId("port-1")) } returns trades
+        coEvery { tradeEventRepo.findByBookId(BookId("port-1")) } returns trades
 
-        val result = service.getExposures(PortfolioId("port-1"))
+        val result = service.getExposures(BookId("port-1"))
 
         result shouldHaveSize 2
         val cp1 = result.first { it.counterpartyId == "CP-001" }
@@ -73,9 +73,9 @@ class CounterpartyExposureServiceTest : FunSpec({
             trade(tradeId = "t-2", counterpartyId = null),
         )
 
-        coEvery { tradeEventRepo.findByPortfolioId(PortfolioId("port-1")) } returns trades
+        coEvery { tradeEventRepo.findByBookId(BookId("port-1")) } returns trades
 
-        val result = service.getExposures(PortfolioId("port-1"))
+        val result = service.getExposures(BookId("port-1"))
 
         result.shouldBeEmpty()
     }
@@ -86,9 +86,9 @@ class CounterpartyExposureServiceTest : FunSpec({
             trade(tradeId = "t-2", side = Side.SELL, quantity = "60", price = "150.00", counterpartyId = "CP-001"),
         )
 
-        coEvery { tradeEventRepo.findByPortfolioId(PortfolioId("port-1")) } returns trades
+        coEvery { tradeEventRepo.findByBookId(BookId("port-1")) } returns trades
 
-        val result = service.getExposures(PortfolioId("port-1"))
+        val result = service.getExposures(BookId("port-1"))
 
         result shouldHaveSize 1
         val cp1 = result[0]

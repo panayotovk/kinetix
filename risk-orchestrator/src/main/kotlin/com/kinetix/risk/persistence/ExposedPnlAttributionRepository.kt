@@ -2,7 +2,7 @@ package com.kinetix.risk.persistence
 
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.PnlAttribution
 import com.kinetix.risk.model.PositionPnlAttribution
 import org.jetbrains.exposed.sql.Database
@@ -38,8 +38,8 @@ class ExposedPnlAttributionRepository(private val db: Database? = null) : PnlAtt
         }
     }
 
-    override suspend fun findByPortfolioIdAndDate(
-        portfolioId: PortfolioId,
+    override suspend fun findByBookIdAndDate(
+        portfolioId: BookId,
         date: LocalDate,
     ): PnlAttribution? = newSuspendedTransaction(db = db) {
         PnlAttributionsTable
@@ -52,8 +52,8 @@ class ExposedPnlAttributionRepository(private val db: Database? = null) : PnlAtt
             ?.toPnlAttribution()
     }
 
-    override suspend fun findLatestByPortfolioId(
-        portfolioId: PortfolioId,
+    override suspend fun findLatestByBookId(
+        portfolioId: BookId,
     ): PnlAttribution? = newSuspendedTransaction(db = db) {
         PnlAttributionsTable
             .selectAll()
@@ -64,8 +64,8 @@ class ExposedPnlAttributionRepository(private val db: Database? = null) : PnlAtt
             ?.toPnlAttribution()
     }
 
-    override suspend fun findByPortfolioId(
-        portfolioId: PortfolioId,
+    override suspend fun findByBookId(
+        portfolioId: BookId,
         fromDate: LocalDate,
     ): List<PnlAttribution> = newSuspendedTransaction(db = db) {
         PnlAttributionsTable
@@ -103,7 +103,7 @@ class ExposedPnlAttributionRepository(private val db: Database? = null) : PnlAtt
     )
 
     private fun ResultRow.toPnlAttribution(): PnlAttribution = PnlAttribution(
-        portfolioId = PortfolioId(this[PnlAttributionsTable.portfolioId]),
+        portfolioId = BookId(this[PnlAttributionsTable.portfolioId]),
         date = this[PnlAttributionsTable.attributionDate].toJavaDate(),
         totalPnl = this[PnlAttributionsTable.totalPnl],
         deltaPnl = this[PnlAttributionsTable.deltaPnl],

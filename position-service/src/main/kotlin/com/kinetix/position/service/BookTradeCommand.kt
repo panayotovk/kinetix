@@ -11,7 +11,7 @@ import java.time.Instant
 
 data class BookTradeCommand(
     val tradeId: TradeId,
-    val portfolioId: PortfolioId,
+    val portfolioId: BookId,
     val instrumentId: InstrumentId,
     val assetClass: AssetClass,
     val side: Side,
@@ -61,15 +61,15 @@ class TradeBookingService(
         val (result, isNewTrade) = transactional.run {
             val existing = tradeEventRepository.findByTradeId(trade.tradeId)
             if (existing != null) {
-                val position = positionRepository.findByKey(trade.portfolioId, trade.instrumentId)
-                    ?: Position.empty(trade.portfolioId, trade.instrumentId, trade.assetClass, trade.price.currency)
+                val position = positionRepository.findByKey(trade.bookId, trade.instrumentId)
+                    ?: Position.empty(trade.bookId, trade.instrumentId, trade.assetClass, trade.price.currency)
                 return@run Pair(BookTradeResult(existing, position, warnings), false)
             }
 
             tradeEventRepository.save(trade)
 
-            val currentPosition = positionRepository.findByKey(trade.portfolioId, trade.instrumentId)
-                ?: Position.empty(trade.portfolioId, trade.instrumentId, trade.assetClass, trade.price.currency)
+            val currentPosition = positionRepository.findByKey(trade.bookId, trade.instrumentId)
+                ?: Position.empty(trade.bookId, trade.instrumentId, trade.assetClass, trade.price.currency)
 
             val updatedPosition = currentPosition.applyTrade(trade)
             positionRepository.save(updatedPosition)
@@ -80,7 +80,7 @@ class TradeBookingService(
         if (isNewTrade) {
             tradeEventPublisher.publish(TradeEvent(trade = result.trade))
             logger.info("Trade booked: tradeId={}, portfolio={}, newPosition={}",
-                result.trade.tradeId.value, result.trade.portfolioId.value, result.position.quantity)
+                result.trade.tradeId.value, result.trade.bookId.value, result.position.quantity)
         }
 
         return result

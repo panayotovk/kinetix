@@ -57,10 +57,10 @@ class ExposedFrtbCalculationRepositoryIntegrationTest : FunSpec({
         newSuspendedTransaction { FrtbCalculationsTable.deleteAll() }
     }
 
-    test("save and findLatestByPortfolioId returns the record") {
+    test("save and findLatestByBookId returns the record") {
         repository.save(record())
 
-        val found = repository.findLatestByPortfolioId("port-1")
+        val found = repository.findLatestByBookId("port-1")
         found.shouldNotBeNull()
         found.portfolioId shouldBe "port-1"
         found.totalSbmCharge shouldBe 1000.0
@@ -70,33 +70,33 @@ class ExposedFrtbCalculationRepositoryIntegrationTest : FunSpec({
         found.sbmCharges[0].totalCharge shouldBe 600.0
     }
 
-    test("findLatestByPortfolioId returns null for unknown portfolio") {
-        repository.findLatestByPortfolioId("unknown").shouldBeNull()
+    test("findLatestByBookId returns null for unknown portfolio") {
+        repository.findLatestByBookId("unknown").shouldBeNull()
     }
 
-    test("findLatestByPortfolioId returns the most recent calculation") {
+    test("findLatestByBookId returns the most recent calculation") {
         repository.save(record(id = "r1", calculatedAt = NOW.minus(10, ChronoUnit.DAYS), totalCapitalCharge = 1000.0))
         repository.save(record(id = "r2", calculatedAt = NOW.minus(5, ChronoUnit.DAYS), totalCapitalCharge = 1500.0))
 
-        val found = repository.findLatestByPortfolioId("port-1")
+        val found = repository.findLatestByBookId("port-1")
         found.shouldNotBeNull()
         found.totalCapitalCharge shouldBe 1500.0
     }
 
-    test("findByPortfolioId returns records with limit and offset") {
+    test("findByBookId returns records with limit and offset") {
         repository.save(record(id = "r1", calculatedAt = NOW.minus(10, ChronoUnit.DAYS)))
         repository.save(record(id = "r2", calculatedAt = NOW.minus(5, ChronoUnit.DAYS)))
         repository.save(record(id = "r3", calculatedAt = NOW))
 
-        val page1 = repository.findByPortfolioId("port-1", limit = 2, offset = 0)
+        val page1 = repository.findByBookId("port-1", limit = 2, offset = 0)
         page1 shouldHaveSize 2
 
-        val page2 = repository.findByPortfolioId("port-1", limit = 2, offset = 2)
+        val page2 = repository.findByBookId("port-1", limit = 2, offset = 2)
         page2 shouldHaveSize 1
     }
 
-    test("findByPortfolioId returns empty list for unknown portfolio") {
-        repository.findByPortfolioId("unknown", limit = 10, offset = 0) shouldHaveSize 0
+    test("findByBookId returns empty list for unknown portfolio") {
+        repository.findByBookId("unknown", limit = 10, offset = 0) shouldHaveSize 0
     }
 
     test("save preserves JSON serialized sbmCharges") {
@@ -107,7 +107,7 @@ class ExposedFrtbCalculationRepositoryIntegrationTest : FunSpec({
         )
         repository.save(record(sbmCharges = charges))
 
-        val found = repository.findLatestByPortfolioId("port-1")
+        val found = repository.findLatestByBookId("port-1")
         found.shouldNotBeNull()
         found.sbmCharges shouldHaveSize 3
         found.sbmCharges[2].riskClass shouldBe "Equity"

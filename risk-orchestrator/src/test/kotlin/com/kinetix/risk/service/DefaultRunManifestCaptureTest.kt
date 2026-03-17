@@ -21,7 +21,7 @@ private fun testPosition(
     quantity: String = "100",
     marketPrice: String = "170.00",
 ) = Position(
-    bookId = PortfolioId("port-1"),
+    bookId = BookId("port-1"),
     instrumentId = InstrumentId(instrumentId),
     assetClass = assetClass,
     quantity = BigDecimal(quantity),
@@ -47,7 +47,7 @@ class DefaultRunManifestCaptureTest : FunSpec({
     test("captureInputs sets INPUTS_FROZEN status and empty model version") {
         val positions = listOf(testPosition())
         val request = VaRCalculationRequest(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
             timeHorizonDays = 1,
@@ -92,7 +92,7 @@ class DefaultRunManifestCaptureTest : FunSpec({
             testPosition(instrumentId = "MSFT", marketPrice = "420.00"),
         )
         val request = VaRCalculationRequest(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
         )
@@ -124,7 +124,7 @@ class DefaultRunManifestCaptureTest : FunSpec({
         val fetchResults = listOf<FetchResult>(FetchSuccess(dependency, spotValue))
 
         val request = VaRCalculationRequest(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
         )
@@ -169,7 +169,7 @@ class DefaultRunManifestCaptureTest : FunSpec({
         )
 
         val request = VaRCalculationRequest(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
         )
@@ -203,7 +203,7 @@ class DefaultRunManifestCaptureTest : FunSpec({
         val fetchResults = listOf<FetchResult>(FetchSuccess(dependency, spotValue))
 
         val request = VaRCalculationRequest(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
         )
@@ -222,7 +222,7 @@ class DefaultRunManifestCaptureTest : FunSpec({
     test("captureInputs with no fetch results produces INPUTS_FROZEN status") {
         val positions = listOf(testPosition())
         val request = VaRCalculationRequest(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
         )
@@ -241,7 +241,7 @@ class DefaultRunManifestCaptureTest : FunSpec({
     test("input digest changes when request parameters change") {
         val positions = listOf(testPosition())
         val request1 = VaRCalculationRequest(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
         )
@@ -381,7 +381,7 @@ class DefaultRunManifestCaptureTest : FunSpec({
 
         val positions = listOf(testPosition())
         val request = VaRCalculationRequest(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
         )

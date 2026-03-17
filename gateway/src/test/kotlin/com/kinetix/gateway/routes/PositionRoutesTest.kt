@@ -31,8 +31,8 @@ class PositionRoutesTest : FunSpec({
 
     test("GET /api/v1/books returns 200 with portfolio list") {
         coEvery { positionClient.listPortfolios() } returns listOf(
-            PortfolioSummary(PortfolioId("port-1")),
-            PortfolioSummary(PortfolioId("port-2")),
+            PortfolioSummary(BookId("port-1")),
+            PortfolioSummary(BookId("port-2")),
         )
 
         testApplication {
@@ -62,7 +62,7 @@ class PositionRoutesTest : FunSpec({
     test("POST /trades returns 201 Created with trade and position") {
         val trade = Trade(
             tradeId = TradeId("t-1"),
-            bookId = PortfolioId("port-1"),
+            bookId = BookId("port-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             side = Side.BUY,
@@ -71,7 +71,7 @@ class PositionRoutesTest : FunSpec({
             tradedAt = Instant.parse("2025-01-15T10:00:00Z"),
         )
         val position = Position(
-            bookId = PortfolioId("port-1"),
+            bookId = BookId("port-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             quantity = BigDecimal("100"),
@@ -109,7 +109,7 @@ class PositionRoutesTest : FunSpec({
         val commandSlot = slot<BookTradeCommand>()
         val trade = Trade(
             tradeId = TradeId("t-1"),
-            bookId = PortfolioId("my-port"),
+            bookId = BookId("my-port"),
             instrumentId = InstrumentId("MSFT"),
             assetClass = AssetClass.EQUITY,
             side = Side.BUY,
@@ -118,7 +118,7 @@ class PositionRoutesTest : FunSpec({
             tradedAt = Instant.parse("2025-01-15T10:00:00Z"),
         )
         val position = Position(
-            bookId = PortfolioId("my-port"),
+            bookId = BookId("my-port"),
             instrumentId = InstrumentId("MSFT"),
             assetClass = AssetClass.EQUITY,
             quantity = BigDecimal("50"),
@@ -144,7 +144,7 @@ class PositionRoutesTest : FunSpec({
                     }
                 """.trimIndent())
             }
-            commandSlot.captured.portfolioId shouldBe PortfolioId("my-port")
+            commandSlot.captured.portfolioId shouldBe BookId("my-port")
         }
     }
 
@@ -217,7 +217,7 @@ class PositionRoutesTest : FunSpec({
     test("POST /trades response includes computed position fields") {
         val trade = Trade(
             tradeId = TradeId("t-1"),
-            bookId = PortfolioId("port-1"),
+            bookId = BookId("port-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             side = Side.BUY,
@@ -226,7 +226,7 @@ class PositionRoutesTest : FunSpec({
             tradedAt = Instant.parse("2025-01-15T10:00:00Z"),
         )
         val position = Position(
-            bookId = PortfolioId("port-1"),
+            bookId = BookId("port-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             quantity = BigDecimal("100"),
@@ -265,7 +265,7 @@ class PositionRoutesTest : FunSpec({
         val trades = listOf(
             Trade(
                 tradeId = TradeId("t-1"),
-                bookId = PortfolioId("port-1"),
+                bookId = BookId("port-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -275,7 +275,7 @@ class PositionRoutesTest : FunSpec({
             ),
             Trade(
                 tradeId = TradeId("t-2"),
-                bookId = PortfolioId("port-1"),
+                bookId = BookId("port-1"),
                 instrumentId = InstrumentId("MSFT"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.SELL,
@@ -284,7 +284,7 @@ class PositionRoutesTest : FunSpec({
                 tradedAt = Instant.parse("2025-01-15T11:00:00Z"),
             ),
         )
-        coEvery { positionClient.getTradeHistory(PortfolioId("port-1")) } returns trades
+        coEvery { positionClient.getTradeHistory(BookId("port-1")) } returns trades
 
         testApplication {
             application { module(positionClient) }
@@ -300,7 +300,7 @@ class PositionRoutesTest : FunSpec({
     }
 
     test("GET /trades returns empty array for portfolio with no trades") {
-        coEvery { positionClient.getTradeHistory(PortfolioId("port-1")) } returns emptyList()
+        coEvery { positionClient.getTradeHistory(BookId("port-1")) } returns emptyList()
 
         testApplication {
             application { module(positionClient) }
@@ -315,7 +315,7 @@ class PositionRoutesTest : FunSpec({
     test("GET /positions returns 200 with position list") {
         val positions = listOf(
             Position(
-                bookId = PortfolioId("port-1"),
+                bookId = BookId("port-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),
@@ -323,7 +323,7 @@ class PositionRoutesTest : FunSpec({
                 marketPrice = usd("155.00"),
             ),
             Position(
-                bookId = PortfolioId("port-1"),
+                bookId = BookId("port-1"),
                 instrumentId = InstrumentId("MSFT"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("50"),
@@ -331,7 +331,7 @@ class PositionRoutesTest : FunSpec({
                 marketPrice = usd("310.00"),
             ),
         )
-        coEvery { positionClient.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionClient.getPositions(BookId("port-1")) } returns positions
 
         testApplication {
             application { module(positionClient) }
@@ -346,7 +346,7 @@ class PositionRoutesTest : FunSpec({
     }
 
     test("GET /positions returns empty array for unknown portfolio") {
-        coEvery { positionClient.getPositions(PortfolioId("unknown")) } returns emptyList()
+        coEvery { positionClient.getPositions(BookId("unknown")) } returns emptyList()
 
         testApplication {
             application { module(positionClient) }
@@ -358,14 +358,14 @@ class PositionRoutesTest : FunSpec({
 
     test("GET /positions includes computed marketValue and unrealizedPnl") {
         val position = Position(
-            bookId = PortfolioId("port-1"),
+            bookId = BookId("port-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             quantity = BigDecimal("100"),
             averageCost = usd("50.00"),
             marketPrice = usd("55.00"),
         )
-        coEvery { positionClient.getPositions(PortfolioId("port-1")) } returns listOf(position)
+        coEvery { positionClient.getPositions(BookId("port-1")) } returns listOf(position)
 
         testApplication {
             application { module(positionClient) }

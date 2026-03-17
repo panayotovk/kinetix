@@ -30,7 +30,7 @@ class ExposedBacktestResultRepository(private val db: Database? = null) : Backte
         }
     }
 
-    override suspend fun findByPortfolioId(
+    override suspend fun findByBookId(
         portfolioId: String,
         limit: Int,
         offset: Int,
@@ -59,7 +59,7 @@ class ExposedBacktestResultRepository(private val db: Database? = null) : Backte
             ?.toRecord()
     }
 
-    override suspend fun findLatestByPortfolioId(portfolioId: String): BacktestResultRecord? =
+    override suspend fun findLatestByBookId(portfolioId: String): BacktestResultRecord? =
         newSuspendedTransaction(db = db) {
             BacktestResultsTable
                 .selectAll()

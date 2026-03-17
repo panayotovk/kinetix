@@ -2,7 +2,7 @@ package com.kinetix.risk.persistence
 
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.DailyRiskSnapshot
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
@@ -12,14 +12,14 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import java.math.BigDecimal
 import java.time.LocalDate
 
-private val PORTFOLIO = PortfolioId("port-1")
+private val PORTFOLIO = BookId("port-1")
 private val AAPL = InstrumentId("AAPL")
 private val MSFT = InstrumentId("MSFT")
 private val TODAY = LocalDate.now()
 private val YESTERDAY = LocalDate.now().minusDays(1)
 
 private fun snapshot(
-    portfolioId: PortfolioId = PORTFOLIO,
+    portfolioId: BookId = PORTFOLIO,
     snapshotDate: LocalDate = TODAY,
     instrumentId: InstrumentId = AAPL,
     assetClass: AssetClass = AssetClass.EQUITY,
@@ -57,7 +57,7 @@ class ExposedDailyRiskSnapshotRepositoryIntegrationTest : FunSpec({
         val snap = snapshot()
         repository.save(snap)
 
-        val found = repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
         found shouldHaveSize 1
         found[0].portfolioId shouldBe PORTFOLIO
         found[0].snapshotDate shouldBe TODAY
@@ -76,7 +76,7 @@ class ExposedDailyRiskSnapshotRepositoryIntegrationTest : FunSpec({
         val snap = snapshot(delta = null, gamma = null, vega = null, theta = null, rho = null)
         repository.save(snap)
 
-        val found = repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
         found shouldHaveSize 1
         found[0].delta shouldBe null
         found[0].gamma shouldBe null
@@ -89,7 +89,7 @@ class ExposedDailyRiskSnapshotRepositoryIntegrationTest : FunSpec({
         repository.save(snapshot(marketPrice = "150.00", delta = 0.85))
         repository.save(snapshot(marketPrice = "155.00", delta = 0.90))
 
-        val found = repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
         found shouldHaveSize 1
         found[0].marketPrice.compareTo(BigDecimal("155.00")) shouldBe 0
         found[0].delta shouldBe 0.90
@@ -99,24 +99,24 @@ class ExposedDailyRiskSnapshotRepositoryIntegrationTest : FunSpec({
         repository.save(snapshot(instrumentId = AAPL))
         repository.save(snapshot(instrumentId = MSFT, marketPrice = "300.00"))
 
-        val found = repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
         found shouldHaveSize 2
         found.map { it.instrumentId }.toSet() shouldBe setOf(AAPL, MSFT)
     }
 
     test("returns empty list for unknown portfolio and date") {
-        repository.findByPortfolioIdAndDate(PortfolioId("unknown"), TODAY) shouldHaveSize 0
+        repository.findByBookIdAndDate(BookId("unknown"), TODAY) shouldHaveSize 0
     }
 
-    test("findByPortfolioIdAndDate filters by date correctly") {
+    test("findByBookIdAndDate filters by date correctly") {
         repository.save(snapshot(snapshotDate = TODAY))
         repository.save(snapshot(snapshotDate = YESTERDAY))
 
-        val todaySnaps = repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        val todaySnaps = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
         todaySnaps shouldHaveSize 1
         todaySnaps[0].snapshotDate shouldBe TODAY
 
-        val yesterdaySnaps = repository.findByPortfolioIdAndDate(PORTFOLIO, YESTERDAY)
+        val yesterdaySnaps = repository.findByBookIdAndDate(PORTFOLIO, YESTERDAY)
         yesterdaySnaps shouldHaveSize 1
         yesterdaySnaps[0].snapshotDate shouldBe YESTERDAY
     }
@@ -128,45 +128,45 @@ class ExposedDailyRiskSnapshotRepositoryIntegrationTest : FunSpec({
         )
         repository.saveAll(snapshots)
 
-        val found = repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
         found shouldHaveSize 2
     }
 
-    test("findByPortfolioId returns all snapshots across dates") {
+    test("findByBookId returns all snapshots across dates") {
         repository.save(snapshot(snapshotDate = TODAY, instrumentId = AAPL))
         repository.save(snapshot(snapshotDate = YESTERDAY, instrumentId = AAPL))
         repository.save(snapshot(snapshotDate = TODAY, instrumentId = MSFT))
 
-        val found = repository.findByPortfolioId(PORTFOLIO)
+        val found = repository.findByBookId(PORTFOLIO)
         found shouldHaveSize 3
     }
 
-    test("findByPortfolioId returns empty for unknown portfolio") {
-        repository.findByPortfolioId(PortfolioId("unknown")) shouldHaveSize 0
+    test("findByBookId returns empty for unknown portfolio") {
+        repository.findByBookId(BookId("unknown")) shouldHaveSize 0
     }
 
-    test("deleteByPortfolioIdAndDate deletes all snapshots for portfolio and date") {
+    test("deleteByBookIdAndDate deletes all snapshots for portfolio and date") {
         repository.save(snapshot(instrumentId = AAPL))
         repository.save(snapshot(instrumentId = MSFT, marketPrice = "300.00"))
 
-        repository.deleteByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        repository.deleteByBookIdAndDate(PORTFOLIO, TODAY)
 
-        repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY) shouldHaveSize 0
+        repository.findByBookIdAndDate(PORTFOLIO, TODAY) shouldHaveSize 0
     }
 
-    test("deleteByPortfolioIdAndDate does not affect other dates") {
+    test("deleteByBookIdAndDate does not affect other dates") {
         repository.save(snapshot(snapshotDate = TODAY))
         repository.save(snapshot(snapshotDate = YESTERDAY))
 
-        repository.deleteByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        repository.deleteByBookIdAndDate(PORTFOLIO, TODAY)
 
-        repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY) shouldHaveSize 0
-        repository.findByPortfolioIdAndDate(PORTFOLIO, YESTERDAY) shouldHaveSize 1
+        repository.findByBookIdAndDate(PORTFOLIO, TODAY) shouldHaveSize 0
+        repository.findByBookIdAndDate(PORTFOLIO, YESTERDAY) shouldHaveSize 1
     }
 
-    test("deleteByPortfolioIdAndDate is safe no-op when no snapshots exist") {
-        repository.deleteByPortfolioIdAndDate(PORTFOLIO, TODAY)
+    test("deleteByBookIdAndDate is safe no-op when no snapshots exist") {
+        repository.deleteByBookIdAndDate(PORTFOLIO, TODAY)
 
-        repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY) shouldHaveSize 0
+        repository.findByBookIdAndDate(PORTFOLIO, TODAY) shouldHaveSize 0
     }
 })

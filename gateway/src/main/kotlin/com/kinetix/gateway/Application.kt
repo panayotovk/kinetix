@@ -1,6 +1,6 @@
 package com.kinetix.gateway
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.common.security.Permission
 import com.kinetix.gateway.auth.JwtConfig
 import com.kinetix.gateway.auth.configureJwtAuth
@@ -342,7 +342,7 @@ fun Application.module(
                 route("/api/v1/books/{bookId}") {
                     requirePermission(Permission.WRITE_TRADES) {
                         post("/trades") {
-                            val bookId = PortfolioId(call.requirePathParam("bookId"))
+                            val bookId = BookId(call.requirePathParam("bookId"))
                             val request = call.receive<BookTradeRequest>()
                             val command = request.toCommand(bookId)
                             val result = positionClient.bookTrade(command)
@@ -351,7 +351,7 @@ fun Application.module(
                     }
                     requirePermission(Permission.READ_POSITIONS) {
                         get("/positions") {
-                            val bookId = PortfolioId(call.requirePathParam("bookId"))
+                            val bookId = BookId(call.requirePathParam("bookId"))
                             val positions = positionClient.getPositions(bookId)
                             call.respond(positions.map { it.toResponse() })
                         }

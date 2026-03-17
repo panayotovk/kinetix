@@ -1,6 +1,6 @@
 package com.kinetix.position.persistence
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.common.model.Trade
 import com.kinetix.common.model.TradeId
 import com.kinetix.common.model.TradeStatus
@@ -8,6 +8,6 @@ import com.kinetix.common.model.TradeStatus
 interface TradeEventRepository {
     suspend fun save(trade: Trade)
     suspend fun findByTradeId(tradeId: TradeId): Trade?
-    suspend fun findByPortfolioId(portfolioId: PortfolioId): List<Trade>
+    suspend fun findByBookId(portfolioId: BookId): List<Trade>
     suspend fun updateStatus(tradeId: TradeId, status: TradeStatus)
 }

@@ -2,7 +2,7 @@ package com.kinetix.risk.mapper
 
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ComponentBreakdown
 import com.kinetix.risk.model.ConfidenceLevel
@@ -76,7 +76,7 @@ private fun valuationResult(
     portfolioId: String = "port-1",
     valuationDate: LocalDate? = VALUATION_DATE,
 ) = ValuationResult(
-    portfolioId = PortfolioId(portfolioId),
+    portfolioId = BookId(portfolioId),
     calculationType = CalculationType.HISTORICAL,
     confidenceLevel = ConfidenceLevel.CL_99,
     varValue = 4000.0,

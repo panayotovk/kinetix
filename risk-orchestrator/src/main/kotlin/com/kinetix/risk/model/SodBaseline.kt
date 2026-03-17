@@ -1,13 +1,13 @@
 package com.kinetix.risk.model
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 
 data class SodBaseline(
     val id: Long? = null,
-    val portfolioId: PortfolioId,
+    val portfolioId: BookId,
     val baselineDate: LocalDate,
     val snapshotType: SnapshotType,
     val createdAt: Instant,

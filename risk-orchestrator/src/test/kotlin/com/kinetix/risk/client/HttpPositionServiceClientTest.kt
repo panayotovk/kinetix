@@ -42,11 +42,11 @@ class HttpPositionServiceClientTest : FunSpec({
         }
         val client = HttpPositionServiceClient(httpClient, "http://localhost:8081")
 
-        val result = client.getPositions(PortfolioId("port-1"))
+        val result = client.getPositions(BookId("port-1"))
 
         val success = result.shouldBeInstanceOf<ClientResponse.Success<List<Position>>>()
         success.value shouldHaveSize 1
-        success.value[0].portfolioId shouldBe PortfolioId("port-1")
+        success.value[0].bookId shouldBe BookId("port-1")
         success.value[0].instrumentId shouldBe InstrumentId("AAPL")
         success.value[0].assetClass shouldBe AssetClass.EQUITY
         success.value[0].quantity.compareTo(BigDecimal("100")) shouldBe 0
@@ -64,7 +64,7 @@ class HttpPositionServiceClientTest : FunSpec({
         }
         val client = HttpPositionServiceClient(httpClient, "http://localhost:8081")
 
-        val result = client.getPositions(PortfolioId("unknown-port"))
+        val result = client.getPositions(BookId("unknown-port"))
 
         val success = result.shouldBeInstanceOf<ClientResponse.Success<List<Position>>>()
         success.value.shouldBeEmpty()
@@ -83,12 +83,12 @@ class HttpPositionServiceClientTest : FunSpec({
         }
         val client = HttpPositionServiceClient(httpClient, "http://localhost:8081")
 
-        val result = client.getDistinctPortfolioIds()
+        val result = client.getDistinctBookIds()
 
-        val success = result.shouldBeInstanceOf<ClientResponse.Success<List<PortfolioId>>>()
+        val success = result.shouldBeInstanceOf<ClientResponse.Success<List<BookId>>>()
         success.value shouldHaveSize 3
-        success.value[0] shouldBe PortfolioId("port-1")
-        success.value[1] shouldBe PortfolioId("port-2")
-        success.value[2] shouldBe PortfolioId("port-3")
+        success.value[0] shouldBe BookId("port-1")
+        success.value[1] shouldBe BookId("port-2")
+        success.value[2] shouldBe BookId("port-3")
     }
 })

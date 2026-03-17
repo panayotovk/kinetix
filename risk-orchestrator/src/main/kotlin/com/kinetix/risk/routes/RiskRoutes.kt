@@ -1,7 +1,7 @@
 package com.kinetix.risk.routes
 
 import com.kinetix.common.model.AssetClass
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.routes.dtos.*
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.client.PositionProvider
@@ -74,7 +74,7 @@ fun Route.riskRoutes(
                 ?.toSet()
                 ?: ValuationOutput.entries.toSet()
             val request = VaRCalculationRequest(
-                portfolioId = PortfolioId(portfolioId),
+                portfolioId = BookId(portfolioId),
                 calculationType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC"),
                 confidenceLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95"),
                 timeHorizonDays = body.timeHorizonDays?.toInt() ?: 1,
@@ -198,9 +198,9 @@ fun Route.riskRoutes(
                     call.respond(HttpStatusCode.BadRequest, "Invalid 'date' parameter")
                     return@get
                 }
-                pnlAttributionRepository.findByPortfolioIdAndDate(PortfolioId(portfolioId), date)
+                pnlAttributionRepository.findByBookIdAndDate(BookId(portfolioId), date)
             } else {
-                pnlAttributionRepository.findLatestByPortfolioId(PortfolioId(portfolioId))
+                pnlAttributionRepository.findLatestByBookId(BookId(portfolioId))
             }
 
             if (attribution != null) {
@@ -222,7 +222,7 @@ fun Route.riskRoutes(
         }) {
             val portfolioId = call.requirePathParam("portfolioId")
             val status = sodSnapshotService.getBaselineStatus(
-                PortfolioId(portfolioId),
+                BookId(portfolioId),
                 LocalDate.now(),
             )
             call.respond(status.toResponse())
@@ -245,13 +245,13 @@ fun Route.riskRoutes(
             try {
                 if (jobIdParam != null) {
                     sodSnapshotService.createSnapshotFromJob(
-                        PortfolioId(portfolioId),
+                        BookId(portfolioId),
                         java.util.UUID.fromString(jobIdParam),
                         today,
                     )
                 } else {
                     sodSnapshotService.createSnapshot(
-                        PortfolioId(portfolioId),
+                        BookId(portfolioId),
                         SnapshotType.MANUAL,
                         date = today,
                     )
@@ -269,7 +269,7 @@ fun Route.riskRoutes(
                 )
                 return@post
             }
-            val status = sodSnapshotService.getBaselineStatus(PortfolioId(portfolioId), today)
+            val status = sodSnapshotService.getBaselineStatus(BookId(portfolioId), today)
             call.response.status(HttpStatusCode.Created)
             call.respond(status.toResponse())
         }
@@ -282,7 +282,7 @@ fun Route.riskRoutes(
             }
         }) {
             val portfolioId = call.requirePathParam("portfolioId")
-            sodSnapshotService.resetBaseline(PortfolioId(portfolioId), LocalDate.now())
+            sodSnapshotService.resetBaseline(BookId(portfolioId), LocalDate.now())
             call.response.status(HttpStatusCode.NoContent)
             call.respond("")
         }
@@ -299,7 +299,7 @@ fun Route.riskRoutes(
         }) {
             val portfolioId = call.requirePathParam("portfolioId")
             try {
-                val attribution = pnlComputationService.compute(PortfolioId(portfolioId))
+                val attribution = pnlComputationService.compute(BookId(portfolioId))
                 call.respond(attribution.toResponse())
             } catch (e: NoSodBaselineException) {
                 call.response.status(HttpStatusCode.PreconditionFailed)
@@ -329,7 +329,7 @@ fun Route.riskRoutes(
                 val confLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95")
 
                 val result = whatIfAnalysisService.analyzeWhatIf(
-                    portfolioId = PortfolioId(portfolioId),
+                    portfolioId = BookId(portfolioId),
                     hypotheticalTrades = trades,
                     calculationType = calcType,
                     confidenceLevel = confLevel,
@@ -352,7 +352,7 @@ fun Route.riskRoutes(
         }) {
             val portfolioId = call.requirePathParam("portfolioId")
             val body = call.receive<StressTestRequestBody>()
-            val positions = positionProvider.getPositions(PortfolioId(portfolioId))
+            val positions = positionProvider.getPositions(BookId(portfolioId))
             val calcType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC")
             val confLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95")
 
@@ -393,7 +393,7 @@ fun Route.riskRoutes(
     }) {
         val portfolioId = call.requirePathParam("portfolioId")
         val body = call.receive<StressTestBatchRequestBody>()
-        val positions = positionProvider.getPositions(PortfolioId(portfolioId))
+        val positions = positionProvider.getPositions(BookId(portfolioId))
         val calcType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC")
         val confLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95")
         val timeHorizon = body.timeHorizonDays?.toInt() ?: 1
@@ -448,7 +448,7 @@ fun Route.riskRoutes(
             val portfolioId = call.requirePathParam("portfolioId")
             val body = call.receive<VaRCalculationRequestBody>()
             val request = VaRCalculationRequest(
-                portfolioId = PortfolioId(portfolioId),
+                portfolioId = BookId(portfolioId),
                 calculationType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC"),
                 confidenceLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95"),
                 timeHorizonDays = body.timeHorizonDays?.toInt() ?: 1,
@@ -491,7 +491,7 @@ fun Route.riskRoutes(
             }
         }) {
             val portfolioId = call.requirePathParam("portfolioId")
-            val positions = positionProvider.getPositions(PortfolioId(portfolioId))
+            val positions = positionProvider.getPositions(BookId(portfolioId))
 
             val protoRequest = FrtbRequest.newBuilder()
                 .setBookId(ProtoBookId.newBuilder().setValue(portfolioId))
@@ -537,7 +537,7 @@ fun Route.riskRoutes(
         }) {
             val portfolioId = call.requirePathParam("portfolioId")
             val body = call.receive<GenerateReportRequestBody>()
-            val positions = positionProvider.getPositions(PortfolioId(portfolioId))
+            val positions = positionProvider.getPositions(BookId(portfolioId))
             val format = when (body.format?.uppercase()) {
                 "XBRL" -> ReportFormat.XBRL
                 else -> ReportFormat.CSV
@@ -574,7 +574,7 @@ fun Route.riskRoutes(
             }) {
                 val portfolioId = call.requirePathParam("portfolioId")
                 val body = call.receive<DependenciesRequestBody>()
-                val positions = positionProvider.getPositions(PortfolioId(portfolioId))
+                val positions = positionProvider.getPositions(BookId(portfolioId))
                 val calcType = body.calculationType ?: "PARAMETRIC"
                 val confLevel = body.confidenceLevel ?: "CL_95"
 

@@ -61,7 +61,7 @@ class ReplayServiceTest : FunSpec({
     )
 
     val testValuationResult = ValuationResult(
-        portfolioId = PortfolioId("port-1"),
+        portfolioId = BookId("port-1"),
         calculationType = CalculationType.PARAMETRIC,
         confidenceLevel = ConfidenceLevel.CL_95,
         varValue = 5000.0,

@@ -1,6 +1,6 @@
 package com.kinetix.risk.persistence
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.SnapshotType
 import com.kinetix.risk.model.SodBaseline
 import io.kotest.core.spec.style.FunSpec
@@ -13,13 +13,13 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 
-private val PORTFOLIO = PortfolioId("port-1")
+private val PORTFOLIO = BookId("port-1")
 private val TODAY = LocalDate.of(2025, 1, 15)
 private val YESTERDAY = LocalDate.of(2025, 1, 14)
 private val NOW = Instant.parse("2025-01-15T08:00:00Z")
 
 private fun baseline(
-    portfolioId: PortfolioId = PORTFOLIO,
+    portfolioId: BookId = PORTFOLIO,
     baselineDate: LocalDate = TODAY,
     snapshotType: SnapshotType = SnapshotType.MANUAL,
     createdAt: Instant = NOW,
@@ -43,7 +43,7 @@ class ExposedSodBaselineRepositoryIntegrationTest : FunSpec({
         val bl = baseline()
         repository.save(bl)
 
-        val found = repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
         found.shouldNotBeNull()
         found.portfolioId shouldBe PORTFOLIO
         found.baselineDate shouldBe TODAY
@@ -52,14 +52,14 @@ class ExposedSodBaselineRepositoryIntegrationTest : FunSpec({
     }
 
     test("returns null for unknown portfolio and date") {
-        repository.findByPortfolioIdAndDate(PortfolioId("unknown"), TODAY).shouldBeNull()
+        repository.findByBookIdAndDate(BookId("unknown"), TODAY).shouldBeNull()
     }
 
     test("upserts on same portfolio-date key") {
         repository.save(baseline(snapshotType = SnapshotType.AUTO, createdAt = NOW))
         repository.save(baseline(snapshotType = SnapshotType.MANUAL, createdAt = Instant.parse("2025-01-15T09:00:00Z")))
 
-        val found = repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
         found.shouldNotBeNull()
         found.snapshotType shouldBe SnapshotType.MANUAL
         found.createdAt shouldBe Instant.parse("2025-01-15T09:00:00Z")
@@ -68,13 +68,13 @@ class ExposedSodBaselineRepositoryIntegrationTest : FunSpec({
     test("deletes baseline by portfolio and date") {
         repository.save(baseline())
 
-        repository.deleteByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        repository.deleteByBookIdAndDate(PORTFOLIO, TODAY)
 
-        repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY).shouldBeNull()
+        repository.findByBookIdAndDate(PORTFOLIO, TODAY).shouldBeNull()
     }
 
     test("delete is safe when no baseline exists") {
-        repository.deleteByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        repository.deleteByBookIdAndDate(PORTFOLIO, TODAY)
         // no exception thrown
     }
 
@@ -82,17 +82,17 @@ class ExposedSodBaselineRepositoryIntegrationTest : FunSpec({
         repository.save(baseline(baselineDate = TODAY))
         repository.save(baseline(baselineDate = YESTERDAY))
 
-        repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY).shouldNotBeNull()
-        repository.findByPortfolioIdAndDate(PORTFOLIO, YESTERDAY).shouldNotBeNull()
+        repository.findByBookIdAndDate(PORTFOLIO, TODAY).shouldNotBeNull()
+        repository.findByBookIdAndDate(PORTFOLIO, YESTERDAY).shouldNotBeNull()
     }
 
     test("different portfolios are stored independently") {
-        val other = PortfolioId("port-2")
+        val other = BookId("port-2")
         repository.save(baseline(portfolioId = PORTFOLIO))
         repository.save(baseline(portfolioId = other))
 
-        repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY).shouldNotBeNull()
-        repository.findByPortfolioIdAndDate(other, TODAY).shouldNotBeNull()
+        repository.findByBookIdAndDate(PORTFOLIO, TODAY).shouldNotBeNull()
+        repository.findByBookIdAndDate(other, TODAY).shouldNotBeNull()
     }
 
     test("saves and retrieves baseline with job metadata") {
@@ -100,7 +100,7 @@ class ExposedSodBaselineRepositoryIntegrationTest : FunSpec({
         val bl = baseline().copy(sourceJobId = jobId, calculationType = "PARAMETRIC")
         repository.save(bl)
 
-        val found = repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
         found.shouldNotBeNull()
         found.sourceJobId shouldBe jobId
         found.calculationType shouldBe "PARAMETRIC"
@@ -109,7 +109,7 @@ class ExposedSodBaselineRepositoryIntegrationTest : FunSpec({
     test("saves and retrieves baseline with null job metadata") {
         repository.save(baseline())
 
-        val found = repository.findByPortfolioIdAndDate(PORTFOLIO, TODAY)
+        val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
         found.shouldNotBeNull()
         found.sourceJobId shouldBe null
         found.calculationType shouldBe null

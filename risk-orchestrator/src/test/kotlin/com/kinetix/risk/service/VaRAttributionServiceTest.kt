@@ -3,7 +3,7 @@ package com.kinetix.risk.service
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.Money
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.common.model.Position
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.client.RiskEngineClient
@@ -39,7 +39,7 @@ import java.util.UUID
 private val USD = Currency.getInstance("USD")
 
 private fun position(instrumentId: String = "AAPL", quantity: String = "100") = Position(
-    bookId = PortfolioId("port-1"),
+    bookId = BookId("port-1"),
     instrumentId = InstrumentId(instrumentId),
     assetClass = AssetClass.EQUITY,
     quantity = BigDecimal(quantity),
@@ -69,7 +69,7 @@ private fun job(
 )
 
 private fun valuationResult(varValue: Double = 5000.0) = ValuationResult(
-    portfolioId = PortfolioId("port-1"),
+    portfolioId = BookId("port-1"),
     calculationType = CalculationType.PARAMETRIC,
     confidenceLevel = ConfidenceLevel.CL_95,
     varValue = varValue,
@@ -92,11 +92,11 @@ class VaRAttributionServiceTest : FunSpec({
         val baseJob = job(varValue = 5000.0, theta = -50.0)
         val targetJob = job(varValue = 7000.0, theta = -50.0, valuationDate = LocalDate.of(2025, 1, 16))
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns listOf(position("AAPL", "150"))
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns listOf(position("AAPL", "150"))
         // VaR re-run with current positions against base market params = 6000
         coEvery { riskEngineClient.valuate(any(), any(), any()) } returns valuationResult(6000.0)
 
-        val result = service.attributeVaRChange(PortfolioId("port-1"), baseJob, targetJob)
+        val result = service.attributeVaRChange(BookId("port-1"), baseJob, targetJob)
 
         result.totalChange shouldBeExactly 2000.0
         // positionEffect = VaR_with_new_positions - baseVaR = 6000 - 5000 = 1000
@@ -111,7 +111,7 @@ class VaRAttributionServiceTest : FunSpec({
         // varWithNewPositions = 5500, so positionEffect = 500
         coEvery { riskEngineClient.valuate(any(), any(), any()) } returns valuationResult(5500.0)
 
-        val result = service.attributeVaRChange(PortfolioId("port-1"), baseJob, targetJob)
+        val result = service.attributeVaRChange(BookId("port-1"), baseJob, targetJob)
 
         val explained = result.positionEffect + (result.volEffect ?: 0.0) + (result.corrEffect ?: 0.0) + result.timeDecayEffect
         val expectedUnexplained = result.totalChange - explained
@@ -126,7 +126,7 @@ class VaRAttributionServiceTest : FunSpec({
         coEvery { positionProvider.getPositions(any()) } returns listOf(position())
         coEvery { riskEngineClient.valuate(any(), any(), any()) } returns valuationResult(5000.0)
 
-        val result = service.attributeVaRChange(PortfolioId("port-1"), baseJob, targetJob)
+        val result = service.attributeVaRChange(BookId("port-1"), baseJob, targetJob)
 
         result.totalChange shouldBeExactly 0.0
         result.positionEffect shouldBeExactly 0.0
@@ -141,7 +141,7 @@ class VaRAttributionServiceTest : FunSpec({
         coEvery { positionProvider.getPositions(any()) } returns listOf(position())
         coEvery { riskEngineClient.valuate(any(), any(), any()) } returns valuationResult(5000.0)
 
-        val result = service.attributeVaRChange(PortfolioId("port-1"), baseJob, targetJob)
+        val result = service.attributeVaRChange(BookId("port-1"), baseJob, targetJob)
 
         // 1 calendar day elapsed; time decay = theta * 1 = -100
         result.timeDecayEffect shouldBe (-100.0).plusOrMinus(1.0)
@@ -154,7 +154,7 @@ class VaRAttributionServiceTest : FunSpec({
         coEvery { positionProvider.getPositions(any()) } returns listOf(position())
         coEvery { riskEngineClient.valuate(any(), any(), any()) } returns valuationResult(5500.0)
 
-        service.attributeVaRChange(PortfolioId("port-1"), baseJob, targetJob)
+        service.attributeVaRChange(BookId("port-1"), baseJob, targetJob)
 
         val requestSlot = slot<VaRCalculationRequest>()
         coVerify { riskEngineClient.valuate(capture(requestSlot), any(), any()) }
@@ -170,7 +170,7 @@ class VaRAttributionServiceTest : FunSpec({
         coEvery { positionProvider.getPositions(any()) } returns listOf(position())
         coEvery { riskEngineClient.valuate(any(), any(), any()) } returns valuationResult(6000.0)
 
-        val result = service.attributeVaRChange(PortfolioId("port-1"), baseJob, targetJob)
+        val result = service.attributeVaRChange(BookId("port-1"), baseJob, targetJob)
 
         result.effectMagnitudes shouldContainKey "position"
         result.effectMagnitudes shouldContainKey "timeDecay"
@@ -186,7 +186,7 @@ class VaRAttributionServiceTest : FunSpec({
         coEvery { positionProvider.getPositions(any()) } returns listOf(position())
         coEvery { riskEngineClient.valuate(any(), any(), any()) } returns valuationResult(6500.0)
 
-        val result = service.attributeVaRChange(PortfolioId("port-1"), baseJob, targetJob)
+        val result = service.attributeVaRChange(BookId("port-1"), baseJob, targetJob)
 
         result.effectMagnitudes["position"] shouldBe ChangeMagnitude.LARGE
     }
@@ -218,7 +218,7 @@ class VaRAttributionServiceTest : FunSpec({
         coEvery { positionProvider.getPositions(any()) } returns listOf(position())
         coEvery { riskEngineClient.valuate(any(), any(), any()) } returns valuationResult(5000.0)
 
-        val result = service.attributeVaRChange(PortfolioId("port-1"), baseJob, targetJob, inputChanges)
+        val result = service.attributeVaRChange(BookId("port-1"), baseJob, targetJob, inputChanges)
 
         // volEffect ≈ vega * 0.10 (LARGE avg) = 100 * 0.10 = 10
         result.volEffect shouldNotBe null
@@ -232,7 +232,7 @@ class VaRAttributionServiceTest : FunSpec({
         coEvery { positionProvider.getPositions(any()) } returns listOf(position())
         coEvery { riskEngineClient.valuate(any(), any(), any()) } returns valuationResult(5500.0)
 
-        val result = service.attributeVaRChange(PortfolioId("port-1"), baseJob, targetJob)
+        val result = service.attributeVaRChange(BookId("port-1"), baseJob, targetJob)
 
         result.caveats shouldContain "Monte Carlo simulation: sampling variance may contribute to observed differences"
     }
@@ -244,7 +244,7 @@ class VaRAttributionServiceTest : FunSpec({
         coEvery { positionProvider.getPositions(any()) } returns listOf(position())
         coEvery { riskEngineClient.valuate(any(), any(), any()) } returns valuationResult(5500.0)
 
-        val result = service.attributeVaRChange(PortfolioId("port-1"), baseJob, targetJob)
+        val result = service.attributeVaRChange(BookId("port-1"), baseJob, targetJob)
 
         result.caveats shouldContain "Historical VaR is not a differentiable function of inputs; attribution is scenario-based, not sensitivity-based"
     }
@@ -266,7 +266,7 @@ class VaRAttributionServiceTest : FunSpec({
         coEvery { positionProvider.getPositions(any()) } returns listOf(position())
         coEvery { riskEngineClient.valuate(any(), any(), any()) } returns valuationResult(5500.0)
 
-        val result = service.attributeVaRChange(PortfolioId("port-1"), baseJob, targetJob, inputChanges)
+        val result = service.attributeVaRChange(BookId("port-1"), baseJob, targetJob, inputChanges)
 
         result.caveats shouldContain "Model version changed between runs (1.0.0 → 2.0.0); model effect cannot be decomposed further"
     }
@@ -305,7 +305,7 @@ class VaRAttributionServiceTest : FunSpec({
         coEvery { positionProvider.getPositions(any()) } returns listOf(position())
         coEvery { riskEngineClient.valuate(any(), any(), any()) } returns valuationResult(5500.0)
 
-        val result = service.attributeVaRChange(PortfolioId("port-1"), baseJob, targetJob, inputChanges)
+        val result = service.attributeVaRChange(BookId("port-1"), baseJob, targetJob, inputChanges)
 
         result.caveats shouldContain "Large gamma positions detected; first-order attribution may understate second-order effects"
     }

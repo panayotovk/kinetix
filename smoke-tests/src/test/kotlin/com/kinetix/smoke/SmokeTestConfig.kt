@@ -9,6 +9,6 @@ object SmokeTestConfig {
     val jwtIssuer: String = System.getenv("SMOKE_JWT_ISSUER") ?: "kinetix"
     val jwtAudience: String = System.getenv("SMOKE_JWT_AUDIENCE") ?: "kinetix-api"
 
-    val seededPortfolioId: String = System.getenv("SMOKE_SEEDED_PORTFOLIO") ?: "equity-growth"
+    val seededBookId: String = System.getenv("SMOKE_SEEDED_PORTFOLIO") ?: "equity-growth"
     val seededInstrumentId: String = System.getenv("SMOKE_SEEDED_INSTRUMENT") ?: "AAPL"
 }

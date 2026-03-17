@@ -62,7 +62,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
     test("calculateVaR returns a valid VaR result for an EQUITY position") {
         val positions = listOf(
             Position(
-                bookId = PortfolioId("contract-port-1"),
+                bookId = BookId("contract-port-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),
@@ -71,7 +71,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
             ),
         )
         val request = VaRCalculationRequest(
-            portfolioId = PortfolioId("contract-port-1"),
+            portfolioId = BookId("contract-port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
             timeHorizonDays = 1,
@@ -80,7 +80,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
 
         val result = client.calculateVaR(request, positions)
 
-        result.portfolioId shouldBe PortfolioId("contract-port-1")
+        result.portfolioId shouldBe BookId("contract-port-1")
         result.calculationType shouldBe CalculationType.PARAMETRIC
         result.confidenceLevel shouldBe ConfidenceLevel.CL_95
         result.varValue shouldBeGreaterThan 0.0
@@ -92,7 +92,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
     test("calculateVaR returns a valid result for HISTORICAL calculation type") {
         val positions = listOf(
             Position(
-                bookId = PortfolioId("contract-port-2"),
+                bookId = BookId("contract-port-2"),
                 instrumentId = InstrumentId("MSFT"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("50"),
@@ -101,14 +101,14 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
             ),
         )
         val request = VaRCalculationRequest(
-            portfolioId = PortfolioId("contract-port-2"),
+            portfolioId = BookId("contract-port-2"),
             calculationType = CalculationType.HISTORICAL,
             confidenceLevel = ConfidenceLevel.CL_99,
         )
 
         val result = client.calculateVaR(request, positions)
 
-        result.portfolioId shouldBe PortfolioId("contract-port-2")
+        result.portfolioId shouldBe BookId("contract-port-2")
         result.calculationType shouldBe CalculationType.HISTORICAL
         result.confidenceLevel shouldBe ConfidenceLevel.CL_99
         result.varValue shouldBeGreaterThan 0.0
@@ -117,7 +117,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
     test("calculateVaR handles multiple positions across asset classes") {
         val positions = listOf(
             Position(
-                bookId = PortfolioId("contract-port-3"),
+                bookId = BookId("contract-port-3"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),
@@ -125,7 +125,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
                 marketPrice = Money(BigDecimal("170.00"), USD),
             ),
             Position(
-                bookId = PortfolioId("contract-port-3"),
+                bookId = BookId("contract-port-3"),
                 instrumentId = InstrumentId("UST10Y"),
                 assetClass = AssetClass.FIXED_INCOME,
                 quantity = BigDecimal("50"),
@@ -134,7 +134,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
             ),
         )
         val request = VaRCalculationRequest(
-            portfolioId = PortfolioId("contract-port-3"),
+            portfolioId = BookId("contract-port-3"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
         )
@@ -148,7 +148,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
     test("valuate returns VaR and PV when both are requested") {
         val positions = listOf(
             Position(
-                bookId = PortfolioId("contract-port-4"),
+                bookId = BookId("contract-port-4"),
                 instrumentId = InstrumentId("GOOGL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("25"),
@@ -157,7 +157,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
             ),
         )
         val request = VaRCalculationRequest(
-            portfolioId = PortfolioId("contract-port-4"),
+            portfolioId = BookId("contract-port-4"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
             requestedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.PV),
@@ -165,7 +165,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
 
         val result = client.valuate(request, positions)
 
-        result.portfolioId shouldBe PortfolioId("contract-port-4")
+        result.portfolioId shouldBe BookId("contract-port-4")
         result.calculationType shouldBe CalculationType.PARAMETRIC
         result.varValue shouldNotBe null
         result.pvValue shouldNotBe null
@@ -175,7 +175,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
     test("discoverDependencies returns required market data for positions") {
         val positions = listOf(
             Position(
-                bookId = PortfolioId("contract-port-5"),
+                bookId = BookId("contract-port-5"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),

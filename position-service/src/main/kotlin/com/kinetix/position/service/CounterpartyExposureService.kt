@@ -1,6 +1,6 @@
 package com.kinetix.position.service
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.common.model.Side
 import com.kinetix.common.model.Trade
 import com.kinetix.position.model.CounterpartyExposure
@@ -11,8 +11,8 @@ import java.math.RoundingMode
 class CounterpartyExposureService(
     private val tradeEventRepository: TradeEventRepository,
 ) {
-    suspend fun getExposures(portfolioId: PortfolioId): List<CounterpartyExposure> {
-        val trades = tradeEventRepository.findByPortfolioId(portfolioId)
+    suspend fun getExposures(portfolioId: BookId): List<CounterpartyExposure> {
+        val trades = tradeEventRepository.findByBookId(portfolioId)
 
         return trades
             .filter { it.counterpartyId != null }

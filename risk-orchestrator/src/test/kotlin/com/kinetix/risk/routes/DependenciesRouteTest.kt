@@ -1,7 +1,7 @@
 package com.kinetix.risk.routes
 
 import com.kinetix.common.model.AssetClass
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.routes.dtos.*
 import com.kinetix.proto.risk.DataDependenciesResponse as ProtoDataDependenciesResponse
 import com.kinetix.proto.risk.MarketDataDependency as ProtoMarketDataDependency
@@ -36,7 +36,7 @@ class DependenciesRouteTest : FunSpec({
     }
 
     test("POST /api/v1/risk/dependencies/{portfolioId} returns dependencies") {
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns emptyList()
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns emptyList()
         coEvery { riskEngineClient.discoverDependencies(any(), any(), any()) } returns
             ProtoDataDependenciesResponse.newBuilder()
                 .addDependencies(
@@ -94,7 +94,7 @@ class DependenciesRouteTest : FunSpec({
     }
 
     test("POST /api/v1/risk/dependencies/{portfolioId} uses default calc type and confidence level") {
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns emptyList()
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns emptyList()
         coEvery { riskEngineClient.discoverDependencies(any(), any(), any()) } returns
             ProtoDataDependenciesResponse.getDefaultInstance()
 
@@ -121,7 +121,7 @@ class DependenciesRouteTest : FunSpec({
     }
 
     test("POST /api/v1/risk/dependencies/{portfolioId} with MONTE_CARLO") {
-        coEvery { positionProvider.getPositions(PortfolioId("port-2")) } returns emptyList()
+        coEvery { positionProvider.getPositions(BookId("port-2")) } returns emptyList()
         coEvery { riskEngineClient.discoverDependencies(any(), any(), any()) } returns
             ProtoDataDependenciesResponse.newBuilder()
                 .addDependencies(
@@ -162,7 +162,7 @@ class DependenciesRouteTest : FunSpec({
     }
 
     test("POST /api/v1/risk/dependencies/{portfolioId} returns empty list when no positions") {
-        coEvery { positionProvider.getPositions(PortfolioId("empty-portfolio")) } returns emptyList()
+        coEvery { positionProvider.getPositions(BookId("empty-portfolio")) } returns emptyList()
         coEvery { riskEngineClient.discoverDependencies(any(), any(), any()) } returns
             ProtoDataDependenciesResponse.getDefaultInstance()
 

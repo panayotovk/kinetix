@@ -1,6 +1,6 @@
 package com.kinetix.risk.routes
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.SnapshotType
 import com.kinetix.risk.model.SodBaselineStatus
 import com.kinetix.risk.routes.dtos.SodBaselineStatusResponse
@@ -49,7 +49,7 @@ class SodSnapshotRouteAcceptanceTest : FunSpec({
                 get("/api/v1/risk/sod-snapshot/{portfolioId}/status") {
                     val portfolioId = call.parameters["portfolioId"]!!
                     val status = sodSnapshotService.getBaselineStatus(
-                        PortfolioId(portfolioId),
+                        BookId(portfolioId),
                         LocalDate.now(),
                     )
                     call.respond(status.toResponse())
@@ -80,7 +80,7 @@ class SodSnapshotRouteAcceptanceTest : FunSpec({
                 get("/api/v1/risk/sod-snapshot/{portfolioId}/status") {
                     val portfolioId = call.parameters["portfolioId"]!!
                     val status = sodSnapshotService.getBaselineStatus(
-                        PortfolioId(portfolioId),
+                        BookId(portfolioId),
                         LocalDate.now(),
                     )
                     call.respond(status.toResponse())
@@ -114,11 +114,11 @@ class SodSnapshotRouteAcceptanceTest : FunSpec({
                     val portfolioId = call.parameters["portfolioId"]!!
                     val today = LocalDate.now()
                     sodSnapshotService.createSnapshot(
-                        PortfolioId(portfolioId),
+                        BookId(portfolioId),
                         SnapshotType.MANUAL,
                         date = today,
                     )
-                    val status = sodSnapshotService.getBaselineStatus(PortfolioId(portfolioId), today)
+                    val status = sodSnapshotService.getBaselineStatus(BookId(portfolioId), today)
                     call.response.status(HttpStatusCode.Created)
                     call.respond(status.toResponse())
                 }
@@ -132,7 +132,7 @@ class SodSnapshotRouteAcceptanceTest : FunSpec({
             body.snapshotType shouldBe "MANUAL"
         }
 
-        coVerify { sodSnapshotService.createSnapshot(PortfolioId("port-1"), SnapshotType.MANUAL, any(), any()) }
+        coVerify { sodSnapshotService.createSnapshot(BookId("port-1"), SnapshotType.MANUAL, any(), any()) }
     }
 
     test("DELETE /api/v1/risk/sod-snapshot/{portfolioId} resets baseline and returns 204") {
@@ -143,7 +143,7 @@ class SodSnapshotRouteAcceptanceTest : FunSpec({
             routing {
                 delete("/api/v1/risk/sod-snapshot/{portfolioId}") {
                     val portfolioId = call.parameters["portfolioId"]!!
-                    sodSnapshotService.resetBaseline(PortfolioId(portfolioId), LocalDate.now())
+                    sodSnapshotService.resetBaseline(BookId(portfolioId), LocalDate.now())
                     call.response.status(HttpStatusCode.NoContent)
                     call.respond("")
                 }
@@ -153,6 +153,6 @@ class SodSnapshotRouteAcceptanceTest : FunSpec({
             response.status shouldBe HttpStatusCode.NoContent
         }
 
-        coVerify { sodSnapshotService.resetBaseline(PortfolioId("port-1"), any()) }
+        coVerify { sodSnapshotService.resetBaseline(BookId("port-1"), any()) }
     }
 })

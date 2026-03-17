@@ -2,7 +2,7 @@ package com.kinetix.risk.persistence
 
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.DailyRiskSnapshot
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.ResultRow
@@ -65,8 +65,8 @@ class ExposedDailyRiskSnapshotRepository(private val db: Database? = null) : Dai
         }
     }
 
-    override suspend fun findByPortfolioIdAndDate(
-        portfolioId: PortfolioId,
+    override suspend fun findByBookIdAndDate(
+        portfolioId: BookId,
         date: LocalDate,
     ): List<DailyRiskSnapshot> = newSuspendedTransaction(db = db) {
         DailyRiskSnapshotsTable
@@ -79,8 +79,8 @@ class ExposedDailyRiskSnapshotRepository(private val db: Database? = null) : Dai
             .map { it.toDailyRiskSnapshot() }
     }
 
-    override suspend fun findByPortfolioId(
-        portfolioId: PortfolioId,
+    override suspend fun findByBookId(
+        portfolioId: BookId,
         fromDate: LocalDate,
     ): List<DailyRiskSnapshot> = newSuspendedTransaction(db = db) {
         DailyRiskSnapshotsTable
@@ -93,8 +93,8 @@ class ExposedDailyRiskSnapshotRepository(private val db: Database? = null) : Dai
             .map { it.toDailyRiskSnapshot() }
     }
 
-    override suspend fun deleteByPortfolioIdAndDate(
-        portfolioId: PortfolioId,
+    override suspend fun deleteByBookIdAndDate(
+        portfolioId: BookId,
         date: LocalDate,
     ): Unit = newSuspendedTransaction(db = db) {
         DailyRiskSnapshotsTable.deleteWhere {
@@ -105,7 +105,7 @@ class ExposedDailyRiskSnapshotRepository(private val db: Database? = null) : Dai
 
     private fun ResultRow.toDailyRiskSnapshot(): DailyRiskSnapshot = DailyRiskSnapshot(
         id = this[DailyRiskSnapshotsTable.id],
-        portfolioId = PortfolioId(this[DailyRiskSnapshotsTable.portfolioId]),
+        portfolioId = BookId(this[DailyRiskSnapshotsTable.portfolioId]),
         snapshotDate = this[DailyRiskSnapshotsTable.snapshotDate].toLocalDate(),
         instrumentId = InstrumentId(this[DailyRiskSnapshotsTable.instrumentId]),
         assetClass = AssetClass.valueOf(this[DailyRiskSnapshotsTable.assetClass]),

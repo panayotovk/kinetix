@@ -1,7 +1,7 @@
 package com.kinetix.position.service
 
 import com.kinetix.common.model.Money
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.position.model.CurrencyExposure
 import com.kinetix.position.model.PortfolioSummary
 import com.kinetix.position.persistence.PositionRepository
@@ -14,10 +14,10 @@ class PortfolioAggregationService(
     private val fxRateProvider: FxRateProvider,
 ) {
     suspend fun aggregate(
-        portfolioId: PortfolioId,
+        portfolioId: BookId,
         baseCurrency: Currency = Currency.getInstance("USD"),
     ): PortfolioSummary {
-        val positions = positionRepository.findByPortfolioId(portfolioId)
+        val positions = positionRepository.findByBookId(portfolioId)
 
         val byCurrency = positions.groupBy { it.currency }
 

@@ -1,7 +1,7 @@
 package com.kinetix.risk.mapper
 
 import com.kinetix.common.model.AssetClass
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
 import com.kinetix.risk.model.ValuationOutput
@@ -57,7 +57,7 @@ class ValuationResultMapperTest : FunSpec({
 
         val result = response.toDomainValuation()
 
-        result.portfolioId shouldBe PortfolioId("port-1")
+        result.portfolioId shouldBe BookId("port-1")
         result.calculationType shouldBe CalculationType.PARAMETRIC
         result.confidenceLevel shouldBe ConfidenceLevel.CL_95
         result.varValue shouldBe 25000.0
@@ -96,7 +96,7 @@ class ValuationResultMapperTest : FunSpec({
 
         val result = response.toDomainValuation()
 
-        result.portfolioId shouldBe PortfolioId("port-2")
+        result.portfolioId shouldBe BookId("port-2")
         result.varValue shouldBe 10000.0
         result.greeks.shouldBeNull()
         result.computedOutputs shouldContainExactlyInAnyOrder listOf(

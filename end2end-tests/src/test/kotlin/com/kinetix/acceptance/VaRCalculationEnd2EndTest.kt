@@ -40,11 +40,11 @@ private val USD = Currency.getInstance("USD")
 private class RepositoryBackedPositionServiceClient(
     private val repository: com.kinetix.position.persistence.PositionRepository,
 ) : PositionServiceClient {
-    override suspend fun getPositions(portfolioId: PortfolioId): ClientResponse<List<Position>> =
-        ClientResponse.Success(repository.findByPortfolioId(portfolioId))
+    override suspend fun getPositions(portfolioId: BookId): ClientResponse<List<Position>> =
+        ClientResponse.Success(repository.findByBookId(portfolioId))
 
-    override suspend fun getDistinctPortfolioIds(): ClientResponse<List<PortfolioId>> =
-        ClientResponse.Success(repository.findDistinctPortfolioIds())
+    override suspend fun getDistinctBookIds(): ClientResponse<List<BookId>> =
+        ClientResponse.Success(repository.findDistinctBookIds())
 }
 
 private class StubRiskEngineClient : RiskEngineClient {
@@ -205,7 +205,7 @@ class VaRCalculationEnd2EndTest : BehaviorSpec({
     }
 
     given("a portfolio with positions across EQUITY, FIXED_INCOME, and FX") {
-        val portfolioId = PortfolioId("port-var-1")
+        val portfolioId = BookId("port-var-1")
 
         bookingService.handle(
             BookTradeCommand(

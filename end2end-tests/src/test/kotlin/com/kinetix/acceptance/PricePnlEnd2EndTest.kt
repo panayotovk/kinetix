@@ -94,7 +94,7 @@ class PricePnlEnd2EndTest : BehaviorSpec({
     given("a portfolio with 100 AAPL bought at 150 USD") {
         val command = BookTradeCommand(
             tradeId = TradeId("t-mkt-1"),
-            portfolioId = PortfolioId("port-mkt-1"),
+            portfolioId = BookId("port-mkt-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             side = Side.BUY,
@@ -125,7 +125,7 @@ class PricePnlEnd2EndTest : BehaviorSpec({
                 withTimeout(2_000) {
                     while (true) {
                         positions = queryService.handle(
-                            GetPositionsQuery(PortfolioId("port-mkt-1"))
+                            GetPositionsQuery(BookId("port-mkt-1"))
                         )
                         if (positions.isNotEmpty() &&
                             positions[0].marketPrice.amount.compareTo(BigDecimal("170.00")) == 0
@@ -138,7 +138,7 @@ class PricePnlEnd2EndTest : BehaviorSpec({
 
             then("the market value is recalculated as quantity * new price") {
                 val positions = queryService.handle(
-                    GetPositionsQuery(PortfolioId("port-mkt-1"))
+                    GetPositionsQuery(BookId("port-mkt-1"))
                 )
                 // 100 * 170 = 17000.00
                 positions[0].marketValue.amount.compareTo(BigDecimal("17000.00")) shouldBe 0
@@ -146,7 +146,7 @@ class PricePnlEnd2EndTest : BehaviorSpec({
 
             then("the unrealized P&L reflects the price change") {
                 val positions = queryService.handle(
-                    GetPositionsQuery(PortfolioId("port-mkt-1"))
+                    GetPositionsQuery(BookId("port-mkt-1"))
                 )
                 // (170 - 150) * 100 = 2000.00
                 positions[0].unrealizedPnl.amount.compareTo(BigDecimal("2000.00")) shouldBe 0
@@ -154,7 +154,7 @@ class PricePnlEnd2EndTest : BehaviorSpec({
 
             then("the average cost remains unchanged") {
                 val positions = queryService.handle(
-                    GetPositionsQuery(PortfolioId("port-mkt-1"))
+                    GetPositionsQuery(BookId("port-mkt-1"))
                 )
                 positions[0].averageCost.amount.compareTo(BigDecimal("150.00")) shouldBe 0
             }

@@ -18,7 +18,7 @@ import java.util.Properties
 class OperationalSmokeTest : FunSpec({
 
     val client = SmokeHttpClient.create()
-    val portfolioId = SmokeTestConfig.seededPortfolioId
+    val portfolioId = SmokeTestConfig.seededBookId
 
     test("FX rates are non-trivial for EUR positions") {
         val response = client.smokeGet("/api/v1/portfolios/$portfolioId/summary", "fx-rates")

@@ -69,7 +69,7 @@ private class SlowStubRiskEngineClient : RiskEngineClient {
 }
 
 private class StubPositionProvider : com.kinetix.risk.client.PositionProvider {
-    override suspend fun getPositions(portfolioId: PortfolioId): List<Position> {
+    override suspend fun getPositions(portfolioId: BookId): List<Position> {
         return listOf(
             Position(
                 bookId = portfolioId,
@@ -99,7 +99,7 @@ class ObservabilityAcceptanceTest : BehaviorSpec({
         `when`("a VaR calculation exceeds 30 seconds") {
             val result = varService.calculateVaR(
                 VaRCalculationRequest(
-                    portfolioId = PortfolioId("obs-test-port"),
+                    portfolioId = BookId("obs-test-port"),
                     calculationType = CalculationType.PARAMETRIC,
                     confidenceLevel = ConfidenceLevel.CL_95,
                 )

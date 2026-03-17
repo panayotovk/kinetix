@@ -1,6 +1,6 @@
 package com.kinetix.risk.service
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.model.*
@@ -24,7 +24,7 @@ class SodSnapshotService(
     private val logger = LoggerFactory.getLogger(SodSnapshotService::class.java)
 
     suspend fun createSnapshot(
-        portfolioId: PortfolioId,
+        portfolioId: BookId,
         snapshotType: SnapshotType,
         valuationResult: ValuationResult? = null,
         date: LocalDate = LocalDate.now(),
@@ -73,8 +73,8 @@ class SodSnapshotService(
         )
     }
 
-    suspend fun getBaselineStatus(portfolioId: PortfolioId, date: LocalDate): SodBaselineStatus {
-        val baseline = sodBaselineRepository.findByPortfolioIdAndDate(portfolioId, date)
+    suspend fun getBaselineStatus(portfolioId: BookId, date: LocalDate): SodBaselineStatus {
+        val baseline = sodBaselineRepository.findByBookIdAndDate(portfolioId, date)
         return if (baseline != null) {
             SodBaselineStatus(
                 exists = true,
@@ -90,7 +90,7 @@ class SodSnapshotService(
     }
 
     suspend fun createSnapshotFromJob(
-        portfolioId: PortfolioId,
+        portfolioId: BookId,
         jobId: UUID,
         date: LocalDate = LocalDate.now(),
     ) {
@@ -119,13 +119,13 @@ class SodSnapshotService(
         createSnapshot(portfolioId, SnapshotType.MANUAL, result, date)
     }
 
-    suspend fun resetBaseline(portfolioId: PortfolioId, date: LocalDate) {
-        dailyRiskSnapshotRepository.deleteByPortfolioIdAndDate(portfolioId, date)
-        sodBaselineRepository.deleteByPortfolioIdAndDate(portfolioId, date)
+    suspend fun resetBaseline(portfolioId: BookId, date: LocalDate) {
+        dailyRiskSnapshotRepository.deleteByBookIdAndDate(portfolioId, date)
+        sodBaselineRepository.deleteByBookIdAndDate(portfolioId, date)
         logger.info("SOD baseline reset for portfolio {} on {}", portfolioId.value, date)
     }
 
-    private suspend fun calculateFreshVaR(portfolioId: PortfolioId): ValuationResult? {
+    private suspend fun calculateFreshVaR(portfolioId: BookId): ValuationResult? {
         logger.info("No cached VaR for {}, triggering fresh calculation for SOD snapshot", portfolioId.value)
         val request = VaRCalculationRequest(
             portfolioId = portfolioId,

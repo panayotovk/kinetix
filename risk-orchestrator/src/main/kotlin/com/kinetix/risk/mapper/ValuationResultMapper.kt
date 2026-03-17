@@ -1,7 +1,7 @@
 package com.kinetix.risk.mapper
 
 import com.kinetix.common.model.AssetClass
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ComponentBreakdown
 import com.kinetix.risk.model.ConfidenceLevel
@@ -65,7 +65,7 @@ fun ValuationResponse.toDomainValuation(): ValuationResult {
     }
 
     return ValuationResult(
-        portfolioId = PortfolioId(bookId.value),
+        portfolioId = BookId(bookId.value),
         calculationType = PROTO_CALC_TYPE_TO_DOMAIN.getValue(calculationType),
         confidenceLevel = PROTO_CONFIDENCE_TO_DOMAIN.getValue(confidenceLevel),
         varValue = if (varValue != 0.0) varValue else null,

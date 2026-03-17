@@ -148,7 +148,7 @@ class DefaultRunManifestCapture(
 
         // 2. Recompute input digest with the real model version
         val request = VaRCalculationRequest(
-            portfolioId = com.kinetix.common.model.PortfolioId(manifest.portfolioId),
+            portfolioId = com.kinetix.common.model.BookId(manifest.portfolioId),
             calculationType = CalculationType.valueOf(manifest.calculationType),
             confidenceLevel = ConfidenceLevel.valueOf(manifest.confidenceLevel),
             timeHorizonDays = manifest.timeHorizonDays,

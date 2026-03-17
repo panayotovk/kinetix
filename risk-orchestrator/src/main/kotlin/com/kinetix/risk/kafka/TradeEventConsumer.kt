@@ -2,7 +2,7 @@ package com.kinetix.risk.kafka
 
 import com.kinetix.common.kafka.RetryableConsumer
 import com.kinetix.common.kafka.events.TradeEventMessage
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
@@ -42,7 +42,7 @@ class TradeEventConsumer(
                         val event = Json.decodeFromString<TradeEventMessage>(record.value())
                         MDC.put("correlationId", event.correlationId ?: "")
                         try {
-                            val portfolioId = PortfolioId(event.portfolioId)
+                            val portfolioId = BookId(event.portfolioId)
 
                             logger.info("Trade event received for portfolio {}, triggering VaR recalculation", portfolioId.value)
 

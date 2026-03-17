@@ -2,7 +2,7 @@ package com.kinetix.risk.service
 
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.PositionPnlAttribution
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
@@ -40,7 +40,7 @@ class PnlAttributionServiceTest : FunSpec({
         )
 
         val result = service.attribute(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             positions = listOf(input),
         )
 
@@ -70,7 +70,7 @@ class PnlAttributionServiceTest : FunSpec({
         )
 
         val result = service.attribute(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             positions = listOf(input),
         )
 
@@ -101,7 +101,7 @@ class PnlAttributionServiceTest : FunSpec({
         )
 
         val result = service.attribute(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             positions = listOf(input),
         )
 
@@ -133,7 +133,7 @@ class PnlAttributionServiceTest : FunSpec({
         )
 
         val result = service.attribute(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             positions = listOf(input),
         )
 
@@ -191,7 +191,7 @@ class PnlAttributionServiceTest : FunSpec({
         )
 
         val result = service.attribute(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             positions = inputs,
         )
 

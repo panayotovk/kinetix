@@ -1,6 +1,6 @@
 package com.kinetix.risk.routes
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.cache.QuantDiffCache
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.client.RiskEngineClient
@@ -116,7 +116,7 @@ fun Route.runComparisonRoutes(
                 ?: return@post call.respond(HttpStatusCode.NotFound, "No completed job for target date $targetDate")
 
             val attribution = varAttributionService.attributeVaRChange(
-                PortfolioId(portfolioId),
+                BookId(portfolioId),
                 baseJob,
                 targetJob,
             )
@@ -135,15 +135,15 @@ fun Route.runComparisonRoutes(
             val targetCalcType = CalculationType.valueOf(body.targetCalculationType ?: "MONTE_CARLO")
             val targetConfLevel = ConfidenceLevel.valueOf(body.targetConfidenceLevel ?: "CL_99")
 
-            val positions = positionProvider.getPositions(PortfolioId(portfolioId))
+            val positions = positionProvider.getPositions(BookId(portfolioId))
 
             val baseRequest = VaRCalculationRequest(
-                portfolioId = PortfolioId(portfolioId),
+                portfolioId = BookId(portfolioId),
                 calculationType = baseCalcType,
                 confidenceLevel = baseConfLevel,
             )
             val targetRequest = VaRCalculationRequest(
-                portfolioId = PortfolioId(portfolioId),
+                portfolioId = BookId(portfolioId),
                 calculationType = targetCalcType,
                 confidenceLevel = targetConfLevel,
                 numSimulations = body.targetNumSimulations ?: 10_000,

@@ -23,7 +23,7 @@ private fun position(
     averageCost: Money = usd("150.00"),
     marketPrice: Money = usd("155.00"),
 ) = Position(
-    bookId = PortfolioId(portfolioId),
+    bookId = BookId(portfolioId),
     instrumentId = instrumentId,
     assetClass = assetClass,
     quantity = BigDecimal(quantity),
@@ -70,7 +70,7 @@ class PriceUpdateServiceTest : FunSpec({
         val count = service.handle(AAPL, usd("160.00"))
 
         count shouldBe 1
-        coVerify(exactly = 1) { positionRepo.save(match { it.portfolioId == PortfolioId("port-1") }) }
+        coVerify(exactly = 1) { positionRepo.save(match { it.bookId == BookId("port-1") }) }
     }
 
     test("saves each updated position with new market price") {
@@ -82,7 +82,7 @@ class PriceUpdateServiceTest : FunSpec({
         service.handle(AAPL, usd("170.00"))
 
         savedPosition.captured.marketPrice shouldBe usd("170.00")
-        savedPosition.captured.portfolioId shouldBe PortfolioId("port-1")
+        savedPosition.captured.bookId shouldBe BookId("port-1")
         savedPosition.captured.quantity.compareTo(BigDecimal("100")) shouldBe 0
         savedPosition.captured.averageCost shouldBe usd("150.00")
     }

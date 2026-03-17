@@ -2,7 +2,7 @@ package com.kinetix.risk.kafka
 
 import com.kinetix.common.kafka.events.RiskResultEvent
 import com.kinetix.common.model.AssetClass
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.*
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -20,7 +20,7 @@ class KafkaRiskResultPublisherIntegrationTest : FunSpec({
         val publisher = KafkaRiskResultPublisher(producer, topic)
 
         val result = ValuationResult(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
             varValue = 25000.0,
@@ -67,7 +67,7 @@ class KafkaRiskResultPublisherIntegrationTest : FunSpec({
         val publisher = KafkaRiskResultPublisher(producer, topic)
 
         val result = ValuationResult(
-            portfolioId = PortfolioId("my-portfolio"),
+            portfolioId = BookId("my-portfolio"),
             calculationType = CalculationType.MONTE_CARLO,
             confidenceLevel = ConfidenceLevel.CL_99,
             varValue = 50000.0,

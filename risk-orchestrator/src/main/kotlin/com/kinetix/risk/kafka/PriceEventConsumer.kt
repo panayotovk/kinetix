@@ -2,7 +2,7 @@ package com.kinetix.risk.kafka
 
 import com.kinetix.common.kafka.RetryableConsumer
 import com.kinetix.common.kafka.events.PriceEvent
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
@@ -22,7 +22,7 @@ import kotlin.coroutines.coroutineContext
 class PriceEventConsumer(
     private val consumer: KafkaConsumer<String, String>,
     private val varCalculationService: VaRCalculationService,
-    private val affectedPortfolios: suspend () -> List<PortfolioId>,
+    private val affectedPortfolios: suspend () -> List<BookId>,
     private val varCache: VaRCache? = null,
     private val topic: String = "price.updates",
     private val retryableConsumer: RetryableConsumer = RetryableConsumer(topic = topic),

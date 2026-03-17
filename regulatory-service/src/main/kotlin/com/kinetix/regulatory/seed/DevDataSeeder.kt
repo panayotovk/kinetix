@@ -14,7 +14,7 @@ class DevDataSeeder(
     private val log = LoggerFactory.getLogger(DevDataSeeder::class.java)
 
     suspend fun seed() {
-        val existing = repository.findByPortfolioId("equity-growth", limit = 1, offset = 0, from = Instant.EPOCH)
+        val existing = repository.findByBookId("equity-growth", limit = 1, offset = 0, from = Instant.EPOCH)
         if (existing.isNotEmpty()) {
             log.info("FRTB data already present, skipping seed")
             return

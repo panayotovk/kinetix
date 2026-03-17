@@ -58,18 +58,18 @@ class ExposedAuditEventRepositoryIntegrationTest : FunSpec({
         found[0].priceCurrency shouldBe "USD"
     }
 
-    test("findByPortfolioId returns only matching events") {
+    test("findByBookId returns only matching events") {
         repository.save(auditEvent(tradeId = "t-1", portfolioId = "port-1"))
         repository.save(auditEvent(tradeId = "t-2", portfolioId = "port-2"))
         repository.save(auditEvent(tradeId = "t-3", portfolioId = "port-1"))
 
-        val results = repository.findByPortfolioId("port-1")
+        val results = repository.findByBookId("port-1")
         results shouldHaveSize 2
         results.forEach { it.portfolioId shouldBe "port-1" }
     }
 
-    test("findByPortfolioId returns empty list for unknown portfolio") {
-        repository.findByPortfolioId("unknown") shouldHaveSize 0
+    test("findByBookId returns empty list for unknown portfolio") {
+        repository.findByBookId("unknown") shouldHaveSize 0
     }
 
     test("findAll returns events in insertion order") {

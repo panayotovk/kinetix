@@ -23,9 +23,6 @@ data class Trade(
         require(price.amount >= BigDecimal.ZERO) { "Trade price must be non-negative, was ${price.amount}" }
     }
 
-    @Deprecated("Use bookId", replaceWith = ReplaceWith("bookId"))
-    val portfolioId: BookId get() = bookId
-
     val notional: Money
         get() = price * quantity
 

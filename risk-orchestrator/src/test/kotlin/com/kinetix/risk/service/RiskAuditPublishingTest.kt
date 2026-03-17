@@ -15,7 +15,7 @@ import java.util.UUID
 private val USD = Currency.getInstance("USD")
 
 private fun testPosition(instrumentId: String = "AAPL") = Position(
-    bookId = PortfolioId("port-1"),
+    bookId = BookId("port-1"),
     instrumentId = InstrumentId(instrumentId),
     assetClass = AssetClass.EQUITY,
     quantity = BigDecimal("100"),
@@ -41,7 +41,7 @@ class RiskAuditPublishingTest : FunSpec({
     test("finaliseOutputs publishes RISK_RUN_MANIFEST_FROZEN audit event with real model version") {
         val capture = DefaultRunManifestCapture(manifestRepo, blobStore, auditPublisher)
         val request = VaRCalculationRequest(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
         )
@@ -172,7 +172,7 @@ class RiskAuditPublishingTest : FunSpec({
 
         val capture = DefaultRunManifestCapture(manifestRepo, blobStore, failingPublisher)
         val request = VaRCalculationRequest(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
         )

@@ -17,13 +17,13 @@ import java.math.BigDecimal
 class TradingWorkflowSmokeTest : FunSpec({
 
     val client = SmokeHttpClient.create()
-    val smokePortfolioId = "smoke-${System.currentTimeMillis()}"
+    val smokeBookId = "smoke-${System.currentTimeMillis()}"
     var bookedTradeId: String? = null
 
     test("trade booking round-trip — POST trade, verify position appears") {
         val tradeBody = """
         {
-            "portfolioId": "$smokePortfolioId",
+            "portfolioId": "$smokeBookId",
             "instrumentId": "${SmokeTestConfig.seededInstrumentId}",
             "side": "BUY",
             "quantity": 10,
@@ -34,7 +34,7 @@ class TradingWorkflowSmokeTest : FunSpec({
 
         val start = System.currentTimeMillis()
         val response = client.smokePost(
-            "/api/v1/portfolios/$smokePortfolioId/trades",
+            "/api/v1/portfolios/$smokeBookId/trades",
             "trade-booking",
             tradeBody,
         )
@@ -48,7 +48,7 @@ class TradingWorkflowSmokeTest : FunSpec({
 
         // Verify position appears
         val posResponse = client.smokeGet(
-            "/api/v1/portfolios/$smokePortfolioId/positions",
+            "/api/v1/portfolios/$smokeBookId/positions",
             "position-check",
         )
         posResponse.status shouldBe HttpStatusCode.OK
@@ -70,7 +70,7 @@ class TradingWorkflowSmokeTest : FunSpec({
             description = "audit event for trade $bookedTradeId",
         ) {
             val response = client.smokeGet(
-                "/api/v1/audit/events?portfolioId=$smokePortfolioId",
+                "/api/v1/audit/events?portfolioId=$smokeBookId",
                 "audit-check",
             )
             if (response.status != HttpStatusCode.OK) return@pollUntil null
@@ -88,7 +88,7 @@ class TradingWorkflowSmokeTest : FunSpec({
     test("audit hash chain intact — verify endpoint returns valid") {
         val start = System.currentTimeMillis()
         val response = client.smokeGet(
-            "/api/v1/audit/verify?portfolioId=$smokePortfolioId",
+            "/api/v1/audit/verify?portfolioId=$smokeBookId",
             "audit-verify",
         )
         val elapsed = System.currentTimeMillis() - start
@@ -111,7 +111,7 @@ class TradingWorkflowSmokeTest : FunSpec({
         """.trimIndent()
 
         val response = client.smokePut(
-            "/api/v1/portfolios/$smokePortfolioId/trades/$bookedTradeId",
+            "/api/v1/portfolios/$smokeBookId/trades/$bookedTradeId",
             "trade-amend",
             amendBody,
         )
@@ -119,7 +119,7 @@ class TradingWorkflowSmokeTest : FunSpec({
 
         // Verify updated position
         val posResponse = client.smokeGet(
-            "/api/v1/portfolios/$smokePortfolioId/positions",
+            "/api/v1/portfolios/$smokeBookId/positions",
             "position-after-amend",
         )
         posResponse.status shouldBe HttpStatusCode.OK

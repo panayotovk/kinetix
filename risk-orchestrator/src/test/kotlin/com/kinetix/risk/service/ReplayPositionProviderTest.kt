@@ -2,7 +2,7 @@ package com.kinetix.risk.service
 
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.PositionSnapshotEntry
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
@@ -37,12 +37,12 @@ class ReplayPositionProviderTest : FunSpec({
         )
 
         val provider = ReplayPositionProvider(entries, "port-1")
-        val positions = provider.getPositions(PortfolioId("port-1"))
+        val positions = provider.getPositions(BookId("port-1"))
 
         positions shouldHaveSize 2
 
         val aapl = positions[0]
-        aapl.portfolioId shouldBe PortfolioId("port-1")
+        aapl.bookId shouldBe BookId("port-1")
         aapl.instrumentId shouldBe InstrumentId("AAPL")
         aapl.assetClass shouldBe AssetClass.EQUITY
         aapl.quantity shouldBe BigDecimal("100")

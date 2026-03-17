@@ -2,7 +2,7 @@ package com.kinetix.risk.routes
 
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.PnlAttribution
 import com.kinetix.risk.model.PositionPnlAttribution
 import io.kotest.core.spec.style.FunSpec
@@ -18,7 +18,7 @@ class PnlAttributionMapperTest : FunSpec({
 
     test("maps PnlAttribution domain to PnlAttributionResponse DTO") {
         val attribution = PnlAttribution(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             date = LocalDate.of(2025, 1, 15),
             totalPnl = bd("10.00"),
             deltaPnl = bd("3.00"),
@@ -59,7 +59,7 @@ class PnlAttributionMapperTest : FunSpec({
 
     test("maps position attributions to DTOs") {
         val attribution = PnlAttribution(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             date = LocalDate.of(2025, 1, 15),
             totalPnl = bd("10.00"),
             deltaPnl = bd("3.00"),
@@ -118,7 +118,7 @@ class PnlAttributionMapperTest : FunSpec({
 
     test("maps empty position attributions list") {
         val attribution = PnlAttribution(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             date = LocalDate.of(2025, 1, 15),
             totalPnl = bd("0.00"),
             deltaPnl = bd("0.00"),

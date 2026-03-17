@@ -1,11 +1,11 @@
 package com.kinetix.position.model
 
 import com.kinetix.common.model.Money
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import java.util.Currency
 
 data class PortfolioSummary(
-    val portfolioId: PortfolioId,
+    val portfolioId: BookId,
     val baseCurrency: Currency,
     val totalNav: Money,
     val totalUnrealizedPnl: Money,

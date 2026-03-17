@@ -61,7 +61,7 @@ class ExposedBacktestResultRepositoryIntegrationTest : FunSpec({
         val record = backtestRecord()
         repository.save(record)
 
-        val found = repository.findLatestByPortfolioId("port-1")
+        val found = repository.findLatestByBookId("port-1")
         found.shouldNotBeNull()
         found.portfolioId shouldBe "port-1"
         found.totalDays shouldBe 250
@@ -81,7 +81,7 @@ class ExposedBacktestResultRepositoryIntegrationTest : FunSpec({
         repository.save(backtestRecord(id = "r2", calculatedAt = NOW.minus(5, ChronoUnit.DAYS), violationCount = 5))
         repository.save(backtestRecord(id = "r3", calculatedAt = NOW, violationCount = 8))
 
-        val history = repository.findByPortfolioId("port-1", limit = 10, offset = 0)
+        val history = repository.findByBookId("port-1", limit = 10, offset = 0)
         history shouldHaveSize 3
         // Should be ordered by calculatedAt DESC
         history[0].violationCount shouldBe 8
@@ -89,23 +89,23 @@ class ExposedBacktestResultRepositoryIntegrationTest : FunSpec({
         history[2].violationCount shouldBe 2
     }
 
-    test("findLatestByPortfolioId returns null for unknown portfolio") {
-        repository.findLatestByPortfolioId("unknown").shouldBeNull()
+    test("findLatestByBookId returns null for unknown portfolio") {
+        repository.findLatestByBookId("unknown").shouldBeNull()
     }
 
-    test("findByPortfolioId returns empty list for unknown portfolio") {
-        repository.findByPortfolioId("unknown", limit = 10, offset = 0) shouldHaveSize 0
+    test("findByBookId returns empty list for unknown portfolio") {
+        repository.findByBookId("unknown", limit = 10, offset = 0) shouldHaveSize 0
     }
 
-    test("findByPortfolioId respects limit and offset") {
+    test("findByBookId respects limit and offset") {
         repository.save(backtestRecord(id = "r1", calculatedAt = NOW.minus(10, ChronoUnit.DAYS)))
         repository.save(backtestRecord(id = "r2", calculatedAt = NOW.minus(5, ChronoUnit.DAYS)))
         repository.save(backtestRecord(id = "r3", calculatedAt = NOW))
 
-        val page1 = repository.findByPortfolioId("port-1", limit = 2, offset = 0)
+        val page1 = repository.findByBookId("port-1", limit = 2, offset = 0)
         page1 shouldHaveSize 2
 
-        val page2 = repository.findByPortfolioId("port-1", limit = 2, offset = 2)
+        val page2 = repository.findByBookId("port-1", limit = 2, offset = 2)
         page2 shouldHaveSize 1
     }
 })

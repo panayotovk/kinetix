@@ -12,7 +12,7 @@ import com.kinetix.proto.common.InstrumentId as ProtoInstrumentId
 import com.kinetix.proto.common.InstrumentTypeEnum as ProtoInstrumentTypeEnum
 import com.kinetix.proto.common.Money as ProtoMoney
 import com.kinetix.proto.common.OptionAttributes as ProtoOptionAttributes
-import com.kinetix.proto.common.PortfolioId as ProtoPortfolioId
+import com.kinetix.proto.common.BookId as ProtoBookId
 import com.kinetix.proto.common.Position as ProtoPosition
 import com.kinetix.proto.common.SwapAttributes as ProtoSwapAttributes
 
@@ -39,7 +39,7 @@ private val INSTRUMENT_TYPE_NAME_TO_PROTO = mapOf(
 )
 
 fun Position.toProto(): ProtoPosition = ProtoPosition.newBuilder()
-    .setPortfolioId(ProtoPortfolioId.newBuilder().setValue(portfolioId.value))
+    .setBookId(ProtoBookId.newBuilder().setValue(bookId.value))
     .setInstrumentId(ProtoInstrumentId.newBuilder().setValue(instrumentId.value))
     .setAssetClass(ASSET_CLASS_TO_PROTO.getValue(assetClass))
     .setQuantity(quantity.toDouble())
@@ -52,7 +52,7 @@ fun Position.toProto(): ProtoPosition = ProtoPosition.newBuilder()
 
 fun Position.toProto(instrument: InstrumentDto?): ProtoPosition {
     val builder = ProtoPosition.newBuilder()
-        .setPortfolioId(ProtoPortfolioId.newBuilder().setValue(portfolioId.value))
+        .setBookId(ProtoBookId.newBuilder().setValue(bookId.value))
         .setInstrumentId(ProtoInstrumentId.newBuilder().setValue(instrumentId.value))
         .setAssetClass(ASSET_CLASS_TO_PROTO.getValue(assetClass))
         .setQuantity(quantity.toDouble())

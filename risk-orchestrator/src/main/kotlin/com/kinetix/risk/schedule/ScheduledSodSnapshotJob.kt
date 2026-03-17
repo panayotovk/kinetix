@@ -1,6 +1,6 @@
 package com.kinetix.risk.schedule
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.SnapshotType
 import com.kinetix.risk.service.SodSnapshotService
 import kotlinx.coroutines.delay
@@ -12,7 +12,7 @@ import kotlin.coroutines.coroutineContext
 
 class ScheduledSodSnapshotJob(
     private val sodSnapshotService: SodSnapshotService,
-    private val portfolioIds: suspend () -> List<PortfolioId>,
+    private val portfolioIds: suspend () -> List<BookId>,
     private val sodTime: LocalTime = LocalTime.of(6, 0),
     private val intervalMillis: Long = 60_000,
     private val nowProvider: () -> LocalTime = { LocalTime.now() },

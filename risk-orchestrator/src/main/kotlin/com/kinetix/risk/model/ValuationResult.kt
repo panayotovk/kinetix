@@ -1,12 +1,12 @@
 package com.kinetix.risk.model
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 
 data class ValuationResult(
-    val portfolioId: PortfolioId,
+    val portfolioId: BookId,
     val calculationType: CalculationType,
     val confidenceLevel: ConfidenceLevel,
     val varValue: Double?,

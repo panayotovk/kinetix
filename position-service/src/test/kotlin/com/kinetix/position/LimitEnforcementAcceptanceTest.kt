@@ -53,7 +53,7 @@ class LimitEnforcementAcceptanceTest : BehaviorSpec({
                     service.handle(
                         BookTradeCommand(
                             tradeId = TradeId("t-notional-1"),
-                            portfolioId = PortfolioId("port-notional-1"),
+                            portfolioId = BookId("port-notional-1"),
                             instrumentId = InstrumentId("AAPL"),
                             assetClass = AssetClass.EQUITY,
                             side = Side.BUY,
@@ -89,7 +89,7 @@ class LimitEnforcementAcceptanceTest : BehaviorSpec({
 
                 positionRepo.save(
                     Position(
-                        bookId = PortfolioId("port-conc-1"),
+                        bookId = BookId("port-conc-1"),
                         instrumentId = InstrumentId("AAPL"),
                         assetClass = AssetClass.EQUITY,
                         quantity = BigDecimal("4000"),
@@ -99,7 +99,7 @@ class LimitEnforcementAcceptanceTest : BehaviorSpec({
                 )
                 positionRepo.save(
                     Position(
-                        bookId = PortfolioId("port-conc-1"),
+                        bookId = BookId("port-conc-1"),
                         instrumentId = InstrumentId("MSFT"),
                         assetClass = AssetClass.EQUITY,
                         quantity = BigDecimal("4000"),
@@ -113,7 +113,7 @@ class LimitEnforcementAcceptanceTest : BehaviorSpec({
                     service.handle(
                         BookTradeCommand(
                             tradeId = TradeId("t-conc-1"),
-                            portfolioId = PortfolioId("port-conc-1"),
+                            portfolioId = BookId("port-conc-1"),
                             instrumentId = InstrumentId("AAPL"),
                             assetClass = AssetClass.EQUITY,
                             side = Side.BUY,

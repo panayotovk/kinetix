@@ -60,7 +60,7 @@ class BacktestRoutesTest : FunSpec({
         val frtbRepo = mockk<FrtbCalculationRepository>()
         val backtestRepo = mockk<BacktestResultRepository>()
         val client = mockk<RiskOrchestratorClient>()
-        coEvery { backtestRepo.findLatestByPortfolioId("port-1") } returns sampleRecord
+        coEvery { backtestRepo.findLatestByBookId("port-1") } returns sampleRecord
 
         testApplication {
             application { module(frtbRepo, client, backtestRepo) }
@@ -76,7 +76,7 @@ class BacktestRoutesTest : FunSpec({
         val frtbRepo = mockk<FrtbCalculationRepository>()
         val backtestRepo = mockk<BacktestResultRepository>()
         val client = mockk<RiskOrchestratorClient>()
-        coEvery { backtestRepo.findLatestByPortfolioId("port-2") } returns null
+        coEvery { backtestRepo.findLatestByBookId("port-2") } returns null
 
         testApplication {
             application { module(frtbRepo, client, backtestRepo) }
@@ -89,7 +89,7 @@ class BacktestRoutesTest : FunSpec({
         val frtbRepo = mockk<FrtbCalculationRepository>()
         val backtestRepo = mockk<BacktestResultRepository>()
         val client = mockk<RiskOrchestratorClient>()
-        coEvery { backtestRepo.findByPortfolioId("port-1", 20, 0) } returns listOf(sampleRecord)
+        coEvery { backtestRepo.findByBookId("port-1", 20, 0) } returns listOf(sampleRecord)
 
         testApplication {
             application { module(frtbRepo, client, backtestRepo) }

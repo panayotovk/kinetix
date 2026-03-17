@@ -6,7 +6,7 @@ import java.time.Instant
 
 data class BookTradeCommand(
     val tradeId: TradeId,
-    val portfolioId: PortfolioId,
+    val portfolioId: BookId,
     val instrumentId: InstrumentId,
     val assetClass: AssetClass,
     val side: Side,
@@ -21,7 +21,7 @@ data class BookTradeResult(
 )
 
 data class PortfolioSummary(
-    val id: PortfolioId,
+    val id: BookId,
 )
 
 data class CurrencyExposureSummary(
@@ -42,7 +42,7 @@ data class PortfolioAggregationSummary(
 interface PositionServiceClient {
     suspend fun listPortfolios(): List<PortfolioSummary>
     suspend fun bookTrade(command: BookTradeCommand): BookTradeResult
-    suspend fun getPositions(portfolioId: PortfolioId): List<Position>
-    suspend fun getTradeHistory(portfolioId: PortfolioId): List<Trade>
-    suspend fun getPortfolioSummary(portfolioId: PortfolioId, baseCurrency: String): PortfolioAggregationSummary
+    suspend fun getPositions(portfolioId: BookId): List<Position>
+    suspend fun getTradeHistory(portfolioId: BookId): List<Trade>
+    suspend fun getPortfolioSummary(portfolioId: BookId, baseCurrency: String): PortfolioAggregationSummary
 }

@@ -3,7 +3,7 @@ package com.kinetix.risk.service
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.Money
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.common.model.Position
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.client.PositionProvider
@@ -20,7 +20,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.Currency
 
-private val PORTFOLIO = PortfolioId("port-1")
+private val PORTFOLIO = BookId("port-1")
 private val TODAY = LocalDate.of(2025, 1, 15)
 
 class PnlComputationServiceTest : FunSpec({
@@ -76,7 +76,7 @@ class PnlComputationServiceTest : FunSpec({
                 rho = 30.0,
             ),
         )
-        coEvery { dailyRiskSnapshotRepository.findByPortfolioIdAndDate(PORTFOLIO, TODAY) } returns sodSnapshots
+        coEvery { dailyRiskSnapshotRepository.findByBookIdAndDate(PORTFOLIO, TODAY) } returns sodSnapshots
 
         val currentPositions = listOf(
             Position(
@@ -121,7 +121,7 @@ class PnlComputationServiceTest : FunSpec({
                 rho = 30.0,
             ),
         )
-        coEvery { dailyRiskSnapshotRepository.findByPortfolioIdAndDate(PORTFOLIO, TODAY) } returns sodSnapshots
+        coEvery { dailyRiskSnapshotRepository.findByBookIdAndDate(PORTFOLIO, TODAY) } returns sodSnapshots
 
         val currentPositions = listOf(
             Position(

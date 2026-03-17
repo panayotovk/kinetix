@@ -2,7 +2,7 @@ package com.kinetix.risk.routes
 
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.routes.dtos.*
 import com.kinetix.risk.cache.InMemoryVaRCache
 import com.kinetix.risk.model.*
@@ -30,7 +30,7 @@ private fun valuationResult(
     portfolioId: String = "port-1",
     varValue: Double = 5000.0,
 ) = ValuationResult(
-    portfolioId = PortfolioId(portfolioId),
+    portfolioId = BookId(portfolioId),
     calculationType = CalculationType.PARAMETRIC,
     confidenceLevel = ConfidenceLevel.CL_95,
     varValue = varValue,
@@ -151,7 +151,7 @@ class RiskRoutesTest : FunSpec({
                         val portfolioId = call.parameters["portfolioId"]!!
                         val body = call.receive<VaRCalculationRequestBody>()
                         val request = VaRCalculationRequest(
-                            portfolioId = PortfolioId(portfolioId),
+                            portfolioId = BookId(portfolioId),
                             calculationType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC"),
                             confidenceLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95"),
                             timeHorizonDays = body.timeHorizonDays?.toInt() ?: 1,
@@ -193,7 +193,7 @@ class RiskRoutesTest : FunSpec({
                         val portfolioId = call.parameters["portfolioId"]!!
                         val body = call.receive<VaRCalculationRequestBody>()
                         val request = VaRCalculationRequest(
-                            portfolioId = PortfolioId(portfolioId),
+                            portfolioId = BookId(portfolioId),
                             calculationType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC"),
                             confidenceLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95"),
                             timeHorizonDays = body.timeHorizonDays?.toInt() ?: 1,

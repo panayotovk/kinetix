@@ -31,7 +31,7 @@ private fun position(
     averageCost: String = "150.00",
     marketPrice: String = "155.00",
 ) = Position(
-    bookId = PortfolioId(portfolioId),
+    bookId = BookId(portfolioId),
     instrumentId = instrumentId,
     assetClass = AssetClass.EQUITY,
     quantity = BigDecimal(quantity),
@@ -75,13 +75,13 @@ class PriceConsumerIntegrationTest : FunSpec({
 
         withTimeout(10_000) {
             while (true) {
-                val pos = repository.findByKey(PortfolioId("port-1"), AAPL)
+                val pos = repository.findByKey(BookId("port-1"), AAPL)
                 if (pos != null && pos.marketPrice.amount.compareTo(BigDecimal("170.00")) == 0) break
                 delay(100)
             }
         }
 
-        val updated = repository.findByKey(PortfolioId("port-1"), AAPL)!!
+        val updated = repository.findByKey(BookId("port-1"), AAPL)!!
         updated.marketPrice.amount.compareTo(BigDecimal("170.00")) shouldBe 0
         updated.marketPrice.currency shouldBe USD
         updated.averageCost.amount.compareTo(BigDecimal("150.00")) shouldBe 0

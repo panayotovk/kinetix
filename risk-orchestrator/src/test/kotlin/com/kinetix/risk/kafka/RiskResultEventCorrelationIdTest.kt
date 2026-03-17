@@ -3,7 +3,7 @@ package com.kinetix.risk.kafka
 import com.kinetix.common.kafka.events.ComponentBreakdownEvent
 import com.kinetix.common.kafka.events.RiskResultEvent
 import com.kinetix.common.model.AssetClass
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.*
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -12,7 +12,7 @@ import kotlinx.serialization.json.Json
 import java.time.Instant
 
 private fun valuationResult(portfolioId: String = "port-1") = ValuationResult(
-    portfolioId = PortfolioId(portfolioId),
+    portfolioId = BookId(portfolioId),
     calculationType = CalculationType.PARAMETRIC,
     confidenceLevel = ConfidenceLevel.CL_95,
     varValue = 5000.0,

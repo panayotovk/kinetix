@@ -1,9 +1,9 @@
 package com.kinetix.risk.client
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.common.model.Position
 
 interface PositionServiceClient {
-    suspend fun getPositions(portfolioId: PortfolioId): ClientResponse<List<Position>>
-    suspend fun getDistinctPortfolioIds(): ClientResponse<List<PortfolioId>>
+    suspend fun getPositions(portfolioId: BookId): ClientResponse<List<Position>>
+    suspend fun getDistinctBookIds(): ClientResponse<List<BookId>>
 }

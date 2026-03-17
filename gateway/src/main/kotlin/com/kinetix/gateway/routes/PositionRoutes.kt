@@ -1,6 +1,6 @@
 package com.kinetix.gateway.routes
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.gateway.client.PositionServiceClient
 import com.kinetix.gateway.dto.*
 import io.github.smiley4.ktoropenapi.get
@@ -31,7 +31,7 @@ fun Route.positionRoutes(client: PositionServiceClient) {
                         pathParameter<String>("bookId") { description = "Book identifier" }
                     }
                 }) {
-                    val bookId = PortfolioId(call.requirePathParam("bookId"))
+                    val bookId = BookId(call.requirePathParam("bookId"))
                     val trades = client.getTradeHistory(bookId)
                     call.respond(trades.map { it.toResponse() })
                 }
@@ -43,7 +43,7 @@ fun Route.positionRoutes(client: PositionServiceClient) {
                         pathParameter<String>("bookId") { description = "Book identifier" }
                     }
                 }) {
-                    val bookId = PortfolioId(call.requirePathParam("bookId"))
+                    val bookId = BookId(call.requirePathParam("bookId"))
                     val request = call.receive<BookTradeRequest>()
                     val command = request.toCommand(bookId)
                     val result = client.bookTrade(command)
@@ -59,7 +59,7 @@ fun Route.positionRoutes(client: PositionServiceClient) {
                         pathParameter<String>("bookId") { description = "Book identifier" }
                     }
                 }) {
-                    val bookId = PortfolioId(call.requirePathParam("bookId"))
+                    val bookId = BookId(call.requirePathParam("bookId"))
                     val positions = client.getPositions(bookId)
                     call.respond(positions.map { it.toResponse() })
                 }
@@ -77,7 +77,7 @@ fun Route.positionRoutes(client: PositionServiceClient) {
                         }
                     }
                 }) {
-                    val bookId = PortfolioId(call.requirePathParam("bookId"))
+                    val bookId = BookId(call.requirePathParam("bookId"))
                     val baseCurrency = call.request.queryParameters["baseCurrency"] ?: "USD"
                     val summary = client.getPortfolioSummary(bookId, baseCurrency)
                     call.respond(summary.toResponse())

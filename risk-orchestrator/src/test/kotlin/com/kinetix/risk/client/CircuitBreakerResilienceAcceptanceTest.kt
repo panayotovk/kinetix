@@ -24,7 +24,7 @@ class CircuitBreakerResilienceAcceptanceTest : BehaviorSpec({
             val cb = CircuitBreaker(CircuitBreakerConfig(failureThreshold = 3, resetTimeoutMs = 5000, name = "risk"))
             val resilient = ResilientRiskEngineClient(delegate, cb)
             val request = VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -47,7 +47,7 @@ class CircuitBreakerResilienceAcceptanceTest : BehaviorSpec({
             then("successful call in half-open closes circuit") {
                 cb.reset()
                 val result = VaRResult(
-                    portfolioId = PortfolioId("port-1"),
+                    portfolioId = BookId("port-1"),
                     calculationType = CalculationType.PARAMETRIC,
                     confidenceLevel = ConfidenceLevel.CL_95,
                     varValue = 50000.0,

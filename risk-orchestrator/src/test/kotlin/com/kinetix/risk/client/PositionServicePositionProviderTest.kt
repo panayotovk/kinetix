@@ -18,7 +18,7 @@ class PositionServicePositionProviderTest : FunSpec({
     val provider = PositionServicePositionProvider(client)
 
     test("delegates to PositionServiceClient.getPositions") {
-        val portfolioId = PortfolioId("port-1")
+        val portfolioId = BookId("port-1")
         val positions = listOf(
             Position(
                 bookId = portfolioId,
@@ -40,7 +40,7 @@ class PositionServicePositionProviderTest : FunSpec({
     }
 
     test("returns empty list when no positions exist") {
-        val portfolioId = PortfolioId("empty-port")
+        val portfolioId = BookId("empty-port")
         coEvery { client.getPositions(portfolioId) } returns ClientResponse.Success(emptyList())
 
         val result = provider.getPositions(portfolioId)
@@ -49,7 +49,7 @@ class PositionServicePositionProviderTest : FunSpec({
     }
 
     test("returns empty list when client returns NotFound") {
-        val portfolioId = PortfolioId("missing-port")
+        val portfolioId = BookId("missing-port")
         coEvery { client.getPositions(portfolioId) } returns ClientResponse.NotFound(404)
 
         val result = provider.getPositions(portfolioId)

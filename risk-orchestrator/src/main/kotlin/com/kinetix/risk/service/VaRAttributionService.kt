@@ -1,6 +1,6 @@
 package com.kinetix.risk.service
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.client.RiskEngineClient
 import com.kinetix.risk.model.CalculationType
@@ -18,7 +18,7 @@ class VaRAttributionService(
     private val positionProvider: PositionProvider,
 ) {
     suspend fun attributeVaRChange(
-        portfolioId: PortfolioId,
+        portfolioId: BookId,
         baseJob: ValuationJob,
         targetJob: ValuationJob,
         inputChanges: InputChangeSummary? = null,

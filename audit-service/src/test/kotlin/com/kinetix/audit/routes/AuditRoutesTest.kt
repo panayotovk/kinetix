@@ -89,7 +89,7 @@ class AuditRoutesTest : FunSpec({
             tradedAt = "2025-01-15T10:00:00Z",
             receivedAt = Instant.parse("2025-01-15T10:00:01Z"),
         )
-        coEvery { repository.findByPortfolioId("port-1") } returns listOf(event)
+        coEvery { repository.findByBookId("port-1") } returns listOf(event)
 
         testApplication {
             application { module(repository) }
@@ -99,7 +99,7 @@ class AuditRoutesTest : FunSpec({
             body.size shouldBe 1
             body[0].jsonObject["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
 
-            coVerify(exactly = 1) { repository.findByPortfolioId("port-1") }
+            coVerify(exactly = 1) { repository.findByBookId("port-1") }
             coVerify(exactly = 0) { repository.findAll() }
         }
     }

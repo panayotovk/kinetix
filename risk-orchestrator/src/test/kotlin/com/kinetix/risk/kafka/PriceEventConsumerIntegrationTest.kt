@@ -1,7 +1,7 @@
 package com.kinetix.risk.kafka
 
 import com.kinetix.common.kafka.events.PriceEvent
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.model.ValuationResult
 import com.kinetix.risk.model.VaRCalculationRequest
@@ -35,7 +35,7 @@ class PriceEventConsumerIntegrationTest : FunSpec({
         val consumer = PriceEventConsumer(
             consumer = kafkaConsumer,
             varCalculationService = varService,
-            affectedPortfolios = { listOf(PortfolioId("port-1"), PortfolioId("port-2")) },
+            affectedPortfolios = { listOf(BookId("port-1"), BookId("port-2")) },
             varCache = varCache,
             topic = topic,
         )

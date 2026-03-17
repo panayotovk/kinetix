@@ -38,7 +38,7 @@ class GrpcRiskEngineClientTest : FunSpec({
     test("maps request to proto and invokes stub") {
         val positions = listOf(
             Position(
-                bookId = PortfolioId("port-1"),
+                bookId = BookId("port-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),
@@ -47,7 +47,7 @@ class GrpcRiskEngineClientTest : FunSpec({
             ),
         )
         val request = VaRCalculationRequest(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
             timeHorizonDays = 1,
@@ -77,7 +77,7 @@ class GrpcRiskEngineClientTest : FunSpec({
 
         val result = client.valuate(request, positions)
 
-        result.portfolioId shouldBe PortfolioId("port-1")
+        result.portfolioId shouldBe BookId("port-1")
         result.calculationType shouldBe CalculationType.PARAMETRIC
         result.confidenceLevel shouldBe ConfidenceLevel.CL_95
         result.varValue shouldBe 5000.0
@@ -109,7 +109,7 @@ class GrpcRiskEngineClientTest : FunSpec({
 
         val positions = listOf(
             Position(
-                bookId = PortfolioId("port-1"),
+                bookId = BookId("port-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),
@@ -118,7 +118,7 @@ class GrpcRiskEngineClientTest : FunSpec({
             ),
         )
         val request = VaRCalculationRequest(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
             timeHorizonDays = 1,
@@ -147,7 +147,7 @@ class GrpcRiskEngineClientTest : FunSpec({
     test("passes multiple positions in proto request") {
         val positions = listOf(
             Position(
-                bookId = PortfolioId("port-1"),
+                bookId = BookId("port-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),
@@ -155,7 +155,7 @@ class GrpcRiskEngineClientTest : FunSpec({
                 marketPrice = Money(BigDecimal("170.00"), USD),
             ),
             Position(
-                bookId = PortfolioId("port-1"),
+                bookId = BookId("port-1"),
                 instrumentId = InstrumentId("UST10Y"),
                 assetClass = AssetClass.FIXED_INCOME,
                 quantity = BigDecimal("50"),
@@ -164,7 +164,7 @@ class GrpcRiskEngineClientTest : FunSpec({
             ),
         )
         val request = VaRCalculationRequest(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             calculationType = CalculationType.HISTORICAL,
             confidenceLevel = ConfidenceLevel.CL_99,
         )

@@ -13,14 +13,14 @@ import java.time.Instant
 import java.util.Currency
 
 private val USD = Currency.getInstance("USD")
-private val PORTFOLIO = PortfolioId("port-1")
+private val PORTFOLIO = BookId("port-1")
 private val AAPL = InstrumentId("AAPL")
 
 private fun usd(amount: String) = Money(BigDecimal(amount), USD)
 
 private fun trade(
     tradeId: String = "t-1",
-    portfolioId: PortfolioId = PORTFOLIO,
+    portfolioId: BookId = PORTFOLIO,
     instrumentId: InstrumentId = AAPL,
     assetClass: AssetClass = AssetClass.EQUITY,
     side: Side = Side.BUY,
@@ -45,7 +45,7 @@ private fun trade(
 )
 
 private fun position(
-    portfolioId: PortfolioId = PORTFOLIO,
+    portfolioId: BookId = PORTFOLIO,
     instrumentId: InstrumentId = AAPL,
     assetClass: AssetClass = AssetClass.EQUITY,
     quantity: String = "100",

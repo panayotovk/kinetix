@@ -17,7 +17,7 @@ private val UUID_REGEX = Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-
 
 private fun trade(tradeId: String = "t-1") = Trade(
     tradeId = TradeId(tradeId),
-    bookId = PortfolioId("port-1"),
+    bookId = BookId("port-1"),
     instrumentId = InstrumentId("AAPL"),
     assetClass = AssetClass.EQUITY,
     side = Side.BUY,

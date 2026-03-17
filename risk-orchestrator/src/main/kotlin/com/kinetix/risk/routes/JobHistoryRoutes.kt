@@ -134,8 +134,8 @@ fun Route.jobHistoryRoutes(jobRecorder: ValuationJobRecorder) {
             return@get
         }
 
-        val jobs = jobRecorder.findByPortfolioId(portfolioId, limit, offset, from, to, valuationDate, runLabel)
-        val totalCount = jobRecorder.countByPortfolioId(portfolioId, from, to, valuationDate, runLabel)
+        val jobs = jobRecorder.findByBookId(portfolioId, limit, offset, from, to, valuationDate, runLabel)
+        val totalCount = jobRecorder.countByBookId(portfolioId, from, to, valuationDate, runLabel)
         call.respond(PaginatedJobsResponse(jobs.map { it.toSummaryResponse() }, totalCount))
     }
 

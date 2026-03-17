@@ -20,7 +20,7 @@ class KafkaTradeEventPublisher(
     override suspend fun publish(event: TradeEvent) {
         val message = TradeEventMessage.from(event)
         val json = Json.encodeToString(message)
-        val record = ProducerRecord(topic, event.trade.portfolioId.value, json)
+        val record = ProducerRecord(topic, event.trade.bookId.value, json)
 
         try {
             withContext(Dispatchers.IO) {

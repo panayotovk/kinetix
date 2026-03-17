@@ -48,7 +48,7 @@ class TradeLifecycleGuardAcceptanceTest : FunSpec({
         booking.handle(
             BookTradeCommand(
                 tradeId = TradeId("t-cancel-twice"),
-                portfolioId = PortfolioId("port-cancel-2"),
+                portfolioId = BookId("port-cancel-2"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -58,12 +58,12 @@ class TradeLifecycleGuardAcceptanceTest : FunSpec({
             ),
         )
         lifecycle.handleCancel(
-            CancelTradeCommand(TradeId("t-cancel-twice"), PortfolioId("port-cancel-2")),
+            CancelTradeCommand(TradeId("t-cancel-twice"), BookId("port-cancel-2")),
         )
 
         val ex = shouldThrow<InvalidTradeStateException> {
             lifecycle.handleCancel(
-                CancelTradeCommand(TradeId("t-cancel-twice"), PortfolioId("port-cancel-2")),
+                CancelTradeCommand(TradeId("t-cancel-twice"), BookId("port-cancel-2")),
             )
         }
         ex.currentStatus shouldBe TradeStatus.CANCELLED
@@ -78,7 +78,7 @@ class TradeLifecycleGuardAcceptanceTest : FunSpec({
         booking.handle(
             BookTradeCommand(
                 tradeId = TradeId("t-amend-cancelled"),
-                portfolioId = PortfolioId("port-amend-cancel-1"),
+                portfolioId = BookId("port-amend-cancel-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -88,7 +88,7 @@ class TradeLifecycleGuardAcceptanceTest : FunSpec({
             ),
         )
         lifecycle.handleCancel(
-            CancelTradeCommand(TradeId("t-amend-cancelled"), PortfolioId("port-amend-cancel-1")),
+            CancelTradeCommand(TradeId("t-amend-cancelled"), BookId("port-amend-cancel-1")),
         )
 
         val ex = shouldThrow<InvalidTradeStateException> {
@@ -96,7 +96,7 @@ class TradeLifecycleGuardAcceptanceTest : FunSpec({
                 AmendTradeCommand(
                     originalTradeId = TradeId("t-amend-cancelled"),
                     newTradeId = TradeId("t-amend-cancelled-new"),
-                    portfolioId = PortfolioId("port-amend-cancel-1"),
+                    portfolioId = BookId("port-amend-cancel-1"),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     side = Side.BUY,

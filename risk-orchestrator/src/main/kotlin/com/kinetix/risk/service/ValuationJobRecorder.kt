@@ -12,7 +12,7 @@ interface ValuationJobRecorder {
     suspend fun save(job: ValuationJob)
     suspend fun update(job: ValuationJob)
     suspend fun updateCurrentPhase(jobId: UUID, phase: JobPhaseName)
-    suspend fun findByPortfolioId(
+    suspend fun findByBookId(
         portfolioId: String,
         limit: Int = 50,
         offset: Int = 0,
@@ -21,7 +21,7 @@ interface ValuationJobRecorder {
         valuationDate: LocalDate? = null,
         runLabel: RunLabel? = null,
     ): List<ValuationJob>
-    suspend fun countByPortfolioId(
+    suspend fun countByBookId(
         portfolioId: String,
         from: Instant? = null,
         to: Instant? = null,
@@ -29,7 +29,7 @@ interface ValuationJobRecorder {
         runLabel: RunLabel? = null,
     ): Long
     suspend fun findByJobId(jobId: UUID): ValuationJob?
-    suspend fun findDistinctPortfolioIds(): List<String>
+    suspend fun findDistinctBookIds(): List<String>
     suspend fun findLatestCompletedByDate(portfolioId: String, valuationDate: LocalDate): ValuationJob?
     suspend fun findLatestCompleted(portfolioId: String): ValuationJob?
     suspend fun findLatestCompletedBeforeDate(portfolioId: String, beforeDate: LocalDate): ValuationJob?

@@ -2,7 +2,7 @@ package com.kinetix.risk.routes
 
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.cache.InMemoryVaRCache
 import com.kinetix.risk.model.*
 import com.kinetix.risk.service.ValuationJobRecorder
@@ -63,7 +63,7 @@ private fun completedJob(
 )
 
 private fun cachedResult(portfolioId: String = "port-1") = ValuationResult(
-    portfolioId = PortfolioId(portfolioId),
+    portfolioId = BookId(portfolioId),
     calculationType = CalculationType.PARAMETRIC,
     confidenceLevel = ConfidenceLevel.CL_95,
     varValue = 4200.0,

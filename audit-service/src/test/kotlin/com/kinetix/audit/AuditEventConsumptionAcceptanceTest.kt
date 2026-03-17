@@ -62,7 +62,7 @@ class AuditEventConsumptionAcceptanceTest : BehaviorSpec({
                 repository.save(tradeEvent(tradeId = "t-4", portfolioId = "port-2", receivedAt = BASE_TIME.plusSeconds(3)))
                 repository.save(tradeEvent(tradeId = "t-5", portfolioId = "port-1", receivedAt = BASE_TIME.plusSeconds(4)))
 
-                val results = repository.findByPortfolioId("port-1")
+                val results = repository.findByBookId("port-1")
 
                 results shouldHaveSize 3
                 results.forEach { it.portfolioId shouldBe "port-1" }
@@ -76,7 +76,7 @@ class AuditEventConsumptionAcceptanceTest : BehaviorSpec({
                 repository.save(tradeEvent(tradeId = "t-2", portfolioId = "port-2", receivedAt = BASE_TIME.plusSeconds(1)))
                 repository.save(tradeEvent(tradeId = "t-3", portfolioId = "port-1", receivedAt = BASE_TIME.plusSeconds(2)))
 
-                val results = repository.findByPortfolioId("port-2")
+                val results = repository.findByBookId("port-2")
 
                 results shouldHaveSize 1
                 results[0].portfolioId shouldBe "port-2"
@@ -88,7 +88,7 @@ class AuditEventConsumptionAcceptanceTest : BehaviorSpec({
             then("an empty list is returned") {
                 repository.save(tradeEvent(tradeId = "t-1", portfolioId = "port-1"))
 
-                val results = repository.findByPortfolioId("port-unknown")
+                val results = repository.findByBookId("port-unknown")
 
                 results shouldHaveSize 0
             }

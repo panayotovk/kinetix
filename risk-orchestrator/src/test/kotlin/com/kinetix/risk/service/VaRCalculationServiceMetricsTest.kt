@@ -29,7 +29,7 @@ class VaRCalculationServiceMetricsTest : FunSpec({
     test("timer var.calculation.duration records after calculateVaR") {
         val positions = listOf(
             Position(
-                bookId = PortfolioId("port-1"),
+                bookId = BookId("port-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),
@@ -38,7 +38,7 @@ class VaRCalculationServiceMetricsTest : FunSpec({
             )
         )
         val result = ValuationResult(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
             varValue = 5000.0,
@@ -49,13 +49,13 @@ class VaRCalculationServiceMetricsTest : FunSpec({
             computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
         )
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns result
         coEvery { resultPublisher.publish(result) } just Runs
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -68,7 +68,7 @@ class VaRCalculationServiceMetricsTest : FunSpec({
     test("counter var.calculation.count increments tagged by calculationType") {
         val positions = listOf(
             Position(
-                bookId = PortfolioId("port-1"),
+                bookId = BookId("port-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),
@@ -77,7 +77,7 @@ class VaRCalculationServiceMetricsTest : FunSpec({
             )
         )
         val result = ValuationResult(
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             calculationType = CalculationType.HISTORICAL,
             confidenceLevel = ConfidenceLevel.CL_95,
             varValue = 5000.0,
@@ -88,13 +88,13 @@ class VaRCalculationServiceMetricsTest : FunSpec({
             computedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL),
         )
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns result
         coEvery { resultPublisher.publish(result) } just Runs
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.HISTORICAL,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )

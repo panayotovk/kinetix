@@ -28,7 +28,7 @@ class GatewayPositionContractAcceptanceTest : BehaviorSpec({
             then("returns 201 with trade and position shape") {
                 val trade = Trade(
                     tradeId = TradeId("t-1"),
-                    bookId = PortfolioId("port-1"),
+                    bookId = BookId("port-1"),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     side = Side.BUY,
@@ -37,7 +37,7 @@ class GatewayPositionContractAcceptanceTest : BehaviorSpec({
                     tradedAt = Instant.parse("2025-01-15T10:00:00Z"),
                 )
                 val position = Position(
-                    bookId = PortfolioId("port-1"),
+                    bookId = BookId("port-1"),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     quantity = BigDecimal("100"),
@@ -68,14 +68,14 @@ class GatewayPositionContractAcceptanceTest : BehaviorSpec({
         `when`("GET /api/v1/books/{bookId}/positions") {
             then("returns 200 with position array shape") {
                 val position = Position(
-                    bookId = PortfolioId("port-1"),
+                    bookId = BookId("port-1"),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     quantity = BigDecimal("100"),
                     averageCost = Money(BigDecimal("150.00"), Currency.getInstance("USD")),
                     marketPrice = Money(BigDecimal("155.00"), Currency.getInstance("USD")),
                 )
-                coEvery { positionClient.getPositions(PortfolioId("port-1")) } returns listOf(position)
+                coEvery { positionClient.getPositions(BookId("port-1")) } returns listOf(position)
 
                 testApplication {
                     application { module(positionClient) }

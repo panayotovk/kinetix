@@ -3,7 +3,7 @@ package com.kinetix.risk.service
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.Money
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.common.model.Position
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.client.PositionProvider
@@ -21,7 +21,7 @@ import java.time.LocalDate
 import java.util.Currency
 import java.util.UUID
 
-private val PORTFOLIO = PortfolioId("port-1")
+private val PORTFOLIO = BookId("port-1")
 private val TODAY = LocalDate.of(2025, 1, 15)
 private val JOB_ID = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
 
@@ -40,7 +40,7 @@ private fun position(
 )
 
 private fun valuationResult(
-    portfolioId: PortfolioId = PORTFOLIO,
+    portfolioId: BookId = PORTFOLIO,
     jobId: UUID? = JOB_ID,
     positionRisk: List<PositionRisk> = listOf(
         PositionRisk(
@@ -177,7 +177,7 @@ class SodSnapshotServiceTest : FunSpec({
             sourceJobId = JOB_ID,
             calculationType = "PARAMETRIC",
         )
-        coEvery { sodBaselineRepository.findByPortfolioIdAndDate(PORTFOLIO, TODAY) } returns baseline
+        coEvery { sodBaselineRepository.findByBookIdAndDate(PORTFOLIO, TODAY) } returns baseline
 
         val status = service.getBaselineStatus(PORTFOLIO, TODAY)
 
@@ -190,7 +190,7 @@ class SodSnapshotServiceTest : FunSpec({
     }
 
     test("getBaselineStatus returns status with exists=false when no baseline") {
-        coEvery { sodBaselineRepository.findByPortfolioIdAndDate(PORTFOLIO, TODAY) } returns null
+        coEvery { sodBaselineRepository.findByBookIdAndDate(PORTFOLIO, TODAY) } returns null
 
         val status = service.getBaselineStatus(PORTFOLIO, TODAY)
 
@@ -201,13 +201,13 @@ class SodSnapshotServiceTest : FunSpec({
     }
 
     test("resetBaseline deletes baseline and snapshot rows") {
-        coEvery { dailyRiskSnapshotRepository.deleteByPortfolioIdAndDate(PORTFOLIO, TODAY) } just Runs
-        coEvery { sodBaselineRepository.deleteByPortfolioIdAndDate(PORTFOLIO, TODAY) } just Runs
+        coEvery { dailyRiskSnapshotRepository.deleteByBookIdAndDate(PORTFOLIO, TODAY) } just Runs
+        coEvery { sodBaselineRepository.deleteByBookIdAndDate(PORTFOLIO, TODAY) } just Runs
 
         service.resetBaseline(PORTFOLIO, TODAY)
 
-        coVerify { dailyRiskSnapshotRepository.deleteByPortfolioIdAndDate(PORTFOLIO, TODAY) }
-        coVerify { sodBaselineRepository.deleteByPortfolioIdAndDate(PORTFOLIO, TODAY) }
+        coVerify { dailyRiskSnapshotRepository.deleteByBookIdAndDate(PORTFOLIO, TODAY) }
+        coVerify { sodBaselineRepository.deleteByBookIdAndDate(PORTFOLIO, TODAY) }
     }
 
     test("creates snapshot with null jobId for backward compatibility") {

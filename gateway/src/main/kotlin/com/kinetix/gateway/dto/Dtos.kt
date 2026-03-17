@@ -132,7 +132,7 @@ fun Money.toDto(): MoneyDto = MoneyDto(
 
 fun Trade.toResponse(): TradeResponse = TradeResponse(
     tradeId = tradeId.value,
-    portfolioId = portfolioId.value,
+    portfolioId = bookId.value,
     instrumentId = instrumentId.value,
     assetClass = assetClass.name,
     side = side.name,
@@ -143,7 +143,7 @@ fun Trade.toResponse(): TradeResponse = TradeResponse(
 )
 
 fun Position.toResponse(): PositionResponse = PositionResponse(
-    portfolioId = portfolioId.value,
+    portfolioId = bookId.value,
     instrumentId = instrumentId.value,
     assetClass = assetClass.name,
     quantity = quantity.toPlainString(),
@@ -180,7 +180,7 @@ fun PortfolioAggregationSummary.toResponse(): PortfolioAggregationResponse = Por
 
 // --- DTO -> Domain mappers ---
 
-fun BookTradeRequest.toCommand(portfolioId: PortfolioId): BookTradeCommand {
+fun BookTradeRequest.toCommand(portfolioId: BookId): BookTradeCommand {
     val qty = BigDecimal(quantity)
     require(qty > BigDecimal.ZERO) { "Trade quantity must be positive, was $qty" }
     val priceAmt = BigDecimal(priceAmount)

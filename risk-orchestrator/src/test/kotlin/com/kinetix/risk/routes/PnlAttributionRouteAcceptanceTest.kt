@@ -2,7 +2,7 @@ package com.kinetix.risk.routes
 
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.PnlAttribution
 import com.kinetix.risk.model.PositionPnlAttribution
 import com.kinetix.risk.persistence.PnlAttributionRepository
@@ -28,13 +28,13 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 
-private val PORTFOLIO = PortfolioId("port-1")
+private val PORTFOLIO = BookId("port-1")
 private val TODAY = LocalDate.of(2025, 1, 15)
 
 private fun bd(value: String) = BigDecimal(value)
 
 private fun sampleAttribution(
-    portfolioId: PortfolioId = PORTFOLIO,
+    portfolioId: BookId = PORTFOLIO,
     date: LocalDate = TODAY,
 ) = PnlAttribution(
     portfolioId = portfolioId,
@@ -83,14 +83,14 @@ class PnlAttributionRouteAcceptanceTest : FunSpec({
 
     test("GET /api/v1/risk/pnl-attribution/{portfolioId} returns latest attribution") {
         val attribution = sampleAttribution()
-        coEvery { pnlAttributionRepository.findLatestByPortfolioId(PORTFOLIO) } returns attribution
+        coEvery { pnlAttributionRepository.findLatestByBookId(PORTFOLIO) } returns attribution
 
         testApplication {
             install(ContentNegotiation) { json() }
             routing {
                 get("/api/v1/risk/pnl-attribution/{portfolioId}") {
                     val portfolioId = call.parameters["portfolioId"]!!
-                    val result = pnlAttributionRepository.findLatestByPortfolioId(PortfolioId(portfolioId))
+                    val result = pnlAttributionRepository.findLatestByBookId(BookId(portfolioId))
                     if (result != null) {
                         call.respond(result.toResponse())
                     } else {
@@ -118,14 +118,14 @@ class PnlAttributionRouteAcceptanceTest : FunSpec({
 
     test("GET /api/v1/risk/pnl-attribution/{portfolioId} returns position attributions in correct structure") {
         val attribution = sampleAttribution()
-        coEvery { pnlAttributionRepository.findLatestByPortfolioId(PORTFOLIO) } returns attribution
+        coEvery { pnlAttributionRepository.findLatestByBookId(PORTFOLIO) } returns attribution
 
         testApplication {
             install(ContentNegotiation) { json() }
             routing {
                 get("/api/v1/risk/pnl-attribution/{portfolioId}") {
                     val portfolioId = call.parameters["portfolioId"]!!
-                    val result = pnlAttributionRepository.findLatestByPortfolioId(PortfolioId(portfolioId))
+                    val result = pnlAttributionRepository.findLatestByBookId(BookId(portfolioId))
                     if (result != null) {
                         call.respond(result.toResponse())
                     } else {
@@ -159,7 +159,7 @@ class PnlAttributionRouteAcceptanceTest : FunSpec({
 
     test("GET /api/v1/risk/pnl-attribution/{portfolioId} with date query parameter") {
         val attribution = sampleAttribution()
-        coEvery { pnlAttributionRepository.findByPortfolioIdAndDate(PORTFOLIO, TODAY) } returns attribution
+        coEvery { pnlAttributionRepository.findByBookIdAndDate(PORTFOLIO, TODAY) } returns attribution
 
         testApplication {
             install(ContentNegotiation) { json() }
@@ -169,9 +169,9 @@ class PnlAttributionRouteAcceptanceTest : FunSpec({
                     val dateParam = call.request.queryParameters["date"]
                     val result = if (dateParam != null) {
                         val date = java.time.LocalDate.parse(dateParam)
-                        pnlAttributionRepository.findByPortfolioIdAndDate(PortfolioId(portfolioId), date)
+                        pnlAttributionRepository.findByBookIdAndDate(BookId(portfolioId), date)
                     } else {
-                        pnlAttributionRepository.findLatestByPortfolioId(PortfolioId(portfolioId))
+                        pnlAttributionRepository.findLatestByBookId(BookId(portfolioId))
                     }
                     if (result != null) {
                         call.respond(result.toResponse())
@@ -190,14 +190,14 @@ class PnlAttributionRouteAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/risk/pnl-attribution/{portfolioId} returns 404 when no attribution exists") {
-        coEvery { pnlAttributionRepository.findLatestByPortfolioId(any()) } returns null
+        coEvery { pnlAttributionRepository.findLatestByBookId(any()) } returns null
 
         testApplication {
             install(ContentNegotiation) { json() }
             routing {
                 get("/api/v1/risk/pnl-attribution/{portfolioId}") {
                     val portfolioId = call.parameters["portfolioId"]!!
-                    val result = pnlAttributionRepository.findLatestByPortfolioId(PortfolioId(portfolioId))
+                    val result = pnlAttributionRepository.findLatestByBookId(BookId(portfolioId))
                     if (result != null) {
                         call.respond(result.toResponse())
                     } else {

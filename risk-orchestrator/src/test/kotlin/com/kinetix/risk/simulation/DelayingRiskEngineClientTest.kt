@@ -1,6 +1,6 @@
 package com.kinetix.risk.simulation
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.common.model.Position
 import com.kinetix.proto.risk.DataDependenciesResponse
 import com.kinetix.risk.client.RiskEngineClient
@@ -26,12 +26,12 @@ class DelayingRiskEngineClientTest : FunSpec({
 
     val positions = emptyList<Position>()
     val request = VaRCalculationRequest(
-        portfolioId = PortfolioId("port-1"),
+        portfolioId = BookId("port-1"),
         calculationType = CalculationType.PARAMETRIC,
         confidenceLevel = ConfidenceLevel.CL_95,
     )
     val valuationResult = ValuationResult(
-        portfolioId = PortfolioId("port-1"),
+        portfolioId = BookId("port-1"),
         calculationType = CalculationType.PARAMETRIC,
         confidenceLevel = ConfidenceLevel.CL_95,
         varValue = 50000.0,

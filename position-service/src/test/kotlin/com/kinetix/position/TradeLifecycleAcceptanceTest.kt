@@ -51,7 +51,7 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
                 booking.handle(
                     BookTradeCommand(
                         tradeId = TradeId("t-amend-orig"),
-                        portfolioId = PortfolioId("port-amend-1"),
+                        portfolioId = BookId("port-amend-1"),
                         instrumentId = InstrumentId("AAPL"),
                         assetClass = AssetClass.EQUITY,
                         side = Side.BUY,
@@ -64,7 +64,7 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
                     AmendTradeCommand(
                         originalTradeId = TradeId("t-amend-orig"),
                         newTradeId = TradeId("t-amend-new"),
-                        portfolioId = PortfolioId("port-amend-1"),
+                        portfolioId = BookId("port-amend-1"),
                         instrumentId = InstrumentId("AAPL"),
                         assetClass = AssetClass.EQUITY,
                         side = Side.BUY,
@@ -83,7 +83,7 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
                 amended.eventType shouldBe TradeEventType.AMEND
                 amended.originalTradeId shouldBe TradeId("t-amend-orig")
 
-                val position = positionRepo.findByKey(PortfolioId("port-amend-1"), InstrumentId("AAPL"))
+                val position = positionRepo.findByKey(BookId("port-amend-1"), InstrumentId("AAPL"))
                 position.shouldNotBeNull()
                 position.quantity.compareTo(BigDecimal("200")) shouldBe 0
                 position.averageCost.amount.compareTo(BigDecimal("160.00")) shouldBe 0
@@ -102,7 +102,7 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
                 booking.handle(
                     BookTradeCommand(
                         tradeId = TradeId("t-cancel-1"),
-                        portfolioId = PortfolioId("port-cancel-1"),
+                        portfolioId = BookId("port-cancel-1"),
                         instrumentId = InstrumentId("AAPL"),
                         assetClass = AssetClass.EQUITY,
                         side = Side.BUY,
@@ -112,14 +112,14 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
                     ),
                 )
                 lifecycle.handleCancel(
-                    CancelTradeCommand(TradeId("t-cancel-1"), PortfolioId("port-cancel-1")),
+                    CancelTradeCommand(TradeId("t-cancel-1"), BookId("port-cancel-1")),
                 )
 
                 val trade = tradeRepo.findByTradeId(TradeId("t-cancel-1"))
                 trade.shouldNotBeNull()
                 trade.status shouldBe TradeStatus.CANCELLED
 
-                val position = positionRepo.findByKey(PortfolioId("port-cancel-1"), InstrumentId("AAPL"))
+                val position = positionRepo.findByKey(BookId("port-cancel-1"), InstrumentId("AAPL"))
                 position.shouldNotBeNull()
                 position.quantity.compareTo(BigDecimal.ZERO) shouldBe 0
             }
@@ -136,7 +136,7 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
                 booking.handle(
                     BookTradeCommand(
                         tradeId = TradeId("t-pnl-buy"),
-                        portfolioId = PortfolioId("port-pnl-1"),
+                        portfolioId = BookId("port-pnl-1"),
                         instrumentId = InstrumentId("AAPL"),
                         assetClass = AssetClass.EQUITY,
                         side = Side.BUY,
@@ -148,7 +148,7 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
                 booking.handle(
                     BookTradeCommand(
                         tradeId = TradeId("t-pnl-sell"),
-                        portfolioId = PortfolioId("port-pnl-1"),
+                        portfolioId = BookId("port-pnl-1"),
                         instrumentId = InstrumentId("AAPL"),
                         assetClass = AssetClass.EQUITY,
                         side = Side.SELL,
@@ -158,7 +158,7 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
                     ),
                 )
 
-                val position = positionRepo.findByKey(PortfolioId("port-pnl-1"), InstrumentId("AAPL"))
+                val position = positionRepo.findByKey(BookId("port-pnl-1"), InstrumentId("AAPL"))
                 position.shouldNotBeNull()
                 position.realizedPnl.amount.compareTo(BigDecimal("1000.00")) shouldBe 0
                 position.quantity.compareTo(BigDecimal("150")) shouldBe 0

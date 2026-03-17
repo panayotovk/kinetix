@@ -1,7 +1,7 @@
 package com.kinetix.risk.mapper
 
 import com.kinetix.common.model.AssetClass
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
 import io.kotest.core.spec.style.FunSpec
@@ -42,7 +42,7 @@ class VaRResultMapperTest : FunSpec({
 
         val result = response.toDomain()
 
-        result.portfolioId shouldBe PortfolioId("port-1")
+        result.portfolioId shouldBe BookId("port-1")
         result.calculationType shouldBe CalculationType.PARAMETRIC
         result.confidenceLevel shouldBe ConfidenceLevel.CL_95
         result.varValue shouldBe 25000.0

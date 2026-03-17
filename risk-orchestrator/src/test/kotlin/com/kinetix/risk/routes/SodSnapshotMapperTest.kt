@@ -1,6 +1,6 @@
 package com.kinetix.risk.routes
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.SnapshotType
 import com.kinetix.risk.model.SodBaseline
 import com.kinetix.risk.model.SodBaselineStatus
@@ -42,7 +42,7 @@ class SodSnapshotMapperTest : FunSpec({
     test("SodBaseline.toSnapshotResponse maps all fields") {
         val baseline = SodBaseline(
             id = 1,
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             baselineDate = LocalDate.of(2025, 1, 15),
             snapshotType = SnapshotType.AUTO,
             createdAt = Instant.parse("2025-01-15T08:00:00Z"),

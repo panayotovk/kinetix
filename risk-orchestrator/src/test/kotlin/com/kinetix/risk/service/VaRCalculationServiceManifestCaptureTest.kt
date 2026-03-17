@@ -21,7 +21,7 @@ import java.util.UUID
 private val USD = Currency.getInstance("USD")
 
 private fun pos(instrumentId: String = "AAPL") = Position(
-    bookId = PortfolioId("port-1"),
+    bookId = BookId("port-1"),
     instrumentId = InstrumentId(instrumentId),
     assetClass = AssetClass.EQUITY,
     quantity = BigDecimal("100"),
@@ -30,7 +30,7 @@ private fun pos(instrumentId: String = "AAPL") = Position(
 )
 
 private fun result(modelVersion: String? = "0.1.0-abc12345") = ValuationResult(
-    portfolioId = PortfolioId("port-1"),
+    portfolioId = BookId("port-1"),
     calculationType = CalculationType.PARAMETRIC,
     confidenceLevel = ConfidenceLevel.CL_95,
     varValue = 5000.0,
@@ -68,7 +68,7 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
         val expectedResult = result()
         val manifestId = UUID.randomUUID()
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions, any()) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
         coEvery { manifestCapture.captureInputs(any(), any(), any(), any(), any()) } returns RunManifest(
@@ -92,7 +92,7 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -125,7 +125,7 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
         val expectedResult = result().copy(calculationType = CalculationType.MONTE_CARLO)
         val manifestId = UUID.randomUUID()
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions, any()) } returns expectedResult
         coEvery { resultPublisher.publish(any()) } just Runs
         coEvery { manifestCapture.captureInputs(any(), any(), any(), any(), any()) } returns RunManifest(
@@ -149,7 +149,7 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.MONTE_CARLO,
                 confidenceLevel = ConfidenceLevel.CL_95,
                 monteCarloSeed = 0,
@@ -172,7 +172,7 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
         val expectedResult = result()
         val manifestId = UUID.randomUUID()
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions, any()) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
         coEvery { manifestCapture.captureInputs(any(), any(), any(), any(), any()) } returns RunManifest(
@@ -196,7 +196,7 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
                 monteCarloSeed = 0,
@@ -212,14 +212,14 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
         val positions = listOf(pos())
         val expectedResult = result()
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions, any()) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
         coEvery { manifestCapture.captureInputs(any(), any(), any(), any(), any()) } throws RuntimeException("DB down")
 
         val calcResult = service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -242,7 +242,7 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
         val expectedResult = result()
         val manifestId = UUID.randomUUID()
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions, any()) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
         coEvery { manifestCapture.captureInputs(any(), any(), any(), any(), any()) } returns RunManifest(
@@ -267,7 +267,7 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
 
         val calcResult = service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -287,7 +287,7 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
         val expectedResult = result(modelVersion = "2.3.1-prod-deadbeef")
         val manifestId = UUID.randomUUID()
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions, any()) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
         coEvery { manifestCapture.captureInputs(any(), any(), any(), any(), any()) } returns RunManifest(
@@ -311,7 +311,7 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -327,7 +327,7 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
         val expectedResult = result(modelVersion = null)
         val manifestId = UUID.randomUUID()
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions, any()) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
         coEvery { manifestCapture.captureInputs(any(), any(), any(), any(), any()) } returns RunManifest(
@@ -351,7 +351,7 @@ class VaRCalculationServiceManifestCaptureTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )

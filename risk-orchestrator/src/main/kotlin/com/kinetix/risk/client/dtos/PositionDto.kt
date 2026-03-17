@@ -3,7 +3,7 @@ package com.kinetix.risk.client.dtos
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.Money
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.common.model.Position
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
@@ -21,7 +21,7 @@ data class PositionDto(
     val realizedPnl: MoneyDto,
 ) {
     fun toDomain(): Position = Position(
-        bookId = PortfolioId(portfolioId),
+        bookId = BookId(portfolioId),
         instrumentId = InstrumentId(instrumentId),
         assetClass = AssetClass.valueOf(assetClass),
         quantity = BigDecimal(quantity),

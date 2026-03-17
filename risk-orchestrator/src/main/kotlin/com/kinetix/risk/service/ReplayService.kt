@@ -1,6 +1,6 @@
 package com.kinetix.risk.service
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.client.RiskEngineClient
 import com.kinetix.risk.model.*
 import io.micrometer.core.instrument.MeterRegistry
@@ -72,7 +72,7 @@ class ReplayService(
 
         // 4. Build the replay request matching original parameters
         val replayRequest = VaRCalculationRequest(
-            portfolioId = PortfolioId(manifest.portfolioId),
+            portfolioId = BookId(manifest.portfolioId),
             calculationType = CalculationType.valueOf(manifest.calculationType),
             confidenceLevel = ConfidenceLevel.valueOf(manifest.confidenceLevel),
             timeHorizonDays = manifest.timeHorizonDays,
@@ -82,7 +82,7 @@ class ReplayService(
 
         // 5. Create replay positions from snapshot
         val replayProvider = ReplayPositionProvider(positionEntries, manifest.portfolioId)
-        val positions = replayProvider.getPositions(PortfolioId(manifest.portfolioId))
+        val positions = replayProvider.getPositions(BookId(manifest.portfolioId))
 
         // 6. Re-run the valuation
         logger.info(

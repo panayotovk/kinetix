@@ -33,7 +33,7 @@ class LimitCheckService(
 
         checkPositionLimit(newQuantity, breaches)
 
-        val portfolioPositions = positionRepository.findByPortfolioId(command.portfolioId)
+        val portfolioPositions = positionRepository.findByBookId(command.portfolioId)
         val currentPortfolioValue = portfolioPositions.fold(BigDecimal.ZERO) { acc, pos ->
             acc + pos.marketValue.amount.abs()
         }

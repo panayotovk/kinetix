@@ -1,7 +1,7 @@
 package com.kinetix.risk.cache
 
 import com.kinetix.common.model.AssetClass
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.*
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull
@@ -13,7 +13,7 @@ private fun valuationResult(
     portfolioId: String = "port-1",
     varValue: Double = 5000.0,
 ) = ValuationResult(
-    portfolioId = PortfolioId(portfolioId),
+    portfolioId = BookId(portfolioId),
     calculationType = CalculationType.PARAMETRIC,
     confidenceLevel = ConfidenceLevel.CL_95,
     varValue = varValue,
@@ -42,7 +42,7 @@ class RedisVaRCacheIntegrationTest : FunSpec({
 
         val cached = cache.get("port-1")
         cached.shouldNotBeNull()
-        cached.portfolioId shouldBe PortfolioId("port-1")
+        cached.portfolioId shouldBe BookId("port-1")
         cached.varValue shouldBe 4200.0
         cached.expectedShortfall shouldBe 4200.0 * 1.25
         cached.calculationType shouldBe CalculationType.PARAMETRIC

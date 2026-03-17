@@ -1,7 +1,7 @@
 package com.kinetix.risk.model
 
 import com.kinetix.common.model.AssetClass
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import java.time.Instant
 
 enum class CalculationType {
@@ -23,7 +23,7 @@ data class ComponentBreakdown(
 )
 
 data class VaRResult(
-    val portfolioId: PortfolioId,
+    val portfolioId: BookId,
     val calculationType: CalculationType,
     val confidenceLevel: ConfidenceLevel,
     val varValue: Double,
@@ -34,7 +34,7 @@ data class VaRResult(
 )
 
 data class VaRCalculationRequest(
-    val portfolioId: PortfolioId,
+    val portfolioId: BookId,
     val calculationType: CalculationType,
     val confidenceLevel: ConfidenceLevel,
     val timeHorizonDays: Int = 1,

@@ -1,6 +1,6 @@
 package com.kinetix.risk.schedule
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.SnapshotType
 import com.kinetix.risk.model.SodBaselineStatus
 import com.kinetix.risk.service.SodSnapshotService
@@ -9,7 +9,7 @@ import io.mockk.*
 import java.time.Instant
 import java.time.LocalTime
 
-private val PORTFOLIO = PortfolioId("port-1")
+private val PORTFOLIO = BookId("port-1")
 
 class ScheduledSodSnapshotJobTest : FunSpec({
 
@@ -70,7 +70,7 @@ class ScheduledSodSnapshotJobTest : FunSpec({
     }
 
     test("handles failures gracefully and continues to next portfolio") {
-        val portfolio2 = PortfolioId("port-2")
+        val portfolio2 = BookId("port-2")
         coEvery { sodSnapshotService.getBaselineStatus(PORTFOLIO, any()) } throws RuntimeException("DB error")
         coEvery { sodSnapshotService.getBaselineStatus(portfolio2, any()) } returns SodBaselineStatus(exists = false)
         coEvery { sodSnapshotService.createSnapshot(any(), any(), any(), any()) } just Runs
@@ -88,7 +88,7 @@ class ScheduledSodSnapshotJobTest : FunSpec({
     }
 
     test("processes multiple portfolios") {
-        val portfolio2 = PortfolioId("port-2")
+        val portfolio2 = BookId("port-2")
         coEvery { sodSnapshotService.getBaselineStatus(any(), any()) } returns SodBaselineStatus(exists = false)
         coEvery { sodSnapshotService.createSnapshot(any(), any(), any(), any()) } just Runs
 

@@ -56,7 +56,7 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
             .map { it.toAuditEvent() }
     }
 
-    override suspend fun findByPortfolioId(portfolioId: String): List<AuditEvent> = newSuspendedTransaction(db = db) {
+    override suspend fun findByBookId(portfolioId: String): List<AuditEvent> = newSuspendedTransaction(db = db) {
         AuditEventsTable
             .selectAll()
             .where { AuditEventsTable.portfolioId eq portfolioId }

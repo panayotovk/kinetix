@@ -1,6 +1,6 @@
 package com.kinetix.risk.routes
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.margin.MarginCalculator
 import com.kinetix.risk.routes.dtos.MarginEstimateResponse
@@ -27,7 +27,7 @@ fun Route.marginRoutes(
             code(HttpStatusCode.OK) { body<MarginEstimateResponse>() }
         }
     }) {
-        val portfolioId = PortfolioId(call.requirePathParam("bookId"))
+        val portfolioId = BookId(call.requirePathParam("bookId"))
         val previousMTM = call.request.queryParameters["previousMTM"]?.toBigDecimalOrNull()
         val positions = positionProvider.getPositions(portfolioId)
 

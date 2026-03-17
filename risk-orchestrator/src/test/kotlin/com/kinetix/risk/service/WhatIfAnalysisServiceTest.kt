@@ -23,7 +23,7 @@ private fun position(
     averageCost: String = "150.00",
     marketPrice: String = "170.00",
 ) = Position(
-    bookId = PortfolioId(portfolioId),
+    bookId = BookId(portfolioId),
     instrumentId = InstrumentId(instrumentId),
     assetClass = assetClass,
     quantity = BigDecimal(quantity),
@@ -52,7 +52,7 @@ private fun valuationResult(
     greeks: GreeksResult? = null,
     positionRisk: List<PositionRisk> = emptyList(),
 ) = ValuationResult(
-    portfolioId = PortfolioId(portfolioId),
+    portfolioId = BookId(portfolioId),
     calculationType = CalculationType.PARAMETRIC,
     confidenceLevel = ConfidenceLevel.CL_95,
     varValue = varValue,
@@ -128,7 +128,7 @@ class WhatIfAnalysisServiceTest : FunSpec({
             tsla.averageCost.amount.setScale(2) shouldBe BigDecimal("250.00")
             tsla.marketPrice.amount.setScale(2) shouldBe BigDecimal("250.00")
             tsla.assetClass shouldBe AssetClass.EQUITY
-            tsla.portfolioId shouldBe PortfolioId("port-1")
+            tsla.bookId shouldBe BookId("port-1")
         }
 
         test("removes position when trade exactly closes it to zero quantity") {
@@ -188,12 +188,12 @@ class WhatIfAnalysisServiceTest : FunSpec({
             val baseResult = valuationResult(varValue = 5000.0, expectedShortfall = 6250.0)
             val hypotheticalResult = valuationResult(varValue = 7000.0, expectedShortfall = 8750.0)
 
-            coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+            coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
             coEvery { riskEngineClient.valuate(any(), eq(positions), any()) } returns baseResult
             coEvery { riskEngineClient.valuate(any(), neq(positions), any()) } returns hypotheticalResult
 
             val result = service.analyzeWhatIf(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 hypotheticalTrades = trades,
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
@@ -206,7 +206,7 @@ class WhatIfAnalysisServiceTest : FunSpec({
             result.varChange shouldBeExactly 2000.0
             result.esChange shouldBeExactly 2500.0
 
-            coVerify { positionProvider.getPositions(PortfolioId("port-1")) }
+            coVerify { positionProvider.getPositions(BookId("port-1")) }
             coVerify(exactly = 2) { riskEngineClient.valuate(any(), any(), any()) }
         }
 
@@ -220,12 +220,12 @@ class WhatIfAnalysisServiceTest : FunSpec({
             val baseResult = valuationResult(varValue = 5000.0, expectedShortfall = 6250.0)
             val hypotheticalResult = valuationResult(varValue = 2500.0, expectedShortfall = 3125.0)
 
-            coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+            coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
             coEvery { riskEngineClient.valuate(any(), eq(positions), any()) } returns baseResult
             coEvery { riskEngineClient.valuate(any(), neq(positions), any()) } returns hypotheticalResult
 
             val result = service.analyzeWhatIf(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 hypotheticalTrades = trades,
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
@@ -241,11 +241,11 @@ class WhatIfAnalysisServiceTest : FunSpec({
 
             val baseResult = valuationResult(varValue = 5000.0, expectedShortfall = 6250.0)
 
-            coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+            coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
             coEvery { riskEngineClient.valuate(any(), any(), any()) } returns baseResult
 
             service.analyzeWhatIf(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 hypotheticalTrades = trades,
                 calculationType = CalculationType.MONTE_CARLO,
                 confidenceLevel = ConfidenceLevel.CL_99,

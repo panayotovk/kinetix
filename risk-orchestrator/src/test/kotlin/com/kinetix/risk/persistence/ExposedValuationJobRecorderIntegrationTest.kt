@@ -144,7 +144,7 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         recorder.save(job2)
         recorder.save(job3)
 
-        val jobs = recorder.findByPortfolioId("port-1")
+        val jobs = recorder.findByBookId("port-1")
         jobs shouldHaveSize 3
         jobs[0].jobId shouldBe job2.jobId
         jobs[1].jobId shouldBe job1.jobId
@@ -165,7 +165,7 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         recorder.save(job3)
 
         // from only
-        val afterNine = recorder.findByPortfolioId(
+        val afterNine = recorder.findByBookId(
             "port-1",
             from = Instant.parse("2025-01-15T09:00:00Z"),
         )
@@ -174,7 +174,7 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         afterNine[1].jobId shouldBe job2.jobId
 
         // to only
-        val beforeEleven = recorder.findByPortfolioId(
+        val beforeEleven = recorder.findByBookId(
             "port-1",
             to = Instant.parse("2025-01-15T11:00:00Z"),
         )
@@ -183,7 +183,7 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         beforeEleven[1].jobId shouldBe job1.jobId
 
         // from and to
-        val range = recorder.findByPortfolioId(
+        val range = recorder.findByBookId(
             "port-1",
             from = Instant.parse("2025-01-15T09:00:00Z"),
             to = Instant.parse("2025-01-15T11:00:00Z"),
@@ -192,7 +192,7 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         range[0].jobId shouldBe job2.jobId
 
         // no filter returns all
-        val all = recorder.findByPortfolioId("port-1")
+        val all = recorder.findByBookId("port-1")
         all shouldHaveSize 3
     }
 
@@ -265,13 +265,13 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
             recorder.save(completedJob(startedAt = Instant.parse("2025-01-15T${10 + i}:00:00Z")))
         }
 
-        val page1 = recorder.findByPortfolioId("port-1", limit = 2, offset = 0)
+        val page1 = recorder.findByBookId("port-1", limit = 2, offset = 0)
         page1 shouldHaveSize 2
 
-        val page2 = recorder.findByPortfolioId("port-1", limit = 2, offset = 2)
+        val page2 = recorder.findByBookId("port-1", limit = 2, offset = 2)
         page2 shouldHaveSize 2
 
-        val page3 = recorder.findByPortfolioId("port-1", limit = 2, offset = 4)
+        val page3 = recorder.findByBookId("port-1", limit = 2, offset = 4)
         page3 shouldHaveSize 1
 
         // No overlap between pages
@@ -360,12 +360,12 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         found.computedOutputsSnapshot shouldBe emptySet()
     }
 
-    test("findDistinctPortfolioIds returns all unique portfolio IDs") {
+    test("findDistinctBookIds returns all unique portfolio IDs") {
         recorder.save(completedJob(portfolioId = "port-1", startedAt = Instant.parse("2025-01-15T10:00:00Z")))
         recorder.save(completedJob(portfolioId = "port-2", startedAt = Instant.parse("2025-01-15T11:00:00Z")))
         recorder.save(completedJob(portfolioId = "port-1", startedAt = Instant.parse("2025-01-15T12:00:00Z")))
 
-        val portfolios = recorder.findDistinctPortfolioIds()
+        val portfolios = recorder.findDistinctBookIds()
         portfolios shouldHaveSize 2
         portfolios shouldContainExactlyInAnyOrder listOf("port-1", "port-2")
     }
@@ -501,7 +501,7 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         recorder.findLatestCompletedByDate("unknown-portfolio", date).shouldBeNull()
     }
 
-    test("findByPortfolioId with valuationDate filter returns only jobs for that date") {
+    test("findByBookId with valuationDate filter returns only jobs for that date") {
         val date10 = LocalDate.of(2025, 3, 10)
         val date11 = LocalDate.of(2025, 3, 11)
         val job10 = completedJob(
@@ -515,11 +515,11 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         recorder.save(job10)
         recorder.save(job11)
 
-        val filtered = recorder.findByPortfolioId("port-1", valuationDate = date10)
+        val filtered = recorder.findByBookId("port-1", valuationDate = date10)
         filtered shouldHaveSize 1
         filtered[0].jobId shouldBe job10.jobId
 
-        val all = recorder.findByPortfolioId("port-1")
+        val all = recorder.findByBookId("port-1")
         all shouldHaveSize 2
     }
 
@@ -603,7 +603,7 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         ex.message shouldBe "Cannot modify promoted Official EOD job ${job.jobId}"
     }
 
-    test("findByPortfolioId filters by runLabel") {
+    test("findByBookId filters by runLabel") {
         val date = LocalDate.of(2025, 3, 10)
         val job1 = completedJob(startedAt = Instant.parse("2025-03-10T10:00:00Z"), valuationDate = date)
         val job2 = completedJob(startedAt = Instant.parse("2025-03-10T14:00:00Z"), valuationDate = date)
@@ -611,7 +611,7 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         recorder.save(job2)
         recorder.promoteToOfficialEod(job1.jobId, "risk-mgr", Instant.parse("2025-03-10T18:00:00Z"))
 
-        val eodJobs = recorder.findByPortfolioId("port-1", runLabel = RunLabel.OFFICIAL_EOD)
+        val eodJobs = recorder.findByBookId("port-1", runLabel = RunLabel.OFFICIAL_EOD)
         eodJobs shouldHaveSize 1
         eodJobs[0].jobId shouldBe job1.jobId
     }

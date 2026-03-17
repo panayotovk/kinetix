@@ -32,7 +32,7 @@ private fun position(
     quantity: String = "100",
     marketPrice: String = "170.00",
 ) = Position(
-    bookId = PortfolioId(portfolioId),
+    bookId = BookId(portfolioId),
     instrumentId = InstrumentId(instrumentId),
     assetClass = assetClass,
     quantity = BigDecimal(quantity),
@@ -48,7 +48,7 @@ private fun varResult(
         ComponentBreakdown(AssetClass.EQUITY, 5000.0, 100.0),
     ),
 ) = ValuationResult(
-    portfolioId = PortfolioId(portfolioId),
+    portfolioId = BookId(portfolioId),
     calculationType = calculationType,
     confidenceLevel = ConfidenceLevel.CL_95,
     varValue = varValue,
@@ -82,13 +82,13 @@ class VaRCalculationServiceTest : FunSpec({
         val positions = listOf(position())
         val expectedResult = varResult()
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         val result = serviceNoRecorder.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -97,18 +97,18 @@ class VaRCalculationServiceTest : FunSpec({
         result!!.copy(positionRisk = emptyList(), jobId = null, valuationDate = null) shouldBe expectedResult
 
         coVerify(ordering = Ordering.ORDERED) {
-            positionProvider.getPositions(PortfolioId("port-1"))
+            positionProvider.getPositions(BookId("port-1"))
             riskEngineClient.valuate(any(), positions)
             resultPublisher.publish(expectedResult)
         }
     }
 
     test("returns null and does not call risk engine for empty portfolio") {
-        coEvery { positionProvider.getPositions(PortfolioId("empty")) } returns emptyList()
+        coEvery { positionProvider.getPositions(BookId("empty")) } returns emptyList()
 
         val result = serviceNoRecorder.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("empty"),
+                portfolioId = BookId("empty"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -126,13 +126,13 @@ class VaRCalculationServiceTest : FunSpec({
         for (calcType in CalculationType.entries) {
             val expectedResult = varResult(calculationType = calcType)
 
-            coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+            coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
             coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
             coEvery { resultPublisher.publish(any()) } just Runs
 
             val result = serviceNoRecorder.calculateVaR(
                 VaRCalculationRequest(
-                    portfolioId = PortfolioId("port-1"),
+                    portfolioId = BookId("port-1"),
                     calculationType = calcType,
                     confidenceLevel = ConfidenceLevel.CL_95,
                 )
@@ -156,13 +156,13 @@ class VaRCalculationServiceTest : FunSpec({
             ),
         )
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(any()) } just Runs
 
         val result = serviceNoRecorder.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -175,13 +175,13 @@ class VaRCalculationServiceTest : FunSpec({
         val positions = listOf(position())
         val expectedResult = varResult()
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -208,13 +208,13 @@ class VaRCalculationServiceTest : FunSpec({
         val positions = listOf(position())
         val expectedResult = varResult()
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -254,13 +254,13 @@ class VaRCalculationServiceTest : FunSpec({
     test("updates the job to FAILED when risk engine throws") {
         val positions = listOf(position())
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } throws RuntimeException("Engine down")
 
         try {
             service.calculateVaR(
                 VaRCalculationRequest(
-                    portfolioId = PortfolioId("port-1"),
+                    portfolioId = BookId("port-1"),
                     calculationType = CalculationType.PARAMETRIC,
                     confidenceLevel = ConfidenceLevel.CL_95,
                 )
@@ -283,14 +283,14 @@ class VaRCalculationServiceTest : FunSpec({
         val positions = listOf(position())
         val expectedResult = varResult()
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
         coEvery { jobRecorder.save(any()) } throws RuntimeException("DB connection failed")
 
         val result = service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -303,14 +303,14 @@ class VaRCalculationServiceTest : FunSpec({
         val positions = listOf(position())
         val expectedResult = varResult()
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
         coEvery { jobRecorder.update(any()) } throws RuntimeException("DB connection failed")
 
         val result = service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -323,13 +323,13 @@ class VaRCalculationServiceTest : FunSpec({
         val positions = listOf(position())
         val expectedResult = varResult()
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             ),
@@ -355,7 +355,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         val discoverer = mockk<DependenciesDiscoverer>()
         coEvery { discoverer.discover(any(), any(), any()) } returns dependencies
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions, any()) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
@@ -367,7 +367,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         serviceWithDiscoverer.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -422,7 +422,7 @@ class VaRCalculationServiceTest : FunSpec({
         val fetcher = mockk<MarketDataFetcher>()
         coEvery { discoverer.discover(any(), any(), any()) } returns dependencies
         coEvery { fetcher.fetch(dependencies) } returns fetchResults
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions, listOf(spotValue)) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
@@ -435,7 +435,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         serviceWithFetcher.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -495,7 +495,7 @@ class VaRCalculationServiceTest : FunSpec({
         val fetcher = mockk<MarketDataFetcher>()
         coEvery { discoverer.discover(any(), any(), any()) } returns dependencies
         coEvery { fetcher.fetch(dependencies) } returns fetchResults
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions, listOf(spotValue)) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
@@ -508,7 +508,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         serviceWithFetcher.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -553,7 +553,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         val discoverer = mockk<DependenciesDiscoverer>()
         coEvery { discoverer.discover(any(), any(), any()) } returns dependencies
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions, any()) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
@@ -565,7 +565,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         serviceWithDiscoverer.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -594,13 +594,13 @@ class VaRCalculationServiceTest : FunSpec({
         val positions = listOf(position())
         val expectedResult = varResult()
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -636,13 +636,13 @@ class VaRCalculationServiceTest : FunSpec({
             ),
         )
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -670,13 +670,13 @@ class VaRCalculationServiceTest : FunSpec({
         val positions = listOf(position())
         val expectedResult = varResult()
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -709,13 +709,13 @@ class VaRCalculationServiceTest : FunSpec({
             ),
         ).copy(greeks = greeks)
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -746,13 +746,13 @@ class VaRCalculationServiceTest : FunSpec({
         val positions = listOf(position())
         val expectedResult = varResult()
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -783,13 +783,13 @@ class VaRCalculationServiceTest : FunSpec({
         )
         val expectedResult = varResult().copy(greeks = greeks)
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(expectedResult) } just Runs
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -812,13 +812,13 @@ class VaRCalculationServiceTest : FunSpec({
         val positions = listOf(position())
         val expectedResult = varResult()
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(any()) } just Runs
 
         val result = serviceNoRecorder.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -846,13 +846,13 @@ class VaRCalculationServiceTest : FunSpec({
             ),
         )
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(any()) } just Runs
 
         val result = serviceNoRecorder.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -890,13 +890,13 @@ class VaRCalculationServiceTest : FunSpec({
             ),
         ).copy(greeks = greeks)
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(any()) } just Runs
 
         val result = serviceNoRecorder.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -920,13 +920,13 @@ class VaRCalculationServiceTest : FunSpec({
         val positions = listOf(position())
         val expectedResult = varResult()
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(any()) } just Runs
 
         val result = serviceNoRecorder.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -950,7 +950,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             ),
@@ -970,7 +970,7 @@ class VaRCalculationServiceTest : FunSpec({
         try {
             service.calculateVaR(
                 VaRCalculationRequest(
-                    portfolioId = PortfolioId("port-1"),
+                    portfolioId = BookId("port-1"),
                     calculationType = CalculationType.PARAMETRIC,
                     confidenceLevel = ConfidenceLevel.CL_95,
                 ),
@@ -994,7 +994,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -1016,13 +1016,13 @@ class VaRCalculationServiceTest : FunSpec({
             ),
         )
 
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(any()) } just Runs
 
         val result = serviceNoRecorder.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -1044,13 +1044,13 @@ class VaRCalculationServiceTest : FunSpec({
     test("records currentPhase transitions in order through all phases then null on completion") {
         val positions = listOf(position())
         val expectedResult = varResult()
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(any()) } just Runs
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -1068,14 +1068,14 @@ class VaRCalculationServiceTest : FunSpec({
     test("does not fail the calculation if updateCurrentPhase throws") {
         val positions = listOf(position())
         val expectedResult = varResult()
-        coEvery { positionProvider.getPositions(PortfolioId("port-1")) } returns positions
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
         coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
         coEvery { resultPublisher.publish(any()) } just Runs
         coEvery { jobRecorder.updateCurrentPhase(any(), any()) } throws RuntimeException("DB down")
 
         val result = service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = PortfolioId("port-1"),
+                portfolioId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )

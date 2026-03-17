@@ -1,6 +1,6 @@
 package com.kinetix.risk.mapper
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.*
 import com.kinetix.risk.routes.dtos.ValuationJobDetailResponse
 import com.kinetix.risk.routes.dtos.ValuationJobSummaryResponse
@@ -59,7 +59,7 @@ fun ValuationJob.toValuationResult(): ValuationResult? {
     if (status != RunStatus.COMPLETED) return null
     if (calculationType == null || confidenceLevel == null) return null
     return ValuationResult(
-        portfolioId = PortfolioId(portfolioId),
+        portfolioId = BookId(portfolioId),
         calculationType = CalculationType.valueOf(calculationType),
         confidenceLevel = ConfidenceLevel.valueOf(confidenceLevel),
         varValue = varValue,

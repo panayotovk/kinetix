@@ -8,7 +8,7 @@ import java.time.Instant
 import java.util.Currency
 
 private val USD = Currency.getInstance("USD")
-private val PORTFOLIO = PortfolioId("port-1")
+private val PORTFOLIO = BookId("port-1")
 private val AAPL = InstrumentId("AAPL")
 
 private fun usd(amount: String) = Money(BigDecimal(amount), USD)

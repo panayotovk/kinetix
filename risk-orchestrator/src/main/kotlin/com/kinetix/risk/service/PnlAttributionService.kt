@@ -1,6 +1,6 @@
 package com.kinetix.risk.service
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.PnlAttribution
 import com.kinetix.risk.model.PositionPnlAttribution
 import java.math.BigDecimal
@@ -16,7 +16,7 @@ class PnlAttributionService {
     private val mc = MathContext(20, RoundingMode.HALF_UP)
 
     fun attribute(
-        portfolioId: PortfolioId,
+        portfolioId: BookId,
         positions: List<PositionPnlInput>,
         date: LocalDate = LocalDate.now(),
     ): PnlAttribution {

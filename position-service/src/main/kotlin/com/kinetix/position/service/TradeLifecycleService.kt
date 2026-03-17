@@ -27,8 +27,8 @@ class TradeLifecycleService(
         val result = transactional.run {
             tradeEventRepository.updateStatus(command.originalTradeId, TradeStatus.AMENDED)
 
-            val currentPosition = positionRepository.findByKey(originalTrade.portfolioId, originalTrade.instrumentId)
-                ?: Position.empty(originalTrade.portfolioId, originalTrade.instrumentId, originalTrade.assetClass, originalTrade.price.currency)
+            val currentPosition = positionRepository.findByKey(originalTrade.bookId, originalTrade.instrumentId)
+                ?: Position.empty(originalTrade.bookId, originalTrade.instrumentId, originalTrade.assetClass, originalTrade.price.currency)
 
             val reverseTrade = createReverseTrade(originalTrade)
             val positionAfterReversal = currentPosition.applyTrade(reverseTrade)
@@ -72,8 +72,8 @@ class TradeLifecycleService(
         val result = transactional.run {
             tradeEventRepository.updateStatus(command.tradeId, TradeStatus.CANCELLED)
 
-            val currentPosition = positionRepository.findByKey(trade.portfolioId, trade.instrumentId)
-                ?: Position.empty(trade.portfolioId, trade.instrumentId, trade.assetClass, trade.price.currency)
+            val currentPosition = positionRepository.findByKey(trade.bookId, trade.instrumentId)
+                ?: Position.empty(trade.bookId, trade.instrumentId, trade.assetClass, trade.price.currency)
 
             val reverseTrade = createReverseTrade(trade)
             val updatedPosition = currentPosition.applyTrade(reverseTrade)

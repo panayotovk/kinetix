@@ -2,7 +2,7 @@ package com.kinetix.risk.cache
 
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.*
 import io.lettuce.core.SetArgs
 import io.lettuce.core.api.StatefulRedisConnection
@@ -86,7 +86,7 @@ internal data class CachedValuationResult(
     val jobId: String?,
 ) {
     fun toValuationResult(): ValuationResult = ValuationResult(
-        portfolioId = PortfolioId(portfolioId),
+        portfolioId = BookId(portfolioId),
         calculationType = CalculationType.valueOf(calculationType),
         confidenceLevel = ConfidenceLevel.valueOf(confidenceLevel),
         varValue = varValue,

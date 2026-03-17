@@ -41,7 +41,7 @@ class JwtAuthenticationTest : FunSpec({
 
     test("request with valid JWT token returns 200") {
         coEvery { positionClient.listPortfolios() } returns listOf(
-            PortfolioSummary(PortfolioId("port-1")),
+            PortfolioSummary(BookId("port-1")),
         )
         val token = TestJwtHelper.generateToken(roles = listOf(Role.ADMIN))
 
@@ -87,7 +87,7 @@ class JwtAuthenticationTest : FunSpec({
     test("token with TRADER role can access trade endpoints") {
         val trade = Trade(
             tradeId = TradeId("t-1"),
-            bookId = PortfolioId("port-1"),
+            bookId = BookId("port-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             side = Side.BUY,
@@ -96,7 +96,7 @@ class JwtAuthenticationTest : FunSpec({
             tradedAt = Instant.parse("2025-01-15T10:00:00Z"),
         )
         val position = Position(
-            bookId = PortfolioId("port-1"),
+            bookId = BookId("port-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             quantity = BigDecimal("100"),

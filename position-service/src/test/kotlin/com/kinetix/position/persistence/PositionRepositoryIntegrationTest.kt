@@ -12,14 +12,14 @@ import java.math.BigDecimal
 import java.util.Currency
 
 private val USD = Currency.getInstance("USD")
-private val PORTFOLIO = PortfolioId("port-1")
+private val PORTFOLIO = BookId("port-1")
 private val AAPL = InstrumentId("AAPL")
 private val MSFT = InstrumentId("MSFT")
 
 private fun usd(amount: String) = Money(BigDecimal(amount), USD)
 
 private fun position(
-    portfolioId: PortfolioId = PORTFOLIO,
+    portfolioId: BookId = PORTFOLIO,
     instrumentId: InstrumentId = AAPL,
     assetClass: AssetClass = AssetClass.EQUITY,
     quantity: String = "100",
@@ -49,7 +49,7 @@ class PositionRepositoryIntegrationTest : FunSpec({
 
         val found = repository.findByKey(PORTFOLIO, AAPL)
         found.shouldNotBeNull()
-        found.portfolioId shouldBe PORTFOLIO
+        found.bookId shouldBe PORTFOLIO
         found.instrumentId shouldBe AAPL
         found.assetClass shouldBe AssetClass.EQUITY
         found.quantity.compareTo(BigDecimal("100")) shouldBe 0
@@ -75,17 +75,17 @@ class PositionRepositoryIntegrationTest : FunSpec({
         found.marketPrice.amount.compareTo(BigDecimal("160.00")) shouldBe 0
     }
 
-    test("findByPortfolioId returns all positions for portfolio") {
+    test("findByBookId returns all positions for portfolio") {
         repository.save(position(instrumentId = AAPL))
         repository.save(position(instrumentId = MSFT, averageCost = "300.00", marketPrice = "310.00"))
-        repository.save(position(portfolioId = PortfolioId("port-2"), instrumentId = AAPL))
+        repository.save(position(portfolioId = BookId("port-2"), instrumentId = AAPL))
 
-        val results = repository.findByPortfolioId(PORTFOLIO)
+        val results = repository.findByBookId(PORTFOLIO)
         results shouldHaveSize 2
     }
 
-    test("findByPortfolioId returns empty list for unknown portfolio") {
-        repository.findByPortfolioId(PortfolioId("unknown")) shouldHaveSize 0
+    test("findByBookId returns empty list for unknown portfolio") {
+        repository.findByBookId(BookId("unknown")) shouldHaveSize 0
     }
 
     test("delete removes position by composite key") {
@@ -108,13 +108,13 @@ class PositionRepositoryIntegrationTest : FunSpec({
     }
 
     test("findByInstrumentId returns all positions across portfolios") {
-        repository.save(position(portfolioId = PortfolioId("port-1"), instrumentId = AAPL))
-        repository.save(position(portfolioId = PortfolioId("port-2"), instrumentId = AAPL))
-        repository.save(position(portfolioId = PortfolioId("port-1"), instrumentId = MSFT))
+        repository.save(position(portfolioId = BookId("port-1"), instrumentId = AAPL))
+        repository.save(position(portfolioId = BookId("port-2"), instrumentId = AAPL))
+        repository.save(position(portfolioId = BookId("port-1"), instrumentId = MSFT))
 
         val results = repository.findByInstrumentId(AAPL)
         results shouldHaveSize 2
-        results.map { it.portfolioId }.toSet() shouldBe setOf(PortfolioId("port-1"), PortfolioId("port-2"))
+        results.map { it.bookId }.toSet() shouldBe setOf(BookId("port-1"), BookId("port-2"))
         results.forEach { it.instrumentId shouldBe AAPL }
     }
 

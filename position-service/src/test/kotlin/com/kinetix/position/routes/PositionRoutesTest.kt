@@ -32,13 +32,13 @@ import java.time.Instant
 import java.util.Currency
 
 private val USD = Currency.getInstance("USD")
-private val PORTFOLIO = PortfolioId("port-1")
+private val PORTFOLIO = BookId("port-1")
 private val AAPL = InstrumentId("AAPL")
 
 private fun usd(amount: String) = Money(BigDecimal(amount), USD)
 
 private fun position(
-    portfolioId: PortfolioId = PORTFOLIO,
+    portfolioId: BookId = PORTFOLIO,
     instrumentId: InstrumentId = AAPL,
     assetClass: AssetClass = AssetClass.EQUITY,
     quantity: String = "100",
@@ -100,9 +100,9 @@ class PositionRoutesTest : FunSpec({
     test("GET /api/v1/portfolios returns 200 with list of portfolio summaries") {
         testApplication {
             setupApp()
-            coEvery { positionRepository.findDistinctPortfolioIds() } returns listOf(
-                PortfolioId("port-1"),
-                PortfolioId("port-2"),
+            coEvery { positionRepository.findDistinctBookIds() } returns listOf(
+                BookId("port-1"),
+                BookId("port-2"),
             )
 
             val response = client.get("/api/v1/portfolios")
@@ -117,7 +117,7 @@ class PositionRoutesTest : FunSpec({
     test("GET /api/v1/portfolios returns empty list when no portfolios exist") {
         testApplication {
             setupApp()
-            coEvery { positionRepository.findDistinctPortfolioIds() } returns emptyList()
+            coEvery { positionRepository.findDistinctBookIds() } returns emptyList()
 
             val response = client.get("/api/v1/portfolios")
 
@@ -152,7 +152,7 @@ class PositionRoutesTest : FunSpec({
     test("GET /api/v1/portfolios/{id}/positions returns empty list for unknown portfolio") {
         testApplication {
             setupApp()
-            coEvery { positionQueryService.handle(GetPositionsQuery(PortfolioId("unknown"))) } returns emptyList()
+            coEvery { positionQueryService.handle(GetPositionsQuery(BookId("unknown"))) } returns emptyList()
 
             val response = client.get("/api/v1/portfolios/unknown/positions")
 
@@ -219,7 +219,7 @@ class PositionRoutesTest : FunSpec({
                     tradedAt = Instant.parse("2025-01-15T10:00:00Z"),
                 ),
             )
-            coEvery { tradeEventRepository.findByPortfolioId(PORTFOLIO) } returns trades
+            coEvery { tradeEventRepository.findByBookId(PORTFOLIO) } returns trades
 
             val response = client.get("/api/v1/portfolios/port-1/trades")
 
@@ -234,7 +234,7 @@ class PositionRoutesTest : FunSpec({
     test("GET /api/v1/portfolios/{id}/trades returns empty list for unknown portfolio") {
         testApplication {
             setupApp()
-            coEvery { tradeEventRepository.findByPortfolioId(PortfolioId("unknown")) } returns emptyList()
+            coEvery { tradeEventRepository.findByBookId(BookId("unknown")) } returns emptyList()
 
             val response = client.get("/api/v1/portfolios/unknown/trades")
 

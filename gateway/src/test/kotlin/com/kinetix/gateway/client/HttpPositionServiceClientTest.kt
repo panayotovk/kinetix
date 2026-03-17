@@ -36,8 +36,8 @@ class HttpPositionServiceClientTest : FunSpec({
         val result = sut.listPortfolios()
 
         result.size shouldBe 2
-        result[0].id shouldBe PortfolioId("port-1")
-        result[1].id shouldBe PortfolioId("port-2")
+        result[0].id shouldBe BookId("port-1")
+        result[1].id shouldBe BookId("port-2")
     }
 
     test("getPositions maps DTOs to domain models") {
@@ -73,11 +73,11 @@ class HttpPositionServiceClientTest : FunSpec({
         }
         val sut = HttpPositionServiceClient(client, "http://localhost")
 
-        val result = sut.getPositions(PortfolioId("port-1"))
+        val result = sut.getPositions(BookId("port-1"))
 
         result.size shouldBe 1
         val position = result[0]
-        position.portfolioId shouldBe PortfolioId("port-1")
+        position.bookId shouldBe BookId("port-1")
         position.instrumentId shouldBe InstrumentId("AAPL")
         position.assetClass shouldBe AssetClass.EQUITY
         position.quantity shouldBe BigDecimal("100")
@@ -134,7 +134,7 @@ class HttpPositionServiceClientTest : FunSpec({
 
         val command = BookTradeCommand(
             tradeId = TradeId("trade-1"),
-            portfolioId = PortfolioId("port-1"),
+            portfolioId = BookId("port-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             side = Side.BUY,
@@ -159,7 +159,7 @@ class HttpPositionServiceClientTest : FunSpec({
         // Verify response mapping
         val trade = result.trade
         trade.tradeId shouldBe TradeId("trade-1")
-        trade.portfolioId shouldBe PortfolioId("port-1")
+        trade.bookId shouldBe BookId("port-1")
         trade.instrumentId shouldBe InstrumentId("AAPL")
         trade.assetClass shouldBe AssetClass.EQUITY
         trade.side shouldBe Side.BUY
@@ -168,7 +168,7 @@ class HttpPositionServiceClientTest : FunSpec({
         trade.tradedAt shouldBe tradedAt
 
         val position = result.position
-        position.portfolioId shouldBe PortfolioId("port-1")
+        position.bookId shouldBe BookId("port-1")
         position.instrumentId shouldBe InstrumentId("AAPL")
         position.assetClass shouldBe AssetClass.EQUITY
         position.quantity shouldBe BigDecimal("150")

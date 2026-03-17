@@ -462,12 +462,12 @@ data class WhatIfResultClientDto(
 
 // --- Domain mappers ---
 
-fun PortfolioSummaryDto.toDomain() = PortfolioSummary(id = PortfolioId(portfolioId))
+fun PortfolioSummaryDto.toDomain() = PortfolioSummary(id = BookId(portfolioId))
 
 fun MoneyDto.toDomainMoney() = Money(BigDecimal(amount), Currency.getInstance(currency))
 
 fun PositionDto.toDomain() = Position(
-    bookId = PortfolioId(portfolioId),
+    bookId = BookId(portfolioId),
     instrumentId = InstrumentId(instrumentId),
     assetClass = AssetClass.valueOf(assetClass),
     quantity = BigDecimal(quantity),
@@ -478,7 +478,7 @@ fun PositionDto.toDomain() = Position(
 
 fun TradeDto.toDomain() = Trade(
     tradeId = TradeId(tradeId),
-    bookId = PortfolioId(portfolioId),
+    bookId = BookId(portfolioId),
     instrumentId = InstrumentId(instrumentId),
     assetClass = AssetClass.valueOf(assetClass),
     side = Side.valueOf(side),

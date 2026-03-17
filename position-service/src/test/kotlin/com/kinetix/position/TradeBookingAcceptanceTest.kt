@@ -53,7 +53,7 @@ class TradeBookingAcceptanceTest : BehaviorSpec({
                 val result = service.handle(
                     BookTradeCommand(
                         tradeId = TradeId("t-book-1"),
-                        portfolioId = PortfolioId("port-book-1"),
+                        portfolioId = BookId("port-book-1"),
                         instrumentId = InstrumentId("AAPL"),
                         assetClass = AssetClass.EQUITY,
                         side = Side.BUY,
@@ -68,7 +68,7 @@ class TradeBookingAcceptanceTest : BehaviorSpec({
                 saved?.side shouldBe Side.BUY
                 saved?.quantity?.compareTo(BigDecimal("100")) shouldBe 0
 
-                val position = positionRepo.findByKey(PortfolioId("port-book-1"), InstrumentId("AAPL"))
+                val position = positionRepo.findByKey(BookId("port-book-1"), InstrumentId("AAPL"))
                 position?.quantity?.compareTo(BigDecimal("100")) shouldBe 0
                 position?.averageCost?.amount?.compareTo(BigDecimal("150.00")) shouldBe 0
 
@@ -93,7 +93,7 @@ class TradeBookingAcceptanceTest : BehaviorSpec({
                     service.handle(
                         BookTradeCommand(
                             tradeId = TradeId("t-hard-1"),
-                            portfolioId = PortfolioId("port-hard-1"),
+                            portfolioId = BookId("port-hard-1"),
                             instrumentId = InstrumentId("AAPL"),
                             assetClass = AssetClass.EQUITY,
                             side = Side.BUY,
@@ -108,7 +108,7 @@ class TradeBookingAcceptanceTest : BehaviorSpec({
                 (caughtException is LimitBreachException) shouldBe true
 
                 tradeRepo.findByTradeId(TradeId("t-hard-1")) shouldBe null
-                positionRepo.findByKey(PortfolioId("port-hard-1"), InstrumentId("AAPL")) shouldBe null
+                positionRepo.findByKey(BookId("port-hard-1"), InstrumentId("AAPL")) shouldBe null
                 coVerify(exactly = 0) { publisher.publish(any()) }
             }
         }
@@ -123,7 +123,7 @@ class TradeBookingAcceptanceTest : BehaviorSpec({
                 TradeBookingService(tradeRepo, positionRepo, transactional, publisher).handle(
                     BookTradeCommand(
                         tradeId = TradeId("t-soft-seed"),
-                        portfolioId = PortfolioId("port-soft-1"),
+                        portfolioId = BookId("port-soft-1"),
                         instrumentId = InstrumentId("AAPL"),
                         assetClass = AssetClass.EQUITY,
                         side = Side.BUY,
@@ -140,7 +140,7 @@ class TradeBookingAcceptanceTest : BehaviorSpec({
                 val result = service.handle(
                     BookTradeCommand(
                         tradeId = TradeId("t-soft-1"),
-                        portfolioId = PortfolioId("port-soft-1"),
+                        portfolioId = BookId("port-soft-1"),
                         instrumentId = InstrumentId("AAPL"),
                         assetClass = AssetClass.EQUITY,
                         side = Side.BUY,
@@ -154,7 +154,7 @@ class TradeBookingAcceptanceTest : BehaviorSpec({
                 result.warnings shouldHaveSize 1
                 result.warnings[0].severity shouldBe LimitBreachSeverity.SOFT
 
-                val position = positionRepo.findByKey(PortfolioId("port-soft-1"), InstrumentId("AAPL"))
+                val position = positionRepo.findByKey(BookId("port-soft-1"), InstrumentId("AAPL"))
                 position?.quantity?.compareTo(BigDecimal("801")) shouldBe 0
             }
         }
@@ -169,7 +169,7 @@ class TradeBookingAcceptanceTest : BehaviorSpec({
 
                 val command = BookTradeCommand(
                     tradeId = TradeId("t-idem-1"),
-                    portfolioId = PortfolioId("port-idem-1"),
+                    portfolioId = BookId("port-idem-1"),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     side = Side.BUY,
@@ -180,10 +180,10 @@ class TradeBookingAcceptanceTest : BehaviorSpec({
                 service.handle(command)
                 service.handle(command)
 
-                tradeRepo.findByPortfolioId(PortfolioId("port-idem-1")) shouldHaveSize 1
+                tradeRepo.findByBookId(BookId("port-idem-1")) shouldHaveSize 1
                 coVerify(exactly = 1) { publisher.publish(any()) }
 
-                val position = positionRepo.findByKey(PortfolioId("port-idem-1"), InstrumentId("AAPL"))
+                val position = positionRepo.findByKey(BookId("port-idem-1"), InstrumentId("AAPL"))
                 position?.quantity?.compareTo(BigDecimal("100")) shouldBe 0
             }
         }

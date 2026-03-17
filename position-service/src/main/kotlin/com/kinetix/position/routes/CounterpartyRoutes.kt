@@ -1,6 +1,6 @@
 package com.kinetix.position.routes
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.position.model.CounterpartyExposure
 import com.kinetix.position.service.CounterpartyExposureService
 import io.github.smiley4.ktoropenapi.get
@@ -40,7 +40,7 @@ fun Route.counterpartyRoutes(counterpartyExposureService: CounterpartyExposureSe
     }) {
         val portfolioId = call.request.queryParameters["portfolioId"]
             ?: throw IllegalArgumentException("Missing required query parameter: portfolioId")
-        val exposures = counterpartyExposureService.getExposures(PortfolioId(portfolioId))
+        val exposures = counterpartyExposureService.getExposures(BookId(portfolioId))
         call.respond(exposures.map { it.toResponse() })
     }
 }

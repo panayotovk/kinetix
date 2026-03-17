@@ -23,9 +23,6 @@ data class Position(
         }
     }
 
-    @Deprecated("Use bookId", replaceWith = ReplaceWith("bookId"))
-    val portfolioId: BookId get() = bookId
-
     val currency: Currency
         get() = marketPrice.currency
 

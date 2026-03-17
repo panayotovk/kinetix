@@ -71,7 +71,7 @@ class RegulatoryRoutesTest : FunSpec({
     test("GET /history returns paginated results") {
         val repository = mockk<FrtbCalculationRepository>()
         val client = mockk<RiskOrchestratorClient>()
-        coEvery { repository.findByPortfolioId("port-1", 20, 0) } returns listOf(sampleRecord)
+        coEvery { repository.findByBookId("port-1", 20, 0) } returns listOf(sampleRecord)
 
         testApplication {
             application { module(repository, client) }
@@ -86,7 +86,7 @@ class RegulatoryRoutesTest : FunSpec({
     test("GET /latest returns most recent calculation") {
         val repository = mockk<FrtbCalculationRepository>()
         val client = mockk<RiskOrchestratorClient>()
-        coEvery { repository.findLatestByPortfolioId("port-1") } returns sampleRecord
+        coEvery { repository.findLatestByBookId("port-1") } returns sampleRecord
 
         testApplication {
             application { module(repository, client) }
@@ -99,7 +99,7 @@ class RegulatoryRoutesTest : FunSpec({
     test("GET /latest returns 404 when no calculations exist") {
         val repository = mockk<FrtbCalculationRepository>()
         val client = mockk<RiskOrchestratorClient>()
-        coEvery { repository.findLatestByPortfolioId("port-2") } returns null
+        coEvery { repository.findLatestByBookId("port-2") } returns null
 
         testApplication {
             application { module(repository, client) }

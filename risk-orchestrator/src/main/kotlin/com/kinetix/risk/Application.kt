@@ -423,7 +423,7 @@ fun Application.moduleWithRoutes() {
     val priceEventConsumer = PriceEventConsumer(
         KafkaConsumer<String, String>(priceConsumerProps),
         varCalculationService,
-        affectedPortfolios = { when (val r = positionServiceClient.getDistinctPortfolioIds()) {
+        affectedPortfolios = { when (val r = positionServiceClient.getDistinctBookIds()) {
                 is com.kinetix.risk.client.ClientResponse.Success -> r.value
                 is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
             } },
@@ -472,7 +472,7 @@ fun Application.moduleWithRoutes() {
         ScheduledVaRCalculator(
             varCalculationService = varCalculationService,
             varCache = varCache,
-            portfolioIds = { when (val r = positionServiceClient.getDistinctPortfolioIds()) {
+            portfolioIds = { when (val r = positionServiceClient.getDistinctBookIds()) {
                 is com.kinetix.risk.client.ClientResponse.Success -> r.value
                 is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
             } },
@@ -481,7 +481,7 @@ fun Application.moduleWithRoutes() {
     launch {
         ScheduledSodSnapshotJob(
             sodSnapshotService = sodSnapshotService,
-            portfolioIds = { when (val r = positionServiceClient.getDistinctPortfolioIds()) {
+            portfolioIds = { when (val r = positionServiceClient.getDistinctBookIds()) {
                 is com.kinetix.risk.client.ClientResponse.Success -> r.value
                 is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
             } },
@@ -500,7 +500,7 @@ private suspend fun seedCacheFromDb(
 ) {
     val log = org.slf4j.LoggerFactory.getLogger("CacheSeeder")
     try {
-        val portfolios = recorder.findDistinctPortfolioIds()
+        val portfolios = recorder.findDistinctBookIds()
         var seeded = 0
         for (portfolioId in portfolios) {
             val job = recorder.findLatestCompleted(portfolioId) ?: continue

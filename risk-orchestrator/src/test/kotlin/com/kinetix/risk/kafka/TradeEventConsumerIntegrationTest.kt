@@ -1,7 +1,7 @@
 package com.kinetix.risk.kafka
 
 import com.kinetix.common.kafka.events.TradeEventMessage
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.model.ValuationResult
 import com.kinetix.risk.model.VaRCalculationRequest
@@ -27,9 +27,9 @@ class TradeEventConsumerIntegrationTest : FunSpec({
         val consumer = TradeEventConsumer(kafkaConsumer, varService, varCache = varCache, topic = topic)
 
         val mockResult = mockk<ValuationResult>()
-        var capturedPortfolioId: String? = null
+        var capturedBookId: String? = null
         coEvery { varService.calculateVaR(any(), any()) } answers {
-            capturedPortfolioId = firstArg<VaRCalculationRequest>().portfolioId.value
+            capturedBookId = firstArg<VaRCalculationRequest>().portfolioId.value
             mockResult
         }
 
@@ -51,13 +51,13 @@ class TradeEventConsumerIntegrationTest : FunSpec({
         producer.send(ProducerRecord(topic, "port-1", Json.encodeToString(event))).get()
 
         withTimeout(10_000) {
-            while (capturedPortfolioId == null) {
+            while (capturedBookId == null) {
                 delay(100)
             }
         }
 
-        capturedPortfolioId shouldBe "port-1"
-        coVerify(exactly = 1) { varService.calculateVaR(match { it.portfolioId == PortfolioId("port-1") }, any()) }
+        capturedBookId shouldBe "port-1"
+        coVerify(exactly = 1) { varService.calculateVaR(match { it.portfolioId == BookId("port-1") }, any()) }
         coVerify(exactly = 1) { varCache.put("port-1", mockResult) }
 
         job.cancel()

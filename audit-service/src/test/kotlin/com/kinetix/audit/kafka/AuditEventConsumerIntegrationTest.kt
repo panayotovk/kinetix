@@ -83,12 +83,12 @@ class AuditEventConsumerIntegrationTest : FunSpec({
         }
 
         withTimeout(10_000) {
-            while (repository.findByPortfolioId("port-2").size < 3) {
+            while (repository.findByBookId("port-2").size < 3) {
                 delay(100)
             }
         }
 
-        val stored = repository.findByPortfolioId("port-2")
+        val stored = repository.findByBookId("port-2")
         stored.size shouldBe 3
         stored[0].tradeId shouldBe "t-10"
         stored[1].tradeId shouldBe "t-11"

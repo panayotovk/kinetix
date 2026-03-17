@@ -16,7 +16,7 @@ import java.util.Currency
 private val USD = Currency.getInstance("USD")
 private val EUR = Currency.getInstance("EUR")
 private val GBP = Currency.getInstance("GBP")
-private val PORTFOLIO = PortfolioId("port-1")
+private val PORTFOLIO = BookId("port-1")
 
 private fun money(amount: String, currency: Currency) = Money(BigDecimal(amount), currency)
 
@@ -48,7 +48,7 @@ class PortfolioAggregationServiceTest : FunSpec({
             position("AAPL", USD, quantity = "100", averageCost = "150.00", marketPrice = "155.00"),
             position("MSFT", USD, quantity = "50", averageCost = "300.00", marketPrice = "310.00"),
         )
-        coEvery { positionRepo.findByPortfolioId(PORTFOLIO) } returns positions
+        coEvery { positionRepo.findByBookId(PORTFOLIO) } returns positions
         coEvery { fxRateProvider.getRate(USD, USD) } returns BigDecimal.ONE
 
         val summary = service.aggregate(PORTFOLIO, USD)
@@ -67,7 +67,7 @@ class PortfolioAggregationServiceTest : FunSpec({
             position("AAPL", USD, quantity = "100", averageCost = "150.00", marketPrice = "155.00"),
             position("BMW", EUR, quantity = "50", averageCost = "80.00", marketPrice = "85.00"),
         )
-        coEvery { positionRepo.findByPortfolioId(PORTFOLIO) } returns positions
+        coEvery { positionRepo.findByBookId(PORTFOLIO) } returns positions
         coEvery { fxRateProvider.getRate(USD, USD) } returns BigDecimal.ONE
         coEvery { fxRateProvider.getRate(EUR, USD) } returns BigDecimal("1.10")
 
@@ -85,7 +85,7 @@ class PortfolioAggregationServiceTest : FunSpec({
             position("BMW", EUR, quantity = "200", averageCost = "80.00", marketPrice = "90.00"),
             position("BP", GBP, quantity = "300", averageCost = "5.00", marketPrice = "6.00"),
         )
-        coEvery { positionRepo.findByPortfolioId(PORTFOLIO) } returns positions
+        coEvery { positionRepo.findByBookId(PORTFOLIO) } returns positions
         coEvery { fxRateProvider.getRate(USD, USD) } returns BigDecimal.ONE
         coEvery { fxRateProvider.getRate(EUR, USD) } returns BigDecimal("1.10")
         coEvery { fxRateProvider.getRate(GBP, USD) } returns BigDecimal("1.25")
@@ -106,7 +106,7 @@ class PortfolioAggregationServiceTest : FunSpec({
             position("GOOGL", USD, quantity = "50", averageCost = "100.00", marketPrice = "110.00"),
             position("BMW", EUR, quantity = "200", averageCost = "80.00", marketPrice = "90.00"),
         )
-        coEvery { positionRepo.findByPortfolioId(PORTFOLIO) } returns positions
+        coEvery { positionRepo.findByBookId(PORTFOLIO) } returns positions
         coEvery { fxRateProvider.getRate(USD, USD) } returns BigDecimal.ONE
         coEvery { fxRateProvider.getRate(EUR, USD) } returns BigDecimal("1.10")
 
@@ -131,7 +131,7 @@ class PortfolioAggregationServiceTest : FunSpec({
         val positions = listOf(
             position("AAPL", USD, quantity = "10", averageCost = "100.00", marketPrice = "100.00"),
         )
-        coEvery { positionRepo.findByPortfolioId(PORTFOLIO) } returns positions
+        coEvery { positionRepo.findByBookId(PORTFOLIO) } returns positions
         coEvery { fxRateProvider.getRate(USD, USD) } returns BigDecimal.ONE
 
         val summary = service.aggregate(PORTFOLIO)

@@ -1,6 +1,6 @@
 package com.kinetix.risk.simulation
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.common.model.Position
 import com.kinetix.risk.client.PositionProvider
 import io.kotest.core.spec.style.FunSpec
@@ -16,7 +16,7 @@ class DelayingPositionProviderTest : FunSpec({
     val delayRange = 100L..200L
     val provider = DelayingPositionProvider(delegate, delayRange)
 
-    val portfolioId = PortfolioId("port-1")
+    val portfolioId = BookId("port-1")
     val positions = listOf(mockk<Position>())
 
     test("delegates getPositions to underlying provider and returns result") {

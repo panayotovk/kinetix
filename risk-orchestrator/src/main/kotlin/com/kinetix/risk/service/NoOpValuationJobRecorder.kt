@@ -12,10 +12,10 @@ class NoOpValuationJobRecorder : ValuationJobRecorder {
     override suspend fun save(job: ValuationJob) {}
     override suspend fun update(job: ValuationJob) {}
     override suspend fun updateCurrentPhase(jobId: UUID, phase: JobPhaseName) {}
-    override suspend fun findByPortfolioId(portfolioId: String, limit: Int, offset: Int, from: Instant?, to: Instant?, valuationDate: LocalDate?, runLabel: RunLabel?): List<ValuationJob> = emptyList()
-    override suspend fun countByPortfolioId(portfolioId: String, from: Instant?, to: Instant?, valuationDate: LocalDate?, runLabel: RunLabel?): Long = 0
+    override suspend fun findByBookId(portfolioId: String, limit: Int, offset: Int, from: Instant?, to: Instant?, valuationDate: LocalDate?, runLabel: RunLabel?): List<ValuationJob> = emptyList()
+    override suspend fun countByBookId(portfolioId: String, from: Instant?, to: Instant?, valuationDate: LocalDate?, runLabel: RunLabel?): Long = 0
     override suspend fun findByJobId(jobId: UUID): ValuationJob? = null
-    override suspend fun findDistinctPortfolioIds(): List<String> = emptyList()
+    override suspend fun findDistinctBookIds(): List<String> = emptyList()
     override suspend fun findLatestCompletedByDate(portfolioId: String, valuationDate: LocalDate): ValuationJob? = null
     override suspend fun findLatestCompleted(portfolioId: String): ValuationJob? = null
     override suspend fun findLatestCompletedBeforeDate(portfolioId: String, beforeDate: LocalDate): ValuationJob? = null

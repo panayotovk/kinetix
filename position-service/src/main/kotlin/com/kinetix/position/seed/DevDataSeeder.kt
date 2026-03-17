@@ -17,7 +17,7 @@ class DevDataSeeder(
     private val log = LoggerFactory.getLogger(DevDataSeeder::class.java)
 
     suspend fun seed() {
-        val existing = positionRepository.findDistinctPortfolioIds()
+        val existing = positionRepository.findDistinctBookIds()
         if (existing.isNotEmpty()) {
             log.info("Seed data already present ({} portfolios), skipping", existing.size)
             return
@@ -51,7 +51,7 @@ class DevDataSeeder(
             // ── equity-growth portfolio: 5 equity trades (existing) ──
             BookTradeCommand(
                 tradeId = TradeId("seed-eq-aapl-001"),
-                portfolioId = PortfolioId("equity-growth"),
+                portfolioId = BookId("equity-growth"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -61,7 +61,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-eq-googl-001"),
-                portfolioId = PortfolioId("equity-growth"),
+                portfolioId = BookId("equity-growth"),
                 instrumentId = InstrumentId("GOOGL"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -71,7 +71,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-eq-msft-001"),
-                portfolioId = PortfolioId("equity-growth"),
+                portfolioId = BookId("equity-growth"),
                 instrumentId = InstrumentId("MSFT"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -81,7 +81,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-eq-amzn-001"),
-                portfolioId = PortfolioId("equity-growth"),
+                portfolioId = BookId("equity-growth"),
                 instrumentId = InstrumentId("AMZN"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -91,7 +91,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-eq-tsla-001"),
-                portfolioId = PortfolioId("equity-growth"),
+                portfolioId = BookId("equity-growth"),
                 instrumentId = InstrumentId("TSLA"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -103,7 +103,7 @@ class DevDataSeeder(
             // ── multi-asset portfolio: 6 trades across asset classes (existing) ──
             BookTradeCommand(
                 tradeId = TradeId("seed-ma-aapl-001"),
-                portfolioId = PortfolioId("multi-asset"),
+                portfolioId = BookId("multi-asset"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -113,7 +113,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-ma-eurusd-001"),
-                portfolioId = PortfolioId("multi-asset"),
+                portfolioId = BookId("multi-asset"),
                 instrumentId = InstrumentId("EURUSD"),
                 assetClass = AssetClass.FX,
                 side = Side.BUY,
@@ -123,7 +123,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-ma-us10y-001"),
-                portfolioId = PortfolioId("multi-asset"),
+                portfolioId = BookId("multi-asset"),
                 instrumentId = InstrumentId("US10Y"),
                 assetClass = AssetClass.FIXED_INCOME,
                 side = Side.BUY,
@@ -133,7 +133,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-ma-gc-001"),
-                portfolioId = PortfolioId("multi-asset"),
+                portfolioId = BookId("multi-asset"),
                 instrumentId = InstrumentId("GC"),
                 assetClass = AssetClass.COMMODITY,
                 side = Side.BUY,
@@ -143,7 +143,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-ma-spx-put-001"),
-                portfolioId = PortfolioId("multi-asset"),
+                portfolioId = BookId("multi-asset"),
                 instrumentId = InstrumentId("SPX-PUT-4500"),
                 assetClass = AssetClass.DERIVATIVE,
                 side = Side.BUY,
@@ -153,7 +153,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-ma-msft-001"),
-                portfolioId = PortfolioId("multi-asset"),
+                portfolioId = BookId("multi-asset"),
                 instrumentId = InstrumentId("MSFT"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -165,7 +165,7 @@ class DevDataSeeder(
             // ── fixed-income portfolio: 3 fixed income trades (existing) ──
             BookTradeCommand(
                 tradeId = TradeId("seed-fi-us2y-001"),
-                portfolioId = PortfolioId("fixed-income"),
+                portfolioId = BookId("fixed-income"),
                 instrumentId = InstrumentId("US2Y"),
                 assetClass = AssetClass.FIXED_INCOME,
                 side = Side.BUY,
@@ -175,7 +175,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-fi-us10y-001"),
-                portfolioId = PortfolioId("fixed-income"),
+                portfolioId = BookId("fixed-income"),
                 instrumentId = InstrumentId("US10Y"),
                 assetClass = AssetClass.FIXED_INCOME,
                 side = Side.BUY,
@@ -185,7 +185,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-fi-us30y-001"),
-                portfolioId = PortfolioId("fixed-income"),
+                portfolioId = BookId("fixed-income"),
                 instrumentId = InstrumentId("US30Y"),
                 assetClass = AssetClass.FIXED_INCOME,
                 side = Side.BUY,
@@ -197,7 +197,7 @@ class DevDataSeeder(
             // ── emerging-markets portfolio: 5 positions (EM equities + FX) ──
             BookTradeCommand(
                 tradeId = TradeId("seed-em-baba-001"),
-                portfolioId = PortfolioId("emerging-markets"),
+                portfolioId = BookId("emerging-markets"),
                 instrumentId = InstrumentId("BABA"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -207,7 +207,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-em-tsla-001"),
-                portfolioId = PortfolioId("emerging-markets"),
+                portfolioId = BookId("emerging-markets"),
                 instrumentId = InstrumentId("TSLA"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -217,7 +217,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-em-eurusd-001"),
-                portfolioId = PortfolioId("emerging-markets"),
+                portfolioId = BookId("emerging-markets"),
                 instrumentId = InstrumentId("EURUSD"),
                 assetClass = AssetClass.FX,
                 side = Side.BUY,
@@ -227,7 +227,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-em-gbpusd-001"),
-                portfolioId = PortfolioId("emerging-markets"),
+                portfolioId = BookId("emerging-markets"),
                 instrumentId = InstrumentId("GBPUSD"),
                 assetClass = AssetClass.FX,
                 side = Side.BUY,
@@ -237,7 +237,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-em-usdjpy-001"),
-                portfolioId = PortfolioId("emerging-markets"),
+                portfolioId = BookId("emerging-markets"),
                 instrumentId = InstrumentId("USDJPY"),
                 assetClass = AssetClass.FX,
                 side = Side.BUY,
@@ -248,7 +248,7 @@ class DevDataSeeder(
             // Partial sell after price rise
             BookTradeCommand(
                 tradeId = TradeId("seed-em-baba-002"),
-                portfolioId = PortfolioId("emerging-markets"),
+                portfolioId = BookId("emerging-markets"),
                 instrumentId = InstrumentId("BABA"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.SELL,
@@ -260,7 +260,7 @@ class DevDataSeeder(
             // ── macro-hedge portfolio: 6 positions (rates, commodities, FX) ──
             BookTradeCommand(
                 tradeId = TradeId("seed-mh-usdjpy-001"),
-                portfolioId = PortfolioId("macro-hedge"),
+                portfolioId = BookId("macro-hedge"),
                 instrumentId = InstrumentId("USDJPY"),
                 assetClass = AssetClass.FX,
                 side = Side.BUY,
@@ -270,7 +270,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-mh-gc-001"),
-                portfolioId = PortfolioId("macro-hedge"),
+                portfolioId = BookId("macro-hedge"),
                 instrumentId = InstrumentId("GC"),
                 assetClass = AssetClass.COMMODITY,
                 side = Side.BUY,
@@ -280,7 +280,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-mh-cl-001"),
-                portfolioId = PortfolioId("macro-hedge"),
+                portfolioId = BookId("macro-hedge"),
                 instrumentId = InstrumentId("CL"),
                 assetClass = AssetClass.COMMODITY,
                 side = Side.BUY,
@@ -290,7 +290,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-mh-si-001"),
-                portfolioId = PortfolioId("macro-hedge"),
+                portfolioId = BookId("macro-hedge"),
                 instrumentId = InstrumentId("SI"),
                 assetClass = AssetClass.COMMODITY,
                 side = Side.BUY,
@@ -300,7 +300,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-mh-de10y-001"),
-                portfolioId = PortfolioId("macro-hedge"),
+                portfolioId = BookId("macro-hedge"),
                 instrumentId = InstrumentId("DE10Y"),
                 assetClass = AssetClass.FIXED_INCOME,
                 side = Side.BUY,
@@ -310,7 +310,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-mh-spx-put-001"),
-                portfolioId = PortfolioId("macro-hedge"),
+                portfolioId = BookId("macro-hedge"),
                 instrumentId = InstrumentId("SPX-PUT-4500"),
                 assetClass = AssetClass.DERIVATIVE,
                 side = Side.BUY,
@@ -321,7 +321,7 @@ class DevDataSeeder(
             // Partial sell on gold after rally
             BookTradeCommand(
                 tradeId = TradeId("seed-mh-gc-002"),
-                portfolioId = PortfolioId("macro-hedge"),
+                portfolioId = BookId("macro-hedge"),
                 instrumentId = InstrumentId("GC"),
                 assetClass = AssetClass.COMMODITY,
                 side = Side.SELL,
@@ -333,7 +333,7 @@ class DevDataSeeder(
             // ── tech-momentum portfolio: 4 concentrated tech positions ──
             BookTradeCommand(
                 tradeId = TradeId("seed-tm-nvda-001"),
-                portfolioId = PortfolioId("tech-momentum"),
+                portfolioId = BookId("tech-momentum"),
                 instrumentId = InstrumentId("NVDA"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -343,7 +343,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-tm-meta-001"),
-                portfolioId = PortfolioId("tech-momentum"),
+                portfolioId = BookId("tech-momentum"),
                 instrumentId = InstrumentId("META"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -353,7 +353,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-tm-msft-001"),
-                portfolioId = PortfolioId("tech-momentum"),
+                portfolioId = BookId("tech-momentum"),
                 instrumentId = InstrumentId("MSFT"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -363,7 +363,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-tm-googl-001"),
-                portfolioId = PortfolioId("tech-momentum"),
+                portfolioId = BookId("tech-momentum"),
                 instrumentId = InstrumentId("GOOGL"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -374,7 +374,7 @@ class DevDataSeeder(
             // Partial sell on META after earnings
             BookTradeCommand(
                 tradeId = TradeId("seed-tm-meta-002"),
-                portfolioId = PortfolioId("tech-momentum"),
+                portfolioId = BookId("tech-momentum"),
                 instrumentId = InstrumentId("META"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.SELL,
@@ -386,7 +386,7 @@ class DevDataSeeder(
             // ── balanced-income portfolio: 5 positions (bonds + dividend equities) ──
             BookTradeCommand(
                 tradeId = TradeId("seed-bi-us10y-001"),
-                portfolioId = PortfolioId("balanced-income"),
+                portfolioId = BookId("balanced-income"),
                 instrumentId = InstrumentId("US10Y"),
                 assetClass = AssetClass.FIXED_INCOME,
                 side = Side.BUY,
@@ -396,7 +396,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-bi-us30y-001"),
-                portfolioId = PortfolioId("balanced-income"),
+                portfolioId = BookId("balanced-income"),
                 instrumentId = InstrumentId("US30Y"),
                 assetClass = AssetClass.FIXED_INCOME,
                 side = Side.BUY,
@@ -406,7 +406,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-bi-de10y-001"),
-                portfolioId = PortfolioId("balanced-income"),
+                portfolioId = BookId("balanced-income"),
                 instrumentId = InstrumentId("DE10Y"),
                 assetClass = AssetClass.FIXED_INCOME,
                 side = Side.BUY,
@@ -416,7 +416,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-bi-jpm-001"),
-                portfolioId = PortfolioId("balanced-income"),
+                portfolioId = BookId("balanced-income"),
                 instrumentId = InstrumentId("JPM"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -426,7 +426,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-bi-aapl-001"),
-                portfolioId = PortfolioId("balanced-income"),
+                portfolioId = BookId("balanced-income"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -437,7 +437,7 @@ class DevDataSeeder(
             // Sell some bonds to rebalance
             BookTradeCommand(
                 tradeId = TradeId("seed-bi-us30y-002"),
-                portfolioId = PortfolioId("balanced-income"),
+                portfolioId = BookId("balanced-income"),
                 instrumentId = InstrumentId("US30Y"),
                 assetClass = AssetClass.FIXED_INCOME,
                 side = Side.SELL,
@@ -449,7 +449,7 @@ class DevDataSeeder(
             // ── derivatives-book portfolio: 5 positions (options-heavy) ──
             BookTradeCommand(
                 tradeId = TradeId("seed-db-spx-call-001"),
-                portfolioId = PortfolioId("derivatives-book"),
+                portfolioId = BookId("derivatives-book"),
                 instrumentId = InstrumentId("SPX-CALL-5000"),
                 assetClass = AssetClass.DERIVATIVE,
                 side = Side.BUY,
@@ -459,7 +459,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-db-vix-put-001"),
-                portfolioId = PortfolioId("derivatives-book"),
+                portfolioId = BookId("derivatives-book"),
                 instrumentId = InstrumentId("VIX-PUT-15"),
                 assetClass = AssetClass.DERIVATIVE,
                 side = Side.BUY,
@@ -469,7 +469,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-db-spx-put-001"),
-                portfolioId = PortfolioId("derivatives-book"),
+                portfolioId = BookId("derivatives-book"),
                 instrumentId = InstrumentId("SPX-PUT-4500"),
                 assetClass = AssetClass.DERIVATIVE,
                 side = Side.BUY,
@@ -479,7 +479,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-db-nvda-001"),
-                portfolioId = PortfolioId("derivatives-book"),
+                portfolioId = BookId("derivatives-book"),
                 instrumentId = InstrumentId("NVDA"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -489,7 +489,7 @@ class DevDataSeeder(
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-db-tsla-001"),
-                portfolioId = PortfolioId("derivatives-book"),
+                portfolioId = BookId("derivatives-book"),
                 instrumentId = InstrumentId("TSLA"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -500,7 +500,7 @@ class DevDataSeeder(
             // Sell some calls to take profit
             BookTradeCommand(
                 tradeId = TradeId("seed-db-spx-call-002"),
-                portfolioId = PortfolioId("derivatives-book"),
+                portfolioId = BookId("derivatives-book"),
                 instrumentId = InstrumentId("SPX-CALL-5000"),
                 assetClass = AssetClass.DERIVATIVE,
                 side = Side.SELL,
@@ -510,54 +510,54 @@ class DevDataSeeder(
             ),
         )
 
-        val MARKET_PRICES: Map<Pair<PortfolioId, InstrumentId>, Money> = mapOf(
+        val MARKET_PRICES: Map<Pair<BookId, InstrumentId>, Money> = mapOf(
             // equity-growth
-            Pair(PortfolioId("equity-growth"), InstrumentId("AAPL")) to usd("189.25"),
-            Pair(PortfolioId("equity-growth"), InstrumentId("GOOGL")) to usd("178.90"),
-            Pair(PortfolioId("equity-growth"), InstrumentId("MSFT")) to usd("425.60"),
-            Pair(PortfolioId("equity-growth"), InstrumentId("AMZN")) to usd("210.30"),
-            Pair(PortfolioId("equity-growth"), InstrumentId("TSLA")) to usd("242.15"),
+            Pair(BookId("equity-growth"), InstrumentId("AAPL")) to usd("189.25"),
+            Pair(BookId("equity-growth"), InstrumentId("GOOGL")) to usd("178.90"),
+            Pair(BookId("equity-growth"), InstrumentId("MSFT")) to usd("425.60"),
+            Pair(BookId("equity-growth"), InstrumentId("AMZN")) to usd("210.30"),
+            Pair(BookId("equity-growth"), InstrumentId("TSLA")) to usd("242.15"),
             // multi-asset
-            Pair(PortfolioId("multi-asset"), InstrumentId("AAPL")) to usd("189.25"),
-            Pair(PortfolioId("multi-asset"), InstrumentId("EURUSD")) to usd("1.0856"),
-            Pair(PortfolioId("multi-asset"), InstrumentId("US10Y")) to usd("97.10"),
-            Pair(PortfolioId("multi-asset"), InstrumentId("GC")) to usd("2058.40"),
-            Pair(PortfolioId("multi-asset"), InstrumentId("SPX-PUT-4500")) to usd("28.75"),
-            Pair(PortfolioId("multi-asset"), InstrumentId("MSFT")) to usd("425.60"),
+            Pair(BookId("multi-asset"), InstrumentId("AAPL")) to usd("189.25"),
+            Pair(BookId("multi-asset"), InstrumentId("EURUSD")) to usd("1.0856"),
+            Pair(BookId("multi-asset"), InstrumentId("US10Y")) to usd("97.10"),
+            Pair(BookId("multi-asset"), InstrumentId("GC")) to usd("2058.40"),
+            Pair(BookId("multi-asset"), InstrumentId("SPX-PUT-4500")) to usd("28.75"),
+            Pair(BookId("multi-asset"), InstrumentId("MSFT")) to usd("425.60"),
             // fixed-income
-            Pair(PortfolioId("fixed-income"), InstrumentId("US2Y")) to usd("99.40"),
-            Pair(PortfolioId("fixed-income"), InstrumentId("US10Y")) to usd("97.10"),
-            Pair(PortfolioId("fixed-income"), InstrumentId("US30Y")) to usd("93.25"),
+            Pair(BookId("fixed-income"), InstrumentId("US2Y")) to usd("99.40"),
+            Pair(BookId("fixed-income"), InstrumentId("US10Y")) to usd("97.10"),
+            Pair(BookId("fixed-income"), InstrumentId("US30Y")) to usd("93.25"),
             // emerging-markets
-            Pair(PortfolioId("emerging-markets"), InstrumentId("BABA")) to usd("86.10"),
-            Pair(PortfolioId("emerging-markets"), InstrumentId("TSLA")) to usd("242.15"),
-            Pair(PortfolioId("emerging-markets"), InstrumentId("EURUSD")) to usd("1.0856"),
-            Pair(PortfolioId("emerging-markets"), InstrumentId("GBPUSD")) to usd("1.2620"),
-            Pair(PortfolioId("emerging-markets"), InstrumentId("USDJPY")) to usd("150.80"),
+            Pair(BookId("emerging-markets"), InstrumentId("BABA")) to usd("86.10"),
+            Pair(BookId("emerging-markets"), InstrumentId("TSLA")) to usd("242.15"),
+            Pair(BookId("emerging-markets"), InstrumentId("EURUSD")) to usd("1.0856"),
+            Pair(BookId("emerging-markets"), InstrumentId("GBPUSD")) to usd("1.2620"),
+            Pair(BookId("emerging-markets"), InstrumentId("USDJPY")) to usd("150.80"),
             // macro-hedge
-            Pair(PortfolioId("macro-hedge"), InstrumentId("USDJPY")) to usd("150.80"),
-            Pair(PortfolioId("macro-hedge"), InstrumentId("GC")) to usd("2058.40"),
-            Pair(PortfolioId("macro-hedge"), InstrumentId("CL")) to usd("78.30"),
-            Pair(PortfolioId("macro-hedge"), InstrumentId("SI")) to usd("23.65"),
-            Pair(PortfolioId("macro-hedge"), InstrumentId("DE10Y")) to eur("98.20"),
-            Pair(PortfolioId("macro-hedge"), InstrumentId("SPX-PUT-4500")) to usd("28.75"),
+            Pair(BookId("macro-hedge"), InstrumentId("USDJPY")) to usd("150.80"),
+            Pair(BookId("macro-hedge"), InstrumentId("GC")) to usd("2058.40"),
+            Pair(BookId("macro-hedge"), InstrumentId("CL")) to usd("78.30"),
+            Pair(BookId("macro-hedge"), InstrumentId("SI")) to usd("23.65"),
+            Pair(BookId("macro-hedge"), InstrumentId("DE10Y")) to eur("98.20"),
+            Pair(BookId("macro-hedge"), InstrumentId("SPX-PUT-4500")) to usd("28.75"),
             // tech-momentum
-            Pair(PortfolioId("tech-momentum"), InstrumentId("NVDA")) to usd("892.50"),
-            Pair(PortfolioId("tech-momentum"), InstrumentId("META")) to usd("508.40"),
-            Pair(PortfolioId("tech-momentum"), InstrumentId("MSFT")) to usd("425.60"),
-            Pair(PortfolioId("tech-momentum"), InstrumentId("GOOGL")) to usd("178.90"),
+            Pair(BookId("tech-momentum"), InstrumentId("NVDA")) to usd("892.50"),
+            Pair(BookId("tech-momentum"), InstrumentId("META")) to usd("508.40"),
+            Pair(BookId("tech-momentum"), InstrumentId("MSFT")) to usd("425.60"),
+            Pair(BookId("tech-momentum"), InstrumentId("GOOGL")) to usd("178.90"),
             // balanced-income
-            Pair(PortfolioId("balanced-income"), InstrumentId("US10Y")) to usd("97.10"),
-            Pair(PortfolioId("balanced-income"), InstrumentId("US30Y")) to usd("93.25"),
-            Pair(PortfolioId("balanced-income"), InstrumentId("DE10Y")) to eur("98.20"),
-            Pair(PortfolioId("balanced-income"), InstrumentId("JPM")) to usd("211.80"),
-            Pair(PortfolioId("balanced-income"), InstrumentId("AAPL")) to usd("189.25"),
+            Pair(BookId("balanced-income"), InstrumentId("US10Y")) to usd("97.10"),
+            Pair(BookId("balanced-income"), InstrumentId("US30Y")) to usd("93.25"),
+            Pair(BookId("balanced-income"), InstrumentId("DE10Y")) to eur("98.20"),
+            Pair(BookId("balanced-income"), InstrumentId("JPM")) to usd("211.80"),
+            Pair(BookId("balanced-income"), InstrumentId("AAPL")) to usd("189.25"),
             // derivatives-book
-            Pair(PortfolioId("derivatives-book"), InstrumentId("SPX-CALL-5000")) to usd("43.80"),
-            Pair(PortfolioId("derivatives-book"), InstrumentId("VIX-PUT-15")) to usd("3.60"),
-            Pair(PortfolioId("derivatives-book"), InstrumentId("SPX-PUT-4500")) to usd("28.75"),
-            Pair(PortfolioId("derivatives-book"), InstrumentId("NVDA")) to usd("892.50"),
-            Pair(PortfolioId("derivatives-book"), InstrumentId("TSLA")) to usd("242.15"),
+            Pair(BookId("derivatives-book"), InstrumentId("SPX-CALL-5000")) to usd("43.80"),
+            Pair(BookId("derivatives-book"), InstrumentId("VIX-PUT-15")) to usd("3.60"),
+            Pair(BookId("derivatives-book"), InstrumentId("SPX-PUT-4500")) to usd("28.75"),
+            Pair(BookId("derivatives-book"), InstrumentId("NVDA")) to usd("892.50"),
+            Pair(BookId("derivatives-book"), InstrumentId("TSLA")) to usd("242.15"),
         )
     }
 }

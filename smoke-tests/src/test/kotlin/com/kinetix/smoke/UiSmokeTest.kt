@@ -15,7 +15,7 @@ import kotlinx.serialization.json.*
 class UiSmokeTest : FunSpec({
 
     val client = SmokeHttpClient.create()
-    val portfolioId = SmokeTestConfig.seededPortfolioId
+    val portfolioId = SmokeTestConfig.seededBookId
 
     test("positions API returns non-empty data for seeded portfolio") {
         val response = client.smokeGet("/api/v1/portfolios/$portfolioId/positions", "positions-api")

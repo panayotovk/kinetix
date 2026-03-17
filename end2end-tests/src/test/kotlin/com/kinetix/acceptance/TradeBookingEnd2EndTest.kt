@@ -115,7 +115,7 @@ class TradeBookingEnd2EndTest : BehaviorSpec({
         `when`("a BUY trade for 100 AAPL @ 150 USD is booked") {
             val command = BookTradeCommand(
                 tradeId = TradeId("t-accept-1"),
-                portfolioId = PortfolioId("port-accept-1"),
+                portfolioId = BookId("port-accept-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -134,7 +134,7 @@ class TradeBookingEnd2EndTest : BehaviorSpec({
 
             then("the position exists with quantity 100 and average cost 150") {
                 val positions = queryService.handle(
-                    GetPositionsQuery(PortfolioId("port-accept-1"))
+                    GetPositionsQuery(BookId("port-accept-1"))
                 )
                 positions.size shouldBe 1
                 positions[0].instrumentId shouldBe InstrumentId("AAPL")
@@ -144,11 +144,11 @@ class TradeBookingEnd2EndTest : BehaviorSpec({
 
             then("an audit event is recorded with matching trade details") {
                 withTimeout(10_000) {
-                    while (auditRepository.findByPortfolioId("port-accept-1").isEmpty()) {
+                    while (auditRepository.findByBookId("port-accept-1").isEmpty()) {
                         delay(100)
                     }
                 }
-                val auditEvents = auditRepository.findByPortfolioId("port-accept-1")
+                val auditEvents = auditRepository.findByBookId("port-accept-1")
                 auditEvents.size shouldBe 1
                 auditEvents[0].tradeId shouldBe "t-accept-1"
                 auditEvents[0].portfolioId shouldBe "port-accept-1"

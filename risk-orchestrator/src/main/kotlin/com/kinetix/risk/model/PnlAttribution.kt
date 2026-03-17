@@ -1,12 +1,12 @@
 package com.kinetix.risk.model
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 
 data class PnlAttribution(
-    val portfolioId: PortfolioId,
+    val portfolioId: BookId,
     val date: LocalDate,
     val totalPnl: BigDecimal,
     val deltaPnl: BigDecimal,

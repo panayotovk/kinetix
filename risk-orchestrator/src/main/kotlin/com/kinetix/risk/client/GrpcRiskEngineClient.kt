@@ -18,7 +18,7 @@ import com.kinetix.risk.model.VaRResult
 import com.kinetix.risk.model.ValuationOutput
 import com.kinetix.risk.model.ValuationResult
 import java.util.concurrent.TimeUnit
-import com.kinetix.proto.common.PortfolioId as ProtoPortfolioId
+import com.kinetix.proto.common.BookId as ProtoBookId
 import com.kinetix.proto.risk.ValuationOutput as ProtoValuationOutput
 
 private val DOMAIN_VALUATION_OUTPUT_TO_PROTO = mapOf(
@@ -40,7 +40,7 @@ class GrpcRiskEngineClient(
         marketData: List<MarketDataValue>,
     ): VaRResult {
         val protoRequest = VaRRequest.newBuilder()
-            .setPortfolioId(ProtoPortfolioId.newBuilder().setValue(request.portfolioId.value))
+            .setBookId(ProtoBookId.newBuilder().setValue(request.portfolioId.value))
             .setCalculationType(request.calculationType.toProto())
             .setConfidenceLevel(request.confidenceLevel.toProto())
             .setTimeHorizonDays(request.timeHorizonDays)
@@ -60,7 +60,7 @@ class GrpcRiskEngineClient(
         marketData: List<MarketDataValue>,
     ): ValuationResult {
         val protoRequest = ValuationRequest.newBuilder()
-            .setPortfolioId(ProtoPortfolioId.newBuilder().setValue(request.portfolioId.value))
+            .setBookId(ProtoBookId.newBuilder().setValue(request.portfolioId.value))
             .setCalculationType(request.calculationType.toProto())
             .setConfidenceLevel(request.confidenceLevel.toProto())
             .setTimeHorizonDays(request.timeHorizonDays)

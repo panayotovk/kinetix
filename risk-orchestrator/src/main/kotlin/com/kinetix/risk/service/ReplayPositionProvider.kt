@@ -10,11 +10,11 @@ class ReplayPositionProvider(
     private val portfolioId: String,
 ) : PositionProvider {
 
-    override suspend fun getPositions(portfolioId: PortfolioId): List<Position> {
+    override suspend fun getPositions(portfolioId: BookId): List<Position> {
         return entries.map { entry ->
             val currency = Currency.getInstance(entry.currency)
             Position(
-                bookId = PortfolioId(this.portfolioId),
+                bookId = BookId(this.portfolioId),
                 instrumentId = InstrumentId(entry.instrumentId),
                 assetClass = AssetClass.valueOf(entry.assetClass),
                 quantity = entry.quantity,

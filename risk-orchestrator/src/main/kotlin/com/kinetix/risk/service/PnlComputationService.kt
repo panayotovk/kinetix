@@ -1,6 +1,6 @@
 package com.kinetix.risk.service
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.model.PnlAttribution
@@ -21,7 +21,7 @@ class PnlComputationService(
     private val logger = LoggerFactory.getLogger(PnlComputationService::class.java)
 
     suspend fun compute(
-        portfolioId: PortfolioId,
+        portfolioId: BookId,
         date: LocalDate = LocalDate.now(),
     ): PnlAttribution {
         val status = sodSnapshotService.getBaselineStatus(portfolioId, date)
@@ -29,7 +29,7 @@ class PnlComputationService(
             throw NoSodBaselineException(portfolioId.value)
         }
 
-        val sodSnapshots = dailyRiskSnapshotRepository.findByPortfolioIdAndDate(portfolioId, date)
+        val sodSnapshots = dailyRiskSnapshotRepository.findByBookIdAndDate(portfolioId, date)
         val currentPositions = positionProvider.getPositions(portfolioId)
 
         val inputs = sodSnapshots.map { snapshot ->

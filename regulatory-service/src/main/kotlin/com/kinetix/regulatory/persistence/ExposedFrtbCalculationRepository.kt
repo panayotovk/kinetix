@@ -35,7 +35,7 @@ class ExposedFrtbCalculationRepository(private val db: Database? = null) : FrtbC
         }
     }
 
-    override suspend fun findByPortfolioId(
+    override suspend fun findByBookId(
         portfolioId: String,
         limit: Int,
         offset: Int,
@@ -56,7 +56,7 @@ class ExposedFrtbCalculationRepository(private val db: Database? = null) : FrtbC
             .map { it.toRecord() }
     }
 
-    override suspend fun findLatestByPortfolioId(portfolioId: String): FrtbCalculationRecord? =
+    override suspend fun findLatestByBookId(portfolioId: String): FrtbCalculationRecord? =
         newSuspendedTransaction(db = db) {
             FrtbCalculationsTable
                 .selectAll()

@@ -2,13 +2,13 @@ package com.kinetix.risk.model
 
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import java.math.BigDecimal
 import java.time.LocalDate
 
 data class DailyRiskSnapshot(
     val id: Long? = null,
-    val portfolioId: PortfolioId,
+    val portfolioId: BookId,
     val snapshotDate: LocalDate,
     val instrumentId: InstrumentId,
     val assetClass: AssetClass,

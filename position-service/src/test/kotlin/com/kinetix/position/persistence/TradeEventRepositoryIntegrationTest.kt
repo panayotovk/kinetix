@@ -26,7 +26,7 @@ private fun trade(
     tradedAt: Instant = Instant.parse("2025-01-15T10:00:00Z"),
 ) = Trade(
     tradeId = TradeId(tradeId),
-    bookId = PortfolioId(portfolioId),
+    bookId = BookId(portfolioId),
     instrumentId = InstrumentId(instrumentId),
     assetClass = assetClass,
     side = side,
@@ -51,7 +51,7 @@ class TradeEventRepositoryIntegrationTest : FunSpec({
         val found = repository.findByTradeId(TradeId("t-1"))
         found.shouldNotBeNull()
         found.tradeId shouldBe TradeId("t-1")
-        found.portfolioId shouldBe PortfolioId("port-1")
+        found.bookId shouldBe BookId("port-1")
         found.instrumentId shouldBe InstrumentId("AAPL")
         found.assetClass shouldBe AssetClass.EQUITY
         found.side shouldBe Side.BUY
@@ -65,18 +65,18 @@ class TradeEventRepositoryIntegrationTest : FunSpec({
         repository.findByTradeId(TradeId("non-existent")).shouldBeNull()
     }
 
-    test("findByPortfolioId returns all trades for portfolio") {
+    test("findByBookId returns all trades for portfolio") {
         repository.save(trade(tradeId = "t-1", portfolioId = "port-1", instrumentId = "AAPL"))
         repository.save(trade(tradeId = "t-2", portfolioId = "port-1", instrumentId = "MSFT"))
         repository.save(trade(tradeId = "t-3", portfolioId = "port-2", instrumentId = "AAPL"))
 
-        val results = repository.findByPortfolioId(PortfolioId("port-1"))
+        val results = repository.findByBookId(BookId("port-1"))
         results shouldHaveSize 2
         results.map { it.tradeId.value } shouldContainExactlyInAnyOrder listOf("t-1", "t-2")
     }
 
-    test("findByPortfolioId returns empty list for unknown portfolio") {
-        repository.findByPortfolioId(PortfolioId("unknown")) shouldHaveSize 0
+    test("findByBookId returns empty list for unknown portfolio") {
+        repository.findByBookId(BookId("unknown")) shouldHaveSize 0
     }
 
     test("save trade with SELL side") {

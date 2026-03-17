@@ -1,6 +1,6 @@
 package com.kinetix.gateway.client
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.common.model.Position
 import com.kinetix.common.model.Trade
 import io.ktor.client.*
@@ -39,19 +39,19 @@ class HttpPositionServiceClient(
         return dto.toDomain()
     }
 
-    override suspend fun getPositions(portfolioId: PortfolioId): List<Position> {
+    override suspend fun getPositions(portfolioId: BookId): List<Position> {
         val response = httpClient.get("$baseUrl/api/v1/books/${portfolioId.value}/positions")
         val dtos: List<PositionDto> = response.body()
         return dtos.map { it.toDomain() }
     }
 
-    override suspend fun getTradeHistory(portfolioId: PortfolioId): List<Trade> {
+    override suspend fun getTradeHistory(portfolioId: BookId): List<Trade> {
         val response = httpClient.get("$baseUrl/api/v1/books/${portfolioId.value}/trades")
         val dtos: List<TradeDto> = response.body()
         return dtos.map { it.toDomain() }
     }
 
-    override suspend fun getPortfolioSummary(portfolioId: PortfolioId, baseCurrency: String): PortfolioAggregationSummary {
+    override suspend fun getPortfolioSummary(portfolioId: BookId, baseCurrency: String): PortfolioAggregationSummary {
         val response = httpClient.get("$baseUrl/api/v1/books/${portfolioId.value}/summary") {
             parameter("baseCurrency", baseCurrency)
         }

@@ -104,7 +104,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         }
     }
 
-    override suspend fun findByPortfolioId(
+    override suspend fun findByBookId(
         portfolioId: String,
         limit: Int,
         offset: Int,
@@ -137,7 +137,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             .map { it.toValuationJob() }
     }
 
-    override suspend fun countByPortfolioId(
+    override suspend fun countByBookId(
         portfolioId: String,
         from: Instant?,
         to: Instant?,
@@ -173,7 +173,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             ?.toValuationJob()
     }
 
-    override suspend fun findDistinctPortfolioIds(): List<String> = newSuspendedTransaction(db = db) {
+    override suspend fun findDistinctBookIds(): List<String> = newSuspendedTransaction(db = db) {
         ValuationJobsTable
             .select(ValuationJobsTable.portfolioId)
             .withDistinct()

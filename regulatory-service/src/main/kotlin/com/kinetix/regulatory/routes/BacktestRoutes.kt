@@ -82,7 +82,7 @@ fun Route.backtestRoutes(
             val portfolioId = call.parameters["portfolioId"]
                 ?: throw IllegalArgumentException("Missing required path parameter: portfolioId")
 
-            val record = repository.findLatestByPortfolioId(portfolioId)
+            val record = repository.findLatestByBookId(portfolioId)
             if (record != null) {
                 call.respond(record.toResponse())
             } else {
@@ -130,7 +130,7 @@ fun Route.backtestRoutes(
             val limit = call.queryParameters["limit"]?.toIntOrNull() ?: 20
             val offset = call.queryParameters["offset"]?.toIntOrNull() ?: 0
 
-            val records = repository.findByPortfolioId(portfolioId, limit, offset)
+            val records = repository.findByBookId(portfolioId, limit, offset)
             call.respond(
                 BacktestHistoryResponse(
                     results = records.map { it.toResponse() },

@@ -1,6 +1,6 @@
 package com.kinetix.risk.persistence
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.SnapshotType
 import com.kinetix.risk.model.SodBaseline
 import org.jetbrains.exposed.sql.Database
@@ -33,8 +33,8 @@ class ExposedSodBaselineRepository(private val db: Database? = null) : SodBaseli
         }
     }
 
-    override suspend fun findByPortfolioIdAndDate(
-        portfolioId: PortfolioId,
+    override suspend fun findByBookIdAndDate(
+        portfolioId: BookId,
         date: LocalDate,
     ): SodBaseline? = newSuspendedTransaction(db = db) {
         SodBaselinesTable
@@ -47,8 +47,8 @@ class ExposedSodBaselineRepository(private val db: Database? = null) : SodBaseli
             ?.toSodBaseline()
     }
 
-    override suspend fun deleteByPortfolioIdAndDate(
-        portfolioId: PortfolioId,
+    override suspend fun deleteByBookIdAndDate(
+        portfolioId: BookId,
         date: LocalDate,
     ): Unit = newSuspendedTransaction(db = db) {
         SodBaselinesTable.deleteWhere {
@@ -59,7 +59,7 @@ class ExposedSodBaselineRepository(private val db: Database? = null) : SodBaseli
 
     private fun ResultRow.toSodBaseline(): SodBaseline = SodBaseline(
         id = this[SodBaselinesTable.id],
-        portfolioId = PortfolioId(this[SodBaselinesTable.portfolioId]),
+        portfolioId = BookId(this[SodBaselinesTable.portfolioId]),
         baselineDate = this[SodBaselinesTable.baselineDate].toJavaDate(),
         snapshotType = SnapshotType.valueOf(this[SodBaselinesTable.snapshotType]),
         createdAt = this[SodBaselinesTable.createdAt].toInstant(),

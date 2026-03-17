@@ -18,7 +18,7 @@ import java.time.Instant
 class RiskCalculationSmokeTest : FunSpec({
 
     val client = SmokeHttpClient.create()
-    val portfolioId = SmokeTestConfig.seededPortfolioId
+    val portfolioId = SmokeTestConfig.seededBookId
 
     // Store VaR values across tests for cross-method comparison
     var parametricVaR: Double? = null

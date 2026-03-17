@@ -21,7 +21,7 @@ class PriceUpdateService(
             if (position.currency != newPrice.currency) {
                 logger.debug(
                     "Skipping position {}/{}: currency mismatch (position={}, price={})",
-                    position.portfolioId.value, instrumentId.value,
+                    position.bookId.value, instrumentId.value,
                     position.currency.currencyCode, newPrice.currency.currencyCode,
                 )
                 continue

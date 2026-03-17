@@ -17,7 +17,7 @@ class WhatIfAnalysisService(
         trades: List<HypotheticalTrade>,
     ): List<Position> {
         val positionsByInstrument = positions.associateBy { it.instrumentId }.toMutableMap()
-        val portfolioId = positions.firstOrNull()?.portfolioId ?: PortfolioId("unknown")
+        val portfolioId = positions.firstOrNull()?.bookId ?: BookId("unknown")
 
         for (trade in trades) {
             val existing = positionsByInstrument[trade.instrumentId]
@@ -51,7 +51,7 @@ class WhatIfAnalysisService(
     }
 
     suspend fun analyzeWhatIf(
-        portfolioId: PortfolioId,
+        portfolioId: BookId,
         hypotheticalTrades: List<HypotheticalTrade>,
         calculationType: CalculationType,
         confidenceLevel: ConfidenceLevel,

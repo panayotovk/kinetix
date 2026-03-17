@@ -16,7 +16,7 @@ import java.time.Instant
 import java.util.Currency
 
 private val USD = Currency.getInstance("USD")
-private val PORTFOLIO = PortfolioId("port-1")
+private val PORTFOLIO = BookId("port-1")
 private val AAPL = InstrumentId("AAPL")
 private val MSFT = InstrumentId("MSFT")
 
@@ -24,7 +24,7 @@ private fun usd(amount: String) = Money(BigDecimal(amount), USD)
 
 private fun command(
     tradeId: String = "t-1",
-    portfolioId: PortfolioId = PORTFOLIO,
+    portfolioId: BookId = PORTFOLIO,
     instrumentId: InstrumentId = AAPL,
     assetClass: AssetClass = AssetClass.EQUITY,
     side: Side = Side.BUY,
@@ -43,7 +43,7 @@ private fun command(
 )
 
 private fun position(
-    portfolioId: PortfolioId = PORTFOLIO,
+    portfolioId: BookId = PORTFOLIO,
     instrumentId: InstrumentId = AAPL,
     assetClass: AssetClass = AssetClass.EQUITY,
     quantity: String = "100",
@@ -80,7 +80,7 @@ class LimitCheckServiceTest : FunSpec({
         // New AAPL qty = 200, mktVal = 200 * 155 = $31,000 -> concentration = 17.2% < 50%
         // Position: 200 < 1000, Notional: $180,500 < $1,000,000
         coEvery { positionRepo.findByKey(PORTFOLIO, AAPL) } returns position(quantity = "100", marketPrice = "155.00")
-        coEvery { positionRepo.findByPortfolioId(PORTFOLIO) } returns listOf(
+        coEvery { positionRepo.findByBookId(PORTFOLIO) } returns listOf(
             position(instrumentId = AAPL, quantity = "100", marketPrice = "155.00"),
             position(instrumentId = MSFT, quantity = "500", averageCost = "290.00", marketPrice = "300.00"),
         )
@@ -99,7 +99,7 @@ class LimitCheckServiceTest : FunSpec({
 
         // Existing 400 shares, buying 200 more -> 600 which exceeds 500 limit
         coEvery { positionRepo.findByKey(PORTFOLIO, AAPL) } returns position(quantity = "400")
-        coEvery { positionRepo.findByPortfolioId(PORTFOLIO) } returns listOf(
+        coEvery { positionRepo.findByBookId(PORTFOLIO) } returns listOf(
             position(quantity = "400", marketPrice = "155.00"),
         )
 
@@ -120,7 +120,7 @@ class LimitCheckServiceTest : FunSpec({
 
         // Existing 300 shares, buying 120 more -> 420 which is > 400 (80%) but < 500
         coEvery { positionRepo.findByKey(PORTFOLIO, AAPL) } returns position(quantity = "300")
-        coEvery { positionRepo.findByPortfolioId(PORTFOLIO) } returns listOf(
+        coEvery { positionRepo.findByBookId(PORTFOLIO) } returns listOf(
             position(quantity = "300", marketPrice = "155.00"),
         )
 
@@ -142,7 +142,7 @@ class LimitCheckServiceTest : FunSpec({
         // Trade: buy 200 shares at $150 = $30,000 notional
         // Total exposure: $77,500 + $30,000 = $107,500 > $100,000
         coEvery { positionRepo.findByKey(PORTFOLIO, AAPL) } returns position(quantity = "500", marketPrice = "155.00")
-        coEvery { positionRepo.findByPortfolioId(PORTFOLIO) } returns listOf(
+        coEvery { positionRepo.findByBookId(PORTFOLIO) } returns listOf(
             position(quantity = "500", marketPrice = "155.00"),
         )
 
@@ -166,7 +166,7 @@ class LimitCheckServiceTest : FunSpec({
         // New portfolio total = $45,500 + $30,000 = $75,500
         // AAPL concentration = $46,500 / $75,500 = ~61.6% >> 25%
         coEvery { positionRepo.findByKey(PORTFOLIO, AAPL) } returns position(quantity = "100", marketPrice = "155.00")
-        coEvery { positionRepo.findByPortfolioId(PORTFOLIO) } returns listOf(
+        coEvery { positionRepo.findByBookId(PORTFOLIO) } returns listOf(
             position(instrumentId = AAPL, quantity = "100", marketPrice = "155.00"),
             position(instrumentId = MSFT, quantity = "100", averageCost = "290.00", marketPrice = "300.00"),
         )
@@ -190,7 +190,7 @@ class LimitCheckServiceTest : FunSpec({
         // Portfolio mktVal = 400 * 155 = 62,000; trade notional = 200 * 150 = 30,000
         // Total exposure = 62,000 + 30,000 = 92,000 > 50,000 notional limit
         coEvery { positionRepo.findByKey(PORTFOLIO, AAPL) } returns position(quantity = "400", marketPrice = "155.00")
-        coEvery { positionRepo.findByPortfolioId(PORTFOLIO) } returns listOf(
+        coEvery { positionRepo.findByBookId(PORTFOLIO) } returns listOf(
             position(quantity = "400", marketPrice = "155.00"),
         )
 
@@ -206,7 +206,7 @@ class LimitCheckServiceTest : FunSpec({
         val service = LimitCheckService(positionRepo, limits)
 
         coEvery { positionRepo.findByKey(PORTFOLIO, AAPL) } returns position(quantity = "100")
-        coEvery { positionRepo.findByPortfolioId(PORTFOLIO) } returns listOf(
+        coEvery { positionRepo.findByBookId(PORTFOLIO) } returns listOf(
             position(quantity = "100", marketPrice = "155.00"),
         )
 

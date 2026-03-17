@@ -1,7 +1,7 @@
 package com.kinetix.risk.mapper
 
 import com.kinetix.common.model.AssetClass
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ComponentBreakdown
 import com.kinetix.risk.model.ConfidenceLevel
@@ -36,7 +36,7 @@ private val DOMAIN_CALC_TYPE_TO_PROTO = PROTO_CALC_TYPE_TO_DOMAIN.entries.associ
 private val DOMAIN_CONFIDENCE_TO_PROTO = PROTO_CONFIDENCE_TO_DOMAIN.entries.associate { (k, v) -> v to k }
 
 fun VaRResponse.toDomain(): VaRResult = VaRResult(
-    portfolioId = PortfolioId(bookId.value),
+    portfolioId = BookId(bookId.value),
     calculationType = PROTO_CALC_TYPE_TO_DOMAIN.getValue(calculationType),
     confidenceLevel = PROTO_CONFIDENCE_TO_DOMAIN.getValue(confidenceLevel),
     varValue = varValue,

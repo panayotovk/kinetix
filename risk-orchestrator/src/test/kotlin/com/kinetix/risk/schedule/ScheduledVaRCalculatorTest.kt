@@ -1,6 +1,6 @@
 package com.kinetix.risk.schedule
 
-import com.kinetix.common.model.PortfolioId
+import com.kinetix.common.model.BookId
 import com.kinetix.risk.cache.InMemoryVaRCache
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.model.ValuationResult
@@ -28,7 +28,7 @@ class ScheduledVaRCalculatorTest : FunSpec({
         val calculator = ScheduledVaRCalculator(
             varCalculationService = varService,
             varCache = varCache,
-            portfolioIds = { listOf(PortfolioId("port-1")) },
+            portfolioIds = { listOf(BookId("port-1")) },
             intervalMillis = 200,
         )
 
@@ -53,7 +53,7 @@ class ScheduledVaRCalculatorTest : FunSpec({
         val calculator = ScheduledVaRCalculator(
             varCalculationService = varService,
             varCache = varCache,
-            portfolioIds = { listOf(PortfolioId("port-1"), PortfolioId("port-2"), PortfolioId("port-3")) },
+            portfolioIds = { listOf(BookId("port-1"), BookId("port-2"), BookId("port-3")) },
             intervalMillis = 200,
         )
 
@@ -79,7 +79,7 @@ class ScheduledVaRCalculatorTest : FunSpec({
         val calculator = ScheduledVaRCalculator(
             varCalculationService = varService,
             varCache = varCache,
-            portfolioIds = { listOf(PortfolioId("port-1")) },
+            portfolioIds = { listOf(BookId("port-1")) },
             intervalMillis = 200,
         )
 
@@ -101,7 +101,7 @@ class ScheduledVaRCalculatorTest : FunSpec({
         val calculator = ScheduledVaRCalculator(
             varCalculationService = varService,
             varCache = varCache,
-            portfolioIds = { listOf(PortfolioId("port-1")) },
+            portfolioIds = { listOf(BookId("port-1")) },
             intervalMillis = 200,
         )
 
