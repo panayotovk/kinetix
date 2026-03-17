@@ -42,7 +42,7 @@ def make_positions(n: int = 10_000) -> list[PositionRisk]:
 def make_proto_positions(n: int = 10_000) -> list[types_pb2.Position]:
     return [
         types_pb2.Position(
-            portfolio_id=types_pb2.PortfolioId(value="perf-port"),
+            book_id=types_pb2.BookId(value="perf-port"),
             instrument_id=types_pb2.InstrumentId(value=f"INST-{i}"),
             asset_class=PROTO_ASSET_CLASSES[i % len(PROTO_ASSET_CLASSES)],
             quantity=100.0,
@@ -92,7 +92,7 @@ class TestMonteCarloPerformance:
     def test_10k_positions_10k_sims_via_grpc_under_60s(self, stub):
         positions = make_proto_positions(10_000)
         request = risk_calculation_pb2.VaRRequest(
-            portfolio_id=types_pb2.PortfolioId(value="perf-port"),
+            book_id=types_pb2.BookId(value="perf-port"),
             calculation_type=risk_calculation_pb2.MONTE_CARLO,
             confidence_level=risk_calculation_pb2.CL_95,
             time_horizon_days=1,

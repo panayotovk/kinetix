@@ -29,14 +29,14 @@ def stub(grpc_channel):
 
 def _make_var_request(portfolio_id="port-err"):
     return risk_calculation_pb2.VaRRequest(
-        portfolio_id=types_pb2.PortfolioId(value=portfolio_id),
+        book_id=types_pb2.BookId(value=portfolio_id),
         calculation_type=risk_calculation_pb2.PARAMETRIC,
         confidence_level=risk_calculation_pb2.CL_95,
         time_horizon_days=1,
         num_simulations=1000,
         positions=[
             types_pb2.Position(
-                portfolio_id=types_pb2.PortfolioId(value=portfolio_id),
+                book_id=types_pb2.BookId(value=portfolio_id),
                 instrument_id=types_pb2.InstrumentId(value="AAPL"),
                 asset_class=types_pb2.EQUITY,
                 quantity=100.0,
@@ -48,14 +48,14 @@ def _make_var_request(portfolio_id="port-err"):
 
 def _make_valuation_request(portfolio_id="port-err"):
     return risk_calculation_pb2.ValuationRequest(
-        portfolio_id=types_pb2.PortfolioId(value=portfolio_id),
+        book_id=types_pb2.BookId(value=portfolio_id),
         calculation_type=risk_calculation_pb2.PARAMETRIC,
         confidence_level=risk_calculation_pb2.CL_95,
         time_horizon_days=1,
         num_simulations=1000,
         positions=[
             types_pb2.Position(
-                portfolio_id=types_pb2.PortfolioId(value=portfolio_id),
+                book_id=types_pb2.BookId(value=portfolio_id),
                 instrument_id=types_pb2.InstrumentId(value="AAPL"),
                 asset_class=types_pb2.EQUITY,
                 quantity=100.0,

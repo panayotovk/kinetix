@@ -31,28 +31,28 @@ def stub(grpc_channel):
 def _sample_positions():
     return [
         types_pb2.Position(
-            portfolio_id=types_pb2.PortfolioId(value="port-1"),
+            book_id=types_pb2.BookId(value="port-1"),
             instrument_id=types_pb2.InstrumentId(value="AAPL"),
             asset_class=types_pb2.EQUITY,
             quantity=100.0,
             market_value=types_pb2.Money(amount="1000000.00", currency="USD"),
         ),
         types_pb2.Position(
-            portfolio_id=types_pb2.PortfolioId(value="port-1"),
+            book_id=types_pb2.BookId(value="port-1"),
             instrument_id=types_pb2.InstrumentId(value="US10Y"),
             asset_class=types_pb2.FIXED_INCOME,
             quantity=50.0,
             market_value=types_pb2.Money(amount="500000.00", currency="USD"),
         ),
         types_pb2.Position(
-            portfolio_id=types_pb2.PortfolioId(value="port-1"),
+            book_id=types_pb2.BookId(value="port-1"),
             instrument_id=types_pb2.InstrumentId(value="SPX_OPT"),
             asset_class=types_pb2.DERIVATIVE,
             quantity=10.0,
             market_value=types_pb2.Money(amount="400000.00", currency="USD"),
         ),
         types_pb2.Position(
-            portfolio_id=types_pb2.PortfolioId(value="port-1"),
+            book_id=types_pb2.BookId(value="port-1"),
             instrument_id=types_pb2.InstrumentId(value="GOLD"),
             asset_class=types_pb2.COMMODITY,
             quantity=20.0,
@@ -64,7 +64,7 @@ def _sample_positions():
 class TestFrtbGrpc:
     def test_calculate_frtb_returns_all_components(self, stub):
         request = regulatory_reporting_pb2.FrtbRequest(
-            portfolio_id=types_pb2.PortfolioId(value="port-1"),
+            book_id=types_pb2.BookId(value="port-1"),
             positions=_sample_positions(),
         )
         response = stub.CalculateFrtb(request)
@@ -76,7 +76,7 @@ class TestFrtbGrpc:
 
     def test_frtb_total_is_positive(self, stub):
         request = regulatory_reporting_pb2.FrtbRequest(
-            portfolio_id=types_pb2.PortfolioId(value="port-1"),
+            book_id=types_pb2.BookId(value="port-1"),
             positions=_sample_positions(),
         )
         response = stub.CalculateFrtb(request)
@@ -84,7 +84,7 @@ class TestFrtbGrpc:
 
     def test_frtb_has_seven_risk_classes(self, stub):
         request = regulatory_reporting_pb2.FrtbRequest(
-            portfolio_id=types_pb2.PortfolioId(value="port-1"),
+            book_id=types_pb2.BookId(value="port-1"),
             positions=_sample_positions(),
         )
         response = stub.CalculateFrtb(request)
@@ -94,7 +94,7 @@ class TestFrtbGrpc:
 class TestReportGrpc:
     def test_generate_csv_report(self, stub):
         request = regulatory_reporting_pb2.GenerateReportRequest(
-            portfolio_id=types_pb2.PortfolioId(value="port-1"),
+            book_id=types_pb2.BookId(value="port-1"),
             positions=_sample_positions(),
             format=regulatory_reporting_pb2.CSV,
         )
@@ -105,7 +105,7 @@ class TestReportGrpc:
 
     def test_generate_xbrl_report(self, stub):
         request = regulatory_reporting_pb2.GenerateReportRequest(
-            portfolio_id=types_pb2.PortfolioId(value="port-1"),
+            book_id=types_pb2.BookId(value="port-1"),
             positions=_sample_positions(),
             format=regulatory_reporting_pb2.XBRL,
         )
@@ -114,12 +114,12 @@ class TestReportGrpc:
         assert "FRTBReport" in response.content
         assert response.format == regulatory_reporting_pb2.XBRL
 
-    def test_report_has_portfolio_id(self, stub):
+    def test_report_has_book_id(self, stub):
         request = regulatory_reporting_pb2.GenerateReportRequest(
-            portfolio_id=types_pb2.PortfolioId(value="port-1"),
+            book_id=types_pb2.BookId(value="port-1"),
             positions=_sample_positions(),
             format=regulatory_reporting_pb2.CSV,
         )
         response = stub.GenerateReport(request)
-        assert response.portfolio_id == "port-1"
+        assert response.book_id == "port-1"
         assert response.generated_at.seconds > 0

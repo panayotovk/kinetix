@@ -45,7 +45,7 @@ def generate_csv_report(result: FrtbResult) -> str:
 
 def generate_xbrl_report(result: FrtbResult) -> str:
     root = ET.Element("FRTBReport")
-    root.set("portfolioId", result.portfolio_id)
+    root.set("bookId", result.book_id)
 
     sbm_elem = ET.SubElement(root, "SensitivitiesBasedMethod")
     for rcc in result.sbm.risk_class_charges:

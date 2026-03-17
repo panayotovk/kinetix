@@ -168,14 +168,14 @@ class TestValuationEdgeCases:
         assert result.greeks_result is None
         assert result.computed_outputs == []
 
-    def test_portfolio_id_is_propagated(self):
+    def test_book_id_is_propagated(self):
         result = calculate_valuation(
             positions=_sample_positions(),
             calculation_type=CalculationType.PARAMETRIC,
             confidence_level=ConfidenceLevel.CL_95,
             time_horizon_days=1,
             requested_outputs=["GREEKS"],
-            portfolio_id="test-port",
+            book_id="test-port",
         )
         assert result.greeks_result is not None
-        assert result.greeks_result.portfolio_id == "test-port"
+        assert result.greeks_result.book_id == "test-port"

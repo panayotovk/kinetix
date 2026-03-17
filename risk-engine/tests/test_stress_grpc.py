@@ -31,14 +31,14 @@ def stub(grpc_channel):
 def _sample_positions():
     return [
         types_pb2.Position(
-            portfolio_id=types_pb2.PortfolioId(value="port-1"),
+            book_id=types_pb2.BookId(value="port-1"),
             instrument_id=types_pb2.InstrumentId(value="AAPL"),
             asset_class=types_pb2.EQUITY,
             quantity=100.0,
             market_value=types_pb2.Money(amount="1000000.00", currency="USD"),
         ),
         types_pb2.Position(
-            portfolio_id=types_pb2.PortfolioId(value="port-1"),
+            book_id=types_pb2.BookId(value="port-1"),
             instrument_id=types_pb2.InstrumentId(value="GOLD"),
             asset_class=types_pb2.COMMODITY,
             quantity=50.0,
@@ -50,7 +50,7 @@ def _sample_positions():
 class TestStressTestGrpc:
     def test_run_historical_stress_test(self, stub):
         request = stress_testing_pb2.StressTestRequest(
-            portfolio_id=types_pb2.PortfolioId(value="port-1"),
+            book_id=types_pb2.BookId(value="port-1"),
             scenario_name="GFC_2008",
             calculation_type=risk_calculation_pb2.PARAMETRIC,
             confidence_level=risk_calculation_pb2.CL_95,
@@ -66,7 +66,7 @@ class TestStressTestGrpc:
 
     def test_run_hypothetical_stress_test(self, stub):
         request = stress_testing_pb2.StressTestRequest(
-            portfolio_id=types_pb2.PortfolioId(value="port-1"),
+            book_id=types_pb2.BookId(value="port-1"),
             scenario_name="custom_shock",
             calculation_type=risk_calculation_pb2.PARAMETRIC,
             confidence_level=risk_calculation_pb2.CL_95,
@@ -92,7 +92,7 @@ class TestStressTestGrpc:
 
     def test_unknown_scenario_returns_error(self, stub):
         request = stress_testing_pb2.StressTestRequest(
-            portfolio_id=types_pb2.PortfolioId(value="port-1"),
+            book_id=types_pb2.BookId(value="port-1"),
             scenario_name="NONEXISTENT",
             calculation_type=risk_calculation_pb2.PARAMETRIC,
             confidence_level=risk_calculation_pb2.CL_95,
@@ -107,14 +107,14 @@ class TestStressTestGrpc:
 class TestGreeksGrpc:
     def test_calculate_greeks(self, stub):
         request = stress_testing_pb2.GreeksRequest(
-            portfolio_id=types_pb2.PortfolioId(value="port-1"),
+            book_id=types_pb2.BookId(value="port-1"),
             calculation_type=risk_calculation_pb2.PARAMETRIC,
             confidence_level=risk_calculation_pb2.CL_95,
             time_horizon_days=1,
             positions=_sample_positions(),
         )
         response = stub.CalculateGreeks(request)
-        assert response.portfolio_id == "port-1"
+        assert response.book_id == "port-1"
         assert len(response.asset_class_greeks) >= 2
         assert response.theta != 0.0
         assert response.rho != 0.0
@@ -122,7 +122,7 @@ class TestGreeksGrpc:
 
     def test_greeks_values_are_nonzero(self, stub):
         request = stress_testing_pb2.GreeksRequest(
-            portfolio_id=types_pb2.PortfolioId(value="port-1"),
+            book_id=types_pb2.BookId(value="port-1"),
             calculation_type=risk_calculation_pb2.PARAMETRIC,
             confidence_level=risk_calculation_pb2.CL_95,
             time_horizon_days=1,

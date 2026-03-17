@@ -30,7 +30,7 @@ def stub(grpc_channel):
 
 def _equity_position(instrument_id="AAPL"):
     return types_pb2.Position(
-        portfolio_id=types_pb2.PortfolioId(value="port-1"),
+        book_id=types_pb2.BookId(value="port-1"),
         instrument_id=types_pb2.InstrumentId(value=instrument_id),
         asset_class=types_pb2.EQUITY,
         quantity=100.0,
@@ -40,7 +40,7 @@ def _equity_position(instrument_id="AAPL"):
 
 def _derivative_position(instrument_id="AAPL-C-250-20260620"):
     return types_pb2.Position(
-        portfolio_id=types_pb2.PortfolioId(value="port-1"),
+        book_id=types_pb2.BookId(value="port-1"),
         instrument_id=types_pb2.InstrumentId(value=instrument_id),
         asset_class=types_pb2.DERIVATIVE,
         quantity=10.0,
@@ -50,7 +50,7 @@ def _derivative_position(instrument_id="AAPL-C-250-20260620"):
 
 def _fixed_income_position(instrument_id="TBOND-10Y"):
     return types_pb2.Position(
-        portfolio_id=types_pb2.PortfolioId(value="port-1"),
+        book_id=types_pb2.BookId(value="port-1"),
         instrument_id=types_pb2.InstrumentId(value=instrument_id),
         asset_class=types_pb2.FIXED_INCOME,
         quantity=100.0,
@@ -60,7 +60,7 @@ def _fixed_income_position(instrument_id="TBOND-10Y"):
 
 def _commodity_position(instrument_id="GOLD"):
     return types_pb2.Position(
-        portfolio_id=types_pb2.PortfolioId(value="port-1"),
+        book_id=types_pb2.BookId(value="port-1"),
         instrument_id=types_pb2.InstrumentId(value=instrument_id),
         asset_class=types_pb2.COMMODITY,
         quantity=50.0,
@@ -201,7 +201,7 @@ class TestDiscoverDependenciesGrpc:
                 _commodity_position(),
                 _derivative_position(),
                 types_pb2.Position(
-                    portfolio_id=types_pb2.PortfolioId(value="port-1"),
+                    book_id=types_pb2.BookId(value="port-1"),
                     instrument_id=types_pb2.InstrumentId(value="EURUSD"),
                     asset_class=types_pb2.FX,
                     quantity=1000000.0,

@@ -20,7 +20,7 @@ class TestGreeksCalculation:
         positions = _sample_positions()
         result = calculate_greeks(
             positions, CalculationType.PARAMETRIC, ConfidenceLevel.CL_95, 1,
-            portfolio_id="port-1",
+            book_id="port-1",
         )
         # For dominant asset class (EQUITY), price increase → higher VaR → positive delta
         assert result.delta[AssetClass.EQUITY] > 0
@@ -83,7 +83,7 @@ class TestGreeksCalculation:
         base_var = 50_000.0
         result = calculate_greeks(
             positions, CalculationType.PARAMETRIC, ConfidenceLevel.CL_95, 1,
-            portfolio_id="port-1",
+            book_id="port-1",
             base_var_value=base_var,
         )
         # When base_var_value is provided, Greeks use it instead of computing their own

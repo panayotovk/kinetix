@@ -39,7 +39,7 @@ def make_var_request(
     if positions is None:
         positions = [
             types_pb2.Position(
-                portfolio_id=types_pb2.PortfolioId(value=portfolio_id),
+                book_id=types_pb2.BookId(value=portfolio_id),
                 instrument_id=types_pb2.InstrumentId(value="AAPL"),
                 asset_class=types_pb2.EQUITY,
                 quantity=100.0,
@@ -47,7 +47,7 @@ def make_var_request(
             ),
         ]
     return risk_calculation_pb2.VaRRequest(
-        portfolio_id=types_pb2.PortfolioId(value=portfolio_id),
+        book_id=types_pb2.BookId(value=portfolio_id),
         calculation_type=calc_type,
         confidence_level=confidence,
         time_horizon_days=horizon,
@@ -61,7 +61,7 @@ class TestCalculateVaRUnary:
         request = make_var_request()
         response = stub.CalculateVaR(request)
 
-        assert response.portfolio_id.value == "port-1"
+        assert response.book_id.value == "port-1"
         assert response.calculation_type == risk_calculation_pb2.PARAMETRIC
         assert response.confidence_level == risk_calculation_pb2.CL_95
         assert response.var_value > 0
@@ -85,14 +85,14 @@ class TestCalculateVaRUnary:
     def test_multi_asset_portfolio(self, stub):
         positions = [
             types_pb2.Position(
-                portfolio_id=types_pb2.PortfolioId(value="port-1"),
+                book_id=types_pb2.BookId(value="port-1"),
                 instrument_id=types_pb2.InstrumentId(value="AAPL"),
                 asset_class=types_pb2.EQUITY,
                 quantity=100.0,
                 market_value=types_pb2.Money(amount="150000.00", currency="USD"),
             ),
             types_pb2.Position(
-                portfolio_id=types_pb2.PortfolioId(value="port-1"),
+                book_id=types_pb2.BookId(value="port-1"),
                 instrument_id=types_pb2.InstrumentId(value="UST10Y"),
                 asset_class=types_pb2.FIXED_INCOME,
                 quantity=50.0,
@@ -121,8 +121,8 @@ class TestCalculateVaRStream:
         ]
         responses = list(stub.CalculateVaRStream(iter(requests)))
         assert len(responses) == 2
-        assert responses[0].portfolio_id.value == "port-1"
-        assert responses[1].portfolio_id.value == "port-2"
+        assert responses[0].book_id.value == "port-1"
+        assert responses[1].book_id.value == "port-2"
 
     def test_streaming_each_response_has_valid_var(self, stub):
         requests = [make_var_request() for _ in range(3)]
