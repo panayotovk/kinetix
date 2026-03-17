@@ -334,25 +334,25 @@ fun Application.module(
         authenticate("auth-jwt") {
             if (positionClient != null) {
                 requirePermission(Permission.READ_PORTFOLIOS) {
-                    get("/api/v1/portfolios") {
+                    get("/api/v1/books") {
                         val portfolios = positionClient.listPortfolios()
                         call.respond(portfolios.map { it.toResponse() })
                     }
                 }
-                route("/api/v1/portfolios/{portfolioId}") {
+                route("/api/v1/books/{bookId}") {
                     requirePermission(Permission.WRITE_TRADES) {
                         post("/trades") {
-                            val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+                            val bookId = PortfolioId(call.requirePathParam("bookId"))
                             val request = call.receive<BookTradeRequest>()
-                            val command = request.toCommand(portfolioId)
+                            val command = request.toCommand(bookId)
                             val result = positionClient.bookTrade(command)
                             call.respond(HttpStatusCode.Created, result.toResponse())
                         }
                     }
                     requirePermission(Permission.READ_POSITIONS) {
                         get("/positions") {
-                            val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
-                            val positions = positionClient.getPositions(portfolioId)
+                            val bookId = PortfolioId(call.requirePathParam("bookId"))
+                            val positions = positionClient.getPositions(bookId)
                             call.respond(positions.map { it.toResponse() })
                         }
                     }

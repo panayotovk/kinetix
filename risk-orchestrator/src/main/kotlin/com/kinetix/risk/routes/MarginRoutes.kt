@@ -13,11 +13,11 @@ fun Route.marginRoutes(
     positionProvider: PositionProvider,
     marginCalculator: MarginCalculator,
 ) {
-    get("/api/v1/portfolios/{portfolioId}/margin", {
-        summary = "Estimate margin requirements for a portfolio"
+    get("/api/v1/books/{bookId}/margin", {
+        summary = "Estimate margin requirements for a book"
         tags = listOf("Margin")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Book identifier" }
             queryParameter<String>("previousMTM") {
                 description = "Previous mark-to-market value for variation margin calculation"
                 required = false
@@ -27,7 +27,7 @@ fun Route.marginRoutes(
             code(HttpStatusCode.OK) { body<MarginEstimateResponse>() }
         }
     }) {
-        val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+        val portfolioId = PortfolioId(call.requirePathParam("bookId"))
         val previousMTM = call.request.queryParameters["previousMTM"]?.toBigDecimalOrNull()
         val positions = positionProvider.getPositions(portfolioId)
 

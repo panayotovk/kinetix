@@ -34,7 +34,7 @@ class JwtAuthenticationTest : FunSpec({
             application {
                 module(jwtConfig, positionClient = positionClient)
             }
-            val response = client.get("/api/v1/portfolios")
+            val response = client.get("/api/v1/books")
             response.status shouldBe HttpStatusCode.Unauthorized
         }
     }
@@ -49,7 +49,7 @@ class JwtAuthenticationTest : FunSpec({
             application {
                 module(jwtConfig, positionClient = positionClient)
             }
-            val response = client.get("/api/v1/portfolios") {
+            val response = client.get("/api/v1/books") {
                 header(HttpHeaders.Authorization, "Bearer $token")
             }
             response.status shouldBe HttpStatusCode.OK
@@ -63,7 +63,7 @@ class JwtAuthenticationTest : FunSpec({
             application {
                 module(jwtConfig, positionClient = positionClient)
             }
-            val response = client.get("/api/v1/portfolios") {
+            val response = client.get("/api/v1/books") {
                 header(HttpHeaders.Authorization, "Bearer $token")
             }
             response.status shouldBe HttpStatusCode.Unauthorized
@@ -77,7 +77,7 @@ class JwtAuthenticationTest : FunSpec({
             application {
                 module(jwtConfig, positionClient = positionClient)
             }
-            val response = client.get("/api/v1/portfolios") {
+            val response = client.get("/api/v1/books") {
                 header(HttpHeaders.Authorization, "Bearer $token")
             }
             response.status shouldBe HttpStatusCode.Unauthorized
@@ -110,7 +110,7 @@ class JwtAuthenticationTest : FunSpec({
             application {
                 module(jwtConfig, positionClient = positionClient)
             }
-            val response = client.post("/api/v1/portfolios/port-1/trades") {
+            val response = client.post("/api/v1/books/port-1/trades") {
                 header(HttpHeaders.Authorization, "Bearer $token")
                 contentType(ContentType.Application.Json)
                 setBody("""
@@ -137,7 +137,7 @@ class JwtAuthenticationTest : FunSpec({
             application {
                 module(jwtConfig, positionClient = positionClient)
             }
-            val response = client.post("/api/v1/portfolios/port-1/trades") {
+            val response = client.post("/api/v1/books/port-1/trades") {
                 header(HttpHeaders.Authorization, "Bearer $token")
                 contentType(ContentType.Application.Json)
                 setBody("""
@@ -233,7 +233,7 @@ class JwtAuthenticationTest : FunSpec({
             application {
                 module(jwtConfig, positionClient = positionClient)
             }
-            val response = client.get("/api/v1/portfolios") {
+            val response = client.get("/api/v1/books") {
                 header(HttpHeaders.Authorization, "Bearer $token")
             }
             response.status shouldBe HttpStatusCode.OK

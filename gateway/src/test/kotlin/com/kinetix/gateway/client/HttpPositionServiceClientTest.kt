@@ -18,7 +18,7 @@ class HttpPositionServiceClientTest : FunSpec({
     test("listPortfolios deserializes response correctly") {
         val mockEngine = MockEngine { request ->
             when {
-                request.url.encodedPath == "/api/v1/portfolios" && request.method == HttpMethod.Get -> {
+                request.url.encodedPath == "/api/v1/books" && request.method == HttpMethod.Get -> {
                     respond(
                         content = """[{"portfolioId":"port-1"},{"portfolioId":"port-2"}]""",
                         status = HttpStatusCode.OK,
@@ -58,7 +58,7 @@ class HttpPositionServiceClientTest : FunSpec({
 
         val mockEngine = MockEngine { request ->
             when {
-                request.url.encodedPath == "/api/v1/portfolios/port-1/positions" && request.method == HttpMethod.Get -> {
+                request.url.encodedPath == "/api/v1/books/port-1/positions" && request.method == HttpMethod.Get -> {
                     respond(
                         content = responseJson,
                         status = HttpStatusCode.OK,
@@ -116,7 +116,7 @@ class HttpPositionServiceClientTest : FunSpec({
 
         val mockEngine = MockEngine { request ->
             when {
-                request.url.encodedPath == "/api/v1/portfolios/port-1/trades" && request.method == HttpMethod.Post -> {
+                request.url.encodedPath == "/api/v1/books/port-1/trades" && request.method == HttpMethod.Post -> {
                     capturedBody = String(request.body.toByteArray())
                     respond(
                         content = responseJson,

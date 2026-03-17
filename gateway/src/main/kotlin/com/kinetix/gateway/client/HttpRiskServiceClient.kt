@@ -49,7 +49,7 @@ class HttpRiskServiceClient(
     }
 
     override suspend fun getMarginEstimate(portfolioId: String, previousMTM: String?): MarginEstimateSummary? {
-        val response = httpClient.get("$baseUrl/api/v1/portfolios/$portfolioId/margin") {
+        val response = httpClient.get("$baseUrl/api/v1/books/$portfolioId/margin") {
             if (previousMTM != null) {
                 url { parameters.append("previousMTM", previousMTM) }
             }

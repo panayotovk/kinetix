@@ -11,28 +11,28 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 fun Route.positionRoutes(client: PositionServiceClient) {
-    route("/api/v1/portfolios") {
+    route("/api/v1/books") {
 
         get({
-            summary = "List all portfolios"
-            tags = listOf("Portfolios")
+            summary = "List all books"
+            tags = listOf("Books")
         }) {
             val portfolios = client.listPortfolios()
             call.respond(portfolios.map { it.toResponse() })
         }
 
-        route("/{portfolioId}") {
+        route("/{bookId}") {
 
             route("/trades") {
                 get({
-                    summary = "Get trade history for a portfolio"
+                    summary = "Get trade history for a book"
                     tags = listOf("Trades")
                     request {
-                        pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                        pathParameter<String>("bookId") { description = "Book identifier" }
                     }
                 }) {
-                    val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
-                    val trades = client.getTradeHistory(portfolioId)
+                    val bookId = PortfolioId(call.requirePathParam("bookId"))
+                    val trades = client.getTradeHistory(bookId)
                     call.respond(trades.map { it.toResponse() })
                 }
 
@@ -40,12 +40,12 @@ fun Route.positionRoutes(client: PositionServiceClient) {
                     summary = "Book a trade"
                     tags = listOf("Trades")
                     request {
-                        pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                        pathParameter<String>("bookId") { description = "Book identifier" }
                     }
                 }) {
-                    val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+                    val bookId = PortfolioId(call.requirePathParam("bookId"))
                     val request = call.receive<BookTradeRequest>()
-                    val command = request.toCommand(portfolioId)
+                    val command = request.toCommand(bookId)
                     val result = client.bookTrade(command)
                     call.respond(HttpStatusCode.Created, result.toResponse())
                 }
@@ -53,33 +53,33 @@ fun Route.positionRoutes(client: PositionServiceClient) {
 
             route("/positions") {
                 get({
-                    summary = "Get positions for a portfolio"
+                    summary = "Get positions for a book"
                     tags = listOf("Positions")
                     request {
-                        pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                        pathParameter<String>("bookId") { description = "Book identifier" }
                     }
                 }) {
-                    val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
-                    val positions = client.getPositions(portfolioId)
+                    val bookId = PortfolioId(call.requirePathParam("bookId"))
+                    val positions = client.getPositions(bookId)
                     call.respond(positions.map { it.toResponse() })
                 }
             }
 
             route("/summary") {
                 get({
-                    summary = "Get portfolio summary with multi-currency aggregation"
-                    tags = listOf("Portfolios")
+                    summary = "Get book summary with multi-currency aggregation"
+                    tags = listOf("Books")
                     request {
-                        pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                        pathParameter<String>("bookId") { description = "Book identifier" }
                         queryParameter<String>("baseCurrency") {
                             description = "Base currency for aggregation (default: USD)"
                             required = false
                         }
                     }
                 }) {
-                    val portfolioId = PortfolioId(call.requirePathParam("portfolioId"))
+                    val bookId = PortfolioId(call.requirePathParam("bookId"))
                     val baseCurrency = call.request.queryParameters["baseCurrency"] ?: "USD"
-                    val summary = client.getPortfolioSummary(portfolioId, baseCurrency)
+                    val summary = client.getPortfolioSummary(bookId, baseCurrency)
                     call.respond(summary.toResponse())
                 }
             }

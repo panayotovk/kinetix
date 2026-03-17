@@ -20,7 +20,7 @@ class GatewayErrorResponseContractAcceptanceTest : BehaviorSpec({
                 val positionClient = mockk<PositionServiceClient>()
                 testApplication {
                     application { module(positionClient) }
-                    val response = client.post("/api/v1/portfolios/port-1/trades") {
+                    val response = client.post("/api/v1/books/port-1/trades") {
                         contentType(ContentType.Application.Json)
                         setBody("""{"tradeId":"t-1","instrumentId":"AAPL","assetClass":"EQUITY","side":"BUY","quantity":"-1","priceAmount":"150","priceCurrency":"USD","tradedAt":"2025-01-15T10:00:00Z"}""")
                     }

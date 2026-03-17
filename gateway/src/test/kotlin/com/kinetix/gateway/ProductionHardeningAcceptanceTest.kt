@@ -77,7 +77,7 @@ class ProductionHardeningAcceptanceTest : BehaviorSpec({
 
                 testApplication {
                     application { module(jwtConfig, positionClient = positionClient) }
-                    val response = client.post("/api/v1/portfolios/port-1/trades") {
+                    val response = client.post("/api/v1/books/port-1/trades") {
                         header(HttpHeaders.Authorization, "Bearer $token")
                         contentType(ContentType.Application.Json)
                         setBody("""{"tradeId":"t-acc-1","instrumentId":"AAPL","assetClass":"EQUITY","side":"BUY","quantity":"100","priceAmount":"150.00","priceCurrency":"USD","tradedAt":"2025-01-15T10:00:00Z"}""")
@@ -93,7 +93,7 @@ class ProductionHardeningAcceptanceTest : BehaviorSpec({
 
                 testApplication {
                     application { module(jwtConfig, positionClient = positionClient) }
-                    val response = client.post("/api/v1/portfolios/port-1/trades") {
+                    val response = client.post("/api/v1/books/port-1/trades") {
                         header(HttpHeaders.Authorization, "Bearer $token")
                         contentType(ContentType.Application.Json)
                         setBody("""{"tradeId":"t-acc-2","instrumentId":"AAPL","assetClass":"EQUITY","side":"BUY","quantity":"100","priceAmount":"150.00","priceCurrency":"USD","tradedAt":"2025-01-15T10:00:00Z"}""")

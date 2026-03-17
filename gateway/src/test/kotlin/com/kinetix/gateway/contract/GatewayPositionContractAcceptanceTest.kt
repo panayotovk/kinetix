@@ -24,7 +24,7 @@ class GatewayPositionContractAcceptanceTest : BehaviorSpec({
 
     given("gateway routing to position-service") {
 
-        `when`("POST /api/v1/portfolios/{portfolioId}/trades with valid body") {
+        `when`("POST /api/v1/books/{bookId}/trades with valid body") {
             then("returns 201 with trade and position shape") {
                 val trade = Trade(
                     tradeId = TradeId("t-1"),
@@ -48,7 +48,7 @@ class GatewayPositionContractAcceptanceTest : BehaviorSpec({
 
                 testApplication {
                     application { module(positionClient) }
-                    val response = client.post("/api/v1/portfolios/port-1/trades") {
+                    val response = client.post("/api/v1/books/port-1/trades") {
                         contentType(ContentType.Application.Json)
                         setBody("""{"tradeId":"t-1","instrumentId":"AAPL","assetClass":"EQUITY","side":"BUY","quantity":"100","priceAmount":"150.00","priceCurrency":"USD","tradedAt":"2025-01-15T10:00:00Z"}""")
                     }
@@ -65,7 +65,7 @@ class GatewayPositionContractAcceptanceTest : BehaviorSpec({
             }
         }
 
-        `when`("GET /api/v1/portfolios/{portfolioId}/positions") {
+        `when`("GET /api/v1/books/{bookId}/positions") {
             then("returns 200 with position array shape") {
                 val position = Position(
                     bookId = PortfolioId("port-1"),
@@ -79,7 +79,7 @@ class GatewayPositionContractAcceptanceTest : BehaviorSpec({
 
                 testApplication {
                     application { module(positionClient) }
-                    val response = client.get("/api/v1/portfolios/port-1/positions")
+                    val response = client.get("/api/v1/books/port-1/positions")
                     response.status shouldBe HttpStatusCode.OK
                     val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
                     body.size shouldBe 1
@@ -92,11 +92,11 @@ class GatewayPositionContractAcceptanceTest : BehaviorSpec({
             }
         }
 
-        `when`("POST /api/v1/portfolios/{portfolioId}/trades with invalid body") {
+        `when`("POST /api/v1/books/{bookId}/trades with invalid body") {
             then("returns 400 with error shape") {
                 testApplication {
                     application { module(positionClient) }
-                    val response = client.post("/api/v1/portfolios/port-1/trades") {
+                    val response = client.post("/api/v1/books/port-1/trades") {
                         contentType(ContentType.Application.Json)
                         setBody("""{"tradeId":"t-1","instrumentId":"AAPL","assetClass":"EQUITY","side":"BUY","quantity":"-100","priceAmount":"150.00","priceCurrency":"USD","tradedAt":"2025-01-15T10:00:00Z"}""")
                     }

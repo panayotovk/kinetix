@@ -14,13 +14,13 @@ class HttpPositionServiceClient(
 ) : PositionServiceClient {
 
     override suspend fun listPortfolios(): List<PortfolioSummary> {
-        val response = httpClient.get("$baseUrl/api/v1/portfolios")
+        val response = httpClient.get("$baseUrl/api/v1/books")
         val dtos: List<PortfolioSummaryDto> = response.body()
         return dtos.map { it.toDomain() }
     }
 
     override suspend fun bookTrade(command: BookTradeCommand): BookTradeResult {
-        val response = httpClient.post("$baseUrl/api/v1/portfolios/${command.portfolioId.value}/trades") {
+        val response = httpClient.post("$baseUrl/api/v1/books/${command.portfolioId.value}/trades") {
             contentType(ContentType.Application.Json)
             setBody(
                 BookTradeRequestDto(
@@ -40,19 +40,19 @@ class HttpPositionServiceClient(
     }
 
     override suspend fun getPositions(portfolioId: PortfolioId): List<Position> {
-        val response = httpClient.get("$baseUrl/api/v1/portfolios/${portfolioId.value}/positions")
+        val response = httpClient.get("$baseUrl/api/v1/books/${portfolioId.value}/positions")
         val dtos: List<PositionDto> = response.body()
         return dtos.map { it.toDomain() }
     }
 
     override suspend fun getTradeHistory(portfolioId: PortfolioId): List<Trade> {
-        val response = httpClient.get("$baseUrl/api/v1/portfolios/${portfolioId.value}/trades")
+        val response = httpClient.get("$baseUrl/api/v1/books/${portfolioId.value}/trades")
         val dtos: List<TradeDto> = response.body()
         return dtos.map { it.toDomain() }
     }
 
     override suspend fun getPortfolioSummary(portfolioId: PortfolioId, baseCurrency: String): PortfolioAggregationSummary {
-        val response = httpClient.get("$baseUrl/api/v1/portfolios/${portfolioId.value}/summary") {
+        val response = httpClient.get("$baseUrl/api/v1/books/${portfolioId.value}/summary") {
             parameter("baseCurrency", baseCurrency)
         }
         val dto: PortfolioAggregationDto = response.body()

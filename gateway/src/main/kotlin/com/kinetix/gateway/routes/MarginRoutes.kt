@@ -24,18 +24,18 @@ private fun MarginEstimateSummary.toDto() = MarginEstimateDto(
 )
 
 fun Route.marginRoutes(riskClient: RiskServiceClient) {
-    get("/api/v1/portfolios/{portfolioId}/margin", {
-        summary = "Get margin estimate for a portfolio"
+    get("/api/v1/books/{bookId}/margin", {
+        summary = "Get margin estimate for a book"
         tags = listOf("Margin")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Book identifier" }
             queryParameter<String>("previousMTM") {
                 description = "Previous MTM for variation margin calculation"
                 required = false
             }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val portfolioId = call.requirePathParam("bookId")
         val previousMTM = call.request.queryParameters["previousMTM"]
         val result = riskClient.getMarginEstimate(portfolioId, previousMTM)
         if (result != null) {

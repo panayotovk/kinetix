@@ -27,9 +27,9 @@ class PositionRoutesTest : FunSpec({
 
     beforeEach { clearMocks(positionClient) }
 
-    // --- GET /api/v1/portfolios ---
+    // --- GET /api/v1/books ---
 
-    test("GET /api/v1/portfolios returns 200 with portfolio list") {
+    test("GET /api/v1/books returns 200 with portfolio list") {
         coEvery { positionClient.listPortfolios() } returns listOf(
             PortfolioSummary(PortfolioId("port-1")),
             PortfolioSummary(PortfolioId("port-2")),
@@ -37,7 +37,7 @@ class PositionRoutesTest : FunSpec({
 
         testApplication {
             application { module(positionClient) }
-            val response = client.get("/api/v1/portfolios")
+            val response = client.get("/api/v1/books")
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
             body.size shouldBe 2
@@ -46,18 +46,18 @@ class PositionRoutesTest : FunSpec({
         }
     }
 
-    test("GET /api/v1/portfolios returns empty array when no portfolios") {
+    test("GET /api/v1/books returns empty array when no portfolios") {
         coEvery { positionClient.listPortfolios() } returns emptyList()
 
         testApplication {
             application { module(positionClient) }
-            val response = client.get("/api/v1/portfolios")
+            val response = client.get("/api/v1/books")
             response.status shouldBe HttpStatusCode.OK
             response.bodyAsText() shouldBe "[]"
         }
     }
 
-    // --- POST /api/v1/portfolios/{portfolioId}/trades ---
+    // --- POST /api/v1/books/{bookId}/trades ---
 
     test("POST /trades returns 201 Created with trade and position") {
         val trade = Trade(
@@ -82,7 +82,7 @@ class PositionRoutesTest : FunSpec({
 
         testApplication {
             application { module(positionClient) }
-            val response = client.post("/api/v1/portfolios/port-1/trades") {
+            val response = client.post("/api/v1/books/port-1/trades") {
                 contentType(ContentType.Application.Json)
                 setBody("""
                     {
@@ -105,7 +105,7 @@ class PositionRoutesTest : FunSpec({
         }
     }
 
-    test("POST /trades passes portfolioId from path to command") {
+    test("POST /trades passes bookId from path to command") {
         val commandSlot = slot<BookTradeCommand>()
         val trade = Trade(
             tradeId = TradeId("t-1"),
@@ -129,7 +129,7 @@ class PositionRoutesTest : FunSpec({
 
         testApplication {
             application { module(positionClient) }
-            client.post("/api/v1/portfolios/my-port/trades") {
+            client.post("/api/v1/books/my-port/trades") {
                 contentType(ContentType.Application.Json)
                 setBody("""
                     {
@@ -151,7 +151,7 @@ class PositionRoutesTest : FunSpec({
     test("POST /trades returns 400 for invalid assetClass") {
         testApplication {
             application { module(positionClient) }
-            val response = client.post("/api/v1/portfolios/port-1/trades") {
+            val response = client.post("/api/v1/books/port-1/trades") {
                 contentType(ContentType.Application.Json)
                 setBody("""
                     {
@@ -173,7 +173,7 @@ class PositionRoutesTest : FunSpec({
     test("POST /trades returns 400 for negative quantity") {
         testApplication {
             application { module(positionClient) }
-            val response = client.post("/api/v1/portfolios/port-1/trades") {
+            val response = client.post("/api/v1/books/port-1/trades") {
                 contentType(ContentType.Application.Json)
                 setBody("""
                     {
@@ -195,7 +195,7 @@ class PositionRoutesTest : FunSpec({
     test("POST /trades returns 400 for blank tradeId") {
         testApplication {
             application { module(positionClient) }
-            val response = client.post("/api/v1/portfolios/port-1/trades") {
+            val response = client.post("/api/v1/books/port-1/trades") {
                 contentType(ContentType.Application.Json)
                 setBody("""
                     {
@@ -237,7 +237,7 @@ class PositionRoutesTest : FunSpec({
 
         testApplication {
             application { module(positionClient) }
-            val response = client.post("/api/v1/portfolios/port-1/trades") {
+            val response = client.post("/api/v1/books/port-1/trades") {
                 contentType(ContentType.Application.Json)
                 setBody("""
                     {
@@ -259,7 +259,7 @@ class PositionRoutesTest : FunSpec({
         }
     }
 
-    // --- GET /api/v1/portfolios/{portfolioId}/trades ---
+    // --- GET /api/v1/books/{bookId}/trades ---
 
     test("GET /trades returns 200 with trade history") {
         val trades = listOf(
@@ -288,7 +288,7 @@ class PositionRoutesTest : FunSpec({
 
         testApplication {
             application { module(positionClient) }
-            val response = client.get("/api/v1/portfolios/port-1/trades")
+            val response = client.get("/api/v1/books/port-1/trades")
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
             body.size shouldBe 2
@@ -304,13 +304,13 @@ class PositionRoutesTest : FunSpec({
 
         testApplication {
             application { module(positionClient) }
-            val response = client.get("/api/v1/portfolios/port-1/trades")
+            val response = client.get("/api/v1/books/port-1/trades")
             response.status shouldBe HttpStatusCode.OK
             response.bodyAsText() shouldBe "[]"
         }
     }
 
-    // --- GET /api/v1/portfolios/{portfolioId}/positions ---
+    // --- GET /api/v1/books/{bookId}/positions ---
 
     test("GET /positions returns 200 with position list") {
         val positions = listOf(
@@ -335,7 +335,7 @@ class PositionRoutesTest : FunSpec({
 
         testApplication {
             application { module(positionClient) }
-            val response = client.get("/api/v1/portfolios/port-1/positions")
+            val response = client.get("/api/v1/books/port-1/positions")
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
             body.size shouldBe 2
@@ -350,7 +350,7 @@ class PositionRoutesTest : FunSpec({
 
         testApplication {
             application { module(positionClient) }
-            val response = client.get("/api/v1/portfolios/unknown/positions")
+            val response = client.get("/api/v1/books/unknown/positions")
             response.status shouldBe HttpStatusCode.OK
             response.bodyAsText() shouldBe "[]"
         }
@@ -369,7 +369,7 @@ class PositionRoutesTest : FunSpec({
 
         testApplication {
             application { module(positionClient) }
-            val response = client.get("/api/v1/portfolios/port-1/positions")
+            val response = client.get("/api/v1/books/port-1/positions")
             val posObj = Json.parseToJsonElement(response.bodyAsText()).jsonArray[0].jsonObject
             posObj["marketValue"]!!.jsonObject["amount"]?.jsonPrimitive?.content shouldBe "5500.00"
             posObj["unrealizedPnl"]!!.jsonObject["amount"]?.jsonPrimitive?.content shouldBe "500.00"
@@ -382,7 +382,7 @@ class PositionRoutesTest : FunSpec({
     test("error response body contains error and message fields") {
         testApplication {
             application { module(positionClient) }
-            val response = client.post("/api/v1/portfolios/port-1/trades") {
+            val response = client.post("/api/v1/books/port-1/trades") {
                 contentType(ContentType.Application.Json)
                 setBody("""
                     {
