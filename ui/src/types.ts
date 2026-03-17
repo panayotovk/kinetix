@@ -636,6 +636,22 @@ export interface EodTimelineResponseDto {
   entries: EodTimelineEntryDto[]
 }
 
+export interface DivisionDto {
+  id: string
+  name: string
+  description?: string
+  deskCount: number
+}
+
+export interface DeskDto {
+  id: string
+  name: string
+  divisionId: string
+  deskHead?: string
+  description?: string
+  bookCount: number
+}
+
 export interface BacktestComparisonDto {
   baseCalculationType: string
   baseConfidenceLevel: string
