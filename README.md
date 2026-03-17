@@ -202,7 +202,14 @@ npx playwright test
 
 ## Documentation
 
-See the [project wiki](../../wiki) for detailed documentation including architecture decisions, tech stack deep-dive, and the development roadmap.
+See the [project wiki](../../wiki) for detailed documentation including trader workflows, architecture decisions, and the full API reference.
+
+Key wiki pages:
+
+- [Trader Workflows](../../wiki/Trader-Workflows) - Daily workflows for traders and risk managers
+- [Architecture](../../wiki/Architecture) - Service topology, communication patterns, data flow
+- [API Reference](../../wiki/API-Reference) - Complete endpoint reference
+- [ADRs](../../wiki/ADRs) - 24 Architecture Decision Records
 
 Key docs in the repo:
 
@@ -212,7 +219,7 @@ Key docs in the repo:
 - [`docs/api-endpoints.md`](docs/api-endpoints.md) - Full API endpoint reference
 - [`docs/plan.md`](docs/plan.md) - Development roadmap and increments
 - [`docs/evolution-report.md`](docs/evolution-report.md) - Project evolution history
-- [`docs/adr/`](docs/adr/) - Architecture Decision Records
+- [`docs/adr/`](docs/adr/) - Architecture Decision Records (24 accepted decisions)
 - [`docs/ui/`](docs/ui/) - UI tab documentation (Risk, Positions, Scenarios, Regulatory, Alerts, System)
 
 ## Key Capabilities
