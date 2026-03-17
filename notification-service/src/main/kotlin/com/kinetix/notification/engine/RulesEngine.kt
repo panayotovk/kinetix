@@ -1,13 +1,17 @@
 package com.kinetix.notification.engine
 
+import com.kinetix.common.kafka.events.PositionBreakdownItem
 import com.kinetix.common.kafka.events.RiskResultEvent
 import com.kinetix.notification.model.*
 import com.kinetix.notification.persistence.AlertEventRepository
 import com.kinetix.notification.persistence.AlertRuleRepository
 import io.micrometer.core.instrument.MeterRegistry
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.UUID
+import kotlin.math.abs
 
 class RulesEngine(
     private val repository: AlertRuleRepository,
@@ -72,6 +76,7 @@ class RulesEngine(
                     bookId = event.bookId,
                     triggeredAt = Instant.now(),
                     correlationId = event.correlationId,
+                    contributors = serializeTopContributors(event.positionBreakdown),
                 )
             } else {
                 null
@@ -120,5 +125,13 @@ class RulesEngine(
         ComparisonOperator.GREATER_THAN -> value > threshold
         ComparisonOperator.LESS_THAN -> value < threshold
         ComparisonOperator.EQUALS -> value == threshold
+    }
+
+    private fun serializeTopContributors(breakdown: List<PositionBreakdownItem>?): String? {
+        if (breakdown.isNullOrEmpty()) return null
+        val top10 = breakdown
+            .sortedByDescending { abs(it.varContribution.toDoubleOrNull() ?: 0.0) }
+            .take(10)
+        return Json.encodeToString(top10)
     }
 }

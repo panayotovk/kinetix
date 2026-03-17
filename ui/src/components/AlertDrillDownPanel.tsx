@@ -1,0 +1,137 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { X } from 'lucide-react'
+import type { AlertEventDto } from '../types'
+import { fetchAlertContributors, type PositionContributor } from '../api/alertContributors'
+import { formatCurrency } from '../utils/format'
+
+function useAlertContributors(alertId: string) {
+  const [contributors, setContributors] = useState<PositionContributor[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await fetchAlertContributors(alertId)
+      setContributors(data)
+    } catch {
+      setContributors([])
+    } finally {
+      setLoading(false)
+    }
+  }, [alertId])
+
+  useEffect(() => { load() }, [load])
+
+  return { contributors, loading }
+}
+
+interface AlertDrillDownPanelProps {
+  alert: AlertEventDto
+  onClose: () => void
+}
+
+export function AlertDrillDownPanel({ alert, onClose }: AlertDrillDownPanelProps) {
+  const { contributors, loading } = useAlertContributors(alert.id)
+  const [expanded, setExpanded] = useState(false)
+  const closeRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    closeRef.current?.focus()
+  }, [])
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    },
+    [onClose],
+  )
+
+  const visible = expanded ? contributors : contributors.slice(0, 5)
+  const remaining = contributors.length - 5
+
+  const breachMagnitude = alert.currentValue - alert.threshold
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="false"
+      aria-label="Alert drill-down"
+      data-testid="alert-drill-down-panel"
+      onKeyDown={handleKeyDown}
+      className="fixed right-0 top-0 h-full w-[480px] bg-white dark:bg-slate-900 shadow-2xl border-l border-slate-200 dark:border-slate-700 z-50 flex flex-col animate-slide-in-right"
+    >
+      {/* Header */}
+      <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Alert Investigation</h2>
+          <button
+            ref={closeRef}
+            data-testid="drill-down-close"
+            onClick={onClose}
+            className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+            aria-label="Close drill-down panel"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+          <div>Book: <span className="font-medium text-slate-700 dark:text-slate-300">{alert.bookId}</span></div>
+          <div>Breach: <span className="font-medium text-red-600">{formatCurrency(breachMagnitude)}</span> over threshold of {formatCurrency(alert.threshold)}</div>
+          <div>Triggered: {new Date(alert.triggeredAt).toLocaleString()}</div>
+        </div>
+      </div>
+
+      {/* Contributors */}
+      <div className="flex-1 overflow-y-auto p-4">
+        <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-3">Top Contributors to VaR</h3>
+
+        {loading && (
+          <div className="text-sm text-slate-500">Loading contributors...</div>
+        )}
+
+        {!loading && contributors.length === 0 && (
+          <div className="text-sm text-slate-500">No contributor data available for this alert.</div>
+        )}
+
+        {!loading && visible.map((c) => {
+          const pct = Number(c.percentageOfTotal)
+          const varAmount = Number(c.varContribution)
+          return (
+            <div
+              key={c.instrumentId}
+              data-testid={`contributor-${c.instrumentId}`}
+              className="flex items-center gap-3 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">
+                  {c.instrumentName ?? c.instrumentId}
+                </div>
+                <div className="text-xs text-slate-500">{c.assetClass}</div>
+              </div>
+              <div className="w-[60px] h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 rounded-full"
+                  style={{ width: `${Math.min(pct, 100)}%` }}
+                />
+              </div>
+              <div className="text-xs text-slate-600 dark:text-slate-400 w-12 text-right">{pct.toFixed(1)}%</div>
+              <div className="text-xs font-medium text-slate-700 dark:text-slate-300 w-20 text-right">
+                {formatCurrency(varAmount)}
+              </div>
+            </div>
+          )
+        })}
+
+        {!loading && !expanded && remaining > 0 && (
+          <button
+            data-testid="show-more-contributors"
+            onClick={() => setExpanded(true)}
+            className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-medium"
+          >
+            {remaining} more position{remaining > 1 ? 's' : ''}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}

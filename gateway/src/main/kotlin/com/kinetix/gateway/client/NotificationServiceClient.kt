@@ -50,4 +50,5 @@ interface NotificationServiceClient {
     suspend fun deleteRule(ruleId: String): Boolean
     suspend fun listAlerts(limit: Int = 50, status: String? = null): List<AlertEventItem>
     suspend fun acknowledgeAlert(alertId: String, params: AcknowledgeAlertParams): AlertEventItem?
+    suspend fun getAlertContributors(alertId: String): String?
 }

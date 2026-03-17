@@ -1,6 +1,7 @@
 package com.kinetix.risk.kafka
 
 import com.kinetix.common.kafka.events.ComponentBreakdownEvent
+import com.kinetix.common.kafka.events.PositionBreakdownItem
 import com.kinetix.common.kafka.events.RiskResultEvent
 import com.kinetix.risk.model.ValuationResult
 import kotlinx.coroutines.Dispatchers
@@ -34,6 +35,18 @@ class KafkaRiskResultPublisher(
             },
             calculatedAt = result.calculatedAt.toString(),
             correlationId = correlationId,
+            positionBreakdown = result.positionRisk.map {
+                PositionBreakdownItem(
+                    instrumentId = it.instrumentId.value,
+                    assetClass = it.assetClass.name,
+                    marketValue = it.marketValue.toPlainString(),
+                    varContribution = it.varContribution.toPlainString(),
+                    percentageOfTotal = it.percentageOfTotal.toPlainString(),
+                    delta = it.delta?.toString(),
+                    gamma = it.gamma?.toString(),
+                    vega = it.vega?.toString(),
+                )
+            }.ifEmpty { null },
         )
         val json = Json.encodeToString(event)
         val record = ProducerRecord(topic, result.portfolioId.value, json)

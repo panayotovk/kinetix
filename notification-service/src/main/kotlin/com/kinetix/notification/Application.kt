@@ -387,6 +387,28 @@ fun Route.notificationRoutes(
             val updated = eventRepo.findById(alertId)!!
             call.respond(updated.toEventResponse())
         }
+
+        get("/alerts/{alertId}/contributors", {
+            summary = "Get alert contributors (position breakdown at breach time)"
+            tags = listOf("Alerts")
+            request {
+                pathParameter<String>("alertId") { description = "Alert event identifier" }
+            }
+        }) {
+            val alertId = call.parameters["alertId"]
+                ?: throw IllegalArgumentException("Missing required path parameter: alertId")
+            val alert = inAppDelivery.repository.findById(alertId)
+            if (alert == null) {
+                call.respond(HttpStatusCode.NotFound, ErrorResponse("Not Found", "Alert not found"))
+                return@get
+            }
+            val contributorsJson = alert.contributors
+            if (contributorsJson == null) {
+                call.respond(emptyList<String>())
+                return@get
+            }
+            call.respondText(contributorsJson, ContentType.Application.Json)
+        }
     }
 }
 

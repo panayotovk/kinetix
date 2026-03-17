@@ -34,4 +34,5 @@ data class AlertEvent(
     val resolvedAt: Instant? = null,
     val resolvedReason: String? = null,
     val correlationId: String? = null,
+    val contributors: String? = null,
 )

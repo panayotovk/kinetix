@@ -26,6 +26,7 @@ class ExposedAlertEventRepository(private val db: Database? = null) : AlertEvent
             it[resolvedAt] = event.resolvedAt?.let { ts -> OffsetDateTime.ofInstant(ts, ZoneOffset.UTC) }
             it[resolvedReason] = event.resolvedReason
             it[correlationId] = event.correlationId
+            it[contributors] = event.contributors
         }
     }
 
@@ -107,5 +108,6 @@ class ExposedAlertEventRepository(private val db: Database? = null) : AlertEvent
         resolvedAt = this[AlertEventsTable.resolvedAt]?.toInstant(),
         resolvedReason = this[AlertEventsTable.resolvedReason],
         correlationId = this[AlertEventsTable.correlationId],
+        contributors = this[AlertEventsTable.contributors],
     )
 }

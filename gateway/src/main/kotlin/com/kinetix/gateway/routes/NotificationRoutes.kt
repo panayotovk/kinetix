@@ -69,6 +69,22 @@ fun Route.notificationRoutes(client: NotificationServiceClient) {
             call.respond(alerts.map { it.toDto() })
         }
 
+        get("/alerts/{alertId}/contributors", {
+            summary = "Get alert contributors"
+            tags = listOf("Notifications")
+            request {
+                pathParameter<String>("alertId") { description = "Alert event identifier" }
+            }
+        }) {
+            val alertId = call.requirePathParam("alertId")
+            val json = client.getAlertContributors(alertId)
+            if (json != null) {
+                call.respondText(json, ContentType.Application.Json)
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
+        }
+
         post("/alerts/{alertId}/acknowledge", {
             summary = "Acknowledge an alert"
             tags = listOf("Notifications")
