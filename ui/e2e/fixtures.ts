@@ -630,6 +630,7 @@ export interface AlertEventFixture {
   threshold: number
   bookId: string
   triggeredAt: string
+  status: string
 }
 
 // ---------------------------------------------------------------------------
@@ -739,6 +740,7 @@ export const TEST_ALERTS: AlertEventFixture[] = [
     threshold: 100000,
     bookId: 'port-1',
     triggeredAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+    status: 'TRIGGERED',
   },
   {
     id: 'alert-2',
@@ -751,6 +753,7 @@ export const TEST_ALERTS: AlertEventFixture[] = [
     threshold: 100000,
     bookId: 'port-1',
     triggeredAt: new Date(Date.now() - 30 * 60_000).toISOString(),
+    status: 'TRIGGERED',
   },
 ]
 

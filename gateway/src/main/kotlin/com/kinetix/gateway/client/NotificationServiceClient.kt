@@ -24,6 +24,10 @@ data class AlertEventItem(
     val threshold: Double,
     val bookId: String,
     val triggeredAt: Instant,
+    val status: String = "TRIGGERED",
+    val resolvedAt: Instant? = null,
+    val resolvedReason: String? = null,
+    val correlationId: String? = null,
 )
 
 data class CreateAlertRuleParams(
@@ -39,5 +43,5 @@ interface NotificationServiceClient {
     suspend fun listRules(): List<AlertRuleItem>
     suspend fun createRule(params: CreateAlertRuleParams): AlertRuleItem
     suspend fun deleteRule(ruleId: String): Boolean
-    suspend fun listAlerts(limit: Int = 50): List<AlertEventItem>
+    suspend fun listAlerts(limit: Int = 50, status: String? = null): List<AlertEventItem>
 }

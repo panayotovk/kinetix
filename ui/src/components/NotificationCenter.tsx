@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react'
-import { Bell, Plus, Trash2, AlertTriangle, AlertCircle, Info, Download } from 'lucide-react'
+import { Bell, Plus, Trash2, AlertTriangle, AlertCircle, Info, Download, CheckCircle } from 'lucide-react'
 import type { AlertRuleDto, AlertEventDto, CreateAlertRuleRequestDto } from '../types'
 import { formatRelativeTime } from '../utils/format'
 import { exportToCsv } from '../utils/exportCsv'
 import { Card, Button, Badge, Input, Select, Spinner } from './ui'
 import { ConfirmDialog } from './ui/ConfirmDialog'
+
+type StatusFilter = 'TRIGGERED' | 'ACKNOWLEDGED' | 'RESOLVED' | 'ALL'
 
 interface NotificationCenterProps {
   rules: AlertRuleDto[]
@@ -54,16 +56,18 @@ export function NotificationCenter({
   const [severity, setSeverity] = useState('CRITICAL')
   const [channels, setChannels] = useState<string[]>(['IN_APP'])
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
 
-  const sortedAlerts = useMemo(
-    () =>
-      [...alerts].sort((a, b) => {
-        const timeCompare = new Date(b.triggeredAt).getTime() - new Date(a.triggeredAt).getTime()
-        if (timeCompare !== 0) return timeCompare
-        return (severityOrder[a.severity] ?? 99) - (severityOrder[b.severity] ?? 99)
-      }),
-    [alerts],
-  )
+  const sortedAlerts = useMemo(() => {
+    const filtered = statusFilter === 'ALL'
+      ? alerts
+      : alerts.filter((a) => a.status === statusFilter)
+    return [...filtered].sort((a, b) => {
+      const timeCompare = new Date(b.triggeredAt).getTime() - new Date(a.triggeredAt).getTime()
+      if (timeCompare !== 0) return timeCompare
+      return (severityOrder[a.severity] ?? 99) - (severityOrder[b.severity] ?? 99)
+    })
+  }, [alerts, statusFilter])
 
   function handleChannelToggle(ch: string) {
     setChannels((prev) =>
@@ -217,19 +221,38 @@ export function NotificationCenter({
 
       {/* Recent Alerts */}
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-slate-700">Recent Alerts</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-slate-700">Recent Alerts</h3>
+          <div data-testid="alert-status-filters" className="flex gap-1">
+            {(['ALL', 'TRIGGERED', 'ACKNOWLEDGED', 'RESOLVED'] as StatusFilter[]).map((s) => (
+              <button
+                key={s}
+                data-testid={`status-filter-${s.toLowerCase()}`}
+                onClick={() => setStatusFilter(s)}
+                className={`px-2 py-0.5 text-xs rounded-full transition-colors ${
+                  statusFilter === s
+                    ? 'bg-blue-100 text-blue-800 font-medium'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
+              </button>
+            ))}
+          </div>
+        </div>
         {sortedAlerts.length > 0 && (
           <button
             data-testid="alerts-csv-export"
             onClick={() => {
-              const headers = ['Severity', 'Type', 'Message', 'Book', 'Value', 'Threshold', 'Time']
+              const headers = ['Severity', 'Type', 'Message', 'Book', 'Value', 'Threshold', 'Status', 'Time']
               const rows = sortedAlerts.map((a) => [
                 a.severity,
                 a.type,
                 a.message,
-                a.portfolioId,
+                a.bookId,
                 String(a.currentValue),
                 String(a.threshold),
+                a.status,
                 a.triggeredAt,
               ])
               exportToCsv('alerts.csv', headers, rows)
@@ -263,7 +286,19 @@ export function NotificationCenter({
               <div className="flex-1">
                 <div className="text-slate-800">{alert.message}</div>
                 <div className="text-xs text-slate-500">
-                  Portfolio: {alert.portfolioId} | {formatRelativeTime(alert.triggeredAt)}
+                  Book: {alert.bookId} | {formatRelativeTime(alert.triggeredAt)}
+                  {alert.status === 'RESOLVED' && alert.resolvedAt && (
+                    <span className="ml-2 text-green-600">
+                      <CheckCircle className="inline h-3 w-3 mr-0.5" />
+                      Resolved {formatRelativeTime(alert.resolvedAt)}
+                    </span>
+                  )}
+                  {alert.status === 'ACKNOWLEDGED' && (
+                    <span className="ml-2 text-slate-500">
+                      <CheckCircle className="inline h-3 w-3 mr-0.5" />
+                      Acknowledged
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

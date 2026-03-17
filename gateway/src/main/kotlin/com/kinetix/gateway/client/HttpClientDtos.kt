@@ -279,6 +279,10 @@ data class AlertEventDto(
     val threshold: Double,
     val bookId: String,
     val triggeredAt: String,
+    val status: String = "TRIGGERED",
+    val resolvedAt: String? = null,
+    val resolvedReason: String? = null,
+    val correlationId: String? = null,
 )
 
 @Serializable
@@ -635,6 +639,10 @@ fun AlertEventDto.toDomain() = AlertEventItem(
     threshold = threshold,
     bookId = bookId,
     triggeredAt = Instant.parse(triggeredAt),
+    status = status,
+    resolvedAt = resolvedAt?.let { Instant.parse(it) },
+    resolvedReason = resolvedReason,
+    correlationId = correlationId,
 )
 
 fun JobPhaseClientDto.toDomain() = JobPhaseItem(

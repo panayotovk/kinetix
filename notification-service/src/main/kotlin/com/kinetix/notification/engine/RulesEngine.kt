@@ -2,6 +2,7 @@ package com.kinetix.notification.engine
 
 import com.kinetix.common.kafka.events.RiskResultEvent
 import com.kinetix.notification.model.*
+import com.kinetix.notification.persistence.AlertEventRepository
 import com.kinetix.notification.persistence.AlertRuleRepository
 import io.micrometer.core.instrument.MeterRegistry
 import org.slf4j.LoggerFactory
@@ -11,6 +12,7 @@ import java.util.UUID
 class RulesEngine(
     private val repository: AlertRuleRepository,
     private val meterRegistry: MeterRegistry? = null,
+    private val eventRepository: AlertEventRepository? = null,
 ) {
 
     private val logger = LoggerFactory.getLogger(RulesEngine::class.java)
@@ -27,6 +29,8 @@ class RulesEngine(
 
     suspend fun evaluate(event: RiskResultEvent): List<AlertEvent> {
         val rules = repository.findAll().filter { it.enabled }
+        val firedRuleIds = mutableSetOf<String>()
+
         val alerts = rules.mapNotNull { rule ->
             meterRegistry?.counter(
                 "notification_rules_evaluated_total",
@@ -34,17 +38,22 @@ class RulesEngine(
                 "book_id", event.bookId,
             )?.increment()
 
-            val currentValue = when (rule.type) {
-                AlertType.VAR_BREACH -> event.varValue.toDoubleOrNull() ?: 0.0
-                AlertType.PNL_THRESHOLD -> event.expectedShortfall.toDoubleOrNull() ?: 0.0
-                AlertType.RISK_LIMIT -> event.varValue.toDoubleOrNull() ?: 0.0
-            }
-            val triggered = when (rule.operator) {
-                ComparisonOperator.GREATER_THAN -> currentValue > rule.threshold
-                ComparisonOperator.LESS_THAN -> currentValue < rule.threshold
-                ComparisonOperator.EQUALS -> currentValue == rule.threshold
-            }
+            val currentValue = extractMetric(rule.type, event)
+            val triggered = compare(currentValue, rule.operator, rule.threshold)
+
             if (triggered) {
+                firedRuleIds.add(rule.id)
+
+                // Deduplication: skip if an active alert already exists for this (rule, book)
+                val existing = eventRepository?.findActiveByRuleAndBook(rule.id, event.bookId)
+                if (existing != null) {
+                    logger.debug(
+                        "Suppressing duplicate alert for rule={}, book={}, existing={}",
+                        rule.name, event.bookId, existing.id,
+                    )
+                    return@mapNotNull null
+                }
+
                 meterRegistry?.counter(
                     "notification_alerts_triggered_total",
                     "alert_type", rule.type.name,
@@ -62,16 +71,54 @@ class RulesEngine(
                     threshold = rule.threshold,
                     bookId = event.bookId,
                     triggeredAt = Instant.now(),
+                    correlationId = event.correlationId,
                 )
             } else {
                 null
             }
         }
 
+        // Auto-resolve: any TRIGGERED alert for this book whose rule no longer fires
+        autoResolve(event, rules, firedRuleIds)
+
         if (alerts.isEmpty()) {
             logger.debug("No alerts triggered for book={}, rules evaluated={}", event.bookId, rules.size)
         }
 
         return alerts
+    }
+
+    private suspend fun autoResolve(
+        event: RiskResultEvent,
+        rules: List<AlertRule>,
+        firedRuleIds: Set<String>,
+    ) {
+        val activeAlerts = eventRepository?.findActiveByBook(event.bookId) ?: return
+        for (alert in activeAlerts) {
+            if (alert.ruleId in firedRuleIds) continue
+            // Rule still exists but no longer fires → auto-resolve
+            val ruleStillExists = rules.any { it.id == alert.ruleId }
+            if (ruleStillExists) {
+                eventRepository.updateStatus(
+                    id = alert.id,
+                    status = AlertStatus.RESOLVED,
+                    resolvedAt = Instant.now(),
+                    resolvedReason = "AUTO_CLEARED",
+                )
+                logger.info("Auto-resolved alert={} for book={}", alert.id, alert.bookId)
+            }
+        }
+    }
+
+    private fun extractMetric(type: AlertType, event: RiskResultEvent): Double = when (type) {
+        AlertType.VAR_BREACH -> event.varValue.toDoubleOrNull() ?: 0.0
+        AlertType.PNL_THRESHOLD -> event.expectedShortfall.toDoubleOrNull() ?: 0.0
+        AlertType.RISK_LIMIT -> event.varValue.toDoubleOrNull() ?: 0.0
+    }
+
+    private fun compare(value: Double, operator: ComparisonOperator, threshold: Double): Boolean = when (operator) {
+        ComparisonOperator.GREATER_THAN -> value > threshold
+        ComparisonOperator.LESS_THAN -> value < threshold
+        ComparisonOperator.EQUALS -> value == threshold
     }
 }

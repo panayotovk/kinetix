@@ -1,6 +1,7 @@
 package com.kinetix.notification.delivery
 
 import com.kinetix.notification.model.AlertEvent
+import com.kinetix.notification.model.AlertStatus
 import com.kinetix.notification.model.DeliveryChannel
 import com.kinetix.notification.persistence.AlertEventRepository
 import org.slf4j.LoggerFactory
@@ -15,7 +16,7 @@ class InAppDeliveryService(private val repository: AlertEventRepository) : Deliv
         logger.info("In-app alert delivered: rule={}, severity={}", event.ruleName, event.severity)
     }
 
-    suspend fun getRecentAlerts(limit: Int = 50): List<AlertEvent> {
-        return repository.findRecent(limit)
+    suspend fun getRecentAlerts(limit: Int = 50, status: AlertStatus? = null): List<AlertEvent> {
+        return repository.findRecent(limit, status)
     }
 }

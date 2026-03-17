@@ -239,6 +239,10 @@ data class AlertEventResponse(
     val threshold: Double,
     val bookId: String,
     val triggeredAt: String,
+    val status: String = "TRIGGERED",
+    val resolvedAt: String? = null,
+    val resolvedReason: String? = null,
+    val correlationId: String? = null,
 )
 
 fun Route.notificationRoutes(rulesEngine: RulesEngine, inAppDelivery: InAppDeliveryService) {
@@ -303,10 +307,22 @@ fun Route.notificationRoutes(rulesEngine: RulesEngine, inAppDelivery: InAppDeliv
                     description = "Maximum number of alerts to return"
                     required = false
                 }
+                queryParameter<String>("status") {
+                    description = "Filter by alert status (TRIGGERED, ACKNOWLEDGED, RESOLVED)"
+                    required = false
+                }
             }
         }) {
             val limit = call.queryParameters["limit"]?.toIntOrNull() ?: 50
-            val alerts = inAppDelivery.getRecentAlerts(limit).map { it.toEventResponse() }
+            val statusParam = call.queryParameters["status"]
+            val statusFilter = statusParam?.let {
+                try {
+                    com.kinetix.notification.model.AlertStatus.valueOf(it)
+                } catch (_: IllegalArgumentException) {
+                    null
+                }
+            }
+            val alerts = inAppDelivery.getRecentAlerts(limit, statusFilter).map { it.toEventResponse() }
             call.respond(alerts)
         }
     }
@@ -334,4 +350,8 @@ private fun com.kinetix.notification.model.AlertEvent.toEventResponse() = AlertE
     threshold = threshold,
     bookId = bookId,
     triggeredAt = triggeredAt.toString(),
+    status = status.name,
+    resolvedAt = resolvedAt?.toString(),
+    resolvedReason = resolvedReason,
+    correlationId = correlationId,
 )

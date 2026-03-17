@@ -1,6 +1,8 @@
 package com.kinetix.notification.persistence
 
 import com.kinetix.notification.model.AlertEvent
+import com.kinetix.notification.model.AlertStatus
+import java.time.Instant
 import java.util.concurrent.ConcurrentLinkedDeque
 
 class InMemoryAlertEventRepository : AlertEventRepository {
@@ -10,5 +12,27 @@ class InMemoryAlertEventRepository : AlertEventRepository {
         events.addFirst(event)
     }
 
-    override suspend fun findRecent(limit: Int): List<AlertEvent> = events.take(limit)
+    override suspend fun findRecent(limit: Int, status: AlertStatus?): List<AlertEvent> {
+        val filtered = if (status != null) events.filter { it.status == status } else events.toList()
+        return filtered.take(limit)
+    }
+
+    override suspend fun findActiveByRuleAndBook(ruleId: String, bookId: String): AlertEvent? =
+        events.find { it.ruleId == ruleId && it.bookId == bookId && it.status == AlertStatus.TRIGGERED }
+
+    override suspend fun findActiveByBook(bookId: String): List<AlertEvent> =
+        events.filter { it.bookId == bookId && it.status == AlertStatus.TRIGGERED }
+
+    override suspend fun updateStatus(
+        id: String,
+        status: AlertStatus,
+        resolvedAt: Instant?,
+        resolvedReason: String?,
+    ) {
+        val event = events.find { it.id == id } ?: return
+        events.remove(event)
+        events.addFirst(event.copy(status = status, resolvedAt = resolvedAt, resolvedReason = resolvedReason))
+    }
+
+    override suspend fun findById(id: String): AlertEvent? = events.find { it.id == id }
 }

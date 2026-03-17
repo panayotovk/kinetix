@@ -10,10 +10,15 @@ object AlertEventsTable : Table("alert_events") {
     val type = varchar("type", 50)
     val severity = varchar("severity", 50)
     val message = text("message")
-    val currentValue = double("current_value")
-    val threshold = double("threshold")
+    val currentValue = decimal("current_value", 20, 6)
+    val threshold = decimal("threshold", 20, 6)
     val bookId = varchar("book_id", 255)
     val triggeredAt = timestampWithTimeZone("triggered_at")
+    val status = varchar("status", 20).default("TRIGGERED")
+    val resolvedAt = timestampWithTimeZone("resolved_at").nullable()
+    val resolvedReason = text("resolved_reason").nullable()
+    val contributors = text("contributors").nullable()
+    val correlationId = varchar("correlation_id", 255).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

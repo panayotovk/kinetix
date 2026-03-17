@@ -55,10 +55,15 @@ fun Route.notificationRoutes(client: NotificationServiceClient) {
                     description = "Maximum number of alerts to return"
                     required = false
                 }
+                queryParameter<String>("status") {
+                    description = "Filter by alert status (TRIGGERED, ACKNOWLEDGED, RESOLVED)"
+                    required = false
+                }
             }
         }) {
             val limit = call.queryParameters["limit"]?.toIntOrNull() ?: 50
-            val alerts = client.listAlerts(limit)
+            val status = call.queryParameters["status"]
+            val alerts = client.listAlerts(limit, status)
             call.respond(alerts.map { it.toDto() })
         }
     }

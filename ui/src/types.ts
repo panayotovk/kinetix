@@ -211,6 +211,10 @@ export interface AlertEventDto {
   threshold: number
   bookId: string
   triggeredAt: string
+  status: string
+  resolvedAt?: string
+  resolvedReason?: string
+  correlationId?: string
 }
 
 export interface CreateAlertRuleRequestDto {

@@ -39,9 +39,10 @@ class HttpNotificationServiceClient(
         return response.status == HttpStatusCode.NoContent
     }
 
-    override suspend fun listAlerts(limit: Int): List<AlertEventItem> {
+    override suspend fun listAlerts(limit: Int, status: String?): List<AlertEventItem> {
         val response = httpClient.get("$baseUrl/api/v1/notifications/alerts") {
             parameter("limit", limit)
+            if (status != null) parameter("status", status)
         }
         val dtos: List<AlertEventDto> = response.body()
         return dtos.map { it.toDomain() }

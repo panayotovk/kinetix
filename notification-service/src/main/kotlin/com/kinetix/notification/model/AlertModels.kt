@@ -3,6 +3,7 @@ package com.kinetix.notification.model
 import java.time.Instant
 
 enum class AlertType { VAR_BREACH, PNL_THRESHOLD, RISK_LIMIT }
+enum class AlertStatus { TRIGGERED, ACKNOWLEDGED, RESOLVED }
 enum class Severity { INFO, WARNING, CRITICAL }
 enum class ComparisonOperator { GREATER_THAN, LESS_THAN, EQUALS }
 enum class DeliveryChannel { IN_APP, EMAIL, WEBHOOK }
@@ -29,4 +30,8 @@ data class AlertEvent(
     val threshold: Double,
     val bookId: String,
     val triggeredAt: Instant,
+    val status: AlertStatus = AlertStatus.TRIGGERED,
+    val resolvedAt: Instant? = null,
+    val resolvedReason: String? = null,
+    val correlationId: String? = null,
 )

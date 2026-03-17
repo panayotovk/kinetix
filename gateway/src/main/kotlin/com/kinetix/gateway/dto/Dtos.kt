@@ -595,6 +595,10 @@ data class AlertEventDto(
     val threshold: Double,
     val bookId: String,
     val triggeredAt: String,
+    val status: String = "TRIGGERED",
+    val resolvedAt: String? = null,
+    val resolvedReason: String? = null,
+    val correlationId: String? = null,
 )
 
 @Serializable
@@ -631,6 +635,10 @@ fun AlertEventItem.toDto(): AlertEventDto = AlertEventDto(
     threshold = threshold,
     bookId = bookId,
     triggeredAt = triggeredAt.toString(),
+    status = status,
+    resolvedAt = resolvedAt?.toString(),
+    resolvedReason = resolvedReason,
+    correlationId = correlationId,
 )
 
 fun CreateAlertRuleRequest.toParams(): CreateAlertRuleParams = CreateAlertRuleParams(

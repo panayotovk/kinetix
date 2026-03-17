@@ -20,6 +20,12 @@ class AlertModelsTest : FunSpec({
         )
     }
 
+    test("AlertStatus has three values") {
+        AlertStatus.entries.map { it.name } shouldContainExactly listOf(
+            "TRIGGERED", "ACKNOWLEDGED", "RESOLVED",
+        )
+    }
+
     test("DeliveryChannel has three options") {
         DeliveryChannel.entries.map { it.name } shouldContainExactly listOf(
             "IN_APP", "EMAIL", "WEBHOOK",
