@@ -13,7 +13,7 @@ export interface PositionFixture {
   unrealizedPnl: { amount: string; currency: string }
 }
 
-export const TEST_PORTFOLIOS = [{ portfolioId: 'port-1' }]
+export const TEST_BOOKS = [{ portfolioId: 'port-1' }]
 
 export const TEST_POSITIONS: PositionFixture[] = [
   {
@@ -119,7 +119,7 @@ export async function mockAllApiRoutes(page: Page): Promise<void> {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(TEST_PORTFOLIOS),
+      body: JSON.stringify(TEST_BOOKS),
     })
   })
 

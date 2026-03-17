@@ -130,7 +130,7 @@ test.describe('Trade Blotter - Empty and Error States', () => {
     await mockAllApiRoutes(page)
   })
 
-  test('shows empty state when portfolio has no trades', async ({ page }) => {
+  test('shows empty state when book has no trades', async ({ page }) => {
     await page.unroute('**/api/v1/portfolios/*/trades')
     await page.route('**/api/v1/portfolios/*/trades', (route) => {
       route.fulfill({
@@ -219,7 +219,7 @@ test.describe('Trade Blotter - Additional Filtering and State', () => {
     await expect(page.locator('.text-red-600')).toBeVisible()
   })
 
-  test('trades refetch when portfolio changes', async ({ page }) => {
+  test('trades refetch when book changes', async ({ page }) => {
     const port2Trades: TradeFixture[] = [
       {
         tradeId: 'trade-p2-1',
@@ -233,7 +233,7 @@ test.describe('Trade Blotter - Additional Filtering and State', () => {
       },
     ]
 
-    // Override trades route to return different data per portfolio
+    // Override trades route to return different data per book
     await page.unroute('**/api/v1/portfolios/*/trades')
     await page.route('**/api/v1/portfolios/*/trades', (route) => {
       const url = route.request().url()
@@ -252,7 +252,7 @@ test.describe('Trade Blotter - Additional Filtering and State', () => {
       }
     })
 
-    // Override portfolios to expose port-1 and port-2
+    // Override books to expose port-1 and port-2
     await page.unroute('**/api/v1/portfolios')
     await page.route('**/api/v1/portfolios', (route) => {
       route.fulfill({
@@ -262,7 +262,7 @@ test.describe('Trade Blotter - Additional Filtering and State', () => {
       })
     })
 
-    // Override positions to avoid interfering with the portfolio selector
+    // Override positions to avoid interfering with the book selector
     await page.unroute('**/api/v1/portfolios/*/positions')
     await page.route('**/api/v1/portfolios/*/positions', (route) => {
       route.fulfill({
@@ -278,7 +278,7 @@ test.describe('Trade Blotter - Additional Filtering and State', () => {
     await expect(page.locator('[data-testid^="trade-row-"]')).toHaveCount(3)
 
     // Switch to port-2
-    await page.getByTestId('portfolio-selector').selectOption('port-2')
+    await page.getByTestId('book-selector').selectOption('port-2')
     await page.waitForSelector('[data-testid="trade-row-trade-p2-1"]')
 
     await expect(page.locator('[data-testid^="trade-row-"]')).toHaveCount(1)

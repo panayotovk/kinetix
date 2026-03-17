@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchDivisions, fetchDesks } from '../api/hierarchy'
-import { fetchBooks, fetchPositions } from '../api/positions'
+import { fetchBooks } from '../api/positions'
 import type { DivisionDto, DeskDto, BookDto } from '../types'
 
 export type SelectionLevel = 'firm' | 'division' | 'desk' | 'book'

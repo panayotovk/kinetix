@@ -5,7 +5,7 @@ import {
   TEST_PORTFOLIO_SUMMARY_MULTI_CURRENCY,
 } from './fixtures'
 
-test.describe('Portfolio Summary Card', () => {
+test.describe('Book Summary Card', () => {
   test.beforeEach(async ({ page }) => {
     await mockAllApiRoutes(page)
   })
@@ -98,7 +98,7 @@ test.describe('Portfolio Summary Card', () => {
   test('hides currency breakdown when empty', async ({ page }) => {
     // Default mock has currencyBreakdown: []
     await page.goto('/')
-    await page.waitForSelector('[data-testid="portfolio-summary-card"]')
+    await page.waitForSelector('[data-testid="book-summary-card"]')
 
     // Breakdown table should not be visible (only shown when length > 1)
     await expect(page.getByTestId('currency-row-USD')).not.toBeVisible()
@@ -116,15 +116,15 @@ test.describe('Portfolio Summary Card', () => {
     await page.waitForSelector('[data-testid="position-row-AAPL"]')
 
     // Portfolio summary card should not be rendered when summary is null
-    await expect(page.getByTestId('portfolio-summary-card')).not.toBeVisible()
+    await expect(page.getByTestId('book-summary-card')).not.toBeVisible()
     await expect(page.getByTestId('total-nav')).not.toBeVisible()
   })
 
-  test('renders "Portfolio Summary" heading', async ({ page }) => {
+  test('renders "Book Summary" heading', async ({ page }) => {
     await page.goto('/')
-    await page.waitForSelector('[data-testid="portfolio-summary-card"]')
+    await page.waitForSelector('[data-testid="book-summary-card"]')
 
-    await expect(page.getByTestId('portfolio-summary-card')).toBeVisible()
-    await expect(page.getByTestId('portfolio-summary-card')).toContainText('Portfolio Summary')
+    await expect(page.getByTestId('book-summary-card')).toBeVisible()
+    await expect(page.getByTestId('book-summary-card')).toContainText('Book Summary')
   })
 })
