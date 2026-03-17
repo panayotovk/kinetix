@@ -2,6 +2,8 @@ package com.kinetix.notification.engine
 
 import com.kinetix.common.kafka.events.PositionBreakdownItem
 import com.kinetix.common.kafka.events.RiskResultEvent
+import com.kinetix.notification.engine.extractors.DEFAULT_EXTRACTORS
+import com.kinetix.notification.engine.extractors.MetricExtractor
 import com.kinetix.notification.model.*
 import com.kinetix.notification.persistence.AlertEventRepository
 import com.kinetix.notification.persistence.AlertRuleRepository
@@ -17,7 +19,10 @@ class RulesEngine(
     private val repository: AlertRuleRepository,
     private val meterRegistry: MeterRegistry? = null,
     private val eventRepository: AlertEventRepository? = null,
+    extractors: List<MetricExtractor> = DEFAULT_EXTRACTORS,
 ) {
+
+    private val extractorsByType: Map<AlertType, MetricExtractor> = extractors.associateBy { it.type }
 
     private val logger = LoggerFactory.getLogger(RulesEngine::class.java)
 
@@ -115,10 +120,10 @@ class RulesEngine(
         }
     }
 
-    private fun extractMetric(type: AlertType, event: RiskResultEvent): Double = when (type) {
-        AlertType.VAR_BREACH -> event.varValue.toDoubleOrNull() ?: 0.0
-        AlertType.PNL_THRESHOLD -> event.expectedShortfall.toDoubleOrNull() ?: 0.0
-        AlertType.RISK_LIMIT -> event.varValue.toDoubleOrNull() ?: 0.0
+    private fun extractMetric(type: AlertType, event: RiskResultEvent): Double {
+        val extractor = extractorsByType[type]
+            ?: return 0.0
+        return extractor.extract(event) ?: 0.0
     }
 
     private fun compare(value: Double, operator: ComparisonOperator, threshold: Double): Boolean = when (operator) {

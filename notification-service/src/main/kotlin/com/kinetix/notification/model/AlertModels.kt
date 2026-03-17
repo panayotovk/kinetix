@@ -2,7 +2,16 @@ package com.kinetix.notification.model
 
 import java.time.Instant
 
-enum class AlertType { VAR_BREACH, PNL_THRESHOLD, RISK_LIMIT }
+enum class AlertType {
+    VAR_BREACH,
+    PNL_THRESHOLD,
+    RISK_LIMIT,
+    DELTA_BREACH,
+    VEGA_BREACH,
+    CONCENTRATION,
+    MARGIN_BREACH,
+    DATA_STALENESS,
+}
 enum class AlertStatus { TRIGGERED, ACKNOWLEDGED, RESOLVED }
 enum class Severity { INFO, WARNING, CRITICAL }
 enum class ComparisonOperator { GREATER_THAN, LESS_THAN, EQUALS }

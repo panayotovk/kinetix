@@ -123,9 +123,14 @@ export function NotificationCenter({
             value={type}
             onChange={(e) => setType(e.target.value)}
           >
-            <option value="VAR_BREACH">VAR_BREACH</option>
-            <option value="PNL_THRESHOLD">PNL_THRESHOLD</option>
-            <option value="RISK_LIMIT">RISK_LIMIT</option>
+            <option value="VAR_BREACH">VaR Breach</option>
+            <option value="PNL_THRESHOLD">P&amp;L Threshold</option>
+            <option value="RISK_LIMIT">Risk Limit</option>
+            <option value="DELTA_BREACH">Delta Breach</option>
+            <option value="VEGA_BREACH">Vega Breach</option>
+            <option value="CONCENTRATION">Concentration</option>
+            <option value="MARGIN_BREACH">Margin Breach</option>
+            <option value="DATA_STALENESS">Data Staleness</option>
           </Select>
           <Input
             data-testid="rule-threshold-input"

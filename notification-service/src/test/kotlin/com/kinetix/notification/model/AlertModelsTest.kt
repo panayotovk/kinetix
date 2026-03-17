@@ -8,9 +8,11 @@ import java.time.Instant
 
 class AlertModelsTest : FunSpec({
 
-    test("AlertType has three values") {
+    test("AlertType has eight values") {
         AlertType.entries.map { it.name } shouldContainExactly listOf(
             "VAR_BREACH", "PNL_THRESHOLD", "RISK_LIMIT",
+            "DELTA_BREACH", "VEGA_BREACH", "CONCENTRATION",
+            "MARGIN_BREACH", "DATA_STALENESS",
         )
     }
 

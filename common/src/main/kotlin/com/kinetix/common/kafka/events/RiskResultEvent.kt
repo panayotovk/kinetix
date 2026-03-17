@@ -22,4 +22,14 @@ data class RiskResultEvent(
     val correlationId: String? = null,
     val bookId: String = portfolioId,
     val positionBreakdown: List<PositionBreakdownItem>? = null,
+    val aggregateDelta: String? = null,
+    val aggregateVega: String? = null,
+    val marginUtilisation: Double? = null,
+    val concentrationByInstrument: List<ConcentrationItem>? = null,
+)
+
+@Serializable
+data class ConcentrationItem(
+    val instrumentId: String,
+    val percentage: Double,
 )

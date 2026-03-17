@@ -33,6 +33,16 @@ export function formatAlertMessage(alert: AlertEventDto): string {
       const pct = alert.currentValue.toFixed(2)
       return `${prefix}Concentration exceeded ${alert.threshold}% limit — current: ${pct}% (${book})`
     }
+    case 'DELTA_BREACH':
+      return `${prefix}Delta breached ${threshold} limit — current: ${current} (${book})`
+    case 'VEGA_BREACH':
+      return `${prefix}Vega breached ${threshold} limit — current: ${current} (${book})`
+    case 'MARGIN_BREACH':
+      return `${prefix}Margin utilisation exceeded ${alert.threshold}% — current: ${alert.currentValue.toFixed(1)}% (${book})`
+    case 'DATA_STALENESS':
+      return `${prefix}Market data staleness detected — ${alert.currentValue.toFixed(0)}s since last update (${book})`
+    case 'RISK_LIMIT':
+      return `${prefix}Risk limit breached ${threshold} — current: ${current} (${book})`
     default:
       return `${prefix}${alert.message}`
   }
