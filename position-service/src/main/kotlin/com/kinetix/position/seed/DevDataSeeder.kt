@@ -19,11 +19,11 @@ class DevDataSeeder(
     suspend fun seed() {
         val existing = positionRepository.findDistinctBookIds()
         if (existing.isNotEmpty()) {
-            log.info("Seed data already present ({} portfolios), skipping", existing.size)
+            log.info("Seed data already present ({} books), skipping", existing.size)
             return
         }
 
-        log.info("Seeding dev data: {} trades across {} portfolios", TRADES.size, TRADES.map { it.portfolioId }.distinct().size)
+        log.info("Seeding dev data: {} trades across {} books", TRADES.size, TRADES.map { it.portfolioId }.distinct().size)
 
         for (trade in TRADES) {
             tradeBookingService.handle(trade)
@@ -47,8 +47,18 @@ class DevDataSeeder(
         private fun eur(amount: String) = Money(BigDecimal(amount), EUR)
         private fun day(n: Long): Instant = BASE_TIME.plus(n, ChronoUnit.DAYS)
 
+        // Book → Desk mapping (desks seeded in reference-data-service):
+        //   equity-growth     → desk: equity-growth      (div: equities)
+        //   tech-momentum     → desk: tech-momentum      (div: equities)
+        //   emerging-markets  → desk: emerging-markets    (div: equities)
+        //   fixed-income      → desk: rates-trading       (div: fixed-income-rates)
+        //   multi-asset       → desk: multi-asset-strategies (div: multi-asset)
+        //   macro-hedge       → desk: macro-hedge         (div: multi-asset)
+        //   balanced-income   → desk: balanced-income     (div: multi-asset)
+        //   derivatives-book  → desk: derivatives-trading (div: multi-asset)
+
         val TRADES: List<BookTradeCommand> = listOf(
-            // ── equity-growth portfolio: 5 equity trades (existing) ──
+            // ── equity-growth book: 5 equity trades ──
             BookTradeCommand(
                 tradeId = TradeId("seed-eq-aapl-001"),
                 portfolioId = BookId("equity-growth"),
@@ -100,7 +110,7 @@ class DevDataSeeder(
                 tradedAt = BASE_TIME,
             ),
 
-            // ── multi-asset portfolio: 6 trades across asset classes (existing) ──
+            // ── multi-asset book: 6 trades across asset classes ──
             BookTradeCommand(
                 tradeId = TradeId("seed-ma-aapl-001"),
                 portfolioId = BookId("multi-asset"),
@@ -162,7 +172,7 @@ class DevDataSeeder(
                 tradedAt = BASE_TIME,
             ),
 
-            // ── fixed-income portfolio: 3 fixed income trades (existing) ──
+            // ── fixed-income book: 3 fixed income trades ──
             BookTradeCommand(
                 tradeId = TradeId("seed-fi-us2y-001"),
                 portfolioId = BookId("fixed-income"),
@@ -194,7 +204,7 @@ class DevDataSeeder(
                 tradedAt = BASE_TIME,
             ),
 
-            // ── emerging-markets portfolio: 5 positions (EM equities + FX) ──
+            // ── emerging-markets book: 5 positions (EM equities + FX) ──
             BookTradeCommand(
                 tradeId = TradeId("seed-em-baba-001"),
                 portfolioId = BookId("emerging-markets"),
@@ -257,7 +267,7 @@ class DevDataSeeder(
                 tradedAt = day(4),
             ),
 
-            // ── macro-hedge portfolio: 6 positions (rates, commodities, FX) ──
+            // ── macro-hedge book: 6 positions (rates, commodities, FX) ──
             BookTradeCommand(
                 tradeId = TradeId("seed-mh-usdjpy-001"),
                 portfolioId = BookId("macro-hedge"),
@@ -330,7 +340,7 @@ class DevDataSeeder(
                 tradedAt = day(4),
             ),
 
-            // ── tech-momentum portfolio: 4 concentrated tech positions ──
+            // ── tech-momentum book: 4 concentrated tech positions ──
             BookTradeCommand(
                 tradeId = TradeId("seed-tm-nvda-001"),
                 portfolioId = BookId("tech-momentum"),
@@ -383,7 +393,7 @@ class DevDataSeeder(
                 tradedAt = day(6),
             ),
 
-            // ── balanced-income portfolio: 5 positions (bonds + dividend equities) ──
+            // ── balanced-income book: 5 positions (bonds + dividend equities) ──
             BookTradeCommand(
                 tradeId = TradeId("seed-bi-us10y-001"),
                 portfolioId = BookId("balanced-income"),
@@ -446,7 +456,7 @@ class DevDataSeeder(
                 tradedAt = day(6),
             ),
 
-            // ── derivatives-book portfolio: 5 positions (options-heavy) ──
+            // ── derivatives-book: 5 positions (options-heavy) ──
             BookTradeCommand(
                 tradeId = TradeId("seed-db-spx-call-001"),
                 portfolioId = BookId("derivatives-book"),
