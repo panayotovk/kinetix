@@ -415,6 +415,66 @@ jobs:
           path: ui/test-results/e2e/junit.xml
           retention-days: 1
 
+  smoke-tests:
+    needs: [end-to-end-tests, python-integration-tests]
+    if: always() && !contains(needs.*.result, 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Create Docker network
+        run: docker network create kinetix 2>/dev/null || true
+
+      - name: Build and start stack
+        run: |
+          docker compose \
+            -f infra/docker-compose.infra.yml \
+            -f docker-compose.services.yml \
+            up --build --wait --timeout 300
+
+      - name: Run smoke tests
+        run: ./gradlew :smoke-tests:smokeTest
+
+      - name: Collect service logs
+        if: always()
+        run: |
+          docker compose \
+            -f infra/docker-compose.infra.yml \
+            -f docker-compose.services.yml \
+            logs --no-color > smoke-stack-logs.txt
+
+      - name: Upload smoke test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-reports
+          path: |
+            smoke-tests/build/reports/tests/smokeTest/
+            smoke-stack-logs.txt
+          retention-days: 14
+
+      - name: Upload smoke test XML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-xml
+          path: smoke-tests/build/test-results/smokeTest/**/*.xml
+          retention-days: 1
+
+      - name: Teardown
+        if: always()
+        run: |
+          docker compose \
+            -f infra/docker-compose.infra.yml \
+            -f docker-compose.services.yml \
+            down -v --remove-orphans
+
   validate-alerts:
     needs: changes
     if: needs.changes.outputs.infra == 'true' || github.ref == 'refs/heads/main'
@@ -438,7 +498,7 @@ jobs:
         run: promtool test rules alert-rules-test.yml
 
   test-summary:
-    needs: [kotlin-unit-tests, kotlin-acceptance-tests, kotlin-integration, end-to-end-tests, python-unit-tests, python-integration-tests, ui-build, ui-e2e-tests]
+    needs: [kotlin-unit-tests, kotlin-acceptance-tests, kotlin-integration, end-to-end-tests, python-unit-tests, python-integration-tests, ui-build, ui-e2e-tests, smoke-tests]
     if: always() && !cancelled()
     runs-on: ubuntu-latest
     steps:
