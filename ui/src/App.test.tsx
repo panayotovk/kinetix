@@ -8,6 +8,7 @@ vi.mock('./hooks/useNotifications')
 vi.mock('./hooks/useSystemHealth')
 vi.mock('./hooks/useStressTest')
 vi.mock('./hooks/useBookSelector')
+vi.mock('./hooks/useHierarchySelector')
 vi.mock('./hooks/useDataQuality')
 vi.mock('./hooks/useWorkspace')
 vi.mock('./components/TradeBlotter', () => ({
@@ -30,6 +31,7 @@ import { useNotifications } from './hooks/useNotifications'
 import { useSystemHealth } from './hooks/useSystemHealth'
 import { useStressTest } from './hooks/useStressTest'
 import { useBookSelector } from './hooks/useBookSelector'
+import { useHierarchySelector } from './hooks/useHierarchySelector'
 import { useDataQuality } from './hooks/useDataQuality'
 import { useWorkspace, DEFAULT_PREFERENCES } from './hooks/useWorkspace'
 
@@ -39,6 +41,7 @@ const mockUseNotifications = vi.mocked(useNotifications)
 const mockUseSystemHealth = vi.mocked(useSystemHealth)
 const mockUseStressTest = vi.mocked(useStressTest)
 const mockUseBookSelector = vi.mocked(useBookSelector)
+const mockUseHierarchySelector = vi.mocked(useHierarchySelector)
 const mockUseDataQuality = vi.mocked(useDataQuality)
 const mockUseWorkspace = vi.mocked(useWorkspace)
 
@@ -113,6 +116,18 @@ function setupDefaults() {
     loading: false,
     error: null,
   })
+  mockUseHierarchySelector.mockReturnValue({
+    selection: { level: 'firm', divisionId: null, deskId: null, bookId: null },
+    setSelection: vi.fn(),
+    breadcrumb: [{ level: 'firm', id: null, label: 'Firm' }],
+    effectiveBookId: null,
+    effectiveBookIds: ['book-1', 'book-2'],
+    divisions: [],
+    desks: [],
+    books: [{ bookId: 'book-1' }, { bookId: 'book-2' }],
+    loading: false,
+    error: null,
+  })
   mockUseDataQuality.mockReturnValue({
     status: { overall: 'OK', checks: [] },
     loading: false,
@@ -131,11 +146,11 @@ describe('App', () => {
     setupDefaults()
   })
 
-  it('renders Kinetix heading and book selector', () => {
+  it('renders Kinetix heading and hierarchy selector', () => {
     render(<App />)
 
     expect(screen.getByText('Kinetix')).toBeInTheDocument()
-    expect(screen.getByTestId('book-selector')).toBeInTheDocument()
+    expect(screen.getByTestId('hierarchy-selector')).toBeInTheDocument()
   })
 
   it('shows loading message while fetching', () => {
@@ -224,14 +239,10 @@ describe('App', () => {
     expect(screen.getByTestId('notification-center')).toBeInTheDocument()
   })
 
-  it('book selector calls selectBook', () => {
+  it('hierarchy selector toggle is rendered', () => {
     render(<App />)
 
-    fireEvent.change(screen.getByTestId('book-selector'), {
-      target: { value: 'book-2' },
-    })
-
-    expect(selectBook).toHaveBeenCalledWith('book-2')
+    expect(screen.getByTestId('hierarchy-selector-toggle')).toBeInTheDocument()
   })
 
   it('shows alert count badge when alerts exist', () => {

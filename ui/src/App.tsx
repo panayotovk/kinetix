@@ -13,6 +13,8 @@ import { EodTimelineTab } from './components/EodTimelineTab'
 import { BookSummaryCard } from './components/BookSummaryCard'
 import { usePositions } from './hooks/usePositions'
 import { useBookSelector, ALL_BOOKS } from './hooks/useBookSelector'
+import { useHierarchySelector } from './hooks/useHierarchySelector'
+import { HierarchySelector } from './components/HierarchySelector'
 import { usePriceStream } from './hooks/usePriceStream'
 import { useNotifications } from './hooks/useNotifications'
 import { usePositionRisk } from './hooks/usePositionRisk'
@@ -77,10 +79,11 @@ function App() {
     tabRefs.current.get(tabKeys[nextIndex])?.focus()
   }
 
-  const { positions: initialPositions, bookId: rawBookId, books, selectBook: rawSelectBook, loading: rawLoading, error: rawError } = usePositions()
+  const { positions: initialPositions, bookId: rawBookId, selectBook: rawSelectBook, loading: rawLoading, error: rawError } = usePositions()
   const bookSelector = useBookSelector()
+  const hierarchy = useHierarchySelector()
   const isAllSelected = bookSelector.isAllSelected
-  const effectiveBookId = isAllSelected ? null : rawBookId
+  const effectiveBookId = hierarchy.effectiveBookId ?? (isAllSelected ? null : rawBookId)
   const { positions, connected, reconnecting } = usePriceStream(
     isAllSelected ? bookSelector.aggregatedPositions : initialPositions,
   )
@@ -89,6 +92,7 @@ function App() {
   const loading = rawLoading || bookSelector.loading
   const error = rawError || bookSelector.error
 
+  // Keep selectBook wired for when hierarchy navigates to a specific book
   const handleBookChange = (id: string) => {
     if (id === ALL_BOOKS) {
       bookSelector.selectBook(ALL_BOOKS)
@@ -97,8 +101,9 @@ function App() {
       bookSelector.selectBook(id)
     }
   }
+  void handleBookChange // used indirectly via hierarchy selection changes
 
-  const bookId = isAllSelected ? ALL_BOOKS : rawBookId
+  const bookId = hierarchy.effectiveBookId ?? (isAllSelected ? ALL_BOOKS : rawBookId)
   const notifications = useNotifications()
   const systemHealth = useSystemHealth()
   const whatIf = useWhatIf(effectiveBookId)
@@ -116,22 +121,7 @@ function App() {
           <h1 className="text-lg font-bold tracking-tight">Kinetix</h1>
         </div>
         <div className="flex items-center gap-3">
-          {books.length > 0 && (
-            <select
-              data-testid="book-selector"
-              value={bookId ?? ''}
-              onChange={(e) => handleBookChange(e.target.value)}
-              aria-label="Select book"
-              className="bg-surface-800 border border-surface-700 text-white rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              {books.length > 1 && (
-                <option key={ALL_BOOKS} value={ALL_BOOKS}>All Books</option>
-              )}
-              {books.map((id) => (
-                <option key={id} value={id}>{id}</option>
-              ))}
-            </select>
-          )}
+          <HierarchySelector hierarchy={hierarchy} />
           <DataQualityIndicator status={dataQuality.status} loading={dataQuality.loading} />
           <button
             data-testid="save-workspace-button"
