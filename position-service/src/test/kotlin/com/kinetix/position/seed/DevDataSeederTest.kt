@@ -28,7 +28,7 @@ class DevDataSeederTest : FunSpec({
             BookTradeResult(
                 trade = com.kinetix.common.model.Trade(
                     tradeId = cmd.tradeId,
-                    portfolioId = cmd.portfolioId,
+                    bookId = cmd.portfolioId,
                     instrumentId = cmd.instrumentId,
                     assetClass = cmd.assetClass,
                     side = cmd.side,
@@ -64,7 +64,7 @@ class DevDataSeederTest : FunSpec({
             BookTradeResult(
                 trade = com.kinetix.common.model.Trade(
                     tradeId = cmd.tradeId,
-                    portfolioId = cmd.portfolioId,
+                    bookId = cmd.portfolioId,
                     instrumentId = cmd.instrumentId,
                     assetClass = cmd.assetClass,
                     side = cmd.side,

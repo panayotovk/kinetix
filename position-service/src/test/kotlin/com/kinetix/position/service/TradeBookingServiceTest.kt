@@ -45,7 +45,7 @@ private fun position(
     averageCost: String = "150.00",
     marketPrice: String = "155.00",
 ) = Position(
-    portfolioId = portfolioId,
+    bookId = portfolioId,
     instrumentId = instrumentId,
     assetClass = assetClass,
     quantity = BigDecimal(quantity),
@@ -104,7 +104,7 @@ class TradeBookingServiceTest : FunSpec({
     test("duplicate tradeId returns existing state without re-saving") {
         val existingTrade = Trade(
             tradeId = TradeId("t-1"),
-            portfolioId = PORTFOLIO,
+            bookId = PORTFOLIO,
             instrumentId = AAPL,
             assetClass = AssetClass.EQUITY,
             side = Side.BUY,
@@ -167,7 +167,7 @@ class TradeBookingServiceTest : FunSpec({
     test("does NOT publish trade event for duplicate trade") {
         val existingTrade = Trade(
             tradeId = TradeId("t-1"),
-            portfolioId = PORTFOLIO,
+            bookId = PORTFOLIO,
             instrumentId = AAPL,
             assetClass = AssetClass.EQUITY,
             side = Side.BUY,

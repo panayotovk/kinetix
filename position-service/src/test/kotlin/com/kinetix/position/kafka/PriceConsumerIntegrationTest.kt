@@ -31,7 +31,7 @@ private fun position(
     averageCost: String = "150.00",
     marketPrice: String = "155.00",
 ) = Position(
-    portfolioId = PortfolioId(portfolioId),
+    bookId = PortfolioId(portfolioId),
     instrumentId = instrumentId,
     assetClass = AssetClass.EQUITY,
     quantity = BigDecimal(quantity),

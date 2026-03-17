@@ -23,7 +23,7 @@ private fun position(
     averageCost: Money = usd("150.00"),
     marketPrice: Money = usd("155.00"),
 ) = Position(
-    portfolioId = PortfolioId(portfolioId),
+    bookId = PortfolioId(portfolioId),
     instrumentId = instrumentId,
     assetClass = assetClass,
     quantity = BigDecimal(quantity),

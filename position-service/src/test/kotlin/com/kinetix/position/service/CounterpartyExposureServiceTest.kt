@@ -27,7 +27,7 @@ private fun trade(
     counterpartyId: String? = null,
 ) = Trade(
     tradeId = TradeId(tradeId),
-    portfolioId = PortfolioId(portfolioId),
+    bookId = PortfolioId(portfolioId),
     instrumentId = InstrumentId(instrumentId),
     assetClass = assetClass,
     side = side,

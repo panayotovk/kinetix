@@ -89,7 +89,7 @@ class LimitEnforcementAcceptanceTest : BehaviorSpec({
 
                 positionRepo.save(
                     Position(
-                        portfolioId = PortfolioId("port-conc-1"),
+                        bookId = PortfolioId("port-conc-1"),
                         instrumentId = InstrumentId("AAPL"),
                         assetClass = AssetClass.EQUITY,
                         quantity = BigDecimal("4000"),
@@ -99,7 +99,7 @@ class LimitEnforcementAcceptanceTest : BehaviorSpec({
                 )
                 positionRepo.save(
                     Position(
-                        portfolioId = PortfolioId("port-conc-1"),
+                        bookId = PortfolioId("port-conc-1"),
                         instrumentId = InstrumentId("MSFT"),
                         assetClass = AssetClass.EQUITY,
                         quantity = BigDecimal("4000"),

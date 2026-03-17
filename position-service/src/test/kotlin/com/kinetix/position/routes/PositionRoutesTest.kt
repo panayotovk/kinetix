@@ -45,7 +45,7 @@ private fun position(
     averageCost: String = "150.00",
     marketPrice: String = "155.00",
 ) = Position(
-    portfolioId = portfolioId,
+    bookId = portfolioId,
     instrumentId = instrumentId,
     assetClass = assetClass,
     quantity = BigDecimal(quantity),
@@ -166,7 +166,7 @@ class PositionRoutesTest : FunSpec({
             setupApp()
             val trade = Trade(
                 tradeId = TradeId("t-1"),
-                portfolioId = PORTFOLIO,
+                bookId = PORTFOLIO,
                 instrumentId = AAPL,
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -210,7 +210,7 @@ class PositionRoutesTest : FunSpec({
             val trades = listOf(
                 Trade(
                     tradeId = TradeId("t-1"),
-                    portfolioId = PORTFOLIO,
+                    bookId = PORTFOLIO,
                     instrumentId = AAPL,
                     assetClass = AssetClass.EQUITY,
                     side = Side.BUY,

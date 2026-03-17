@@ -32,7 +32,7 @@ private fun trade(
     originalTradeId: TradeId? = null,
 ) = Trade(
     tradeId = TradeId(tradeId),
-    portfolioId = portfolioId,
+    bookId = portfolioId,
     instrumentId = instrumentId,
     assetClass = assetClass,
     side = side,
@@ -53,7 +53,7 @@ private fun position(
     marketPrice: String = "155.00",
     realizedPnl: String = "0",
 ) = Position(
-    portfolioId = portfolioId,
+    bookId = portfolioId,
     instrumentId = instrumentId,
     assetClass = assetClass,
     quantity = BigDecimal(quantity),

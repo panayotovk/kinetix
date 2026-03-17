@@ -24,7 +24,7 @@ private fun trade(
     tradedAt: Instant = Instant.parse("2025-01-15T10:00:00Z"),
 ) = Trade(
     tradeId = TradeId(tradeId),
-    portfolioId = PortfolioId(portfolioId),
+    bookId = PortfolioId(portfolioId),
     instrumentId = InstrumentId(instrumentId),
     assetClass = assetClass,
     side = side,

@@ -21,7 +21,7 @@ private fun buyTrade(
     tradeId: String = "t-buy",
 ) = Trade(
     tradeId = TradeId(tradeId),
-    portfolioId = PORTFOLIO,
+    bookId = PORTFOLIO,
     instrumentId = AAPL,
     assetClass = AssetClass.EQUITY,
     side = Side.BUY,
@@ -36,7 +36,7 @@ private fun sellTrade(
     tradeId: String = "t-sell",
 ) = Trade(
     tradeId = TradeId(tradeId),
-    portfolioId = PORTFOLIO,
+    bookId = PORTFOLIO,
     instrumentId = AAPL,
     assetClass = AssetClass.EQUITY,
     side = Side.SELL,
