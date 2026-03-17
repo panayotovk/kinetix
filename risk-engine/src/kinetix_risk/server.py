@@ -52,18 +52,18 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
                 correlation_matrix=bundle.correlation_matrix,
             )
 
-            portfolio_id = request.portfolio_id.value
-            risk_var_value.labels(portfolio_id=portfolio_id).set(result.var_value)
-            risk_var_expected_shortfall.labels(portfolio_id=portfolio_id).set(result.expected_shortfall)
+            book_id = request.book_id.value
+            risk_var_value.labels(portfolio_id=book_id).set(result.var_value)
+            risk_var_expected_shortfall.labels(portfolio_id=book_id).set(result.expected_shortfall)
             for component in result.component_breakdown:
                 risk_var_component_contribution.labels(
-                    portfolio_id=portfolio_id,
+                    portfolio_id=book_id,
                     asset_class=component.asset_class.value,
                 ).set(component.var_contribution)
 
             return var_result_to_proto_response(
                 result,
-                portfolio_id=request.portfolio_id.value,
+                book_id=request.book_id.value,
                 calculation_type=request.calculation_type,
                 confidence_level=request.confidence_level,
             )
@@ -96,23 +96,23 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
                 volatility_provider=bundle.volatility_provider or VolatilityProvider.static(),
                 correlation_matrix=bundle.correlation_matrix,
                 requested_outputs=requested_outputs,
-                portfolio_id=request.portfolio_id.value,
+                book_id=request.book_id.value,
                 seed=seed,
             )
 
             if result.var_result is not None:
-                portfolio_id = request.portfolio_id.value
-                risk_var_value.labels(portfolio_id=portfolio_id).set(result.var_result.var_value)
-                risk_var_expected_shortfall.labels(portfolio_id=portfolio_id).set(result.var_result.expected_shortfall)
+                book_id = request.book_id.value
+                risk_var_value.labels(portfolio_id=book_id).set(result.var_result.var_value)
+                risk_var_expected_shortfall.labels(portfolio_id=book_id).set(result.var_result.expected_shortfall)
                 for component in result.var_result.component_breakdown:
                     risk_var_component_contribution.labels(
-                        portfolio_id=portfolio_id,
+                        portfolio_id=book_id,
                         asset_class=component.asset_class.value,
                     ).set(component.var_contribution)
 
             return valuation_result_to_proto_response(
                 result,
-                portfolio_id=request.portfolio_id.value,
+                book_id=request.book_id.value,
                 calculation_type=request.calculation_type,
                 confidence_level=request.confidence_level,
                 model_version=get_model_version(),

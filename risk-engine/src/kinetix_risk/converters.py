@@ -173,7 +173,7 @@ def proto_calculation_type_to_domain(proto_ct) -> CalculationType:
 
 def var_result_to_proto_response(
     result: VaRResult,
-    portfolio_id: str,
+    book_id: str,
     calculation_type,
     confidence_level,
 ) -> risk_calculation_pb2.VaRResponse:
@@ -190,7 +190,7 @@ def var_result_to_proto_response(
     now.FromSeconds(int(time.time()))
 
     return risk_calculation_pb2.VaRResponse(
-        portfolio_id=types_pb2.PortfolioId(value=portfolio_id),
+        book_id=types_pb2.BookId(value=book_id),
         calculation_type=calculation_type,
         confidence_level=confidence_level,
         var_value=result.var_value,
@@ -237,7 +237,7 @@ def _greeks_result_to_summary(result: GreeksResult) -> risk_calculation_pb2.Gree
 
 def valuation_result_to_proto_response(
     result: ValuationResult,
-    portfolio_id: str,
+    book_id: str,
     calculation_type,
     confidence_level,
     model_version: str = "",
@@ -272,7 +272,7 @@ def valuation_result_to_proto_response(
     ]
 
     response = risk_calculation_pb2.ValuationResponse(
-        portfolio_id=types_pb2.PortfolioId(value=portfolio_id),
+        book_id=types_pb2.BookId(value=book_id),
         calculation_type=calculation_type,
         confidence_level=confidence_level,
         var_value=var_value,
@@ -373,7 +373,7 @@ def greeks_result_to_proto(result: GreeksResult) -> stress_testing_pb2.GreeksRes
     now.FromSeconds(int(time.time()))
 
     return stress_testing_pb2.GreeksResponse(
-        portfolio_id=result.portfolio_id,
+        book_id=result.book_id,
         asset_class_greeks=asset_class_greeks,
         theta=result.theta,
         rho=result.rho,
@@ -407,7 +407,7 @@ def frtb_result_to_proto(result: FrtbResult) -> regulatory_reporting_pb2.FrtbRes
     now.FromSeconds(int(time.time()))
 
     return regulatory_reporting_pb2.FrtbResponse(
-        portfolio_id=result.portfolio_id,
+        book_id=result.book_id,
         sbm=regulatory_reporting_pb2.SbmResult(
             risk_class_charges=rc_charges,
             total_sbm_charge=result.sbm.total_sbm_charge,
@@ -428,7 +428,7 @@ def frtb_result_to_proto(result: FrtbResult) -> regulatory_reporting_pb2.FrtbRes
 
 
 def report_to_proto(
-    portfolio_id: str,
+    book_id: str,
     fmt: int,
     content: str,
 ) -> regulatory_reporting_pb2.GenerateReportResponse:
@@ -436,7 +436,7 @@ def report_to_proto(
     now.FromSeconds(int(time.time()))
 
     return regulatory_reporting_pb2.GenerateReportResponse(
-        portfolio_id=portfolio_id,
+        book_id=book_id,
         format=fmt,
         content=content,
         generated_at=now,

@@ -38,7 +38,7 @@ class TestFrtbResult:
         drc = DrcResult(gross_jtd=50.0, hedge_benefit=10.0, net_drc=40.0)
         rrao = RraoResult(exotic_notional=1000.0, other_notional=500.0, total_rrao=15.0)
         result = FrtbResult(
-            portfolio_id="port-1",
+            book_id="port-1",
             sbm=sbm,
             drc=drc,
             rrao=rrao,
@@ -62,7 +62,7 @@ class TestFrtbResult:
         drc = DrcResult(gross_jtd=20.0, hedge_benefit=5.0, net_drc=15.0)
         rrao = RraoResult(exotic_notional=100.0, other_notional=50.0, total_rrao=1.05)
         result = FrtbResult(
-            portfolio_id="port-1",
+            book_id="port-1",
             sbm=sbm,
             drc=drc,
             rrao=rrao,
@@ -71,4 +71,4 @@ class TestFrtbResult:
         assert result.sbm is not None
         assert result.drc is not None
         assert result.rrao is not None
-        assert result.portfolio_id == "port-1"
+        assert result.book_id == "port-1"

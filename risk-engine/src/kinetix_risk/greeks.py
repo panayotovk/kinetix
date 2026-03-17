@@ -42,7 +42,7 @@ def calculate_greeks(
     calculation_type: CalculationType,
     confidence_level: ConfidenceLevel,
     time_horizon_days: int,
-    portfolio_id: str = "",
+    book_id: str = "",
     base_var_value: float | None = None,
 ) -> GreeksResult:
     if not positions:
@@ -134,7 +134,7 @@ def calculate_greeks(
     rho = (var_bumped_rate - var_base_rate) / RATE_BUMP
 
     return GreeksResult(
-        portfolio_id=portfolio_id,
+        book_id=book_id,
         delta=delta,
         gamma=gamma,
         vega=vega,

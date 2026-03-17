@@ -154,7 +154,7 @@ class StressTestResult:
 
 @dataclass(frozen=True)
 class GreeksResult:
-    portfolio_id: str
+    book_id: str
     delta: dict[AssetClass, float]
     gamma: dict[AssetClass, float]
     vega: dict[AssetClass, float]
@@ -240,7 +240,7 @@ class RraoResult:
 
 @dataclass(frozen=True)
 class FrtbResult:
-    portfolio_id: str
+    book_id: str
     sbm: SbmResult
     drc: DrcResult
     rrao: RraoResult

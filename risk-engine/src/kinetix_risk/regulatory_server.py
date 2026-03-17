@@ -23,9 +23,9 @@ class RegulatoryReportingServicer(
         start = time.time()
         try:
             positions = proto_positions_to_domain(request.positions)
-            portfolio_id = request.portfolio_id.value
+            book_id = request.book_id.value
 
-            result = calculate_frtb(positions, portfolio_id)
+            result = calculate_frtb(positions, book_id)
 
             frtb_calculation_total.inc()
             return frtb_result_to_proto(result)
@@ -35,9 +35,9 @@ class RegulatoryReportingServicer(
 
     def GenerateReport(self, request, context):
         positions = proto_positions_to_domain(request.positions)
-        portfolio_id = request.portfolio_id.value
+        book_id = request.book_id.value
 
-        result = calculate_frtb(positions, portfolio_id)
+        result = calculate_frtb(positions, book_id)
 
         fmt = request.format
         if fmt == regulatory_reporting_pb2.XBRL:
@@ -48,4 +48,4 @@ class RegulatoryReportingServicer(
             fmt_label = "CSV"
 
         regulatory_report_total.labels(format=fmt_label).inc()
-        return report_to_proto(portfolio_id, fmt, content)
+        return report_to_proto(book_id, fmt, content)

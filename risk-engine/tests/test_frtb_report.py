@@ -19,7 +19,7 @@ def _sample_frtb_result() -> FrtbResult:
         for rc in FrtbRiskClass
     ]
     return FrtbResult(
-        portfolio_id="port-1",
+        book_id="port-1",
         sbm=SbmResult(risk_class_charges=charges, total_sbm_charge=1120.0),
         drc=DrcResult(gross_jtd=500.0, hedge_benefit=50.0, net_drc=450.0),
         rrao=RraoResult(exotic_notional=10000.0, other_notional=5000.0, total_rrao=105.0),

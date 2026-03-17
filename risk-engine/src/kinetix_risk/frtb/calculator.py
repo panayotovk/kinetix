@@ -11,7 +11,7 @@ def _has_credit_positions(positions: list[PositionRisk]) -> bool:
 
 def calculate_frtb(
     positions: list[PositionRisk],
-    portfolio_id: str,
+    book_id: str,
     sensitivities: list[SensitivityInput] | None = None,
     default_probabilities: dict[str, float] | None = None,
 ) -> FrtbResult:
@@ -32,7 +32,7 @@ def calculate_frtb(
     total = sbm.total_sbm_charge + drc.net_drc + rrao.total_rrao
 
     return FrtbResult(
-        portfolio_id=portfolio_id,
+        book_id=book_id,
         sbm=sbm,
         drc=drc,
         rrao=rrao,

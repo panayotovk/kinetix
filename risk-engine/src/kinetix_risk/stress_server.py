@@ -82,7 +82,7 @@ class StressTestServicer(stress_testing_pb2_grpc.StressTestServiceServicer):
                 calculation_type=calc_type,
                 confidence_level=confidence,
                 time_horizon_days=request.time_horizon_days or 1,
-                portfolio_id=request.portfolio_id.value,
+                book_id=request.book_id.value,
             )
 
             greeks_calculation_total.inc()

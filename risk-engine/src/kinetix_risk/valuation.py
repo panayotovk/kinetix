@@ -21,7 +21,7 @@ def calculate_valuation(
     num_simulations: int = 10_000,
     volatility_provider: VolatilityProvider | None = None,
     correlation_matrix=None,
-    portfolio_id: str = "",
+    book_id: str = "",
     seed: int | None = None,
 ) -> ValuationResult:
     outputs = requested_outputs if requested_outputs else _DEFAULT_OUTPUTS
@@ -64,7 +64,7 @@ def calculate_valuation(
             calculation_type=calculation_type,
             confidence_level=confidence_level,
             time_horizon_days=time_horizon_days,
-            portfolio_id=portfolio_id,
+            book_id=book_id,
             base_var_value=base_var,
         )
         computed.append("GREEKS")
