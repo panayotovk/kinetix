@@ -13,6 +13,7 @@ interface PositionGridProps {
   positions: PositionDto[]
   connected?: boolean
   positionRisk?: PositionRiskDto[]
+  showBookColumn?: boolean
 }
 
 function riskValue(risk: PositionRiskDto | undefined, field: SortField): number {
@@ -55,7 +56,7 @@ function loadColumnVisibility(): Record<string, boolean> {
   return {}
 }
 
-export function PositionGrid({ positions, connected, positionRisk }: PositionGridProps) {
+export function PositionGrid({ positions, connected, positionRisk, showBookColumn = false }: PositionGridProps) {
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
   const [currentPage, setCurrentPage] = useState(1)
@@ -150,7 +151,11 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
       : <ChevronUp className="inline h-3 w-3" />
   }
 
-  const visiblePositionCols = POSITION_COLUMNS.filter((c) => isColumnVisible(c.key))
+  const BOOK_COLUMN: ColumnDef = { key: 'book', label: 'Book', align: 'left' }
+  const allPositionCols = showBookColumn
+    ? [BOOK_COLUMN, ...POSITION_COLUMNS]
+    : POSITION_COLUMNS
+  const visiblePositionCols = allPositionCols.filter((c) => isColumnVisible(c.key))
   const positionColCount = visiblePositionCols.length
   const riskColCount = 4
 
@@ -161,6 +166,7 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
     const rows = sortedPositions.map((pos) => {
       const risk = riskByInstrument.get(pos.instrumentId)
       const cellValues: Record<string, string> = {
+        book: pos.bookId,
         instrument: pos.instrumentId,
         displayName: pos.displayName || '',
         instrumentType: pos.instrumentType || '',
@@ -358,6 +364,7 @@ export function PositionGrid({ positions, connected, positionRisk }: PositionGri
               {paginatedPositions.map((pos) => {
                 const risk = riskByInstrument.get(pos.instrumentId)
                 const cellMap: Record<string, React.ReactNode> = {
+                  book: <td key="book" data-testid={`book-${pos.instrumentId}`} className="px-4 py-2 text-sm text-slate-600 dark:text-slate-400">{pos.bookId}</td>,
                   instrument: <td key="instrument" className="px-4 py-2 text-sm font-medium">{pos.instrumentId}</td>,
                   displayName: <td key="displayName" className="px-4 py-2 text-sm text-slate-600 dark:text-slate-400">{pos.displayName || '—'}</td>,
                   instrumentType: <td key="instrumentType" className="px-4 py-2 text-sm text-slate-600 dark:text-slate-400">{pos.instrumentType?.replace(/_/g, ' ') || '—'}</td>,

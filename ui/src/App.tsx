@@ -22,7 +22,7 @@ import { useSystemHealth } from './hooks/useSystemHealth'
 import { useWhatIf } from './hooks/useWhatIf'
 import { useStressTest } from './hooks/useStressTest'
 import { useRunAllScenarios } from './hooks/useRunAllScenarios'
-import { useBookSummary } from './hooks/useBookSummary'
+import { useHierarchySummary } from './hooks/useHierarchySummary'
 import { useTheme } from './hooks/useTheme'
 import { useDataQuality } from './hooks/useDataQuality'
 import { DataQualityIndicator } from './components/DataQualityIndicator'
@@ -109,7 +109,7 @@ function App() {
   const whatIf = useWhatIf(effectiveBookId)
   const stress = useStressTest(bookId)
   const scenariosAll = useRunAllScenarios(bookId)
-  const bookSummary = useBookSummary(bookId)
+  const hierarchySummary = useHierarchySummary(hierarchy.selection)
   const { isDark, toggle: toggleTheme } = useTheme()
   const dataQuality = useDataQuality()
 
@@ -219,13 +219,19 @@ function App() {
                     </div>
                     <div className="mb-4">
                       <BookSummaryCard
-                        summary={bookSummary.summary}
-                        baseCurrency={bookSummary.baseCurrency}
-                        onBaseCurrencyChange={bookSummary.setBaseCurrency}
-                        loading={bookSummary.loading}
+                        summary={hierarchySummary.summary}
+                        baseCurrency={hierarchySummary.baseCurrency}
+                        onBaseCurrencyChange={hierarchySummary.setBaseCurrency}
+                        loading={hierarchySummary.loading}
+                        title={hierarchySummary.summaryLabel}
                       />
                     </div>
-                    <PositionGrid positions={positions} connected={connected} positionRisk={positionRisk} />
+                    <PositionGrid
+                      positions={positions}
+                      connected={connected}
+                      positionRisk={positionRisk}
+                      showBookColumn={hierarchy.selection.level !== 'book'}
+                    />
                   </div>
                 )}
 
@@ -246,6 +252,7 @@ function App() {
                     onViewStressDetails={() => setActiveTab('scenarios')}
                     onWhatIf={() => setWhatIfOpen(true)}
                     onViewPnlTab={() => setActiveTab('pnl')}
+                    aggregatedView={hierarchy.selection.level !== 'book'}
                   />
                 )}
 

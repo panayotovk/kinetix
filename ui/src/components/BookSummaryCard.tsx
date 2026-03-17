@@ -9,6 +9,7 @@ interface BookSummaryCardProps {
   baseCurrency: string
   onBaseCurrencyChange: (currency: string) => void
   loading?: boolean
+  title?: string
 }
 
 export function BookSummaryCard({
@@ -16,6 +17,7 @@ export function BookSummaryCard({
   baseCurrency,
   onBaseCurrencyChange,
   loading,
+  title = 'Book Summary',
 }: BookSummaryCardProps) {
   if (loading && !summary) {
     return (
@@ -33,7 +35,7 @@ export function BookSummaryCard({
   return (
     <Card data-testid="book-summary-card">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-slate-700">Book Summary</h3>
+        <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
         <select
           data-testid="base-currency-selector"
           value={baseCurrency}

@@ -26,6 +26,7 @@ interface RiskTabProps {
   onViewStressDetails: () => void
   onWhatIf?: () => void
   onViewPnlTab?: () => void
+  aggregatedView?: boolean
 }
 
 export function RiskTab({
@@ -36,6 +37,7 @@ export function RiskTab({
   onViewStressDetails,
   onWhatIf,
   onViewPnlTab,
+  aggregatedView = false,
 }: RiskTabProps) {
   const [subTab, setSubTab] = useState<RiskSubTab>('dashboard')
   const [valuationDate, setValuationDate] = useState<string | null>(null)
@@ -115,6 +117,14 @@ export function RiskTab({
 
       {subTab === 'dashboard' && (
         <>
+          {aggregatedView && (
+            <div
+              data-testid="aggregated-var-note"
+              className="mb-3 px-3 py-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md"
+            >
+              Showing sum of book VaRs — true aggregated VaR requires backend support.
+            </div>
+          )}
           {alerts.length > 0 && (
             <div className="mb-2">
               <RiskAlertBanner alerts={alerts} onDismiss={dismissAlert} />
