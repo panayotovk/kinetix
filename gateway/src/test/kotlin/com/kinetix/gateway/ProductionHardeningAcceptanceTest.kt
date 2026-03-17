@@ -56,7 +56,7 @@ class ProductionHardeningAcceptanceTest : BehaviorSpec({
             then("authorized — TRADER has WRITE_TRADES permission") {
                 val trade = Trade(
                     tradeId = TradeId("t-acc-1"),
-                    portfolioId = PortfolioId("port-1"),
+                    bookId = PortfolioId("port-1"),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     side = Side.BUY,
@@ -65,7 +65,7 @@ class ProductionHardeningAcceptanceTest : BehaviorSpec({
                     tradedAt = Instant.parse("2025-01-15T10:00:00Z"),
                 )
                 val position = Position(
-                    portfolioId = PortfolioId("port-1"),
+                    bookId = PortfolioId("port-1"),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     quantity = BigDecimal("100"),

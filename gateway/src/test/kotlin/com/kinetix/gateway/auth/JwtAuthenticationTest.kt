@@ -87,7 +87,7 @@ class JwtAuthenticationTest : FunSpec({
     test("token with TRADER role can access trade endpoints") {
         val trade = Trade(
             tradeId = TradeId("t-1"),
-            portfolioId = PortfolioId("port-1"),
+            bookId = PortfolioId("port-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             side = Side.BUY,
@@ -96,7 +96,7 @@ class JwtAuthenticationTest : FunSpec({
             tradedAt = Instant.parse("2025-01-15T10:00:00Z"),
         )
         val position = Position(
-            portfolioId = PortfolioId("port-1"),
+            bookId = PortfolioId("port-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             quantity = BigDecimal("100"),

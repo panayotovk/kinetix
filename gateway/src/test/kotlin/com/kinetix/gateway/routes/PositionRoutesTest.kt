@@ -62,7 +62,7 @@ class PositionRoutesTest : FunSpec({
     test("POST /trades returns 201 Created with trade and position") {
         val trade = Trade(
             tradeId = TradeId("t-1"),
-            portfolioId = PortfolioId("port-1"),
+            bookId = PortfolioId("port-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             side = Side.BUY,
@@ -71,7 +71,7 @@ class PositionRoutesTest : FunSpec({
             tradedAt = Instant.parse("2025-01-15T10:00:00Z"),
         )
         val position = Position(
-            portfolioId = PortfolioId("port-1"),
+            bookId = PortfolioId("port-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             quantity = BigDecimal("100"),
@@ -109,7 +109,7 @@ class PositionRoutesTest : FunSpec({
         val commandSlot = slot<BookTradeCommand>()
         val trade = Trade(
             tradeId = TradeId("t-1"),
-            portfolioId = PortfolioId("my-port"),
+            bookId = PortfolioId("my-port"),
             instrumentId = InstrumentId("MSFT"),
             assetClass = AssetClass.EQUITY,
             side = Side.BUY,
@@ -118,7 +118,7 @@ class PositionRoutesTest : FunSpec({
             tradedAt = Instant.parse("2025-01-15T10:00:00Z"),
         )
         val position = Position(
-            portfolioId = PortfolioId("my-port"),
+            bookId = PortfolioId("my-port"),
             instrumentId = InstrumentId("MSFT"),
             assetClass = AssetClass.EQUITY,
             quantity = BigDecimal("50"),
@@ -217,7 +217,7 @@ class PositionRoutesTest : FunSpec({
     test("POST /trades response includes computed position fields") {
         val trade = Trade(
             tradeId = TradeId("t-1"),
-            portfolioId = PortfolioId("port-1"),
+            bookId = PortfolioId("port-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             side = Side.BUY,
@@ -226,7 +226,7 @@ class PositionRoutesTest : FunSpec({
             tradedAt = Instant.parse("2025-01-15T10:00:00Z"),
         )
         val position = Position(
-            portfolioId = PortfolioId("port-1"),
+            bookId = PortfolioId("port-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             quantity = BigDecimal("100"),
@@ -265,7 +265,7 @@ class PositionRoutesTest : FunSpec({
         val trades = listOf(
             Trade(
                 tradeId = TradeId("t-1"),
-                portfolioId = PortfolioId("port-1"),
+                bookId = PortfolioId("port-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -275,7 +275,7 @@ class PositionRoutesTest : FunSpec({
             ),
             Trade(
                 tradeId = TradeId("t-2"),
-                portfolioId = PortfolioId("port-1"),
+                bookId = PortfolioId("port-1"),
                 instrumentId = InstrumentId("MSFT"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.SELL,
@@ -315,7 +315,7 @@ class PositionRoutesTest : FunSpec({
     test("GET /positions returns 200 with position list") {
         val positions = listOf(
             Position(
-                portfolioId = PortfolioId("port-1"),
+                bookId = PortfolioId("port-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),
@@ -323,7 +323,7 @@ class PositionRoutesTest : FunSpec({
                 marketPrice = usd("155.00"),
             ),
             Position(
-                portfolioId = PortfolioId("port-1"),
+                bookId = PortfolioId("port-1"),
                 instrumentId = InstrumentId("MSFT"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("50"),
@@ -358,7 +358,7 @@ class PositionRoutesTest : FunSpec({
 
     test("GET /positions includes computed marketValue and unrealizedPnl") {
         val position = Position(
-            portfolioId = PortfolioId("port-1"),
+            bookId = PortfolioId("port-1"),
             instrumentId = InstrumentId("AAPL"),
             assetClass = AssetClass.EQUITY,
             quantity = BigDecimal("100"),
