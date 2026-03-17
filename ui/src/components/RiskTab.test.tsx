@@ -129,23 +129,23 @@ describe('RiskTab', () => {
     })
   })
 
-  it('calls useVaR with the given portfolioId', () => {
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+  it('calls useVaR with the given bookId', () => {
+    render(<RiskTab bookId="book-1" {...defaultStressProps} />)
 
-    expect(mockUseVaR).toHaveBeenCalledWith('port-1', null)
+    expect(mockUseVaR).toHaveBeenCalledWith('book-1', null)
   })
 
   it('renders VaR dashboard and job history', () => {
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+    render(<RiskTab bookId="book-1" {...defaultStressProps} />)
 
     expect(screen.getByTestId('var-empty')).toBeInTheDocument()
     expect(screen.getByTestId('job-history')).toBeInTheDocument()
   })
 
-  it('calls usePositionRisk with the given portfolioId', () => {
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+  it('calls usePositionRisk with the given bookId', () => {
+    render(<RiskTab bookId="book-1" {...defaultStressProps} />)
 
-    expect(mockUsePositionRisk).toHaveBeenCalledWith('port-1', null)
+    expect(mockUsePositionRisk).toHaveBeenCalledWith('book-1', null)
   })
 
   it('renders PositionRiskTable between VaR dashboard and job history', () => {
@@ -170,7 +170,7 @@ describe('RiskTab', () => {
       refresh: vi.fn(),
     })
 
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+    render(<RiskTab bookId="book-1" {...defaultStressProps} />)
 
     expect(screen.getByTestId('position-risk-section')).toBeInTheDocument()
   })
@@ -182,7 +182,7 @@ describe('RiskTab', () => {
     })
     mockUseVaR.mockReturnValue({
       varResult: {
-        portfolioId: 'port-1',
+        bookId: 'book-1',
         calculationType: 'HISTORICAL',
         confidenceLevel: 'CL_95',
         varValue: '1000000',
@@ -208,7 +208,7 @@ describe('RiskTab', () => {
       isLive: true,
     })
 
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+    render(<RiskTab bookId="book-1" {...defaultStressProps} />)
 
     const limitLabel = screen.getByTestId('var-limit')
     expect(limitLabel).toHaveTextContent('Limit')
@@ -228,17 +228,17 @@ describe('RiskTab', () => {
           message: 'VaR exceeds limit',
           currentValue: 2300000,
           threshold: 2000000,
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggeredAt: '2026-02-28T10:00:00Z',
         },
       ],
       dismissAlert: vi.fn(),
     })
 
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+    render(<RiskTab bookId="book-1" {...defaultStressProps} />)
 
     expect(screen.getByTestId('risk-alert-banner')).toBeInTheDocument()
-    expect(screen.getByText('CRITICAL: VaR breached $2,000,000 limit — current: $2,300,000 (port-1)')).toBeInTheDocument()
+    expect(screen.getByText('CRITICAL: VaR breached $2,000,000 limit — current: $2,300,000 (book-1)')).toBeInTheDocument()
   })
 
   it('does not render risk alert banner when no alerts', () => {
@@ -247,7 +247,7 @@ describe('RiskTab', () => {
       dismissAlert: vi.fn(),
     })
 
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+    render(<RiskTab bookId="book-1" {...defaultStressProps} />)
 
     expect(screen.queryByTestId('risk-alert-banner')).not.toBeInTheDocument()
   })
@@ -259,7 +259,7 @@ describe('RiskTab', () => {
 
     mockUseVaR.mockReturnValue({
       varResult: {
-        portfolioId: 'port-1',
+        bookId: 'book-1',
         calculationType: 'HISTORICAL',
         confidenceLevel: '0.95',
         varValue: '5000',
@@ -291,7 +291,7 @@ describe('RiskTab', () => {
       refresh: mockRefreshPositionRisk,
     })
 
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+    render(<RiskTab bookId="book-1" {...defaultStressProps} />)
 
     const refreshButton = screen.getByTestId('var-recalculate')
     await user.click(refreshButton)
@@ -301,13 +301,13 @@ describe('RiskTab', () => {
   })
 
   it('renders StressSummaryCard', () => {
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+    render(<RiskTab bookId="book-1" {...defaultStressProps} />)
 
     expect(screen.getByTestId('stress-summary-card')).toBeInTheDocument()
   })
 
   it('renders StressSummaryCard between PositionRiskTable and JobHistory', () => {
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} stressResults={[stressResult]} />)
+    render(<RiskTab bookId="book-1" {...defaultStressProps} stressResults={[stressResult]} />)
 
     const card = screen.getByTestId('stress-summary-card')
     const jobHistory = screen.getByTestId('job-history')
@@ -317,7 +317,7 @@ describe('RiskTab', () => {
   it('passes stress result to StressSummaryCard', () => {
     render(
       <RiskTab
-        portfolioId="port-1"
+        bookId="book-1"
         {...defaultStressProps}
         stressResults={[stressResult]}
       />,
@@ -333,7 +333,7 @@ describe('RiskTab', () => {
 
     render(
       <RiskTab
-        portfolioId="port-1"
+        bookId="book-1"
         {...defaultStressProps}
         onRunStress={onRunStress}
       />,
@@ -349,7 +349,7 @@ describe('RiskTab', () => {
 
     render(
       <RiskTab
-        portfolioId="port-1"
+        bookId="book-1"
         {...defaultStressProps}
         stressResults={[stressResult]}
         onViewStressDetails={onViewStressDetails}
@@ -360,26 +360,26 @@ describe('RiskTab', () => {
     expect(onViewStressDetails).toHaveBeenCalledOnce()
   })
 
-  it('calls useSodBaseline with the given portfolioId', () => {
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+  it('calls useSodBaseline with the given bookId', () => {
+    render(<RiskTab bookId="book-1" {...defaultStressProps} />)
 
-    expect(mockUseSodBaseline).toHaveBeenCalledWith('port-1')
+    expect(mockUseSodBaseline).toHaveBeenCalledWith('book-1')
   })
 
-  it('calls usePnlAttribution with the given portfolioId', () => {
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+  it('calls usePnlAttribution with the given bookId', () => {
+    render(<RiskTab bookId="book-1" {...defaultStressProps} />)
 
-    expect(mockUsePnlAttribution).toHaveBeenCalledWith('port-1')
+    expect(mockUsePnlAttribution).toHaveBeenCalledWith('book-1')
   })
 
   it('renders PnlSummaryCard', () => {
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+    render(<RiskTab bookId="book-1" {...defaultStressProps} />)
 
     expect(screen.getByTestId('pnl-summary-card')).toBeInTheDocument()
   })
 
   it('renders PnlSummaryCard and StressSummaryCard in a two-column grid', () => {
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+    render(<RiskTab bookId="book-1" {...defaultStressProps} />)
 
     const pnlCard = screen.getByTestId('pnl-summary-card')
     const stressCard = screen.getByTestId('stress-summary-card')
@@ -403,7 +403,7 @@ describe('RiskTab', () => {
       refresh: vi.fn(),
     })
 
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+    render(<RiskTab bookId="book-1" {...defaultStressProps} />)
 
     expect(screen.getByTestId('pnl-no-baseline')).toBeInTheDocument()
   })
@@ -422,7 +422,7 @@ describe('RiskTab', () => {
       refresh: vi.fn(),
     })
 
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+    render(<RiskTab bookId="book-1" {...defaultStressProps} />)
 
     expect(screen.getByTestId('pnl-compute-prompt')).toBeInTheDocument()
   })
@@ -430,7 +430,7 @@ describe('RiskTab', () => {
   it('passes onWhatIf to VaRDashboard and renders What-If button', () => {
     mockUseVaR.mockReturnValue({
       varResult: {
-        portfolioId: 'port-1',
+        bookId: 'book-1',
         calculationType: 'HISTORICAL',
         confidenceLevel: 'CL_95',
         varValue: '1000000',
@@ -456,7 +456,7 @@ describe('RiskTab', () => {
       isLive: true,
     })
 
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} onWhatIf={() => {}} />)
+    render(<RiskTab bookId="book-1" {...defaultStressProps} onWhatIf={() => {}} />)
 
     expect(screen.getByTestId('var-whatif-button')).toBeInTheDocument()
   })
@@ -464,7 +464,7 @@ describe('RiskTab', () => {
   it('does not render What-If button when onWhatIf is not provided', () => {
     mockUseVaR.mockReturnValue({
       varResult: {
-        portfolioId: 'port-1',
+        bookId: 'book-1',
         calculationType: 'HISTORICAL',
         confidenceLevel: 'CL_95',
         varValue: '1000000',
@@ -490,7 +490,7 @@ describe('RiskTab', () => {
       isLive: true,
     })
 
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+    render(<RiskTab bookId="book-1" {...defaultStressProps} />)
 
     expect(screen.queryByTestId('var-whatif-button')).not.toBeInTheDocument()
   })
@@ -501,7 +501,7 @@ describe('RiskTab', () => {
 
     mockUsePnlAttribution.mockReturnValue({
       data: {
-        portfolioId: 'port-1',
+        bookId: 'book-1',
         date: '2026-02-28',
         totalPnl: '5000.00',
         deltaPnl: '3000.00',
@@ -517,7 +517,7 @@ describe('RiskTab', () => {
       error: null,
     })
 
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} onViewPnlTab={onViewPnlTab} />)
+    render(<RiskTab bookId="book-1" {...defaultStressProps} onViewPnlTab={onViewPnlTab} />)
 
     await user.click(screen.getByTestId('pnl-view-full-attribution'))
     expect(onViewPnlTab).toHaveBeenCalledOnce()
@@ -526,7 +526,7 @@ describe('RiskTab', () => {
   it('renders LastUpdatedIndicator with VaR calculatedAt timestamp', () => {
     mockUseVaR.mockReturnValue({
       varResult: {
-        portfolioId: 'port-1',
+        bookId: 'book-1',
         calculationType: 'HISTORICAL',
         confidenceLevel: 'CL_95',
         varValue: '1000000',
@@ -552,21 +552,21 @@ describe('RiskTab', () => {
       isLive: true,
     })
 
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+    render(<RiskTab bookId="book-1" {...defaultStressProps} />)
 
     expect(screen.getByTestId('last-updated')).toBeInTheDocument()
     expect(screen.getByTestId('last-updated')).toHaveTextContent('Last refreshed')
   })
 
   it('does not render LastUpdatedIndicator when no VaR data', () => {
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+    render(<RiskTab bookId="book-1" {...defaultStressProps} />)
 
     expect(screen.queryByTestId('last-updated')).not.toBeInTheDocument()
   })
 
   it('shows P&L summary data when attribution data is available', () => {
     const pnlData: PnlAttributionDto = {
-      portfolioId: 'port-1',
+      bookId: 'book-1',
       date: '2026-02-28',
       totalPnl: '12500.50',
       deltaPnl: '8000.00',
@@ -585,7 +585,7 @@ describe('RiskTab', () => {
       error: null,
     })
 
-    render(<RiskTab portfolioId="port-1" {...defaultStressProps} />)
+    render(<RiskTab bookId="book-1" {...defaultStressProps} />)
 
     expect(screen.getByTestId('pnl-summary-data')).toBeInTheDocument()
     expect(screen.getByTestId('pnl-total-value')).toHaveTextContent('12,500.50')

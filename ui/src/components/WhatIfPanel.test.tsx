@@ -17,7 +17,7 @@ const whatIfResponse: WhatIfResponseDto = {
   baseVaR: '100000.00',
   baseExpectedShortfall: '130000.00',
   baseGreeks: {
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     assetClassGreeks: [
       { assetClass: 'EQUITY', delta: '50000.00', gamma: '1200.00', vega: '8000.00' },
     ],
@@ -29,7 +29,7 @@ const whatIfResponse: WhatIfResponseDto = {
   hypotheticalVaR: '85000.00',
   hypotheticalExpectedShortfall: '110000.00',
   hypotheticalGreeks: {
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     assetClassGreeks: [
       { assetClass: 'EQUITY', delta: '45000.00', gamma: '1100.00', vega: '7500.00' },
     ],

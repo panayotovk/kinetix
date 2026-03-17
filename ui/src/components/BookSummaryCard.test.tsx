@@ -2,10 +2,10 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { PortfolioAggregationDto } from '../types'
-import { PortfolioSummaryCard } from './PortfolioSummaryCard'
+import { BookSummaryCard } from './BookSummaryCard'
 
 const summary: PortfolioAggregationDto = {
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   baseCurrency: 'USD',
   totalNav: { amount: '38050.00', currency: 'USD' },
   totalUnrealizedPnl: { amount: '1500.00', currency: 'USD' },
@@ -25,10 +25,10 @@ const summary: PortfolioAggregationDto = {
   ],
 }
 
-describe('PortfolioSummaryCard', () => {
+describe('BookSummaryCard', () => {
   it('renders total NAV', () => {
     render(
-      <PortfolioSummaryCard
+      <BookSummaryCard
         summary={summary}
         baseCurrency="USD"
         onBaseCurrencyChange={vi.fn()}
@@ -41,7 +41,7 @@ describe('PortfolioSummaryCard', () => {
 
   it('renders total unrealized P&L', () => {
     render(
-      <PortfolioSummaryCard
+      <BookSummaryCard
         summary={summary}
         baseCurrency="USD"
         onBaseCurrencyChange={vi.fn()}
@@ -54,7 +54,7 @@ describe('PortfolioSummaryCard', () => {
 
   it('renders currency breakdown rows', () => {
     render(
-      <PortfolioSummaryCard
+      <BookSummaryCard
         summary={summary}
         baseCurrency="USD"
         onBaseCurrencyChange={vi.fn()}
@@ -67,7 +67,7 @@ describe('PortfolioSummaryCard', () => {
 
   it('shows base currency selector', () => {
     render(
-      <PortfolioSummaryCard
+      <BookSummaryCard
         summary={summary}
         baseCurrency="USD"
         onBaseCurrencyChange={vi.fn()}
@@ -84,7 +84,7 @@ describe('PortfolioSummaryCard', () => {
     const onBaseCurrencyChange = vi.fn()
 
     render(
-      <PortfolioSummaryCard
+      <BookSummaryCard
         summary={summary}
         baseCurrency="USD"
         onBaseCurrencyChange={onBaseCurrencyChange}
@@ -97,7 +97,7 @@ describe('PortfolioSummaryCard', () => {
 
   it('applies green colour to positive P&L', () => {
     render(
-      <PortfolioSummaryCard
+      <BookSummaryCard
         summary={summary}
         baseCurrency="USD"
         onBaseCurrencyChange={vi.fn()}
@@ -114,7 +114,7 @@ describe('PortfolioSummaryCard', () => {
     }
 
     render(
-      <PortfolioSummaryCard
+      <BookSummaryCard
         summary={negativeSummary}
         baseCurrency="USD"
         onBaseCurrencyChange={vi.fn()}
@@ -126,7 +126,7 @@ describe('PortfolioSummaryCard', () => {
 
   it('renders loading state when summary is null', () => {
     render(
-      <PortfolioSummaryCard
+      <BookSummaryCard
         summary={null}
         baseCurrency="USD"
         onBaseCurrencyChange={vi.fn()}
@@ -134,6 +134,6 @@ describe('PortfolioSummaryCard', () => {
       />,
     )
 
-    expect(screen.getByTestId('portfolio-summary-loading')).toBeInTheDocument()
+    expect(screen.getByTestId('book-summary-loading')).toBeInTheDocument()
   })
 })

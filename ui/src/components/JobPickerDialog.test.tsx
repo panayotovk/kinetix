@@ -13,7 +13,7 @@ const mockUseJobPicker = vi.mocked(useJobPicker)
 const completedJobs: ValuationJobSummaryDto[] = [
   {
     jobId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     triggerType: 'ON_DEMAND',
     status: 'COMPLETED',
     startedAt: '2025-01-15T08:00:00Z',
@@ -29,7 +29,7 @@ const completedJobs: ValuationJobSummaryDto[] = [
   },
   {
     jobId: 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff',
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     triggerType: 'SCHEDULED',
     status: 'COMPLETED',
     startedAt: '2025-01-15T06:00:00Z',
@@ -70,7 +70,7 @@ function defaultHookResult(overrides: Partial<UseJobPickerResult> = {}): UseJobP
 describe('JobPickerDialog', () => {
   const defaultProps = {
     open: true,
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     onSelect: vi.fn(),
     onCancel: vi.fn(),
   }

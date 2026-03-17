@@ -8,14 +8,14 @@ import { formatTimestamp } from '../utils/format'
 
 interface JobPickerDialogProps {
   open: boolean
-  portfolioId: string
+  bookId: string
   onSelect: (jobId: string) => void
   onCancel: () => void
 }
 
 export function JobPickerDialog({
   open,
-  portfolioId,
+  bookId,
   onSelect,
   onCancel,
 }: JobPickerDialogProps) {
@@ -35,7 +35,7 @@ export function JobPickerDialog({
     prevPage,
     firstPage,
     lastPage,
-  } = useJobPicker(portfolioId, open)
+  } = useJobPicker(bookId, open)
 
   const searchRef = useRef<HTMLInputElement>(null)
 

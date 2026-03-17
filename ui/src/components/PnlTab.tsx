@@ -16,12 +16,12 @@ import { exportToCsv } from '../utils/exportCsv'
 import type { PnlAttributionDto } from '../types'
 
 interface PnlTabProps {
-  portfolioId: string | null
+  bookId: string | null
 }
 
-export function PnlTab({ portfolioId }: PnlTabProps) {
-  const { data: pnlData, loading: pnlLoading } = usePnlAttribution(portfolioId)
-  const sod = useSodBaseline(portfolioId)
+export function PnlTab({ bookId }: PnlTabProps) {
+  const { data: pnlData, loading: pnlLoading } = usePnlAttribution(bookId)
+  const sod = useSodBaseline(bookId)
   const [showResetDialog, setShowResetDialog] = useState(false)
   const [showJobPicker, setShowJobPicker] = useState(false)
   const [computedData, setComputedData] = useState<PnlAttributionDto | null>(null)
@@ -156,10 +156,10 @@ export function PnlTab({ portfolioId }: PnlTabProps) {
         </>
       )}
 
-      {portfolioId && (
+      {bookId && (
         <JobPickerDialog
           open={showJobPicker}
-          portfolioId={portfolioId}
+          bookId={bookId}
           onSelect={handleJobSelect}
           onCancel={() => setShowJobPicker(false)}
         />

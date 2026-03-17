@@ -21,14 +21,14 @@ describe('RegulatoryTab', () => {
     })
   })
 
-  it('calls useRegulatory with the given portfolioId', () => {
-    render(<RegulatoryTab portfolioId="port-1" />)
+  it('calls useRegulatory with the given bookId', () => {
+    render(<RegulatoryTab bookId="book-1" />)
 
-    expect(mockUseRegulatory).toHaveBeenCalledWith('port-1')
+    expect(mockUseRegulatory).toHaveBeenCalledWith('book-1')
   })
 
   it('renders the regulatory dashboard', () => {
-    render(<RegulatoryTab portfolioId="port-1" />)
+    render(<RegulatoryTab bookId="book-1" />)
 
     expect(screen.getByTestId('regulatory-dashboard')).toBeInTheDocument()
   })

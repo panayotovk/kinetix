@@ -4,7 +4,7 @@ import type { GreeksResultDto } from '../types'
 import { RiskSensitivities } from './RiskSensitivities'
 
 const greeksResult: GreeksResultDto = {
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   assetClassGreeks: [
     { assetClass: 'EQUITY', delta: '1234.560000', gamma: '78.900000', vega: '5678.120000' },
     { assetClass: 'COMMODITY', delta: '567.890000', gamma: '12.340000', vega: '2345.670000' },

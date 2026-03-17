@@ -5,7 +5,7 @@ import type { PnlAttributionDto, SodBaselineStatusDto } from '../types'
 import { PnlSummaryCard } from './PnlSummaryCard'
 
 const pnlData: PnlAttributionDto = {
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   date: '2026-02-28',
   totalPnl: '12500.50',
   deltaPnl: '8000.00',

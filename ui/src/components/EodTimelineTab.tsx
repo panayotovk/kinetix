@@ -9,21 +9,21 @@ import { EodDrillPanel } from './EodDrillPanel'
 import { EmptyState } from './ui'
 
 interface EodTimelineTabProps {
-  portfolioId: string | null
+  bookId: string | null
 }
 
-export function EodTimelineTab({ portfolioId }: EodTimelineTabProps) {
-  const { entries, loading, error, from, to, setFrom, setTo, refresh } = useEodTimeline(portfolioId)
+export function EodTimelineTab({ bookId }: EodTimelineTabProps) {
+  const { entries, loading, error, from, to, setFrom, setTo, refresh } = useEodTimeline(bookId)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [compareDates, setCompareDates] = useState<string[]>([])
   const [showComparison, setShowComparison] = useState(false)
 
-  if (!portfolioId) {
+  if (!bookId) {
     return (
       <EmptyState
         icon={<CalendarDays className="h-10 w-10" />}
-        title="No portfolio selected"
-        description="Select a portfolio to view EOD history."
+        title="No book selected"
+        description="Select a book to view EOD history."
       />
     )
   }
@@ -118,7 +118,7 @@ export function EodTimelineTab({ portfolioId }: EodTimelineTabProps) {
       {/* Drill panel */}
       {selectedEntry && (
         <EodDrillPanel
-          portfolioId={portfolioId}
+          bookId={bookId}
           entry={selectedEntry}
           compareEntry={compareEntry}
           onClose={handleCloseDrill}

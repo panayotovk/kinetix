@@ -9,10 +9,10 @@ function makeAlert(overrides: Partial<AlertEventDto> = {}): AlertEventDto {
     ruleName: 'Daily PnL Limit',
     type: 'PNL_THRESHOLD',
     severity: 'WARNING',
-    message: 'Daily PnL Alert: PNL_THRESHOLD GREATER_THAN 250000.0 (current: 251954.53464219306) for portfolio macro-hedge',
+    message: 'Daily PnL Alert: PNL_THRESHOLD GREATER_THAN 250000.0 (current: 251954.53464219306) for book macro-hedge',
     currentValue: 251954.53,
     threshold: 250000,
-    portfolioId: 'macro-hedge',
+    bookId: 'macro-hedge',
     triggeredAt: '2026-02-28T12:00:00Z',
     ...overrides,
   }
@@ -32,7 +32,7 @@ describe('formatAlertMessage', () => {
       severity: 'CRITICAL',
       threshold: 2000000,
       currentValue: 2300000,
-      portfolioId: 'global-book',
+      bookId: 'global-book',
     }))
 
     expect(result).toBe('CRITICAL: VaR breached $2,000,000 limit — current: $2,300,000 (global-book)')
@@ -45,7 +45,7 @@ describe('formatAlertMessage', () => {
       severity: 'WARNING',
       threshold: 30,
       currentValue: 42.5,
-      portfolioId: 'equity-book',
+      bookId: 'equity-book',
     }))
 
     expect(result).toBe('WARNING: Concentration exceeded 30% limit — current: 42.50% (equity-book)')

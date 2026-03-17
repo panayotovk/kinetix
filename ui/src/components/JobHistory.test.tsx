@@ -52,7 +52,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -68,7 +68,7 @@ describe('JobHistory', () => {
       ],
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     expect(screen.getByTestId('job-history')).toBeInTheDocument()
     expect(screen.getByText('Valuation Jobs')).toBeInTheDocument()
@@ -83,7 +83,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -99,7 +99,7 @@ describe('JobHistory', () => {
       ],
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     fireEvent.click(screen.getByTestId('job-history-header'))
 
@@ -109,16 +109,16 @@ describe('JobHistory', () => {
 
   it('shows empty summary when no jobs exist', () => {
     localStorage.setItem('kinetix:job-history-expanded', 'false')
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     const summary = screen.getByTestId('job-history-summary')
     expect(summary).toHaveTextContent('No calculations')
   })
 
-  it('passes portfolioId to hook on initial render', () => {
-    render(<JobHistory portfolioId="port-1" />)
+  it('passes bookId to hook on initial render', () => {
+    render(<JobHistory bookId="book-1" />)
 
-    expect(mockUseJobHistory).toHaveBeenCalledWith('port-1')
+    expect(mockUseJobHistory).toHaveBeenCalledWith('book-1')
   })
 
   it('shows loading state', () => {
@@ -127,7 +127,7 @@ describe('JobHistory', () => {
       loading: true,
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     expect(screen.getByTestId('job-history-loading')).toBeInTheDocument()
   })
@@ -138,7 +138,7 @@ describe('JobHistory', () => {
       error: 'Failed to load',
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     expect(screen.getByTestId('job-history-error')).toBeInTheDocument()
     expect(screen.getByText('Failed to load')).toBeInTheDocument()
@@ -150,7 +150,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -166,7 +166,7 @@ describe('JobHistory', () => {
       ],
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     const toggle = screen.getByTestId('job-history-header')
     const badge = toggle.querySelector('.inline-flex.items-center')!
@@ -176,7 +176,7 @@ describe('JobHistory', () => {
   it('shows inline job detail when a job is expanded', () => {
     const detail = {
       jobId: 'job-1',
-      portfolioId: 'port-1',
+      bookId: 'book-1',
       triggerType: 'ON_DEMAND',
       status: 'COMPLETED',
       startedAt: '2025-01-15T10:00:00Z',
@@ -209,7 +209,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -226,7 +226,7 @@ describe('JobHistory', () => {
       expandedJobs: { 'job-1': detail },
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     expect(screen.getByTestId('job-detail-panel')).toBeInTheDocument()
     expect(screen.getByTestId('job-timeline')).toBeInTheDocument()
@@ -239,7 +239,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -255,7 +255,7 @@ describe('JobHistory', () => {
       ],
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     expect(screen.getByTestId('job-history-search')).toBeInTheDocument()
   })
@@ -266,7 +266,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -281,7 +281,7 @@ describe('JobHistory', () => {
         },
         {
           jobId: 'job-2',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'TRADE_EVENT',
           status: 'FAILED',
           startedAt: '2025-01-15T09:00:00Z',
@@ -297,7 +297,7 @@ describe('JobHistory', () => {
       ],
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     fireEvent.change(screen.getByTestId('job-history-search'), { target: { value: 'FAILED' } })
 
@@ -311,7 +311,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -326,7 +326,7 @@ describe('JobHistory', () => {
         },
         {
           jobId: 'job-2',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'TRADE_EVENT',
           status: 'FAILED',
           startedAt: '2025-01-15T09:00:00Z',
@@ -342,7 +342,7 @@ describe('JobHistory', () => {
       ],
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     fireEvent.change(screen.getByTestId('job-history-search'), { target: { value: 'trade' } })
 
@@ -356,7 +356,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -371,7 +371,7 @@ describe('JobHistory', () => {
         },
         {
           jobId: 'job-2',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'TRADE_EVENT',
           status: 'FAILED',
           startedAt: '2025-01-15T09:00:00Z',
@@ -387,7 +387,7 @@ describe('JobHistory', () => {
       ],
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     const toggle = screen.getByTestId('job-history-header')
     const badge = () => toggle.querySelector('.inline-flex.items-center')!
@@ -405,7 +405,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'SCHEDULED',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -420,7 +420,7 @@ describe('JobHistory', () => {
         },
         {
           jobId: 'job-2',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'SCHEDULED',
           status: 'FAILED',
           startedAt: '2025-01-15T09:00:00Z',
@@ -435,7 +435,7 @@ describe('JobHistory', () => {
         },
         {
           jobId: 'job-3',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T08:00:00Z',
@@ -451,7 +451,7 @@ describe('JobHistory', () => {
       ],
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     fireEvent.change(screen.getByTestId('job-history-search'), { target: { value: 'completed scheduled' } })
 
@@ -466,7 +466,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -481,7 +481,7 @@ describe('JobHistory', () => {
         },
         {
           jobId: 'job-2',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T09:00:00Z',
@@ -498,7 +498,7 @@ describe('JobHistory', () => {
       expandedJobs: {
         'job-1': {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -531,7 +531,7 @@ describe('JobHistory', () => {
         },
         'job-2': {
           jobId: 'job-2',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T09:00:00Z',
@@ -565,7 +565,7 @@ describe('JobHistory', () => {
       },
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     fireEvent.change(screen.getByTestId('job-history-search'), { target: { value: 'USD' } })
 
@@ -579,7 +579,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -595,7 +595,7 @@ describe('JobHistory', () => {
       ],
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     expect(screen.getByTestId('time-range-selector')).toBeInTheDocument()
   })
@@ -606,7 +606,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -622,13 +622,13 @@ describe('JobHistory', () => {
       ],
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     expect(screen.getByTestId('job-timechart')).toBeInTheDocument()
   })
 
   it('does not render timechart when no jobs', () => {
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     expect(screen.queryByTestId('job-timechart')).not.toBeInTheDocument()
   })
@@ -639,7 +639,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -654,7 +654,7 @@ describe('JobHistory', () => {
         },
         {
           jobId: 'deadbeef-cafe-babe-face-123456789abc',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T09:00:00Z',
@@ -670,7 +670,7 @@ describe('JobHistory', () => {
       ],
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     fireEvent.change(screen.getByTestId('job-history-search'), { target: { value: 'a1b2c3d4' } })
 
@@ -684,7 +684,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -702,7 +702,7 @@ describe('JobHistory', () => {
       hasNextPage: true,
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     expect(screen.getByTestId('pagination-bar')).toBeInTheDocument()
     const input = screen.getByTestId('pagination-page-input') as HTMLInputElement
@@ -716,7 +716,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -735,7 +735,7 @@ describe('JobHistory', () => {
       hasNextPage: true,
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     const totalLabel = screen.getByTestId('total-count')
     expect(totalLabel).toHaveTextContent('Total: 47')
@@ -747,7 +747,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -766,7 +766,7 @@ describe('JobHistory', () => {
       hasNextPage: true,
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     expect(screen.getByTestId('pagination-first')).toBeDisabled()
     expect(screen.getByTestId('pagination-prev')).toBeDisabled()
@@ -778,7 +778,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -797,7 +797,7 @@ describe('JobHistory', () => {
       hasNextPage: false,
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     expect(screen.getByTestId('pagination-next')).toBeDisabled()
     expect(screen.getByTestId('pagination-last')).toBeDisabled()
@@ -816,7 +816,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -839,7 +839,7 @@ describe('JobHistory', () => {
       lastPage: lastPageFn,
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     fireEvent.click(screen.getByTestId('pagination-next'))
     expect(nextPage).toHaveBeenCalledTimes(1)
@@ -855,7 +855,7 @@ describe('JobHistory', () => {
   })
 
   it('does not show pagination controls when no jobs', () => {
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     expect(screen.queryByTestId('pagination-bar')).not.toBeInTheDocument()
   })
@@ -866,7 +866,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -885,7 +885,7 @@ describe('JobHistory', () => {
       hasNextPage: true,
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     const toggle = screen.getByTestId('job-history-header')
     const badge = toggle.querySelector('.inline-flex.items-center')!
@@ -898,7 +898,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -917,7 +917,7 @@ describe('JobHistory', () => {
       hasNextPage: true,
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     const input = screen.getByTestId('pagination-page-input') as HTMLInputElement
     expect(input.value).toBe('1')
@@ -930,7 +930,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -950,7 +950,7 @@ describe('JobHistory', () => {
       goToPage,
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     const input = screen.getByTestId('pagination-page-input')
     fireEvent.change(input, { target: { value: '3' } })
@@ -966,7 +966,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -986,7 +986,7 @@ describe('JobHistory', () => {
       goToPage,
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     const input = screen.getByTestId('pagination-page-input')
     fireEvent.change(input, { target: { value: '2' } })
@@ -1002,7 +1002,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -1022,7 +1022,7 @@ describe('JobHistory', () => {
       goToPage,
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     const input = screen.getByTestId('pagination-page-input')
 
@@ -1043,7 +1043,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -1060,7 +1060,7 @@ describe('JobHistory', () => {
       pageSize: 10,
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     const input = screen.getByTestId('page-size-input') as HTMLInputElement
     expect(input).toBeInTheDocument()
@@ -1075,7 +1075,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -1092,7 +1092,7 @@ describe('JobHistory', () => {
       setPageSize,
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     expect(screen.queryByTestId('page-size-option-50')).not.toBeInTheDocument()
 
@@ -1116,7 +1116,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -1133,7 +1133,7 @@ describe('JobHistory', () => {
       setPageSize,
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     const input = screen.getByTestId('page-size-input')
     fireEvent.change(input, { target: { value: '35' } })
@@ -1148,7 +1148,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -1165,7 +1165,7 @@ describe('JobHistory', () => {
       pageSize: 50,
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     const input = screen.getByTestId('page-size-input') as HTMLInputElement
     expect(input.value).toBe('50')
@@ -1178,7 +1178,7 @@ describe('JobHistory', () => {
       runs: [
         {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -1195,7 +1195,7 @@ describe('JobHistory', () => {
       expandedJobs: {
         'job-1': {
           jobId: 'job-1',
-          portfolioId: 'port-1',
+          bookId: 'book-1',
           triggerType: 'ON_DEMAND',
           status: 'COMPLETED',
           startedAt: '2025-01-15T10:00:00Z',
@@ -1216,7 +1216,7 @@ describe('JobHistory', () => {
       closeJob,
     })
 
-    render(<JobHistory portfolioId="port-1" />)
+    render(<JobHistory bookId="book-1" />)
 
     fireEvent.click(screen.getByTestId('close-detail-job-1'))
 

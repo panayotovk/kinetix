@@ -8,14 +8,14 @@ import { RunComparisonContainer } from './RunComparisonContainer'
 import { Spinner } from './ui'
 
 interface EodDrillPanelProps {
-  portfolioId: string
+  bookId: string
   entry: EodTimelineEntryDto
   compareEntry?: EodTimelineEntryDto | null
   onClose: () => void
 }
 
 export function EodDrillPanel({
-  portfolioId,
+  bookId,
   entry,
   compareEntry,
   onClose,
@@ -24,7 +24,7 @@ export function EodDrillPanel({
   const closeButtonRef = useRef<HTMLButtonElement>(null)
 
   const { positionRisk, loading: riskLoading, error: riskError } = usePositionRisk(
-    portfolioId,
+    bookId,
     entry.valuationDate,
   )
 
@@ -175,7 +175,7 @@ export function EodDrillPanel({
               Run Comparison: {entry.valuationDate} vs {compareEntry!.valuationDate}
             </h3>
             <RunComparisonContainer
-              portfolioId={portfolioId}
+              bookId={bookId}
               initialJobIds={compareJobIds}
             />
           </div>

@@ -369,7 +369,7 @@ describe('InputChangesPanel', () => {
       <InputChangesPanel
         inputChanges={inputChanges}
         parameterDiffs={[]}
-        portfolioId="port-1"
+        bookId="book-1"
       />,
     )
 
@@ -411,7 +411,7 @@ describe('InputChangesPanel', () => {
       <InputChangesPanel
         inputChanges={inputChanges}
         parameterDiffs={[]}
-        portfolioId="port-1"
+        bookId="book-1"
       />,
     )
 
@@ -454,7 +454,7 @@ describe('InputChangesPanel', () => {
       <InputChangesPanel
         inputChanges={inputChanges}
         parameterDiffs={[]}
-        portfolioId="port-1"
+        bookId="book-1"
       />,
     )
 

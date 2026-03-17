@@ -9,7 +9,7 @@ import type { InputChangesSummaryDto, ParameterDiffDto, MarketDataInputChangeDto
 interface InputChangesPanelProps {
   inputChanges: InputChangesSummaryDto | null
   parameterDiffs: ParameterDiffDto[]
-  portfolioId?: string
+  bookId?: string
 }
 
 function ChangeTypeBadge({ changeType }: { changeType: string }) {
@@ -49,12 +49,12 @@ function mdKey(md: MarketDataInputChangeDto): string {
   return `${md.dataType}:${md.instrumentId}`
 }
 
-export function InputChangesPanel({ inputChanges, parameterDiffs, portfolioId }: InputChangesPanelProps) {
+export function InputChangesPanel({ inputChanges, parameterDiffs, bookId }: InputChangesPanelProps) {
   const [expanded, setExpanded] = useState(false)
   const [magnitudes, setMagnitudes] = useState<Record<string, QuantDiffInfo>>({})
 
   const canFetchMagnitude = !!(
-    portfolioId &&
+    bookId &&
     inputChanges?.baseManifestId &&
     inputChanges?.targetManifestId
   )
@@ -83,7 +83,7 @@ export function InputChangesPanel({ inputChanges, parameterDiffs, portfolioId }:
         const key = mdKey(md)
         try {
           const result = await fetchMarketDataQuantDiff(
-            portfolioId!,
+            bookId!,
             md.dataType,
             md.instrumentId,
             inputChanges.baseManifestId!,
@@ -100,7 +100,7 @@ export function InputChangesPanel({ inputChanges, parameterDiffs, portfolioId }:
         }
       }),
     )
-  }, [inputChanges, canFetchMagnitude, portfolioId])
+  }, [inputChanges, canFetchMagnitude, bookId])
 
   if (inputChanges === null) {
     return (

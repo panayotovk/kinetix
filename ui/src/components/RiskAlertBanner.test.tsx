@@ -15,7 +15,7 @@ function makeAlert(overrides: Partial<AlertEventDto> = {}): AlertEventDto {
     message: 'VaR exceeds limit by 15%',
     currentValue: 2300000,
     threshold: 2000000,
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     triggeredAt: '2026-02-28T11:58:00Z',
     ...overrides,
   }
@@ -58,7 +58,7 @@ describe('RiskAlertBanner', () => {
       type: 'PNL_THRESHOLD',
       threshold: 100000,
       currentValue: 120000,
-      portfolioId: 'equity-book',
+      bookId: 'equity-book',
       message: 'PNL_THRESHOLD GREATER_THAN 100000',
     })
 

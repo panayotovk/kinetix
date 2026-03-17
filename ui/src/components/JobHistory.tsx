@@ -12,7 +12,7 @@ import { TimeRangeSelector } from './TimeRangeSelector'
 import { Card, Badge, Spinner } from './ui'
 
 interface JobHistoryProps {
-  portfolioId: string | null
+  bookId: string | null
   refreshSignal?: number
   onCompareJobs?: (baseJobId: string, targetJobId: string) => void
 }
@@ -42,7 +42,7 @@ function buildSummaryText(runs: ValuationJobSummaryDto[], totalCount: number): s
   return `Last calc: ${time} (${status}) · ${totalCount} job${totalCount !== 1 ? 's' : ''}`
 }
 
-export function JobHistory({ portfolioId, refreshSignal = 0, onCompareJobs }: JobHistoryProps) {
+export function JobHistory({ bookId, refreshSignal = 0, onCompareJobs }: JobHistoryProps) {
   const [expanded, setExpanded] = useState(() => {
     try {
       return localStorage.getItem('kinetix:job-history-expanded') !== 'false'
@@ -71,7 +71,7 @@ export function JobHistory({ portfolioId, refreshSignal = 0, onCompareJobs }: Jo
     })
   }
   const { runs, chartData, expandedJobs, loadingJobIds, loading, error, timeRange, setTimeRange, toggleJob, closeJob, refresh, zoomIn, resetZoom, zoomDepth, page, pageSize, setPageSize, totalCount, totalPages, hasNextPage, nextPage, prevPage, firstPage, lastPage, goToPage } = useJobHistory(
-    portfolioId,
+    bookId,
   )
   const [pageInput, setPageInput] = useState(String(page + 1))
   const [pageSizeInput, setPageSizeInput] = useState(String(pageSize))

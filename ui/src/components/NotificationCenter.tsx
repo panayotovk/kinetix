@@ -222,7 +222,7 @@ export function NotificationCenter({
           <button
             data-testid="alerts-csv-export"
             onClick={() => {
-              const headers = ['Severity', 'Type', 'Message', 'Portfolio', 'Value', 'Threshold', 'Time']
+              const headers = ['Severity', 'Type', 'Message', 'Book', 'Value', 'Threshold', 'Time']
               const rows = sortedAlerts.map((a) => [
                 a.severity,
                 a.type,

@@ -19,7 +19,7 @@ import { RunComparisonContainer } from './RunComparisonContainer'
 type RiskSubTab = 'dashboard' | 'run-compare'
 
 interface RiskTabProps {
-  portfolioId: string | null
+  bookId: string | null
   stressResults: StressTestResultDto[]
   stressLoading: boolean
   onRunStress: () => void
@@ -29,7 +29,7 @@ interface RiskTabProps {
 }
 
 export function RiskTab({
-  portfolioId,
+  bookId,
   stressResults,
   stressLoading,
   onRunStress,
@@ -63,20 +63,20 @@ export function RiskTab({
     selectedConfidenceLevel,
     setSelectedConfidenceLevel,
     isLive,
-  } = useVaR(portfolioId, valuationDate)
+  } = useVaR(bookId, valuationDate)
 
   const {
     positionRisk,
     loading: positionRiskLoading,
     error: positionRiskError,
     refresh: refreshPositionRisk,
-  } = usePositionRisk(portfolioId, valuationDate)
+  } = usePositionRisk(bookId, valuationDate)
 
   const { varLimit } = useVarLimit()
   const { alerts, dismissAlert } = useAlerts()
 
-  const sod = useSodBaseline(portfolioId)
-  const { data: pnlData } = usePnlAttribution(portfolioId)
+  const sod = useSodBaseline(bookId)
+  const { data: pnlData } = usePnlAttribution(bookId)
 
   const [jobRefreshSignal, setJobRefreshSignal] = useState(0)
 
@@ -164,13 +164,13 @@ export function RiskTab({
             />
           </div>
           <div className="mt-4">
-            <JobHistory portfolioId={portfolioId} refreshSignal={jobRefreshSignal} onCompareJobs={handleCompareJobs} />
+            <JobHistory bookId={bookId} refreshSignal={jobRefreshSignal} onCompareJobs={handleCompareJobs} />
           </div>
         </>
       )}
 
       {subTab === 'run-compare' && (
-        <RunComparisonContainer portfolioId={portfolioId} initialJobIds={pendingJobCompare} />
+        <RunComparisonContainer bookId={bookId} initialJobIds={pendingJobCompare} />
       )}
     </div>
   )

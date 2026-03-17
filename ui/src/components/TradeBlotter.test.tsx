@@ -12,7 +12,7 @@ const mockUseTradeHistory = vi.mocked(useTradeHistory)
 const trades: TradeHistoryDto[] = [
   {
     tradeId: 't-1',
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     instrumentId: 'AAPL',
     assetClass: 'EQUITY',
     side: 'BUY',
@@ -22,7 +22,7 @@ const trades: TradeHistoryDto[] = [
   },
   {
     tradeId: 't-2',
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     instrumentId: 'MSFT',
     assetClass: 'EQUITY',
     side: 'SELL',
@@ -32,7 +32,7 @@ const trades: TradeHistoryDto[] = [
   },
   {
     tradeId: 't-3',
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     instrumentId: 'AAPL',
     assetClass: 'EQUITY',
     side: 'BUY',
@@ -59,7 +59,7 @@ describe('TradeBlotter', () => {
 
   it('renders trade history table with correct columns', () => {
     setupDefaults()
-    render(<TradeBlotter portfolioId="port-1" />)
+    render(<TradeBlotter bookId="book-1" />)
 
     expect(screen.getByText('Time')).toBeInTheDocument()
     expect(screen.getByText('Instrument')).toBeInTheDocument()
@@ -72,7 +72,7 @@ describe('TradeBlotter', () => {
 
   it('renders trade rows with correct data', () => {
     setupDefaults()
-    render(<TradeBlotter portfolioId="port-1" />)
+    render(<TradeBlotter bookId="book-1" />)
 
     expect(screen.getByTestId('trade-row-t-1')).toBeInTheDocument()
     expect(screen.getByTestId('trade-row-t-2')).toBeInTheDocument()
@@ -81,28 +81,28 @@ describe('TradeBlotter', () => {
 
   it('shows empty state when no trades exist', () => {
     setupDefaults({ trades: [] })
-    render(<TradeBlotter portfolioId="port-1" />)
+    render(<TradeBlotter bookId="book-1" />)
 
     expect(screen.getByText('No trades to display.')).toBeInTheDocument()
   })
 
   it('shows loading state', () => {
     setupDefaults({ loading: true, trades: [] })
-    render(<TradeBlotter portfolioId="port-1" />)
+    render(<TradeBlotter bookId="book-1" />)
 
     expect(screen.getByText('Loading trades...')).toBeInTheDocument()
   })
 
   it('shows error state', () => {
     setupDefaults({ error: 'Failed to load', trades: [] })
-    render(<TradeBlotter portfolioId="port-1" />)
+    render(<TradeBlotter bookId="book-1" />)
 
     expect(screen.getByText('Failed to load')).toBeInTheDocument()
   })
 
   it('color-codes BUY trades in green and SELL trades in red', () => {
     setupDefaults()
-    render(<TradeBlotter portfolioId="port-1" />)
+    render(<TradeBlotter bookId="book-1" />)
 
     const buyRow = screen.getByTestId('trade-row-t-1')
     const sideCell = within(buyRow).getByTestId('trade-side-t-1')
@@ -115,7 +115,7 @@ describe('TradeBlotter', () => {
 
   it('sorts trades by time descending by default', () => {
     setupDefaults()
-    render(<TradeBlotter portfolioId="port-1" />)
+    render(<TradeBlotter bookId="book-1" />)
 
     const rows = screen.getAllByTestId(/^trade-row-/)
     expect(rows[0]).toHaveAttribute('data-testid', 'trade-row-t-2')
@@ -125,7 +125,7 @@ describe('TradeBlotter', () => {
 
   it('filters by instrument text input', () => {
     setupDefaults()
-    render(<TradeBlotter portfolioId="port-1" />)
+    render(<TradeBlotter bookId="book-1" />)
 
     const input = screen.getByTestId('filter-instrument')
     fireEvent.change(input, { target: { value: 'MSFT' } })
@@ -137,7 +137,7 @@ describe('TradeBlotter', () => {
 
   it('filters by side dropdown', () => {
     setupDefaults()
-    render(<TradeBlotter portfolioId="port-1" />)
+    render(<TradeBlotter bookId="book-1" />)
 
     const select = screen.getByTestId('filter-side')
     fireEvent.change(select, { target: { value: 'SELL' } })
@@ -149,14 +149,14 @@ describe('TradeBlotter', () => {
 
   it('renders CSV export button', () => {
     setupDefaults()
-    render(<TradeBlotter portfolioId="port-1" />)
+    render(<TradeBlotter bookId="book-1" />)
 
     expect(screen.getByTestId('csv-export-button')).toBeInTheDocument()
   })
 
   it('displays notional value as quantity times price', () => {
     setupDefaults()
-    render(<TradeBlotter portfolioId="port-1" />)
+    render(<TradeBlotter bookId="book-1" />)
 
     const row = screen.getByTestId('trade-row-t-1')
     const notional = within(row).getByTestId('trade-notional-t-1')

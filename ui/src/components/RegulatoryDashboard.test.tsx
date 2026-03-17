@@ -4,7 +4,7 @@ import type { FrtbResultDto } from '../types'
 import { RegulatoryDashboard } from './RegulatoryDashboard'
 
 const frtbResult: FrtbResultDto = {
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   sbmCharges: [
     { riskClass: 'GIRR', deltaCharge: '1500.00', vegaCharge: '1000.00', curvatureCharge: '112.50', totalCharge: '2612.50' },
     { riskClass: 'CSR_NON_SEC', deltaCharge: '3000.00', vegaCharge: '2000.00', curvatureCharge: '450.00', totalCharge: '5450.00' },

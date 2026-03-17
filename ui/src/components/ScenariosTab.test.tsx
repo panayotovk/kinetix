@@ -13,7 +13,7 @@ vi.mock('../api/scenarios', () => ({
 }))
 
 const defaultProps = {
-  portfolioId: 'portfolio-1',
+  bookId: 'book-1',
   results: [],
   loading: false,
   error: null,

@@ -4,7 +4,7 @@ import type { ValuationJobSummaryDto } from '../types'
 
 const mockJob: ValuationJobSummaryDto = {
   jobId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   triggerType: 'ON_DEMAND',
   status: 'COMPLETED',
   startedAt: '2025-01-15T08:00:00Z',

@@ -4,25 +4,25 @@ import { Card, Spinner } from './ui'
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY']
 
-interface PortfolioSummaryCardProps {
+interface BookSummaryCardProps {
   summary: PortfolioAggregationDto | null
   baseCurrency: string
   onBaseCurrencyChange: (currency: string) => void
   loading?: boolean
 }
 
-export function PortfolioSummaryCard({
+export function BookSummaryCard({
   summary,
   baseCurrency,
   onBaseCurrencyChange,
   loading,
-}: PortfolioSummaryCardProps) {
+}: BookSummaryCardProps) {
   if (loading && !summary) {
     return (
-      <Card data-testid="portfolio-summary-loading">
+      <Card data-testid="book-summary-loading">
         <div className="flex items-center justify-center py-4">
           <Spinner />
-          <span className="ml-2 text-sm text-slate-500">Loading portfolio summary...</span>
+          <span className="ml-2 text-sm text-slate-500">Loading book summary...</span>
         </div>
       </Card>
     )
@@ -31,9 +31,9 @@ export function PortfolioSummaryCard({
   if (!summary) return null
 
   return (
-    <Card data-testid="portfolio-summary-card">
+    <Card data-testid="book-summary-card">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-slate-700">Portfolio Summary</h3>
+        <h3 className="text-sm font-semibold text-slate-700">Book Summary</h3>
         <select
           data-testid="base-currency-selector"
           value={baseCurrency}

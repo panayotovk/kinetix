@@ -6,7 +6,7 @@ import { JobHistoryTable } from './JobHistoryTable'
 const runs: ValuationJobSummaryDto[] = [
   {
     jobId: 'job-1',
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     triggerType: 'ON_DEMAND',
     status: 'COMPLETED',
     startedAt: '2025-01-15T10:00:00Z',
@@ -22,7 +22,7 @@ const runs: ValuationJobSummaryDto[] = [
   },
   {
     jobId: 'job-2',
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     triggerType: 'TRADE_EVENT',
     status: 'FAILED',
     startedAt: '2025-01-15T09:00:00Z',
@@ -40,7 +40,7 @@ const runs: ValuationJobSummaryDto[] = [
 
 const jobDetail: ValuationJobDetailDto = {
   jobId: 'job-1',
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   triggerType: 'ON_DEMAND',
   status: 'COMPLETED',
   startedAt: '2025-01-15T10:00:00Z',
@@ -68,7 +68,7 @@ const jobDetail: ValuationJobDetailDto = {
 
 const jobDetail2: ValuationJobDetailDto = {
   jobId: 'job-2',
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   triggerType: 'TRADE_EVENT',
   status: 'FAILED',
   startedAt: '2025-01-15T09:00:00Z',
@@ -346,7 +346,7 @@ describe('JobHistoryTable', () => {
 
       const runningJob: ValuationJobSummaryDto = {
         jobId: 'job-running',
-        portfolioId: 'port-1',
+        bookId: 'book-1',
         triggerType: 'ON_DEMAND',
         status: 'RUNNING',
         startedAt: '2025-01-15T10:00:00Z',
@@ -386,7 +386,7 @@ describe('JobHistoryTable', () => {
 
       const runningJob: ValuationJobSummaryDto = {
         jobId: 'job-running',
-        portfolioId: 'port-1',
+        bookId: 'book-1',
         triggerType: 'ON_DEMAND',
         status: 'RUNNING',
         startedAt: '2025-01-15T10:00:00Z',

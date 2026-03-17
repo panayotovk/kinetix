@@ -15,7 +15,7 @@ import { ScenarioGovernancePanel } from './ScenarioGovernancePanel'
 import { CustomScenarioBuilder } from './CustomScenarioBuilder'
 
 export interface ScenariosTabProps {
-  portfolioId: string | null
+  bookId: string | null
   results: StressTestResultDto[]
   loading: boolean
   error: string | null
@@ -30,7 +30,7 @@ export interface ScenariosTabProps {
 }
 
 export function ScenariosTab({
-  portfolioId,
+  bookId,
   results,
   loading,
   error,
@@ -92,10 +92,10 @@ export function ScenariosTab({
 
   const handleRunAdHoc = useCallback(
     async (payload: ScenarioRunPayload) => {
-      if (!portfolioId) return
+      if (!bookId) return
       setRunning(true)
       try {
-        const result = await runStressTest(portfolioId, 'AD_HOC', {
+        const result = await runStressTest(bookId, 'AD_HOC', {
           volShocks: payload.volShocks,
           priceShocks: payload.priceShocks,
           confidenceLevel,
@@ -108,7 +108,7 @@ export function ScenariosTab({
         setRunning(false)
       }
     },
-    [portfolioId, confidenceLevel, timeHorizonDays, onAppendResult],
+    [bookId, confidenceLevel, timeHorizonDays, onAppendResult],
   )
 
   const comparedScenarios = results.filter((r) => checkedScenarios.has(r.scenarioName))

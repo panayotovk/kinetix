@@ -11,7 +11,7 @@ function makeJob(
 ): ValuationJobSummaryDto {
   return {
     jobId: opts?.jobId ?? `job-${++jobCounter}`,
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     triggerType: 'ON_DEMAND',
     status,
     startedAt,

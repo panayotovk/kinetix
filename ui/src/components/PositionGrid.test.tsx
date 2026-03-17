@@ -5,7 +5,7 @@ import type { PositionDto, PositionRiskDto } from '../types'
 import { PositionGrid } from './PositionGrid'
 
 const makePosition = (overrides: Partial<PositionDto> = {}): PositionDto => ({
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   instrumentId: 'AAPL',
   assetClass: 'EQUITY',
   quantity: '100',

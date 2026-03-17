@@ -22,16 +22,16 @@ export function formatAlertMessage(alert: AlertEventDto): string {
 
   const current = formatCurrency(alert.currentValue)
   const threshold = formatCurrency(alert.threshold)
-  const portfolio = alert.portfolioId
+  const book = alert.bookId
 
   switch (alert.type) {
     case 'PNL_THRESHOLD':
-      return `${prefix}Daily P&L exceeded ${threshold} limit — current: ${current} (${portfolio})`
+      return `${prefix}Daily P&L exceeded ${threshold} limit — current: ${current} (${book})`
     case 'VAR_BREACH':
-      return `${prefix}VaR breached ${threshold} limit — current: ${current} (${portfolio})`
+      return `${prefix}VaR breached ${threshold} limit — current: ${current} (${book})`
     case 'CONCENTRATION': {
       const pct = alert.currentValue.toFixed(2)
-      return `${prefix}Concentration exceeded ${alert.threshold}% limit — current: ${pct}% (${portfolio})`
+      return `${prefix}Concentration exceeded ${alert.threshold}% limit — current: ${pct}% (${book})`
     }
     default:
       return `${prefix}${alert.message}`

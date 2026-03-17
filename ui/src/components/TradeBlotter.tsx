@@ -6,7 +6,7 @@ import { Card, EmptyState } from './ui'
 import type { TradeHistoryDto } from '../types'
 
 interface TradeBlotterProps {
-  portfolioId: string | null
+  bookId: string | null
 }
 
 function notional(trade: TradeHistoryDto): number {
@@ -29,8 +29,8 @@ function exportToCsv(trades: TradeHistoryDto[]) {
   URL.revokeObjectURL(url)
 }
 
-export function TradeBlotter({ portfolioId }: TradeBlotterProps) {
-  const { trades, loading, error } = useTradeHistory(portfolioId)
+export function TradeBlotter({ bookId }: TradeBlotterProps) {
+  const { trades, loading, error } = useTradeHistory(bookId)
   const [instrumentFilter, setInstrumentFilter] = useState('')
   const [sideFilter, setSideFilter] = useState<'' | 'BUY' | 'SELL'>('')
   const [page, setPage] = useState(0)

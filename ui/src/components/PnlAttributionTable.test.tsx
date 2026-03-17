@@ -4,7 +4,7 @@ import { PnlAttributionTable } from './PnlAttributionTable'
 import type { PnlAttributionDto } from '../types'
 
 const attribution: PnlAttributionDto = {
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   date: '2025-01-15',
   totalPnl: '15000.00',
   deltaPnl: '8000.00',

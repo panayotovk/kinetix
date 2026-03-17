@@ -8,7 +8,7 @@ import { GenericRunComparisonPanel } from './GenericRunComparisonPanel'
 import type { ComparisonMode } from '../types'
 
 interface RunComparisonContainerProps {
-  portfolioId: string | null
+  bookId: string | null
   initialJobIds?: { baseJobId: string; targetJobId: string } | null
 }
 
@@ -18,7 +18,7 @@ const MODES: { key: ComparisonMode; label: string }[] = [
   { key: 'BACKTEST', label: 'Backtest' },
 ]
 
-export function RunComparisonContainer({ portfolioId, initialJobIds }: RunComparisonContainerProps) {
+export function RunComparisonContainer({ bookId, initialJobIds }: RunComparisonContainerProps) {
   const {
     comparison,
     attribution,
@@ -39,17 +39,17 @@ export function RunComparisonContainer({ portfolioId, initialJobIds }: RunCompar
   const processedJobIdsRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (!initialJobIds || !portfolioId) return
+    if (!initialJobIds || !bookId) return
     const key = `${initialJobIds.baseJobId}:${initialJobIds.targetJobId}`
     if (processedJobIdsRef.current === key) return
     processedJobIdsRef.current = key
-    compareJobs(portfolioId, initialJobIds.baseJobId, initialJobIds.targetJobId)
-  }, [initialJobIds, portfolioId, compareJobs])
+    compareJobs(bookId, initialJobIds.baseJobId, initialJobIds.targetJobId)
+  }, [initialJobIds, bookId, compareJobs])
 
-  if (!portfolioId) {
+  if (!bookId) {
     return (
       <p className="text-sm text-slate-500 dark:text-slate-400">
-        Select a portfolio to compare runs.
+        Select a book to compare runs.
       </p>
     )
   }
@@ -89,13 +89,13 @@ export function RunComparisonContainer({ portfolioId, initialJobIds }: RunCompar
       {mode === 'DAILY_VAR' && (
         <DailyVarSelector
           loading={loading}
-          onCompare={(targetDate, baseDate) => loadDayOverDay(portfolioId, targetDate, baseDate)}
+          onCompare={(targetDate, baseDate) => loadDayOverDay(bookId, targetDate, baseDate)}
         />
       )}
       {mode === 'MODEL' && (
         <ModelComparisonSelector
           loading={loading}
-          onCompare={(request) => compareModels(portfolioId, request)}
+          onCompare={(request) => compareModels(bookId, request)}
         />
       )}
       {mode === 'BACKTEST' && (
@@ -133,7 +133,7 @@ export function RunComparisonContainer({ portfolioId, initialJobIds }: RunCompar
           comparison={comparison}
           attribution={attribution}
           attributionLoading={attributionLoading}
-          onRequestAttribution={() => loadAttribution(portfolioId)}
+          onRequestAttribution={() => loadAttribution(bookId)}
           threshold={threshold}
           onThresholdChange={setThreshold}
           showAttribution={mode === 'DAILY_VAR'}

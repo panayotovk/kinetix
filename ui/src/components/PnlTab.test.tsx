@@ -12,7 +12,7 @@ const mockUsePnlAttribution = vi.mocked(usePnlAttribution)
 const mockUseSodBaseline = vi.mocked(useSodBaseline)
 
 const pnlAttributionData = {
-  portfolioId: 'port-1',
+  bookId: 'book-1',
   date: '2025-01-15',
   totalPnl: '15000.00',
   deltaPnl: '8000.00',
@@ -56,16 +56,16 @@ describe('PnlTab', () => {
     mockUseSodBaseline.mockReturnValue(defaultSodBaseline)
   })
 
-  it('calls usePnlAttribution with the given portfolioId', () => {
+  it('calls usePnlAttribution with the given bookId', () => {
     mockUsePnlAttribution.mockReturnValue({
       data: null,
       loading: false,
       error: null,
     })
 
-    render(<PnlTab portfolioId="port-1" />)
+    render(<PnlTab bookId="book-1" />)
 
-    expect(mockUsePnlAttribution).toHaveBeenCalledWith('port-1')
+    expect(mockUsePnlAttribution).toHaveBeenCalledWith('book-1')
   })
 
   it('renders waterfall chart and attribution table when data is available', () => {
@@ -86,7 +86,7 @@ describe('PnlTab', () => {
       },
     })
 
-    render(<PnlTab portfolioId="port-1" />)
+    render(<PnlTab bookId="book-1" />)
 
     expect(screen.getByTestId('waterfall-chart')).toBeInTheDocument()
     expect(screen.getByTestId('attribution-table')).toBeInTheDocument()
@@ -103,7 +103,7 @@ describe('PnlTab', () => {
       loading: true,
     })
 
-    render(<PnlTab portfolioId="port-1" />)
+    render(<PnlTab bookId="book-1" />)
 
     expect(screen.getByTestId('pnl-loading')).toBeInTheDocument()
   })
@@ -115,7 +115,7 @@ describe('PnlTab', () => {
       error: 'Failed to load',
     })
 
-    render(<PnlTab portfolioId="port-1" />)
+    render(<PnlTab bookId="book-1" />)
 
     expect(screen.getByTestId('sod-baseline-warning')).toBeInTheDocument()
   })
@@ -138,7 +138,7 @@ describe('PnlTab', () => {
       },
     })
 
-    render(<PnlTab portfolioId="port-1" />)
+    render(<PnlTab bookId="book-1" />)
 
     expect(screen.getByTestId('sod-baseline-warning')).toBeInTheDocument()
     expect(screen.getByTestId('pnl-empty')).toBeInTheDocument()
@@ -162,7 +162,7 @@ describe('PnlTab', () => {
       },
     })
 
-    render(<PnlTab portfolioId="port-1" />)
+    render(<PnlTab bookId="book-1" />)
 
     expect(screen.getByTestId('sod-baseline-active')).toBeInTheDocument()
     expect(screen.getByTestId('pnl-compute-button')).toBeInTheDocument()
@@ -186,7 +186,7 @@ describe('PnlTab', () => {
       },
     })
 
-    render(<PnlTab portfolioId="port-1" />)
+    render(<PnlTab bookId="book-1" />)
 
     fireEvent.click(screen.getByTestId('sod-reset-button'))
 
@@ -212,7 +212,7 @@ describe('PnlTab', () => {
       },
     })
 
-    render(<PnlTab portfolioId="port-1" />)
+    render(<PnlTab bookId="book-1" />)
 
     fireEvent.click(screen.getByTestId('sod-reset-button'))
 
@@ -239,7 +239,7 @@ describe('PnlTab', () => {
       },
     })
 
-    render(<PnlTab portfolioId="port-1" />)
+    render(<PnlTab bookId="book-1" />)
 
     expect(screen.getByTestId('pnl-csv-export')).toBeInTheDocument()
   })
@@ -263,7 +263,7 @@ describe('PnlTab', () => {
       error: 'SOD service unavailable',
     })
 
-    render(<PnlTab portfolioId="port-1" />)
+    render(<PnlTab bookId="book-1" />)
 
     expect(screen.getByTestId('sod-error')).toBeInTheDocument()
     expect(screen.getByText('SOD service unavailable')).toBeInTheDocument()

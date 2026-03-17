@@ -36,7 +36,7 @@ const sampleAlerts: AlertEventDto[] = [
     message: 'VaR exceeded threshold',
     currentValue: 150000,
     threshold: 100000,
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     triggeredAt: '2025-01-15T10:00:00Z',
   },
   {
@@ -48,7 +48,7 @@ const sampleAlerts: AlertEventDto[] = [
     message: 'Expected shortfall exceeded',
     currentValue: 250000,
     threshold: 200000,
-    portfolioId: 'port-1',
+    bookId: 'book-1',
     triggeredAt: '2025-01-15T10:05:00Z',
   },
 ]

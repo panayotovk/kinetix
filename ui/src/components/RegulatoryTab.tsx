@@ -2,11 +2,11 @@ import { useRegulatory } from '../hooks/useRegulatory'
 import { RegulatoryDashboard } from './RegulatoryDashboard'
 
 interface RegulatoryTabProps {
-  portfolioId: string | null
+  bookId: string | null
 }
 
-export function RegulatoryTab({ portfolioId }: RegulatoryTabProps) {
-  const regulatory = useRegulatory(portfolioId)
+export function RegulatoryTab({ bookId }: RegulatoryTabProps) {
+  const regulatory = useRegulatory(bookId)
 
   return (
     <RegulatoryDashboard

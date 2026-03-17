@@ -10,7 +10,7 @@ import { RegulatoryTab } from './components/RegulatoryTab'
 import { PnlTab } from './components/PnlTab'
 import { WhatIfPanel } from './components/WhatIfPanel'
 import { EodTimelineTab } from './components/EodTimelineTab'
-import { PortfolioSummaryCard } from './components/PortfolioSummaryCard'
+import { BookSummaryCard } from './components/BookSummaryCard'
 import { usePositions } from './hooks/usePositions'
 import { useBookSelector, ALL_BOOKS } from './hooks/useBookSelector'
 import { usePriceStream } from './hooks/usePriceStream'
@@ -228,7 +228,7 @@ function App() {
                       </button>
                     </div>
                     <div className="mb-4">
-                      <PortfolioSummaryCard
+                      <BookSummaryCard
                         summary={bookSummary.summary}
                         baseCurrency={bookSummary.baseCurrency}
                         onBaseCurrencyChange={bookSummary.setBaseCurrency}
