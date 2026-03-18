@@ -6,6 +6,11 @@ metadata:
     {{- include "price-service.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       {{- include "price-service.selectorLabels" . | nindent 6 }}
@@ -14,6 +19,7 @@ spec:
       labels:
         {{- include "price-service.selectorLabels" . | nindent 8 }}
     spec:
+      terminationGracePeriodSeconds: 45
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.global.imageRegistry }}{{ .Values.image.repository }}:{{ .Values.global.imageTag | default .Chart.AppVersion }}"
@@ -37,6 +43,10 @@ spec:
                 secretKeyRef:
                   name: kinetix-db-credentials
                   key: password
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 5"]
           livenessProbe:
             httpGet:
               path: {{ .Values.probes.path }}
@@ -45,7 +55,7 @@ spec:
             periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: {{ .Values.probes.path }}
+              path: {{ .Values.probes.readinessPath | default .Values.probes.path }}
               port: http
             initialDelaySeconds: 10
             periodSeconds: 5

@@ -6,6 +6,11 @@ metadata:
     {{- include "risk-engine.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       {{- include "risk-engine.selectorLabels" . | nindent 6 }}
@@ -14,6 +19,7 @@ spec:
       labels:
         {{- include "risk-engine.selectorLabels" . | nindent 8 }}
     spec:
+      terminationGracePeriodSeconds: 60
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.global.imageRegistry }}{{ .Values.image.repository }}:{{ .Values.global.imageTag | default .Chart.AppVersion }}"
@@ -25,6 +31,10 @@ spec:
             - name: metrics
               containerPort: {{ .Values.service.metricsPort }}
               protocol: TCP
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 5"]
           livenessProbe:
             grpc:
               port: {{ .Values.service.grpcPort }}
@@ -36,8 +46,8 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 5
           startupProbe:
-            tcpSocket:
-              port: grpc
+            grpc:
+              port: {{ .Values.service.grpcPort }}
             failureThreshold: 30
             periodSeconds: 5
           resources:

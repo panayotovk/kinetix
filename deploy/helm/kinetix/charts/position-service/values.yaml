@@ -35,3 +35,4 @@ autoscaling:
 
 probes:
   path: /health
+  readinessPath: /health/ready
