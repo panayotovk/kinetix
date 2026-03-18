@@ -73,7 +73,12 @@ class RedisVaRCacheIntegrationTest : FunSpec({
         shortTtlCache.put("port-1", result)
         shortTtlCache.get("port-1").shouldNotBeNull()
 
-        Thread.sleep(1500)
+        // Poll until TTL expires rather than hard-sleeping
+        val deadline = System.currentTimeMillis() + 3000
+        while (System.currentTimeMillis() < deadline) {
+            if (shortTtlCache.get("port-1") == null) break
+            Thread.sleep(50)
+        }
 
         shortTtlCache.get("port-1").shouldBeNull()
     }
