@@ -193,7 +193,7 @@ fun Route.positionRoutes(
     tradeLifecycleService: TradeLifecycleService,
     portfolioAggregationService: PortfolioAggregationService,
 ) {
-    route("/api/v1/portfolios") {
+    route("/api/v1/books") {
 
         get({
             summary = "List all portfolios"

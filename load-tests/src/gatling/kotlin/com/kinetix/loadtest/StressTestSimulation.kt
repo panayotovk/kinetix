@@ -24,8 +24,8 @@ class StressTestSimulation : Simulation() {
             ),
             percent(30.0).then(
                 exec(
-                    http("GET /api/v1/portfolios")
-                        .get("/api/v1/portfolios")
+                    http("GET /api/v1/books")
+                        .get("/api/v1/books")
                         .check(status().`in`(200, 401))
                 )
             ),

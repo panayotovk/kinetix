@@ -15,14 +15,14 @@ class HttpPositionServiceClient(
 ) : PositionServiceClient {
 
     override suspend fun getPositions(portfolioId: BookId): ClientResponse<List<Position>> {
-        val response = httpClient.get("$baseUrl/api/v1/portfolios/${portfolioId.value}/positions")
+        val response = httpClient.get("$baseUrl/api/v1/books/${portfolioId.value}/positions")
         if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
         val dtos: List<PositionDto> = response.body()
         return ClientResponse.Success(dtos.map { it.toDomain() })
     }
 
     override suspend fun getDistinctBookIds(): ClientResponse<List<BookId>> {
-        val response = httpClient.get("$baseUrl/api/v1/portfolios")
+        val response = httpClient.get("$baseUrl/api/v1/books")
         if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
         val dtos: List<PortfolioSummaryDto> = response.body()
         return ClientResponse.Success(dtos.map { it.toDomain() })

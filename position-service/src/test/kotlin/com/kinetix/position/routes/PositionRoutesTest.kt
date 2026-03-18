@@ -97,7 +97,7 @@ class PositionRoutesTest : FunSpec({
         }
     }
 
-    test("GET /api/v1/portfolios returns 200 with list of portfolio summaries") {
+    test("GET /api/v1/books returns 200 with list of portfolio summaries") {
         testApplication {
             setupApp()
             coEvery { positionRepository.findDistinctBookIds() } returns listOf(
@@ -105,7 +105,7 @@ class PositionRoutesTest : FunSpec({
                 BookId("port-2"),
             )
 
-            val response = client.get("/api/v1/portfolios")
+            val response = client.get("/api/v1/books")
 
             response.status shouldBe HttpStatusCode.OK
             val body = response.bodyAsText()
@@ -114,19 +114,19 @@ class PositionRoutesTest : FunSpec({
         }
     }
 
-    test("GET /api/v1/portfolios returns empty list when no portfolios exist") {
+    test("GET /api/v1/books returns empty list when no portfolios exist") {
         testApplication {
             setupApp()
             coEvery { positionRepository.findDistinctBookIds() } returns emptyList()
 
-            val response = client.get("/api/v1/portfolios")
+            val response = client.get("/api/v1/books")
 
             response.status shouldBe HttpStatusCode.OK
             response.bodyAsText() shouldBe "[]"
         }
     }
 
-    test("GET /api/v1/portfolios/{id}/positions returns 200 with positions") {
+    test("GET /api/v1/books/{id}/positions returns 200 with positions") {
         testApplication {
             setupApp()
             val positions = listOf(
@@ -135,7 +135,7 @@ class PositionRoutesTest : FunSpec({
             )
             coEvery { positionQueryService.handle(GetPositionsQuery(PORTFOLIO)) } returns positions
 
-            val response = client.get("/api/v1/portfolios/port-1/positions")
+            val response = client.get("/api/v1/books/port-1/positions")
 
             response.status shouldBe HttpStatusCode.OK
             val body = response.bodyAsText()
@@ -149,19 +149,19 @@ class PositionRoutesTest : FunSpec({
         }
     }
 
-    test("GET /api/v1/portfolios/{id}/positions returns empty list for unknown portfolio") {
+    test("GET /api/v1/books/{id}/positions returns empty list for unknown portfolio") {
         testApplication {
             setupApp()
             coEvery { positionQueryService.handle(GetPositionsQuery(BookId("unknown"))) } returns emptyList()
 
-            val response = client.get("/api/v1/portfolios/unknown/positions")
+            val response = client.get("/api/v1/books/unknown/positions")
 
             response.status shouldBe HttpStatusCode.OK
             response.bodyAsText() shouldBe "[]"
         }
     }
 
-    test("POST /api/v1/portfolios/{id}/trades returns 201 with trade and position") {
+    test("POST /api/v1/books/{id}/trades returns 201 with trade and position") {
         testApplication {
             setupApp()
             val trade = Trade(
@@ -177,7 +177,7 @@ class PositionRoutesTest : FunSpec({
             val pos = position()
             coEvery { tradeBookingService.handle(any<BookTradeCommand>()) } returns BookTradeResult(trade, pos)
 
-            val response = client.post("/api/v1/portfolios/port-1/trades") {
+            val response = client.post("/api/v1/books/port-1/trades") {
                 contentType(ContentType.Application.Json)
                 setBody(
                     """
@@ -204,7 +204,7 @@ class PositionRoutesTest : FunSpec({
         }
     }
 
-    test("GET /api/v1/portfolios/{id}/trades returns 200 with trade history") {
+    test("GET /api/v1/books/{id}/trades returns 200 with trade history") {
         testApplication {
             setupApp()
             val trades = listOf(
@@ -221,7 +221,7 @@ class PositionRoutesTest : FunSpec({
             )
             coEvery { tradeEventRepository.findByBookId(PORTFOLIO) } returns trades
 
-            val response = client.get("/api/v1/portfolios/port-1/trades")
+            val response = client.get("/api/v1/books/port-1/trades")
 
             response.status shouldBe HttpStatusCode.OK
             val body = response.bodyAsText()
@@ -231,23 +231,23 @@ class PositionRoutesTest : FunSpec({
         }
     }
 
-    test("GET /api/v1/portfolios/{id}/trades returns empty list for unknown portfolio") {
+    test("GET /api/v1/books/{id}/trades returns empty list for unknown portfolio") {
         testApplication {
             setupApp()
             coEvery { tradeEventRepository.findByBookId(BookId("unknown")) } returns emptyList()
 
-            val response = client.get("/api/v1/portfolios/unknown/trades")
+            val response = client.get("/api/v1/books/unknown/trades")
 
             response.status shouldBe HttpStatusCode.OK
             response.bodyAsText() shouldBe "[]"
         }
     }
 
-    test("POST /api/v1/portfolios/{id}/trades returns 400 for negative quantity") {
+    test("POST /api/v1/books/{id}/trades returns 400 for negative quantity") {
         testApplication {
             setupApp()
 
-            val response = client.post("/api/v1/portfolios/port-1/trades") {
+            val response = client.post("/api/v1/books/port-1/trades") {
                 contentType(ContentType.Application.Json)
                 setBody(
                     """
