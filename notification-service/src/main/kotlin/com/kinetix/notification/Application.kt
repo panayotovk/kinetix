@@ -149,6 +149,7 @@ fun Application.moduleWithRoutes() {
         put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+        put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, "org.apache.kafka.clients.consumer.CooperativeStickyAssignor")
     }
     val riskResultTracker = ConsumerLivenessTracker(topic = "risk.results", groupId = "notification-service-risk-group")
     val riskResultConsumer = RiskResultConsumer(
@@ -164,6 +165,7 @@ fun Application.moduleWithRoutes() {
         put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+        put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, "org.apache.kafka.clients.consumer.CooperativeStickyAssignor")
     }
     val anomalyTracker = ConsumerLivenessTracker(topic = "risk.anomalies", groupId = "notification-service-anomaly-group")
     val anomalyEventConsumer = AnomalyEventConsumer(

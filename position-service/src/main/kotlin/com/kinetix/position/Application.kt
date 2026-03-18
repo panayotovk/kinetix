@@ -164,6 +164,7 @@ fun Application.moduleWithRoutes() {
         put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+        put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, "org.apache.kafka.clients.consumer.CooperativeStickyAssignor")
     }
     val priceKafkaConsumer = KafkaConsumer<String, String>(consumerProps)
     val priceTracker = ConsumerLivenessTracker(topic = "price.updates", groupId = "position-service-group")

@@ -393,6 +393,7 @@ fun Application.moduleWithRoutes() {
         put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+        put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, "org.apache.kafka.clients.consumer.CooperativeStickyAssignor")
     }
     val tradesLivenessTracker = ConsumerLivenessTracker(topic = "trades.lifecycle", groupId = "risk-orchestrator-trades-group")
     val tradeRetryableConsumer = RetryableConsumer(
@@ -413,6 +414,7 @@ fun Application.moduleWithRoutes() {
         put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+        put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, "org.apache.kafka.clients.consumer.CooperativeStickyAssignor")
     }
     val pricesLivenessTracker = ConsumerLivenessTracker(topic = "price.updates", groupId = "risk-orchestrator-prices-group")
     val priceRetryableConsumer = RetryableConsumer(

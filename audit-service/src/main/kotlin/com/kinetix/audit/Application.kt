@@ -116,6 +116,7 @@ fun Application.moduleWithRoutes() {
         put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
         put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+        put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, "org.apache.kafka.clients.consumer.CooperativeStickyAssignor")
     }
     val producerProps = Properties().apply {
         put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
