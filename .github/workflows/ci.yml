@@ -431,6 +431,9 @@ jobs:
       - name: Create Docker network
         run: docker network create kinetix 2>/dev/null || true
 
+      - name: Build Kotlin builder image
+        run: docker build -t kinetix-builder:latest -f deploy/docker/Dockerfile.kotlin-builder .
+
       - name: Build and start stack
         run: |
           docker compose \
