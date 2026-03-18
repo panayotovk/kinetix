@@ -531,8 +531,20 @@ jobs:
       - name: Test summary
         env:
           GH_TOKEN: ${{ github.token }}
+          JOB_RESULTS: >-
+            {
+              "kotlin-unit-tests": "${{ needs.kotlin-unit-tests.result }}",
+              "kotlin-acceptance-tests": "${{ needs.kotlin-acceptance-tests.result }}",
+              "kotlin-integration": "${{ needs.kotlin-integration.result }}",
+              "end-to-end-tests": "${{ needs.end-to-end-tests.result }}",
+              "python-unit-tests": "${{ needs.python-unit-tests.result }}",
+              "python-integration-tests": "${{ needs.python-integration-tests.result }}",
+              "ui-build": "${{ needs.ui-build.result }}",
+              "ui-e2e-tests": "${{ needs.ui-e2e-tests.result }}",
+              "smoke-tests": "${{ needs.smoke-tests.result }}"
+            }
         run: |
-          SUMMARY=$(python3 scripts/test-summary.py test-results/ --format markdown)
+          SUMMARY=$(python3 scripts/test-summary.py test-results/ --format markdown --job-results "$JOB_RESULTS")
           echo "$SUMMARY"
           echo "$SUMMARY" >> "$GITHUB_STEP_SUMMARY"
           CONCLUSION=success

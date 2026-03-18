@@ -10,10 +10,43 @@ a per-component breakdown by test type (unit / integration / e2e).
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from pathlib import Path
+
+# Maps CI job names to the (component, test_type) entries they produce.
+JOB_COMPONENT_MAP: dict[str, list[tuple[str, str]]] = {
+    "kotlin-unit-tests": [
+        ("common", "unit"), ("gateway", "unit"), ("notification-service", "unit"),
+        ("position-service", "unit"), ("price-service", "unit"), ("rates-service", "unit"),
+        ("risk-orchestrator", "unit"), ("regulatory-service", "unit"), ("audit-service", "unit"),
+        ("reference-data-service", "unit"), ("volatility-service", "unit"),
+        ("correlation-service", "unit"), ("schema-tests", "unit"),
+    ],
+    "kotlin-acceptance-tests": [
+        ("gateway", "acceptance"), ("notification-service", "acceptance"),
+        ("risk-orchestrator", "acceptance"), ("regulatory-service", "acceptance"),
+        ("position-service", "acceptance"), ("audit-service", "acceptance"),
+        ("price-service", "acceptance"), ("rates-service", "acceptance"),
+        ("reference-data-service", "acceptance"), ("volatility-service", "acceptance"),
+        ("correlation-service", "acceptance"),
+    ],
+    "kotlin-integration": [
+        ("position-service", "integration"), ("price-service", "integration"),
+        ("risk-orchestrator", "integration"), ("audit-service", "integration"),
+        ("correlation-service", "integration"), ("rates-service", "integration"),
+        ("reference-data-service", "integration"), ("volatility-service", "integration"),
+        ("regulatory-service", "integration"),
+    ],
+    "end-to-end-tests": [("end2end-tests", "e2e")],
+    "python-unit-tests": [("risk-engine", "unit")],
+    "python-integration-tests": [("risk-engine", "integration")],
+    "ui-build": [("ui", "unit")],
+    "ui-e2e-tests": [("ui", "e2e")],
+    "smoke-tests": [("smoke-tests", "e2e")],
+}
 
 # Pattern → (component extraction strategy, test type)
 #   component is derived from the path segment before /build/ for Gradle,
@@ -138,6 +171,25 @@ def _iter_testsuites(root):
         yield from root.iter("testsuite")
 
 
+def inject_skipped_entries(
+    summary: dict[tuple[str, str], dict[str, int]],
+    job_results: dict[str, str],
+) -> None:
+    """For jobs that were skipped (or didn't run), inject placeholder entries
+    so they still appear in the summary table."""
+    for job_name, result in job_results.items():
+        if result in ("success", "failure"):
+            continue
+        entries = JOB_COMPONENT_MAP.get(job_name, [])
+        for component, test_type in entries:
+            key = (component, test_type)
+            if key not in summary:
+                summary[key] = {
+                    "tests": 0, "failures": 0, "errors": 0, "skipped": 0,
+                    "job_skipped": True,
+                }
+
+
 def _components_sorted(summary):
     return sorted({comp for comp, _ in summary})
 
@@ -166,16 +218,20 @@ def format_text(summary: dict[tuple[str, str], dict[str, int]]) -> str:
         for tt in TEST_TYPES:
             key = (comp, tt)
             if key in summary:
-                count = summary[key]["tests"]
-                cells.append(f"{count:>{col_w}}")
-                row_total += count
+                entry = summary[key]
+                if entry.get("job_skipped"):
+                    cells.append(f"{'⊘':>{col_w}}")
+                else:
+                    count = entry["tests"]
+                    cells.append(f"{count:>{col_w}}")
+                    row_total += count
             else:
                 cells.append(f"{'-':>{col_w}}")
         cells.append(f"{row_total:>{col_w}}")
         lines.append(f"{comp:<{name_w}}" + "".join(cells))
 
         for key_fields in [(comp, tt) for tt in TEST_TYPES]:
-            if key_fields in summary:
+            if key_fields in summary and not summary[key_fields].get("job_skipped"):
                 for k in grand:
                     grand[k] += summary[key_fields][k]
 
@@ -220,15 +276,19 @@ def format_markdown(summary: dict[tuple[str, str], dict[str, int]]) -> str:
         for tt in TEST_TYPES:
             key = (comp, tt)
             if key in summary:
-                count = summary[key]["tests"]
-                cells.append(str(count))
-                row_total += count
+                entry = summary[key]
+                if entry.get("job_skipped"):
+                    cells.append("⊘")
+                else:
+                    count = entry["tests"]
+                    cells.append(str(count))
+                    row_total += count
             else:
                 cells.append("-")
         lines.append(f"| {comp} | {' | '.join(cells)} | {row_total} |")
 
         for tt in TEST_TYPES:
-            if (comp, tt) in summary:
+            if (comp, tt) in summary and not summary[(comp, tt)].get("job_skipped"):
                 for k in grand:
                     grand[k] += summary[(comp, tt)][k]
 
@@ -255,11 +315,20 @@ def main():
     parser = argparse.ArgumentParser(description="Aggregate JUnit XML test results.")
     parser.add_argument("root", nargs="?", default=".", help="Root directory to scan (default: .)")
     parser.add_argument("--format", choices=["text", "markdown"], default="text", dest="fmt")
+    parser.add_argument(
+        "--job-results",
+        default=None,
+        help="JSON mapping CI job names to their result (success/failure/skipped/cancelled)",
+    )
     args = parser.parse_args()
 
     root = Path(args.root).resolve()
     discovered = discover_xml_files(root)
     summary = parse_results(discovered)
+
+    if args.job_results:
+        job_results = json.loads(args.job_results)
+        inject_skipped_entries(summary, job_results)
 
     if args.fmt == "markdown":
         print(format_markdown(summary))
