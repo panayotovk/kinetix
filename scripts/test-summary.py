@@ -74,7 +74,7 @@ PATTERNS = [
 ]
 
 TEST_TYPES = ["unit", "acceptance", "integration", "e2e"]
-COLUMN_WIDTH = 12
+COLUMN_WIDTH = 14
 
 
 def discover_xml_files(root: Path) -> list[tuple[str, str, Path]]:
@@ -190,6 +190,48 @@ def inject_skipped_entries(
                 }
 
 
+def _format_cell(entry: dict[str, int] | None) -> str:
+    """Render a single summary cell.
+
+    - ``None`` (absent) → ``"-"``
+    - ``job_skipped`` → ``"⊘"``
+    - failures/errors > 0 → ``"N (M✗)"``
+    - otherwise → ``"N"``
+    """
+    if entry is None:
+        return "-"
+    if entry.get("job_skipped"):
+        return "⊘"
+    count = entry["tests"]
+    fail_count = entry["failures"] + entry["errors"]
+    if fail_count > 0:
+        return f"{count} ({fail_count}✗)"
+    return str(count)
+
+
+def _row_status(summary: dict[tuple[str, str], dict[str, int]], component: str) -> str:
+    """Determine the status icon for a component row.
+
+    - ``"✗"`` if any cell has failures or errors
+    - ``"⊘"`` if every cell is absent or job_skipped
+    - ``"✓"`` otherwise
+    """
+    entries = [(tt, summary.get((component, tt))) for tt in TEST_TYPES]
+    has_failure = any(
+        e is not None and not e.get("job_skipped") and (e["failures"] + e["errors"]) > 0
+        for _, e in entries
+    )
+    if has_failure:
+        return "✗"
+    all_absent_or_skipped = all(
+        e is None or e.get("job_skipped")
+        for _, e in entries
+    )
+    if all_absent_or_skipped:
+        return "⊘"
+    return "✓"
+
+
 def _components_sorted(summary):
     return sorted({comp for comp, _ in summary})
 
@@ -200,13 +242,19 @@ def format_text(summary: dict[tuple[str, str], dict[str, int]]) -> str:
 
     components = _components_sorted(summary)
     col_w = COLUMN_WIDTH
+    status_w = 8
     name_w = max(len(c) for c in components + ["Component"]) + 2
-    line_w = name_w + col_w * len(TEST_TYPES) + col_w  # +col_w for Total
+    line_w = status_w + name_w + col_w * len(TEST_TYPES) + col_w  # +col_w for Total
 
     lines = []
     lines.append("Test Summary")
     lines.append("\u2550" * line_w)
-    header = f"{'Component':<{name_w}}" + "".join(f"{t.title():>{col_w}}" for t in TEST_TYPES) + f"{'Total':>{col_w}}"
+    header = (
+        f"{'Status':<{status_w}}"
+        + f"{'Component':<{name_w}}"
+        + "".join(f"{t.title():>{col_w}}" for t in TEST_TYPES)
+        + f"{'Total':>{col_w}}"
+    )
     lines.append(header)
     lines.append("\u2500" * line_w)
 
@@ -214,34 +262,45 @@ def format_text(summary: dict[tuple[str, str], dict[str, int]]) -> str:
 
     for comp in components:
         row_total = 0
+        row_failures = 0
         cells = []
         for tt in TEST_TYPES:
-            key = (comp, tt)
-            if key in summary:
-                entry = summary[key]
-                if entry.get("job_skipped"):
-                    cells.append(f"{'⊘':>{col_w}}")
-                else:
-                    count = entry["tests"]
-                    cells.append(f"{count:>{col_w}}")
-                    row_total += count
-            else:
-                cells.append(f"{'-':>{col_w}}")
-        cells.append(f"{row_total:>{col_w}}")
-        lines.append(f"{comp:<{name_w}}" + "".join(cells))
+            entry = summary.get((comp, tt))
+            cell_text = _format_cell(entry)
+            cells.append(f"{cell_text:>{col_w}}")
+            if entry and not entry.get("job_skipped"):
+                row_total += entry["tests"]
+                row_failures += entry["failures"] + entry["errors"]
 
-        for key_fields in [(comp, tt) for tt in TEST_TYPES]:
-            if key_fields in summary and not summary[key_fields].get("job_skipped"):
+        total_cell = _format_cell({"tests": row_total, "failures": row_failures, "errors": 0, "skipped": 0}) if row_total else str(row_total)
+        cells.append(f"{total_cell:>{col_w}}")
+        status = _row_status(summary, comp)
+        lines.append(f"{status:<{status_w}}" + f"{comp:<{name_w}}" + "".join(cells))
+
+        for tt in TEST_TYPES:
+            key = (comp, tt)
+            if key in summary and not summary[key].get("job_skipped"):
                 for k in grand:
-                    grand[k] += summary[key_fields][k]
+                    grand[k] += summary[key][k]
 
     lines.append("\u2500" * line_w)
+
     total_cells = []
     for tt in TEST_TYPES:
-        tt_total = sum(summary.get((c, tt), {}).get("tests", 0) for c in components)
-        total_cells.append(f"{tt_total:>{col_w}}" if tt_total else f"{'-':>{col_w}}")
-    total_cells.append(f"{grand['tests']:>{col_w}}")
-    lines.append(f"{'Total':<{name_w}}" + "".join(total_cells))
+        tt_counts = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
+        for c in components:
+            entry = summary.get((c, tt))
+            if entry and not entry.get("job_skipped"):
+                for k in tt_counts:
+                    tt_counts[k] += entry[k]
+        if tt_counts["tests"]:
+            total_cells.append(f"{_format_cell(tt_counts):>{col_w}}")
+        else:
+            total_cells.append(f"{'-':>{col_w}}")
+    grand_cell = _format_cell(grand)
+    total_cells.append(f"{grand_cell:>{col_w}}")
+    overall_status = "✗" if (grand["failures"] + grand["errors"]) > 0 else "✓"
+    lines.append(f"{overall_status:<{status_w}}" + f"{'Total':<{name_w}}" + "".join(total_cells))
 
     passed = grand["tests"] - grand["failures"] - grand["errors"] - grand["skipped"]
     failed = grand["failures"] + grand["errors"]
@@ -265,27 +324,25 @@ def format_markdown(summary: dict[tuple[str, str], dict[str, int]]) -> str:
     lines = []
     lines.append("## Test Summary")
     lines.append("")
-    lines.append("| Component | Unit | Acceptance | Integration | E2E | Total |")
-    lines.append("|-----------|-----:|-----------:|------------:|----:|------:|")
+    lines.append("| Status | Component | Unit | Acceptance | Integration | E2E | Total |")
+    lines.append("|:------:|-----------|-----:|-----------:|------------:|----:|------:|")
 
     grand = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
 
     for comp in components:
         row_total = 0
+        row_failures = 0
         cells = []
         for tt in TEST_TYPES:
-            key = (comp, tt)
-            if key in summary:
-                entry = summary[key]
-                if entry.get("job_skipped"):
-                    cells.append("⊘")
-                else:
-                    count = entry["tests"]
-                    cells.append(str(count))
-                    row_total += count
-            else:
-                cells.append("-")
-        lines.append(f"| {comp} | {' | '.join(cells)} | {row_total} |")
+            entry = summary.get((comp, tt))
+            cells.append(_format_cell(entry))
+            if entry and not entry.get("job_skipped"):
+                row_total += entry["tests"]
+                row_failures += entry["failures"] + entry["errors"]
+
+        total_cell = _format_cell({"tests": row_total, "failures": row_failures, "errors": 0, "skipped": 0}) if row_total else str(row_total)
+        status = _row_status(summary, comp)
+        lines.append(f"| {status} | {comp} | {' | '.join(cells)} | {total_cell} |")
 
         for tt in TEST_TYPES:
             if (comp, tt) in summary and not summary[(comp, tt)].get("job_skipped"):
@@ -294,9 +351,16 @@ def format_markdown(summary: dict[tuple[str, str], dict[str, int]]) -> str:
 
     total_cells = []
     for tt in TEST_TYPES:
-        tt_total = sum(summary.get((c, tt), {}).get("tests", 0) for c in components)
-        total_cells.append(str(tt_total) if tt_total else "-")
-    lines.append(f"| **Total** | {' | '.join(f'**{c}**' for c in total_cells)} | **{grand['tests']}** |")
+        tt_counts = {"tests": 0, "failures": 0, "errors": 0, "skipped": 0}
+        for c in components:
+            entry = summary.get((c, tt))
+            if entry and not entry.get("job_skipped"):
+                for k in tt_counts:
+                    tt_counts[k] += entry[k]
+        total_cells.append(f"**{_format_cell(tt_counts)}**" if tt_counts["tests"] else "-")
+    grand_cell = _format_cell(grand)
+    overall_status = "✗" if (grand["failures"] + grand["errors"]) > 0 else "✓"
+    lines.append(f"| {overall_status} | **Total** | {' | '.join(total_cells)} | **{grand_cell}** |")
 
     passed = grand["tests"] - grand["failures"] - grand["errors"] - grand["skipped"]
     failed = grand["failures"] + grand["errors"]
