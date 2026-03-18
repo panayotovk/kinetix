@@ -10,6 +10,7 @@ import com.kinetix.risk.model.TriggerType
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.service.VaRCalculationService
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -32,42 +33,49 @@ class TradeEventConsumer(
         withContext(Dispatchers.IO) {
             consumer.subscribe(listOf(topic))
         }
-        while (coroutineContext.isActive) {
-            val records = withContext(Dispatchers.IO) {
-                consumer.poll(Duration.ofMillis(100))
-            }
-            for (record in records) {
-                try {
-                    retryableConsumer.process(record.key() ?: "", record.value()) {
-                        val event = Json.decodeFromString<TradeEventMessage>(record.value())
-                        MDC.put("correlationId", event.correlationId ?: "")
-                        try {
-                            val portfolioId = BookId(event.portfolioId)
-
-                            logger.info("Trade event received for portfolio {}, triggering VaR recalculation", portfolioId.value)
-
-                            val result = varCalculationService.calculateVaR(
-                                VaRCalculationRequest(
-                                    portfolioId = portfolioId,
-                                    calculationType = CalculationType.PARAMETRIC,
-                                    confidenceLevel = ConfidenceLevel.CL_95,
-                                ),
-                                triggerType = TriggerType.TRADE_EVENT,
-                                correlationId = event.correlationId,
-                            )
-                            if (result != null) {
-                                varCache?.put(portfolioId.value, result)
-                            }
-                        } finally {
-                            MDC.remove("correlationId")
-                        }
-                    }
-                } catch (e: Exception) {
-                    logger.error(
-                        "Failed to process trade event after retries: offset={}, partition={}",
-                        record.offset(), record.partition(), e,
-                    )
+        try {
+            while (coroutineContext.isActive) {
+                val records = withContext(Dispatchers.IO) {
+                    consumer.poll(Duration.ofMillis(100))
                 }
+                for (record in records) {
+                    try {
+                        retryableConsumer.process(record.key() ?: "", record.value()) {
+                            val event = Json.decodeFromString<TradeEventMessage>(record.value())
+                            MDC.put("correlationId", event.correlationId ?: "")
+                            try {
+                                val portfolioId = BookId(event.portfolioId)
+
+                                logger.info("Trade event received for portfolio {}, triggering VaR recalculation", portfolioId.value)
+
+                                val result = varCalculationService.calculateVaR(
+                                    VaRCalculationRequest(
+                                        portfolioId = portfolioId,
+                                        calculationType = CalculationType.PARAMETRIC,
+                                        confidenceLevel = ConfidenceLevel.CL_95,
+                                    ),
+                                    triggerType = TriggerType.TRADE_EVENT,
+                                    correlationId = event.correlationId,
+                                )
+                                if (result != null) {
+                                    varCache?.put(portfolioId.value, result)
+                                }
+                            } finally {
+                                MDC.remove("correlationId")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        logger.error(
+                            "Failed to process trade event after retries: offset={}, partition={}",
+                            record.offset(), record.partition(), e,
+                        )
+                    }
+                }
+            }
+        } finally {
+            withContext(NonCancellable + Dispatchers.IO) {
+                logger.info("Closing trade event Kafka consumer")
+                consumer.close(Duration.ofSeconds(5))
             }
         }
     }

@@ -5,6 +5,7 @@ import com.kinetix.common.kafka.events.RiskResultEvent
 import com.kinetix.notification.delivery.DeliveryRouter
 import com.kinetix.notification.engine.RulesEngine
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -29,36 +30,43 @@ class RiskResultConsumer(
             consumer.subscribe(listOf(topic))
         }
         logger.info("Subscribed to topic: {}", topic)
-        while (coroutineContext.isActive) {
-            val records = withContext(Dispatchers.IO) {
-                consumer.poll(Duration.ofMillis(100))
-            }
-            for (record in records) {
-                try {
-                    retryableConsumer.process(record.key() ?: "", record.value()) {
-                        val event = json.decodeFromString<RiskResultEvent>(record.value())
-                        MDC.put("correlationId", event.correlationId ?: "")
-                        try {
-                            val alerts = rulesEngine.evaluate(event)
-                            for (alert in alerts) {
-                                val rule = rulesEngine.listRules().find { it.id == alert.ruleId }
-                                val channels = rule?.channels ?: emptyList()
-                                deliveryRouter.route(alert, channels)
-                                logger.info(
-                                    "Alert triggered: rule={}, severity={}, book={}",
-                                    alert.ruleName, alert.severity, alert.bookId,
-                                )
-                            }
-                        } finally {
-                            MDC.remove("correlationId")
-                        }
-                    }
-                } catch (e: Exception) {
-                    logger.error(
-                        "Failed to process risk result event after retries: offset={}, partition={}",
-                        record.offset(), record.partition(), e,
-                    )
+        try {
+            while (coroutineContext.isActive) {
+                val records = withContext(Dispatchers.IO) {
+                    consumer.poll(Duration.ofMillis(100))
                 }
+                for (record in records) {
+                    try {
+                        retryableConsumer.process(record.key() ?: "", record.value()) {
+                            val event = json.decodeFromString<RiskResultEvent>(record.value())
+                            MDC.put("correlationId", event.correlationId ?: "")
+                            try {
+                                val alerts = rulesEngine.evaluate(event)
+                                for (alert in alerts) {
+                                    val rule = rulesEngine.listRules().find { it.id == alert.ruleId }
+                                    val channels = rule?.channels ?: emptyList()
+                                    deliveryRouter.route(alert, channels)
+                                    logger.info(
+                                        "Alert triggered: rule={}, severity={}, book={}",
+                                        alert.ruleName, alert.severity, alert.bookId,
+                                    )
+                                }
+                            } finally {
+                                MDC.remove("correlationId")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        logger.error(
+                            "Failed to process risk result event after retries: offset={}, partition={}",
+                            record.offset(), record.partition(), e,
+                        )
+                    }
+                }
+            }
+        } finally {
+            withContext(NonCancellable + Dispatchers.IO) {
+                logger.info("Closing risk result Kafka consumer")
+                consumer.close(Duration.ofSeconds(5))
             }
         }
     }

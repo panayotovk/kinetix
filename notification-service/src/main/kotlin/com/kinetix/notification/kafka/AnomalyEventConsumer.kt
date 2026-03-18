@@ -2,6 +2,7 @@ package com.kinetix.notification.kafka
 
 import com.kinetix.common.kafka.RetryableConsumer
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -23,24 +24,31 @@ class AnomalyEventConsumer(
             consumer.subscribe(listOf(topic))
         }
         logger.info("Subscribed to topic: {}", topic)
-        while (coroutineContext.isActive) {
-            val records = withContext(Dispatchers.IO) {
-                consumer.poll(Duration.ofMillis(100))
-            }
-            for (record in records) {
-                try {
-                    retryableConsumer.process(record.key() ?: "", record.value()) {
-                        val event = json.decodeFromString<AnomalyEvent>(record.value())
-                        if (event.isAnomaly) {
-                            logger.warn(
-                                "Anomaly detected: metric={}, score={}, explanation={}",
-                                event.metricName, event.anomalyScore, event.explanation,
-                            )
-                        }
-                    }
-                } catch (e: Exception) {
-                    logger.error("Failed to process anomaly event after retries: {}", e.message)
+        try {
+            while (coroutineContext.isActive) {
+                val records = withContext(Dispatchers.IO) {
+                    consumer.poll(Duration.ofMillis(100))
                 }
+                for (record in records) {
+                    try {
+                        retryableConsumer.process(record.key() ?: "", record.value()) {
+                            val event = json.decodeFromString<AnomalyEvent>(record.value())
+                            if (event.isAnomaly) {
+                                logger.warn(
+                                    "Anomaly detected: metric={}, score={}, explanation={}",
+                                    event.metricName, event.anomalyScore, event.explanation,
+                                )
+                            }
+                        }
+                    } catch (e: Exception) {
+                        logger.error("Failed to process anomaly event after retries: {}", e.message)
+                    }
+                }
+            }
+        } finally {
+            withContext(NonCancellable + Dispatchers.IO) {
+                logger.info("Closing anomaly event Kafka consumer")
+                consumer.close(Duration.ofSeconds(5))
             }
         }
     }

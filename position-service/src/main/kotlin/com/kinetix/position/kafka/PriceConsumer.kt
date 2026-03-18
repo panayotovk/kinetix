@@ -7,6 +7,7 @@ import com.kinetix.common.model.Money
 import com.kinetix.position.service.LiveFxRateProvider
 import com.kinetix.position.service.PriceUpdateService
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
@@ -31,30 +32,37 @@ class PriceConsumer(
         withContext(Dispatchers.IO) {
             consumer.subscribe(listOf(topic))
         }
-        while (currentCoroutineContext().isActive) {
-            val records = withContext(Dispatchers.IO) {
-                consumer.poll(Duration.ofMillis(100))
-            }
-            for (record in records) {
-                try {
-                    retryableConsumer.process(record.key() ?: "", record.value()) {
-                        val event = Json.decodeFromString<PriceEvent>(record.value())
-                        MDC.put("correlationId", event.correlationId ?: "")
-                        try {
-                            val instrumentId = InstrumentId(event.instrumentId)
-                            val price = Money(BigDecimal(event.priceAmount), Currency.getInstance(event.priceCurrency))
-                            priceUpdateService.handle(instrumentId, price)
-                            liveFxRateProvider?.onPriceUpdate(event.instrumentId, BigDecimal(event.priceAmount))
-                        } finally {
-                            MDC.remove("correlationId")
-                        }
-                    }
-                } catch (e: Exception) {
-                    logger.error(
-                        "Failed to process price event after retries: offset={}, partition={}, instrumentId={}",
-                        record.offset(), record.partition(), record.key(), e,
-                    )
+        try {
+            while (currentCoroutineContext().isActive) {
+                val records = withContext(Dispatchers.IO) {
+                    consumer.poll(Duration.ofMillis(100))
                 }
+                for (record in records) {
+                    try {
+                        retryableConsumer.process(record.key() ?: "", record.value()) {
+                            val event = Json.decodeFromString<PriceEvent>(record.value())
+                            MDC.put("correlationId", event.correlationId ?: "")
+                            try {
+                                val instrumentId = InstrumentId(event.instrumentId)
+                                val price = Money(BigDecimal(event.priceAmount), Currency.getInstance(event.priceCurrency))
+                                priceUpdateService.handle(instrumentId, price)
+                                liveFxRateProvider?.onPriceUpdate(event.instrumentId, BigDecimal(event.priceAmount))
+                            } finally {
+                                MDC.remove("correlationId")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        logger.error(
+                            "Failed to process price event after retries: offset={}, partition={}, instrumentId={}",
+                            record.offset(), record.partition(), record.key(), e,
+                        )
+                    }
+                }
+            }
+        } finally {
+            withContext(NonCancellable + Dispatchers.IO) {
+                logger.info("Closing price Kafka consumer")
+                consumer.close(Duration.ofSeconds(5))
             }
         }
     }

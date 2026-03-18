@@ -10,6 +10,7 @@ import com.kinetix.risk.model.TriggerType
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.service.VaRCalculationService
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -33,51 +34,58 @@ class PriceEventConsumer(
         withContext(Dispatchers.IO) {
             consumer.subscribe(listOf(topic))
         }
-        while (coroutineContext.isActive) {
-            val records = withContext(Dispatchers.IO) {
-                consumer.poll(Duration.ofMillis(100))
-            }
-            if (records.isEmpty) continue
-
-            val firstRecord = records.first()
-            val priceCorrelationId = try {
-                Json.decodeFromString<PriceEvent>(firstRecord.value()).correlationId
-            } catch (_: Exception) { null }
-
-            val portfolioIds = try {
-                affectedPortfolios()
-            } catch (e: Exception) {
-                logger.error("Failed to fetch affected portfolios", e)
-                continue
-            }
-
-            for (portfolioId in portfolioIds) {
-                try {
-                    retryableConsumer.process(portfolioId.value, "") {
-                        MDC.put("correlationId", priceCorrelationId ?: "")
-                        try {
-                            logger.info("Price update received, triggering VaR recalculation for portfolio {}", portfolioId.value)
-                            val result = varCalculationService.calculateVaR(
-                                VaRCalculationRequest(
-                                    portfolioId = portfolioId,
-                                    calculationType = CalculationType.PARAMETRIC,
-                                    confidenceLevel = ConfidenceLevel.CL_95,
-                                ),
-                                triggerType = TriggerType.PRICE_EVENT,
-                            )
-                            if (result != null) {
-                                varCache?.put(portfolioId.value, result)
-                            }
-                        } finally {
-                            MDC.remove("correlationId")
-                        }
-                    }
-                } catch (e: Exception) {
-                    logger.error(
-                        "Failed to recalculate VaR for portfolio {} after price update and retries",
-                        portfolioId.value, e,
-                    )
+        try {
+            while (coroutineContext.isActive) {
+                val records = withContext(Dispatchers.IO) {
+                    consumer.poll(Duration.ofMillis(100))
                 }
+                if (records.isEmpty) continue
+
+                val firstRecord = records.first()
+                val priceCorrelationId = try {
+                    Json.decodeFromString<PriceEvent>(firstRecord.value()).correlationId
+                } catch (_: Exception) { null }
+
+                val portfolioIds = try {
+                    affectedPortfolios()
+                } catch (e: Exception) {
+                    logger.error("Failed to fetch affected portfolios", e)
+                    continue
+                }
+
+                for (portfolioId in portfolioIds) {
+                    try {
+                        retryableConsumer.process(portfolioId.value, "") {
+                            MDC.put("correlationId", priceCorrelationId ?: "")
+                            try {
+                                logger.info("Price update received, triggering VaR recalculation for portfolio {}", portfolioId.value)
+                                val result = varCalculationService.calculateVaR(
+                                    VaRCalculationRequest(
+                                        portfolioId = portfolioId,
+                                        calculationType = CalculationType.PARAMETRIC,
+                                        confidenceLevel = ConfidenceLevel.CL_95,
+                                    ),
+                                    triggerType = TriggerType.PRICE_EVENT,
+                                )
+                                if (result != null) {
+                                    varCache?.put(portfolioId.value, result)
+                                }
+                            } finally {
+                                MDC.remove("correlationId")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        logger.error(
+                            "Failed to recalculate VaR for portfolio {} after price update and retries",
+                            portfolioId.value, e,
+                        )
+                    }
+                }
+            }
+        } finally {
+            withContext(NonCancellable + Dispatchers.IO) {
+                logger.info("Closing price event Kafka consumer")
+                consumer.close(Duration.ofSeconds(5))
             }
         }
     }
