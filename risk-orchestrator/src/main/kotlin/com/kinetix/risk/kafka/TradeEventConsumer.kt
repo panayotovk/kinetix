@@ -72,6 +72,10 @@ class TradeEventConsumer(
                     }
                 }
             }
+                if (!records.isEmpty) {
+                    withContext(Dispatchers.IO) { consumer.commitSync() }
+                }
+            }
         } finally {
             withContext(NonCancellable + Dispatchers.IO) {
                 logger.info("Closing trade event Kafka consumer")

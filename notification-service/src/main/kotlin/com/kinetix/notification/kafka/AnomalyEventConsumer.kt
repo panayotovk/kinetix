@@ -44,6 +44,9 @@ class AnomalyEventConsumer(
                         logger.error("Failed to process anomaly event after retries: {}", e.message)
                     }
                 }
+                if (!records.isEmpty) {
+                    withContext(Dispatchers.IO) { consumer.commitSync() }
+                }
             }
         } finally {
             withContext(NonCancellable + Dispatchers.IO) {

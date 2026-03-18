@@ -57,6 +57,9 @@ class AuditEventConsumer(
                         )
                     }
                 }
+                if (!records.isEmpty) {
+                    withContext(Dispatchers.IO) { consumer.commitSync() }
+                }
             }
         } finally {
             withContext(NonCancellable + Dispatchers.IO) {
