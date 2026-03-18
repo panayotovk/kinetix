@@ -40,7 +40,7 @@ class InfrastructureSmokeTest : FunSpec({
     }
 
     test("auth rejects anonymous request with 401") {
-        val response = client.smokeGet("/api/v1/portfolios", "auth-reject")
+        val response = client.smokeGet("/api/v1/books", "auth-reject")
         // Without auth configured in devModule, this may return 200 (no auth enforced)
         // or 401 if auth is wired. Either way, it should NOT be 500 or 404.
         val status = response.status.value

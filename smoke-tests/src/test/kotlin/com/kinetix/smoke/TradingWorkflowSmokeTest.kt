@@ -34,7 +34,7 @@ class TradingWorkflowSmokeTest : FunSpec({
 
         val start = System.currentTimeMillis()
         val response = client.smokePost(
-            "/api/v1/portfolios/$smokeBookId/trades",
+            "/api/v1/books/$smokeBookId/trades",
             "trade-booking",
             tradeBody,
         )
@@ -48,7 +48,7 @@ class TradingWorkflowSmokeTest : FunSpec({
 
         // Verify position appears
         val posResponse = client.smokeGet(
-            "/api/v1/portfolios/$smokeBookId/positions",
+            "/api/v1/books/$smokeBookId/positions",
             "position-check",
         )
         posResponse.status shouldBe HttpStatusCode.OK
@@ -111,7 +111,7 @@ class TradingWorkflowSmokeTest : FunSpec({
         """.trimIndent()
 
         val response = client.smokePut(
-            "/api/v1/portfolios/$smokeBookId/trades/$bookedTradeId",
+            "/api/v1/books/$smokeBookId/trades/$bookedTradeId",
             "trade-amend",
             amendBody,
         )
@@ -119,7 +119,7 @@ class TradingWorkflowSmokeTest : FunSpec({
 
         // Verify updated position
         val posResponse = client.smokeGet(
-            "/api/v1/portfolios/$smokeBookId/positions",
+            "/api/v1/books/$smokeBookId/positions",
             "position-after-amend",
         )
         posResponse.status shouldBe HttpStatusCode.OK
