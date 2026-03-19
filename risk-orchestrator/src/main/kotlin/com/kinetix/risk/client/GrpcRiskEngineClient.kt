@@ -42,7 +42,7 @@ class GrpcRiskEngineClient(
         instrumentMap: Map<String, InstrumentDto>,
     ): VaRResult {
         val protoRequest = VaRRequest.newBuilder()
-            .setBookId(ProtoBookId.newBuilder().setValue(request.portfolioId.value))
+            .setBookId(ProtoBookId.newBuilder().setValue(request.bookId.value))
             .setCalculationType(request.calculationType.toProto())
             .setConfidenceLevel(request.confidenceLevel.toProto())
             .setTimeHorizonDays(request.timeHorizonDays)
@@ -63,7 +63,7 @@ class GrpcRiskEngineClient(
         instrumentMap: Map<String, InstrumentDto>,
     ): ValuationResult {
         val protoRequest = ValuationRequest.newBuilder()
-            .setBookId(ProtoBookId.newBuilder().setValue(request.portfolioId.value))
+            .setBookId(ProtoBookId.newBuilder().setValue(request.bookId.value))
             .setCalculationType(request.calculationType.toProto())
             .setConfidenceLevel(request.confidenceLevel.toProto())
             .setTimeHorizonDays(request.timeHorizonDays)

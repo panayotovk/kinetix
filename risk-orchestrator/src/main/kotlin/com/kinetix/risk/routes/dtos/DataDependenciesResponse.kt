@@ -4,6 +4,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class DataDependenciesResponse(
-    val portfolioId: String,
+    val bookId: String,
     val dependencies: List<MarketDataDependencyDto>,
 )

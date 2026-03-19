@@ -16,7 +16,7 @@ class NoOpRunManifestCapture : RunManifestCapture {
     ): RunManifest = RunManifest(
         manifestId = UUID.randomUUID(),
         jobId = jobId,
-        portfolioId = request.portfolioId.value,
+        bookId = request.bookId.value,
         valuationDate = valuationDate,
         capturedAt = Instant.now(),
         modelVersion = "",

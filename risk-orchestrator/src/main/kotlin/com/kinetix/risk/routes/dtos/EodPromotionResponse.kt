@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class EodPromotionResponse(
     val jobId: String,
-    val portfolioId: String,
+    val bookId: String,
     val valuationDate: String,
     val runLabel: String,
     val promotedAt: String?,

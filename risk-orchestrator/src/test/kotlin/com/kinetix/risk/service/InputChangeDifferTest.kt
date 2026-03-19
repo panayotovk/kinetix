@@ -24,7 +24,7 @@ private fun manifest(
 ) = RunManifest(
     manifestId = UUID.randomUUID(),
     jobId = UUID.randomUUID(),
-    portfolioId = "PORT-1",
+    bookId = "PORT-1",
     valuationDate = LocalDate.of(2024, 1, 15),
     capturedAt = Instant.now(),
     modelVersion = modelVersion,

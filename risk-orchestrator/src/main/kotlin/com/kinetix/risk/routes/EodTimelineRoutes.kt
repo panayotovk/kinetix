@@ -18,11 +18,11 @@ private const val MAX_RANGE_DAYS = 366L
 
 fun Route.eodTimelineRoutes(jobRecorder: ValuationJobRecorder) {
 
-    get("/api/v1/risk/eod-timeline/{portfolioId}", {
+    get("/api/v1/risk/eod-timeline/{bookId}", {
         summary = "Get EOD timeline for a portfolio"
         tags = listOf("EOD Timeline")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Portfolio identifier" }
             queryParameter<String>("from") {
                 description = "Start date inclusive (YYYY-MM-DD)"
                 required = true
@@ -33,7 +33,7 @@ fun Route.eodTimelineRoutes(jobRecorder: ValuationJobRecorder) {
             }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
 
         val fromStr = call.request.queryParameters["from"]
         val toStr = call.request.queryParameters["to"]
@@ -73,20 +73,20 @@ fun Route.eodTimelineRoutes(jobRecorder: ValuationJobRecorder) {
         }
 
         val startMs = System.currentTimeMillis()
-        logger.info("eod_timeline_query portfolio_id={} from={} to={}", portfolioId, from, to)
+        logger.info("eod_timeline_query book_id={} from={} to={}", bookId, from, to)
 
-        val jobs = jobRecorder.findOfficialEodRange(portfolioId, from, to)
+        val jobs = jobRecorder.findOfficialEodRange(bookId, from, to)
         val entries = computeTimeline(jobs)
 
         val durationMs = System.currentTimeMillis() - startMs
         logger.info("eod_timeline_result dates_found={} duration_ms={}", entries.size, durationMs)
         if (durationMs > 2_000) {
-            logger.warn("eod_timeline_slow portfolio_id={} duration_ms={}", portfolioId, durationMs)
+            logger.warn("eod_timeline_slow book_id={} duration_ms={}", bookId, durationMs)
         }
 
         call.respond(
             EodTimelineResponse(
-                portfolioId = portfolioId,
+                bookId = bookId,
                 from = from.toString(),
                 to = to.toString(),
                 entries = entries,

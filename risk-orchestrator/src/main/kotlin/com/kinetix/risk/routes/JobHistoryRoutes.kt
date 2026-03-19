@@ -19,11 +19,11 @@ import java.util.UUID
 
 fun Route.jobHistoryRoutes(jobRecorder: ValuationJobRecorder) {
 
-    get("/api/v1/risk/jobs/{portfolioId}/chart", {
+    get("/api/v1/risk/jobs/{bookId}/chart", {
         summary = "Get aggregated chart data for a portfolio"
         tags = listOf("Job History")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Portfolio identifier" }
             queryParameter<String>("from") {
                 description = "Start timestamp (ISO-8601)"
                 required = true
@@ -34,7 +34,7 @@ fun Route.jobHistoryRoutes(jobRecorder: ValuationJobRecorder) {
             }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
 
         val from = try {
             call.request.queryParameters["from"]?.let { Instant.parse(it) }
@@ -57,7 +57,7 @@ fun Route.jobHistoryRoutes(jobRecorder: ValuationJobRecorder) {
 
         val interval = ExposedValuationJobRecorder.bucketInterval(from, to)
         val sizeMs = ExposedValuationJobRecorder.bucketSizeMs(from, to)
-        val rows = jobRecorder.findChartData(portfolioId, from, to, interval)
+        val rows = jobRecorder.findChartData(bookId, from, to, interval)
         val points = rows.map { row ->
             ChartDataPointResponse(
                 bucket = row.bucket.toString(),
@@ -79,11 +79,11 @@ fun Route.jobHistoryRoutes(jobRecorder: ValuationJobRecorder) {
         call.respond(ChartDataResponse(points = points, bucketSizeMs = sizeMs))
     }
 
-    get("/api/v1/risk/jobs/{portfolioId}", {
+    get("/api/v1/risk/jobs/{bookId}", {
         summary = "List valuation jobs for a portfolio"
         tags = listOf("Job History")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Portfolio identifier" }
             queryParameter<Int>("limit") {
                 description = "Max results, default 20"
                 required = false
@@ -102,7 +102,7 @@ fun Route.jobHistoryRoutes(jobRecorder: ValuationJobRecorder) {
             }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
         val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
         val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
 
@@ -134,8 +134,8 @@ fun Route.jobHistoryRoutes(jobRecorder: ValuationJobRecorder) {
             return@get
         }
 
-        val jobs = jobRecorder.findByBookId(portfolioId, limit, offset, from, to, valuationDate, runLabel)
-        val totalCount = jobRecorder.countByBookId(portfolioId, from, to, valuationDate, runLabel)
+        val jobs = jobRecorder.findByBookId(bookId, limit, offset, from, to, valuationDate, runLabel)
+        val totalCount = jobRecorder.countByBookId(bookId, from, to, valuationDate, runLabel)
         call.respond(PaginatedJobsResponse(jobs.map { it.toSummaryResponse() }, totalCount))
     }
 

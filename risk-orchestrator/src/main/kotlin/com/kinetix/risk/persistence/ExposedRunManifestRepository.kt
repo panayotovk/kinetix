@@ -17,7 +17,7 @@ class ExposedRunManifestRepository(private val db: Database? = null) : RunManife
         RunManifestsTable.insert {
             it[manifestId] = manifest.manifestId
             it[jobId] = manifest.jobId
-            it[portfolioId] = manifest.portfolioId
+            it[bookId] = manifest.bookId
             it[valuationDate] = manifest.valuationDate.toKotlinLocalDate()
             it[capturedAt] = OffsetDateTime.ofInstant(manifest.capturedAt, ZoneOffset.UTC)
             it[modelVersion] = manifest.modelVersion
@@ -142,7 +142,7 @@ class ExposedRunManifestRepository(private val db: Database? = null) : RunManife
     private fun ResultRow.toRunManifest(): RunManifest = RunManifest(
         manifestId = this[RunManifestsTable.manifestId],
         jobId = this[RunManifestsTable.jobId],
-        portfolioId = this[RunManifestsTable.portfolioId],
+        bookId = this[RunManifestsTable.bookId],
         valuationDate = this[RunManifestsTable.valuationDate].toJavaLocalDate(),
         capturedAt = this[RunManifestsTable.capturedAt].toInstant(),
         modelVersion = this[RunManifestsTable.modelVersion],

@@ -23,11 +23,11 @@ private val JOB_ID_2 = UUID.fromString("22222222-2222-2222-2222-222222222222")
 
 private fun completedJob(
     jobId: UUID = JOB_ID,
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     startedAt: Instant = Instant.parse("2025-01-15T10:00:00Z"),
 ) = ValuationJob(
     jobId = jobId,
-    portfolioId = portfolioId,
+    bookId = bookId,
     triggerType = TriggerType.ON_DEMAND,
     status = RunStatus.COMPLETED,
     startedAt = startedAt,
@@ -176,7 +176,7 @@ class JobHistoryRoutesTest : FunSpec({
     test("job list includes currentPhase for a RUNNING job") {
         val runningJob = ValuationJob(
             jobId = JOB_ID,
-            portfolioId = "port-1",
+            bookId = "port-1",
             triggerType = TriggerType.ON_DEMAND,
             status = RunStatus.RUNNING,
             startedAt = Instant.parse("2025-01-15T10:00:00Z"),

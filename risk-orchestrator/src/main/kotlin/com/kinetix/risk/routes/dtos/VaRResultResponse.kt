@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class VaRResultResponse(
-    val portfolioId: String,
+    val bookId: String,
     val calculationType: String,
     val confidenceLevel: String,
     val varValue: String,

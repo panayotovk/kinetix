@@ -91,7 +91,7 @@ class CrossBookVaRCalculationService(
 
         val syntheticPortfolioId = BookId("cross-book:${request.portfolioGroupId}")
         val varRequest = VaRCalculationRequest(
-            portfolioId = syntheticPortfolioId,
+            bookId = syntheticPortfolioId,
             calculationType = request.calculationType,
             confidenceLevel = request.confidenceLevel,
             timeHorizonDays = request.timeHorizonDays,

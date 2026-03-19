@@ -15,7 +15,7 @@ private val REFRESH_DATE = LocalDate.of(2026, 3, 19)
 
 private fun completedPromotableJob(jobId: UUID = REFRESH_JOB_ID) = ValuationJob(
     jobId = jobId,
-    portfolioId = "port-1",
+    bookId = "port-1",
     triggerType = TriggerType.ON_DEMAND,
     status = RunStatus.COMPLETED,
     startedAt = Instant.parse("2026-03-19T17:00:00Z"),

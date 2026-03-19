@@ -5,7 +5,7 @@ import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 
 object DailyRiskSnapshotsTable : Table("daily_risk_snapshots") {
     val id = long("id").autoIncrement()
-    val portfolioId = varchar("portfolio_id", 64)
+    val bookId = varchar("book_id", 64)
     val snapshotDate = timestampWithTimeZone("snapshot_date")
     val instrumentId = varchar("instrument_id", 255)
     val assetClass = varchar("asset_class", 32)

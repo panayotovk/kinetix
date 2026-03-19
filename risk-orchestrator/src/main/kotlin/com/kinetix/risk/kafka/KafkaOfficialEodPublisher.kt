@@ -18,7 +18,7 @@ class KafkaOfficialEodPublisher(
     private val logger = LoggerFactory.getLogger(KafkaOfficialEodPublisher::class.java)
 
     override suspend fun publish(event: OfficialEodPromotedEvent) {
-        val key = "${event.portfolioId}:${event.valuationDate}"
+        val key = "${event.bookId}:${event.valuationDate}"
         val json = Json.encodeToString(event)
         val record = ProducerRecord(topic, key, json)
 
@@ -28,8 +28,8 @@ class KafkaOfficialEodPublisher(
             }
         } catch (e: Exception) {
             logger.error(
-                "Failed to publish Official EOD event: portfolioId={}, valuationDate={}, topic={}",
-                event.portfolioId, event.valuationDate, topic, e,
+                "Failed to publish Official EOD event: bookId={}, valuationDate={}, topic={}",
+                event.bookId, event.valuationDate, topic, e,
             )
         }
     }

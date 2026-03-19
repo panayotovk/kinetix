@@ -23,7 +23,7 @@ data class ComponentBreakdown(
 )
 
 data class VaRResult(
-    val portfolioId: BookId,
+    val bookId: BookId,
     val calculationType: CalculationType,
     val confidenceLevel: ConfidenceLevel,
     val varValue: Double,
@@ -34,7 +34,7 @@ data class VaRResult(
 )
 
 data class VaRCalculationRequest(
-    val portfolioId: BookId,
+    val bookId: BookId,
     val calculationType: CalculationType,
     val confidenceLevel: ConfidenceLevel,
     val timeHorizonDays: Int = 1,

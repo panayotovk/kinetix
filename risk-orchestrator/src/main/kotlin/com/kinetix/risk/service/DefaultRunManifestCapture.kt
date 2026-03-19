@@ -101,7 +101,7 @@ class DefaultRunManifestCapture(
         val manifest = RunManifest(
             manifestId = manifestId,
             jobId = jobId,
-            portfolioId = request.portfolioId.value,
+            bookId = request.bookId.value,
             valuationDate = valuationDate,
             capturedAt = capturedAt,
             modelVersion = "",
@@ -148,7 +148,7 @@ class DefaultRunManifestCapture(
 
         // 2. Recompute input digest with the real model version
         val request = VaRCalculationRequest(
-            portfolioId = com.kinetix.common.model.BookId(manifest.portfolioId),
+            bookId = com.kinetix.common.model.BookId(manifest.bookId),
             calculationType = CalculationType.valueOf(manifest.calculationType),
             confidenceLevel = ConfidenceLevel.valueOf(manifest.confidenceLevel),
             timeHorizonDays = manifest.timeHorizonDays,
@@ -190,7 +190,7 @@ class DefaultRunManifestCapture(
             auditPublisher?.publish(
                 ManifestFrozenEvent(
                     jobId = manifest.jobId.toString(),
-                    portfolioId = manifest.portfolioId,
+                    bookId = manifest.bookId,
                     valuationDate = manifest.valuationDate.toString(),
                     manifestId = manifestId.toString(),
                     capturedAt = manifest.capturedAt.toString(),

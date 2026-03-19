@@ -21,19 +21,19 @@ class RedisVaRCache(
     private val sync = connection.sync()
     private val cacheJson = Json { ignoreUnknownKeys = true }
 
-    override fun put(portfolioId: String, result: ValuationResult) {
-        val key = keyFor(portfolioId)
+    override fun put(bookId: String, result: ValuationResult) {
+        val key = keyFor(bookId)
         val value = Json.encodeToString(CachedValuationResult.from(result))
         sync.set(key, value, SetArgs().ex(ttlSeconds))
     }
 
-    override fun get(portfolioId: String): ValuationResult? {
-        val key = keyFor(portfolioId)
+    override fun get(bookId: String): ValuationResult? {
+        val key = keyFor(bookId)
         val value = sync.get(key) ?: return null
         return cacheJson.decodeFromString<CachedValuationResult>(value).toValuationResult()
     }
 
-    private fun keyFor(portfolioId: String): String = "var:v$CACHE_SCHEMA_VERSION:$portfolioId"
+    private fun keyFor(bookId: String): String = "var:v$CACHE_SCHEMA_VERSION:$bookId"
 
     companion object {
         const val CACHE_SCHEMA_VERSION = 1
@@ -77,7 +77,7 @@ internal data class CachedPositionRisk(
 
 @Serializable
 internal data class CachedValuationResult(
-    val portfolioId: String,
+    val bookId: String,
     val calculationType: String,
     val confidenceLevel: String,
     val varValue: Double?,
@@ -91,7 +91,7 @@ internal data class CachedValuationResult(
     val jobId: String?,
 ) {
     fun toValuationResult(): ValuationResult = ValuationResult(
-        portfolioId = BookId(portfolioId),
+        bookId = BookId(bookId),
         calculationType = CalculationType.valueOf(calculationType),
         confidenceLevel = ConfidenceLevel.valueOf(confidenceLevel),
         varValue = varValue,
@@ -129,7 +129,7 @@ internal data class CachedValuationResult(
 
     companion object {
         fun from(result: ValuationResult): CachedValuationResult = CachedValuationResult(
-            portfolioId = result.portfolioId.value,
+            bookId = result.bookId.value,
             calculationType = result.calculationType.name,
             confidenceLevel = result.confidenceLevel.name,
             varValue = result.varValue,

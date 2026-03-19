@@ -63,7 +63,7 @@ class PnlComputationServiceTest : FunSpec({
 
         val sodSnapshots = listOf(
             DailyRiskSnapshot(
-                portfolioId = PORTFOLIO,
+                bookId = PORTFOLIO,
                 snapshotDate = TODAY,
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
@@ -93,7 +93,7 @@ class PnlComputationServiceTest : FunSpec({
 
         val result = service.compute(PORTFOLIO, TODAY)
 
-        result.portfolioId shouldBe PORTFOLIO
+        result.bookId shouldBe PORTFOLIO
         result.date shouldBe TODAY
         coVerify { pnlAttributionRepository.save(any()) }
     }
@@ -108,7 +108,7 @@ class PnlComputationServiceTest : FunSpec({
 
         val sodSnapshots = listOf(
             DailyRiskSnapshot(
-                portfolioId = PORTFOLIO,
+                bookId = PORTFOLIO,
                 snapshotDate = TODAY,
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,

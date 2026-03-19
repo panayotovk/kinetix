@@ -72,7 +72,7 @@ class ReplayService(
 
         // 4. Build the replay request matching original parameters
         val replayRequest = VaRCalculationRequest(
-            portfolioId = BookId(manifest.portfolioId),
+            bookId = BookId(manifest.bookId),
             calculationType = CalculationType.valueOf(manifest.calculationType),
             confidenceLevel = ConfidenceLevel.valueOf(manifest.confidenceLevel),
             timeHorizonDays = manifest.timeHorizonDays,
@@ -81,8 +81,8 @@ class ReplayService(
         )
 
         // 5. Create replay positions from snapshot
-        val replayProvider = ReplayPositionProvider(positionEntries, manifest.portfolioId)
-        val positions = replayProvider.getPositions(BookId(manifest.portfolioId))
+        val replayProvider = ReplayPositionProvider(positionEntries, manifest.bookId)
+        val positions = replayProvider.getPositions(BookId(manifest.bookId))
 
         // 6. Re-run the valuation
         logger.info(
@@ -108,10 +108,10 @@ class ReplayService(
         val originalExpectedShortfall = manifest.expectedShortfall ?: originalJob?.expectedShortfall
 
         // 9. Record metrics
-        sample.stop(meterRegistry.timer("replay.duration", "portfolio_id", manifest.portfolioId))
+        sample.stop(meterRegistry.timer("replay.duration", "book_id", manifest.bookId))
         meterRegistry.counter("replay.requests", "result", "success").increment()
         meterRegistry.counter(
-            "replay.digest_match", "matched", digestMatch.toString(), "portfolio_id", manifest.portfolioId,
+            "replay.digest_match", "matched", digestMatch.toString(), "book_id", manifest.bookId,
         ).increment()
 
         logger.info(
@@ -161,7 +161,7 @@ class ReplayService(
             auditPublisher?.publish(
                 RunReplayedAuditEvent(
                     jobId = jobId.toString(),
-                    portfolioId = manifest.portfolioId,
+                    bookId = manifest.bookId,
                     valuationDate = manifest.valuationDate.toString(),
                     manifestId = manifest.manifestId.toString(),
                     replayedAt = replayedAt.toString(),

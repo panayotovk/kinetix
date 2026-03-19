@@ -10,8 +10,8 @@ class DelayingPositionProvider(
     private val delayMs: LongRange,
 ) : PositionProvider {
 
-    override suspend fun getPositions(portfolioId: BookId): List<Position> {
+    override suspend fun getPositions(bookId: BookId): List<Position> {
         delay(delayMs.random())
-        return delegate.getPositions(portfolioId)
+        return delegate.getPositions(bookId)
     }
 }

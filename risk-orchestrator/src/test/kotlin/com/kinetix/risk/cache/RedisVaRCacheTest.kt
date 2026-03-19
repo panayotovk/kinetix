@@ -15,7 +15,7 @@ class RedisVaRCacheTest : FunSpec({
     test("deserialization with ignoreUnknownKeys tolerates extra fields") {
         val jsonWithExtraField = """
             {
-                "portfolioId": "port-1",
+                "bookId": "port-1",
                 "calculationType": "PARAMETRIC",
                 "confidenceLevel": "CL_95",
                 "varValue": 5000.0,
@@ -34,14 +34,14 @@ class RedisVaRCacheTest : FunSpec({
         val cacheJson = Json { ignoreUnknownKeys = true }
         val result = cacheJson.decodeFromString<CachedValuationResult>(jsonWithExtraField)
 
-        result.portfolioId shouldBe "port-1"
+        result.bookId shouldBe "port-1"
         result.varValue shouldBe 5000.0
     }
 
     test("deserialization without ignoreUnknownKeys fails on extra fields") {
         val jsonWithExtraField = """
             {
-                "portfolioId": "port-1",
+                "bookId": "port-1",
                 "calculationType": "PARAMETRIC",
                 "confidenceLevel": "CL_95",
                 "varValue": 5000.0,

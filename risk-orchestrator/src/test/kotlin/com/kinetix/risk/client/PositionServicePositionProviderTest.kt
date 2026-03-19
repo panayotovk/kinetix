@@ -18,10 +18,10 @@ class PositionServicePositionProviderTest : FunSpec({
     val provider = PositionServicePositionProvider(client)
 
     test("delegates to PositionServiceClient.getPositions") {
-        val portfolioId = BookId("port-1")
+        val bookId = BookId("port-1")
         val positions = listOf(
             Position(
-                bookId = portfolioId,
+                bookId = bookId,
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),
@@ -30,29 +30,29 @@ class PositionServicePositionProviderTest : FunSpec({
             ),
         )
 
-        coEvery { client.getPositions(portfolioId) } returns ClientResponse.Success(positions)
+        coEvery { client.getPositions(bookId) } returns ClientResponse.Success(positions)
 
-        val result = provider.getPositions(portfolioId)
+        val result = provider.getPositions(bookId)
 
         result shouldHaveSize 1
         result[0].instrumentId shouldBe InstrumentId("AAPL")
-        coVerify(exactly = 1) { client.getPositions(portfolioId) }
+        coVerify(exactly = 1) { client.getPositions(bookId) }
     }
 
     test("returns empty list when no positions exist") {
-        val portfolioId = BookId("empty-port")
-        coEvery { client.getPositions(portfolioId) } returns ClientResponse.Success(emptyList())
+        val bookId = BookId("empty-port")
+        coEvery { client.getPositions(bookId) } returns ClientResponse.Success(emptyList())
 
-        val result = provider.getPositions(portfolioId)
+        val result = provider.getPositions(bookId)
 
         result shouldHaveSize 0
     }
 
     test("returns empty list when client returns NotFound") {
-        val portfolioId = BookId("missing-port")
-        coEvery { client.getPositions(portfolioId) } returns ClientResponse.NotFound(404)
+        val bookId = BookId("missing-port")
+        coEvery { client.getPositions(bookId) } returns ClientResponse.NotFound(404)
 
-        val result = provider.getPositions(portfolioId)
+        val result = provider.getPositions(bookId)
 
         result shouldHaveSize 0
     }

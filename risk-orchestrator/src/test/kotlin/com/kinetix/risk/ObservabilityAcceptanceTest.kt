@@ -30,7 +30,7 @@ private class SlowStubRiskEngineClient : RiskEngineClient {
     ): VaRResult {
         delay(31_000)
         return VaRResult(
-            portfolioId = request.portfolioId,
+            bookId = request.bookId,
             calculationType = request.calculationType,
             confidenceLevel = request.confidenceLevel,
             varValue = 50000.0,
@@ -50,7 +50,7 @@ private class SlowStubRiskEngineClient : RiskEngineClient {
     ): ValuationResult {
         delay(31_000)
         return ValuationResult(
-            portfolioId = request.portfolioId,
+            bookId = request.bookId,
             calculationType = request.calculationType,
             confidenceLevel = request.confidenceLevel,
             varValue = 50000.0,
@@ -73,10 +73,10 @@ private class SlowStubRiskEngineClient : RiskEngineClient {
 }
 
 private class StubPositionProvider : com.kinetix.risk.client.PositionProvider {
-    override suspend fun getPositions(portfolioId: BookId): List<Position> {
+    override suspend fun getPositions(bookId: BookId): List<Position> {
         return listOf(
             Position(
-                bookId = portfolioId,
+                bookId = bookId,
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 quantity = BigDecimal("100"),
@@ -103,7 +103,7 @@ class ObservabilityAcceptanceTest : BehaviorSpec({
         `when`("a VaR calculation exceeds 30 seconds") {
             val result = varService.calculateVaR(
                 VaRCalculationRequest(
-                    portfolioId = BookId("obs-test-port"),
+                    bookId = BookId("obs-test-port"),
                     calculationType = CalculationType.PARAMETRIC,
                     confidenceLevel = ConfidenceLevel.CL_95,
                 )

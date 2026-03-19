@@ -29,15 +29,15 @@ class TradeEventConsumerIntegrationTest : FunSpec({
         val mockResult = mockk<ValuationResult>()
         var capturedBookId: String? = null
         coEvery { varService.calculateVaR(any(), any()) } answers {
-            capturedBookId = firstArg<VaRCalculationRequest>().portfolioId.value
+            capturedBookId = firstArg<VaRCalculationRequest>().bookId.value
             mockResult
         }
 
         val job = launch { consumer.start() }
 
-        val event = TradeEventMessage(
+        val event = TradeEventMessage(portfolioId = "port-1",
             tradeId = "trade-1",
-            portfolioId = "port-1",
+            bookId = "port-1",
             instrumentId = "AAPL",
             assetClass = "EQUITY",
             side = "BUY",
@@ -57,7 +57,7 @@ class TradeEventConsumerIntegrationTest : FunSpec({
         }
 
         capturedBookId shouldBe "port-1"
-        coVerify(exactly = 1) { varService.calculateVaR(match { it.portfolioId == BookId("port-1") }, any()) }
+        coVerify(exactly = 1) { varService.calculateVaR(match { it.bookId == BookId("port-1") }, any()) }
         coVerify(exactly = 1) { varCache.put("port-1", mockResult) }
 
         job.cancel()
@@ -73,7 +73,7 @@ class TradeEventConsumerIntegrationTest : FunSpec({
 
         val portfoliosCalculated = mutableListOf<String>()
         coEvery { varService.calculateVaR(any(), any()) } answers {
-            portfoliosCalculated.add(firstArg<VaRCalculationRequest>().portfolioId.value)
+            portfoliosCalculated.add(firstArg<VaRCalculationRequest>().bookId.value)
             null
         }
 
@@ -81,9 +81,9 @@ class TradeEventConsumerIntegrationTest : FunSpec({
 
         val producer = KafkaTestSetup.createProducer(bootstrapServers)
         for (portId in listOf("port-A", "port-B")) {
-            val event = TradeEventMessage(
+            val event = TradeEventMessage(portfolioId = portId,
                 tradeId = "trade-$portId",
-                portfolioId = portId,
+                bookId = portId,
                 instrumentId = "AAPL",
                 assetClass = "EQUITY",
                 side = "BUY",

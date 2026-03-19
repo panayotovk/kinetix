@@ -29,7 +29,7 @@ class ReplayServiceTest : FunSpec({
     val testManifest = RunManifest(
         manifestId = UUID.randomUUID(),
         jobId = UUID.randomUUID(),
-        portfolioId = "port-1",
+        bookId = "port-1",
         valuationDate = LocalDate.of(2026, 3, 13),
         capturedAt = Instant.now(),
         modelVersion = "0.1.0-abc12345",
@@ -61,7 +61,7 @@ class ReplayServiceTest : FunSpec({
     )
 
     val testValuationResult = ValuationResult(
-        portfolioId = BookId("port-1"),
+        bookId = BookId("port-1"),
         calculationType = CalculationType.PARAMETRIC,
         confidenceLevel = ConfidenceLevel.CL_95,
         varValue = 5000.0,
@@ -148,7 +148,7 @@ class ReplayServiceTest : FunSpec({
 
         val jobWithValues = ValuationJob(
             jobId = jobId,
-            portfolioId = "port-1",
+            bookId = "port-1",
             triggerType = TriggerType.ON_DEMAND,
             status = RunStatus.COMPLETED,
             startedAt = Instant.now(),
@@ -290,7 +290,7 @@ class ReplayServiceTest : FunSpec({
         val event = eventSlot.captured
         event.shouldBeInstanceOf<RunReplayedAuditEvent>()
         event.eventType shouldBe "RISK_RUN_REPLAYED"
-        event.portfolioId shouldBe "port-1"
+        event.bookId shouldBe "port-1"
         event.manifestId shouldBe testManifest.manifestId.toString()
         event.replayVarValue shouldBe 5000.0
         event.originalVarValue shouldBe 5000.0

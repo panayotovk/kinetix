@@ -24,7 +24,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
     override suspend fun save(job: ValuationJob): Unit = newSuspendedTransaction(db = db) {
         ValuationJobsTable.insert {
             it[jobId] = job.jobId
-            it[portfolioId] = job.portfolioId
+            it[bookId] = job.bookId
             it[triggerType] = job.triggerType.name
             it[status] = job.status.name
             it[valuationDate] = job.valuationDate.toKotlinLocalDate()
@@ -105,7 +105,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
     }
 
     override suspend fun findByBookId(
-        portfolioId: String,
+        bookId: String,
         limit: Int,
         offset: Int,
         from: Instant?,
@@ -116,7 +116,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         ValuationJobsTable
             .selectAll()
             .where {
-                var condition = ValuationJobsTable.portfolioId eq portfolioId
+                var condition = ValuationJobsTable.bookId eq bookId
                 if (from != null) {
                     condition = condition and (ValuationJobsTable.startedAt greaterEq OffsetDateTime.ofInstant(from, ZoneOffset.UTC))
                 }
@@ -138,7 +138,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
     }
 
     override suspend fun countByBookId(
-        portfolioId: String,
+        bookId: String,
         from: Instant?,
         to: Instant?,
         valuationDate: LocalDate?,
@@ -147,7 +147,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         ValuationJobsTable
             .selectAll()
             .where {
-                var condition = ValuationJobsTable.portfolioId eq portfolioId
+                var condition = ValuationJobsTable.bookId eq bookId
                 if (from != null) {
                     condition = condition and (ValuationJobsTable.startedAt greaterEq OffsetDateTime.ofInstant(from, ZoneOffset.UTC))
                 }
@@ -175,19 +175,19 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
 
     override suspend fun findDistinctBookIds(): List<String> = newSuspendedTransaction(db = db) {
         ValuationJobsTable
-            .select(ValuationJobsTable.portfolioId)
+            .select(ValuationJobsTable.bookId)
             .withDistinct()
-            .map { it[ValuationJobsTable.portfolioId] }
+            .map { it[ValuationJobsTable.bookId] }
     }
 
     override suspend fun findLatestCompletedByDate(
-        portfolioId: String,
+        bookId: String,
         valuationDate: LocalDate,
     ): ValuationJob? = newSuspendedTransaction(db = db) {
         ValuationJobsTable
             .selectAll()
             .where {
-                (ValuationJobsTable.portfolioId eq portfolioId) and
+                (ValuationJobsTable.bookId eq bookId) and
                     (ValuationJobsTable.valuationDate eq valuationDate.toKotlinLocalDate()) and
                     (ValuationJobsTable.status eq "COMPLETED")
             }
@@ -197,11 +197,11 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             ?.toValuationJob()
     }
 
-    override suspend fun findLatestCompleted(portfolioId: String): ValuationJob? = newSuspendedTransaction(db = db) {
+    override suspend fun findLatestCompleted(bookId: String): ValuationJob? = newSuspendedTransaction(db = db) {
         ValuationJobsTable
             .selectAll()
             .where {
-                (ValuationJobsTable.portfolioId eq portfolioId) and
+                (ValuationJobsTable.bookId eq bookId) and
                     (ValuationJobsTable.status eq "COMPLETED")
             }
             .orderBy(ValuationJobsTable.startedAt, SortOrder.DESC)
@@ -211,13 +211,13 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
     }
 
     override suspend fun findLatestCompletedBeforeDate(
-        portfolioId: String,
+        bookId: String,
         beforeDate: LocalDate,
     ): ValuationJob? = newSuspendedTransaction(db = db) {
         ValuationJobsTable
             .selectAll()
             .where {
-                (ValuationJobsTable.portfolioId eq portfolioId) and
+                (ValuationJobsTable.bookId eq bookId) and
                     (ValuationJobsTable.valuationDate less beforeDate.toKotlinLocalDate()) and
                     (ValuationJobsTable.status eq "COMPLETED")
             }
@@ -229,13 +229,13 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
     }
 
     override suspend fun findOfficialEodByDate(
-        portfolioId: String,
+        bookId: String,
         valuationDate: LocalDate,
     ): ValuationJob? = newSuspendedTransaction(db = db) {
         val designation = OfficialEodDesignationsTable
             .selectAll()
             .where {
-                (OfficialEodDesignationsTable.portfolioId eq portfolioId) and
+                (OfficialEodDesignationsTable.bookId eq bookId) and
                     (OfficialEodDesignationsTable.valuationDate eq valuationDate.toKotlinLocalDate())
             }
             .firstOrNull() ?: return@newSuspendedTransaction null
@@ -249,14 +249,14 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
     }
 
     override suspend fun findOfficialEodRange(
-        portfolioId: String,
+        bookId: String,
         from: LocalDate,
         to: LocalDate,
     ): List<ValuationJob> = newSuspendedTransaction(db = db) {
         val jobIds = OfficialEodDesignationsTable
             .selectAll()
             .where {
-                (OfficialEodDesignationsTable.portfolioId eq portfolioId) and
+                (OfficialEodDesignationsTable.bookId eq bookId) and
                     (OfficialEodDesignationsTable.valuationDate greaterEq from.toKotlinLocalDate()) and
                     (OfficialEodDesignationsTable.valuationDate lessEq to.toKotlinLocalDate())
             }
@@ -266,7 +266,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
 
         val scalarColumns = listOf(
             ValuationJobsTable.jobId,
-            ValuationJobsTable.portfolioId,
+            ValuationJobsTable.bookId,
             ValuationJobsTable.triggerType,
             ValuationJobsTable.status,
             ValuationJobsTable.valuationDate,
@@ -299,7 +299,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             .map { row ->
                 ValuationJob(
                     jobId = row[ValuationJobsTable.jobId],
-                    portfolioId = row[ValuationJobsTable.portfolioId],
+                    bookId = row[ValuationJobsTable.bookId],
                     triggerType = TriggerType.valueOf(row[ValuationJobsTable.triggerType]),
                     status = RunStatus.valueOf(row[ValuationJobsTable.status]),
                     startedAt = row[ValuationJobsTable.startedAt].toInstant(),
@@ -341,7 +341,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
 
         try {
             OfficialEodDesignationsTable.insert {
-                it[OfficialEodDesignationsTable.portfolioId] = job.portfolioId
+                it[OfficialEodDesignationsTable.bookId] = job.bookId
                 it[OfficialEodDesignationsTable.valuationDate] = job.valuationDate.toKotlinLocalDate()
                 it[OfficialEodDesignationsTable.jobId] = jobId
                 it[OfficialEodDesignationsTable.promotedAt] = OffsetDateTime.ofInstant(promotedAt, ZoneOffset.UTC)
@@ -349,7 +349,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             }
         } catch (e: org.jetbrains.exposed.exceptions.ExposedSQLException) {
             if (e.message?.contains("duplicate key") == true || e.message?.contains("unique constraint") == true) {
-                throw EodPromotionException.ConflictingOfficialEod(job.portfolioId, job.valuationDate.toString())
+                throw EodPromotionException.ConflictingOfficialEod(job.bookId, job.valuationDate.toString())
             }
             throw e
         }
@@ -376,7 +376,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             ?: throw EodPromotionException.JobNotFound(jobId)
 
         OfficialEodDesignationsTable.deleteWhere {
-            (OfficialEodDesignationsTable.portfolioId eq job.portfolioId) and
+            (OfficialEodDesignationsTable.bookId eq job.bookId) and
                 (OfficialEodDesignationsTable.valuationDate eq job.valuationDate.toKotlinLocalDate())
         }
 
@@ -398,7 +398,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
             ?: throw EodPromotionException.JobNotFound(jobId)
 
         OfficialEodDesignationsTable.deleteWhere {
-            (OfficialEodDesignationsTable.portfolioId eq job.portfolioId) and
+            (OfficialEodDesignationsTable.bookId eq job.bookId) and
                 (OfficialEodDesignationsTable.valuationDate eq job.valuationDate.toKotlinLocalDate())
         }
 
@@ -488,7 +488,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
 
     private fun ResultRow.toValuationJob(): ValuationJob = ValuationJob(
         jobId = this[ValuationJobsTable.jobId],
-        portfolioId = this[ValuationJobsTable.portfolioId],
+        bookId = this[ValuationJobsTable.bookId],
         triggerType = TriggerType.valueOf(this[ValuationJobsTable.triggerType]),
         status = RunStatus.valueOf(this[ValuationJobsTable.status]),
         startedAt = this[ValuationJobsTable.startedAt].toInstant(),
@@ -521,7 +521,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
     )
 
     override suspend fun findChartData(
-        portfolioId: String,
+        bookId: String,
         from: Instant,
         to: Instant,
         bucketInterval: String,
@@ -537,7 +537,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
                        COUNT(*) FILTER (WHERE status = 'FAILED')::int AS failed_count,
                        COUNT(*) FILTER (WHERE status = 'RUNNING')::int AS running_count
                 FROM valuation_jobs
-                WHERE portfolio_id = ?
+                WHERE book_id = ?
                   AND started_at >= ?
                   AND started_at < ?
                 GROUP BY bucket
@@ -551,7 +551,7 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
                            ORDER BY started_at DESC
                        ) AS rn
                 FROM valuation_jobs
-                WHERE portfolio_id = ?
+                WHERE book_id = ?
                   AND started_at >= ?
                   AND started_at < ?
                   AND status = 'COMPLETED'
@@ -570,12 +570,12 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
         val conn = this.connection.connection as java.sql.Connection
         conn.prepareStatement(sql).use { stmt ->
             stmt.setString(1, bucketInterval)
-            stmt.setString(2, portfolioId)
+            stmt.setString(2, bookId)
             stmt.setObject(3, fromTs)
             stmt.setObject(4, toTs)
             stmt.setString(5, bucketInterval)
             stmt.setString(6, bucketInterval)
-            stmt.setString(7, portfolioId)
+            stmt.setString(7, bookId)
             stmt.setObject(8, fromTs)
             stmt.setObject(9, toTs)
 

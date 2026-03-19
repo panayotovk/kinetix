@@ -19,10 +19,10 @@ class ExposedSodBaselineRepository(private val db: Database? = null) : SodBaseli
 
     override suspend fun save(baseline: SodBaseline): Unit = newSuspendedTransaction(db = db) {
         SodBaselinesTable.upsert(
-            SodBaselinesTable.portfolioId,
+            SodBaselinesTable.bookId,
             SodBaselinesTable.baselineDate,
         ) {
-            it[portfolioId] = baseline.portfolioId.value
+            it[bookId] = baseline.bookId.value
             it[baselineDate] = baseline.baselineDate.toKotlinxDate()
             it[snapshotType] = baseline.snapshotType.name
             it[createdAt] = OffsetDateTime.ofInstant(baseline.createdAt, ZoneOffset.UTC)
@@ -34,13 +34,13 @@ class ExposedSodBaselineRepository(private val db: Database? = null) : SodBaseli
     }
 
     override suspend fun findByBookIdAndDate(
-        portfolioId: BookId,
+        bookId: BookId,
         date: LocalDate,
     ): SodBaseline? = newSuspendedTransaction(db = db) {
         SodBaselinesTable
             .selectAll()
             .where {
-                (SodBaselinesTable.portfolioId eq portfolioId.value) and
+                (SodBaselinesTable.bookId eq bookId.value) and
                     (SodBaselinesTable.baselineDate eq date.toKotlinxDate())
             }
             .singleOrNull()
@@ -48,18 +48,18 @@ class ExposedSodBaselineRepository(private val db: Database? = null) : SodBaseli
     }
 
     override suspend fun deleteByBookIdAndDate(
-        portfolioId: BookId,
+        bookId: BookId,
         date: LocalDate,
     ): Unit = newSuspendedTransaction(db = db) {
         SodBaselinesTable.deleteWhere {
-            (SodBaselinesTable.portfolioId eq portfolioId.value) and
+            (SodBaselinesTable.bookId eq bookId.value) and
                 (SodBaselinesTable.baselineDate eq date.toKotlinxDate())
         }
     }
 
     private fun ResultRow.toSodBaseline(): SodBaseline = SodBaseline(
         id = this[SodBaselinesTable.id],
-        portfolioId = BookId(this[SodBaselinesTable.portfolioId]),
+        bookId = BookId(this[SodBaselinesTable.bookId]),
         baselineDate = this[SodBaselinesTable.baselineDate].toJavaDate(),
         snapshotType = SnapshotType.valueOf(this[SodBaselinesTable.snapshotType]),
         createdAt = this[SodBaselinesTable.createdAt].toInstant(),

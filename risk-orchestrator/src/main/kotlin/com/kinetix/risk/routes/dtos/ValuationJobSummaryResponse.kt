@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ValuationJobSummaryResponse(
     val jobId: String,
-    val portfolioId: String,
+    val bookId: String,
     val triggerType: String,
     val status: String,
     val startedAt: String,

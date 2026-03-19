@@ -42,7 +42,7 @@ fun Route.eodPromotionRoutes(eodPromotionService: EodPromotionService) {
                     HttpStatusCode.OK,
                     EodPromotionResponse(
                         jobId = promoted.jobId.toString(),
-                        portfolioId = promoted.portfolioId,
+                        bookId = promoted.bookId,
                         valuationDate = promoted.valuationDate.toString(),
                         runLabel = promoted.runLabel?.name ?: RunLabel.ADHOC.name,
                         promotedAt = promoted.promotedAt?.toString(),
@@ -69,7 +69,7 @@ fun Route.eodPromotionRoutes(eodPromotionService: EodPromotionService) {
                     HttpStatusCode.OK,
                     EodPromotionResponse(
                         jobId = demoted.jobId.toString(),
-                        portfolioId = demoted.portfolioId,
+                        bookId = demoted.bookId,
                         valuationDate = demoted.valuationDate.toString(),
                         runLabel = demoted.runLabel?.name ?: RunLabel.ADHOC.name,
                         promotedAt = demoted.promotedAt?.toString(),
@@ -86,18 +86,18 @@ fun Route.eodPromotionRoutes(eodPromotionService: EodPromotionService) {
         }
     }
 
-    get("/api/v1/risk/jobs/{portfolioId}/official-eod", {
+    get("/api/v1/risk/jobs/{bookId}/official-eod", {
         summary = "Get the Official EOD designation for a portfolio and date"
         tags = listOf("EOD Promotion")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Portfolio identifier" }
             queryParameter<String>("date") {
                 description = "Valuation date (YYYY-MM-DD)"
                 required = true
             }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
         val dateStr = call.request.queryParameters["date"]
         if (dateStr.isNullOrBlank()) {
             call.respond(HttpStatusCode.BadRequest, mapOf("error" to "date parameter is required"))
@@ -111,13 +111,13 @@ fun Route.eodPromotionRoutes(eodPromotionService: EodPromotionService) {
             return@get
         }
 
-        val job = eodPromotionService.findOfficialEod(portfolioId, date)
+        val job = eodPromotionService.findOfficialEod(bookId, date)
         if (job != null) {
             call.respond(
                 HttpStatusCode.OK,
                 EodPromotionResponse(
                     jobId = job.jobId.toString(),
-                    portfolioId = job.portfolioId,
+                    bookId = job.bookId,
                     valuationDate = job.valuationDate.toString(),
                     runLabel = job.runLabel?.name ?: RunLabel.ADHOC.name,
                     promotedAt = job.promotedAt?.toString(),
@@ -125,7 +125,7 @@ fun Route.eodPromotionRoutes(eodPromotionService: EodPromotionService) {
                 )
             )
         } else {
-            call.respond(HttpStatusCode.NotFound, mapOf("error" to "No Official EOD designation for $portfolioId on $dateStr"))
+            call.respond(HttpStatusCode.NotFound, mapOf("error" to "No Official EOD designation for $bookId on $dateStr"))
         }
     }
 }

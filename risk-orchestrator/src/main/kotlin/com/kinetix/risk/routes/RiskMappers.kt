@@ -29,7 +29,7 @@ import java.math.BigDecimal
 import java.util.Currency
 
 internal fun ValuationResult.toResponse() = VaRResultResponse(
-    portfolioId = portfolioId.value,
+    bookId = bookId.value,
     calculationType = calculationType.name,
     confidenceLevel = confidenceLevel.name,
     varValue = "%.2f".format(varValue ?: 0.0),
@@ -44,7 +44,7 @@ internal fun ValuationResult.toResponse() = VaRResultResponse(
     calculatedAt = calculatedAt.toString(),
     greeks = greeks?.let { g ->
         GreeksResponse(
-            portfolioId = portfolioId.value,
+            bookId = bookId.value,
             assetClassGreeks = g.assetClassGreeks.map { gv ->
                 GreekValuesDto(
                     assetClass = gv.assetClass.name,
@@ -91,7 +91,7 @@ internal fun WhatIfResult.toResponse() = WhatIfResponse(
     baseExpectedShortfall = "%.2f".format(baseExpectedShortfall),
     baseGreeks = baseGreeks?.let { g ->
         GreeksResponse(
-            portfolioId = "",
+            bookId = "",
             assetClassGreeks = g.assetClassGreeks.map { gv ->
                 GreekValuesDto(
                     assetClass = gv.assetClass.name,
@@ -110,7 +110,7 @@ internal fun WhatIfResult.toResponse() = WhatIfResponse(
     hypotheticalExpectedShortfall = "%.2f".format(hypotheticalExpectedShortfall),
     hypotheticalGreeks = hypotheticalGreeks?.let { g ->
         GreeksResponse(
-            portfolioId = "",
+            bookId = "",
             assetClassGreeks = g.assetClassGreeks.map { gv ->
                 GreekValuesDto(
                     assetClass = gv.assetClass.name,
@@ -131,7 +131,7 @@ internal fun WhatIfResult.toResponse() = WhatIfResponse(
 )
 
 internal fun PnlAttribution.toResponse() = PnlAttributionResponse(
-    portfolioId = portfolioId.value,
+    bookId = bookId.value,
     date = date.toString(),
     totalPnl = totalPnl.toPlainString(),
     deltaPnl = deltaPnl.toPlainString(),
@@ -186,7 +186,7 @@ internal fun SodBaselineStatus.toResponse() = SodBaselineStatusResponse(
 )
 
 internal fun SodBaseline.toSnapshotResponse(snapshotCount: Int) = SodSnapshotResponse(
-    portfolioId = portfolioId.value,
+    bookId = bookId.value,
     baselineDate = baselineDate.toString(),
     snapshotType = snapshotType.name,
     createdAt = createdAt.toString(),

@@ -10,7 +10,7 @@ import java.math.BigDecimal
 
 @Serializable
 data class PositionDto(
-    val portfolioId: String,
+    val bookId: String,
     val instrumentId: String,
     val assetClass: String,
     val quantity: String,
@@ -21,7 +21,7 @@ data class PositionDto(
     val realizedPnl: MoneyDto,
 ) {
     fun toDomain(): Position = Position(
-        bookId = BookId(portfolioId),
+        bookId = BookId(bookId),
         instrumentId = InstrumentId(instrumentId),
         assetClass = AssetClass.valueOf(assetClass),
         quantity = BigDecimal(quantity),

@@ -16,7 +16,7 @@ class PnlAttributionService {
     private val mc = MathContext(20, RoundingMode.HALF_UP)
 
     fun attribute(
-        portfolioId: BookId,
+        bookId: BookId,
         positions: List<PositionPnlInput>,
         date: LocalDate = LocalDate.now(),
     ): PnlAttribution {
@@ -53,7 +53,7 @@ class PnlAttributionService {
         val unexplainedPnl = positionAttributions.fold(BigDecimal.ZERO) { acc, p -> acc.add(p.unexplainedPnl, mc) }
 
         return PnlAttribution(
-            portfolioId = portfolioId,
+            bookId = bookId,
             date = date,
             totalPnl = totalPnl,
             deltaPnl = deltaPnl,

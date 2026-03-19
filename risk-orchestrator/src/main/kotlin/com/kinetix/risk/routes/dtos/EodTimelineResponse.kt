@@ -25,7 +25,7 @@ data class EodTimelineEntryDto(
 
 @Serializable
 data class EodTimelineResponse(
-    val portfolioId: String,
+    val bookId: String,
     val from: String,
     val to: String,
     val entries: List<EodTimelineEntryDto>,

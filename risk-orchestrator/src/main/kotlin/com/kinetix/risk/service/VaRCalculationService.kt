@@ -52,7 +52,7 @@ class VaRCalculationService(
         saveJobSafely(
             ValuationJob(
                 jobId = jobId,
-                portfolioId = request.portfolioId.value,
+                bookId = request.bookId.value,
                 triggerType = triggerType,
                 status = RunStatus.RUNNING,
                 startedAt = jobStartedAt,
@@ -67,7 +67,7 @@ class VaRCalculationService(
             // Phase 1: Fetch positions
             updateCurrentPhaseSafely(jobId, JobPhaseName.FETCH_POSITIONS)
             val fetchPosStart = Instant.now()
-            val positions = positionProvider.getPositions(request.portfolioId)
+            val positions = positionProvider.getPositions(request.bookId)
             val fetchPosDuration = java.time.Duration.between(fetchPosStart, Instant.now()).toMillis()
             phases.add(
                 JobPhase(
@@ -94,7 +94,7 @@ class VaRCalculationService(
             )
 
             if (positions.isEmpty()) {
-                logger.info("No positions found for portfolio {}, skipping VaR calculation", request.portfolioId.value)
+                logger.info("No positions found for portfolio {}, skipping VaR calculation", request.bookId.value)
                 return null
             }
 
@@ -108,7 +108,7 @@ class VaRCalculationService(
 
             logger.info(
                 "Calculating {} VaR for portfolio {} with {} positions ({} instruments enriched)",
-                request.calculationType, request.portfolioId.value, positions.size, instrumentMap.size,
+                request.calculationType, request.bookId.value, positions.size, instrumentMap.size,
             )
 
             // Phase 2: Discover dependencies
@@ -326,7 +326,7 @@ class VaRCalculationService(
 
             logger.info(
                 "VaR calculation complete for portfolio {}: VaR={}, ES={}",
-                request.portfolioId.value, result.varValue, result.expectedShortfall,
+                request.bookId.value, result.varValue, result.expectedShortfall,
             )
 
             val aggregateGreeks = result.greeks?.let { greeks ->
@@ -344,7 +344,7 @@ class VaRCalculationService(
             val jobCompletedAt = Instant.now()
             val job = ValuationJob(
                 jobId = jobId,
-                portfolioId = request.portfolioId.value,
+                bookId = request.bookId.value,
                 triggerType = triggerType,
                 status = RunStatus.COMPLETED,
                 startedAt = jobStartedAt,
@@ -377,7 +377,7 @@ class VaRCalculationService(
             val jobCompletedAt = Instant.now()
             val job = ValuationJob(
                 jobId = jobId,
-                portfolioId = request.portfolioId.value,
+                bookId = request.bookId.value,
                 triggerType = triggerType,
                 status = RunStatus.FAILED,
                 startedAt = jobStartedAt,

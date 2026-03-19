@@ -47,7 +47,7 @@ class GrpcRiskEngineClientTest : FunSpec({
             ),
         )
         val request = VaRCalculationRequest(
-            portfolioId = BookId("port-1"),
+            bookId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
             timeHorizonDays = 1,
@@ -77,7 +77,7 @@ class GrpcRiskEngineClientTest : FunSpec({
 
         val result = client.valuate(request, positions)
 
-        result.portfolioId shouldBe BookId("port-1")
+        result.bookId shouldBe BookId("port-1")
         result.calculationType shouldBe CalculationType.PARAMETRIC
         result.confidenceLevel shouldBe ConfidenceLevel.CL_95
         result.varValue shouldBe 5000.0
@@ -118,7 +118,7 @@ class GrpcRiskEngineClientTest : FunSpec({
             ),
         )
         val request = VaRCalculationRequest(
-            portfolioId = BookId("port-1"),
+            bookId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
             timeHorizonDays = 1,
@@ -164,7 +164,7 @@ class GrpcRiskEngineClientTest : FunSpec({
             ),
         )
         val request = VaRCalculationRequest(
-            portfolioId = BookId("port-1"),
+            bookId = BookId("port-1"),
             calculationType = CalculationType.HISTORICAL,
             confidenceLevel = ConfidenceLevel.CL_99,
         )

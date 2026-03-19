@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class GreeksResponse(
-    val portfolioId: String,
+    val bookId: String,
     val assetClassGreeks: List<GreekValuesDto>,
     val theta: String,
     val rho: String,

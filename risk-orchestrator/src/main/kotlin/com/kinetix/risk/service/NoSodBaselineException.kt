@@ -1,4 +1,4 @@
 package com.kinetix.risk.service
 
-class NoSodBaselineException(portfolioId: String) :
-    RuntimeException("No SOD baseline exists for portfolio $portfolioId on today's date")
+class NoSodBaselineException(bookId: String) :
+    RuntimeException("No SOD baseline exists for portfolio $bookId on today's date")

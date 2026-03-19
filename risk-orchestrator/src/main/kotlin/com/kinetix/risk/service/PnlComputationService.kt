@@ -21,16 +21,16 @@ class PnlComputationService(
     private val logger = LoggerFactory.getLogger(PnlComputationService::class.java)
 
     suspend fun compute(
-        portfolioId: BookId,
+        bookId: BookId,
         date: LocalDate = LocalDate.now(),
     ): PnlAttribution {
-        val status = sodSnapshotService.getBaselineStatus(portfolioId, date)
+        val status = sodSnapshotService.getBaselineStatus(bookId, date)
         if (!status.exists) {
-            throw NoSodBaselineException(portfolioId.value)
+            throw NoSodBaselineException(bookId.value)
         }
 
-        val sodSnapshots = dailyRiskSnapshotRepository.findByBookIdAndDate(portfolioId, date)
-        val currentPositions = positionProvider.getPositions(portfolioId)
+        val sodSnapshots = dailyRiskSnapshotRepository.findByBookIdAndDate(bookId, date)
+        val currentPositions = positionProvider.getPositions(bookId)
 
         val inputs = sodSnapshots.map { snapshot ->
             val currentPosition = currentPositions.find { it.instrumentId == snapshot.instrumentId }
@@ -53,12 +53,12 @@ class PnlComputationService(
             )
         }
 
-        val attribution = pnlAttributionService.attribute(portfolioId, inputs, date)
+        val attribution = pnlAttributionService.attribute(bookId, inputs, date)
         pnlAttributionRepository.save(attribution)
 
         logger.info(
             "P&L attribution computed for portfolio {} on {}: totalPnl={}",
-            portfolioId.value, date, attribution.totalPnl,
+            bookId.value, date, attribution.totalPnl,
         )
 
         return attribution

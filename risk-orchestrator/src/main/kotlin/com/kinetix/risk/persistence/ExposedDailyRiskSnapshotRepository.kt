@@ -23,11 +23,11 @@ class ExposedDailyRiskSnapshotRepository(private val db: Database? = null) : Dai
 
     override suspend fun save(snapshot: DailyRiskSnapshot): Unit = newSuspendedTransaction(db = db) {
         DailyRiskSnapshotsTable.upsert(
-            DailyRiskSnapshotsTable.portfolioId,
+            DailyRiskSnapshotsTable.bookId,
             DailyRiskSnapshotsTable.snapshotDate,
             DailyRiskSnapshotsTable.instrumentId,
         ) {
-            it[portfolioId] = snapshot.portfolioId.value
+            it[bookId] = snapshot.bookId.value
             it[snapshotDate] = snapshot.snapshotDate.toMidnightUtc()
             it[instrumentId] = snapshot.instrumentId.value
             it[assetClass] = snapshot.assetClass.name
@@ -45,12 +45,12 @@ class ExposedDailyRiskSnapshotRepository(private val db: Database? = null) : Dai
     override suspend fun saveAll(snapshots: List<DailyRiskSnapshot>): Unit = newSuspendedTransaction(db = db) {
         DailyRiskSnapshotsTable.batchUpsert(
             snapshots,
-            DailyRiskSnapshotsTable.portfolioId,
+            DailyRiskSnapshotsTable.bookId,
             DailyRiskSnapshotsTable.snapshotDate,
             DailyRiskSnapshotsTable.instrumentId,
             shouldReturnGeneratedValues = false,
         ) { snapshot ->
-            this[DailyRiskSnapshotsTable.portfolioId] = snapshot.portfolioId.value
+            this[DailyRiskSnapshotsTable.bookId] = snapshot.bookId.value
             this[DailyRiskSnapshotsTable.snapshotDate] = snapshot.snapshotDate.toMidnightUtc()
             this[DailyRiskSnapshotsTable.instrumentId] = snapshot.instrumentId.value
             this[DailyRiskSnapshotsTable.assetClass] = snapshot.assetClass.name
@@ -66,13 +66,13 @@ class ExposedDailyRiskSnapshotRepository(private val db: Database? = null) : Dai
     }
 
     override suspend fun findByBookIdAndDate(
-        portfolioId: BookId,
+        bookId: BookId,
         date: LocalDate,
     ): List<DailyRiskSnapshot> = newSuspendedTransaction(db = db) {
         DailyRiskSnapshotsTable
             .selectAll()
             .where {
-                (DailyRiskSnapshotsTable.portfolioId eq portfolioId.value) and
+                (DailyRiskSnapshotsTable.bookId eq bookId.value) and
                     (DailyRiskSnapshotsTable.snapshotDate eq date.toMidnightUtc())
             }
             .orderBy(DailyRiskSnapshotsTable.instrumentId, SortOrder.ASC)
@@ -80,13 +80,13 @@ class ExposedDailyRiskSnapshotRepository(private val db: Database? = null) : Dai
     }
 
     override suspend fun findByBookId(
-        portfolioId: BookId,
+        bookId: BookId,
         fromDate: LocalDate,
     ): List<DailyRiskSnapshot> = newSuspendedTransaction(db = db) {
         DailyRiskSnapshotsTable
             .selectAll()
             .where {
-                (DailyRiskSnapshotsTable.portfolioId eq portfolioId.value) and
+                (DailyRiskSnapshotsTable.bookId eq bookId.value) and
                     (DailyRiskSnapshotsTable.snapshotDate greaterEq fromDate.toMidnightUtc())
             }
             .orderBy(DailyRiskSnapshotsTable.snapshotDate, SortOrder.DESC)
@@ -94,18 +94,18 @@ class ExposedDailyRiskSnapshotRepository(private val db: Database? = null) : Dai
     }
 
     override suspend fun deleteByBookIdAndDate(
-        portfolioId: BookId,
+        bookId: BookId,
         date: LocalDate,
     ): Unit = newSuspendedTransaction(db = db) {
         DailyRiskSnapshotsTable.deleteWhere {
-            (DailyRiskSnapshotsTable.portfolioId eq portfolioId.value) and
+            (DailyRiskSnapshotsTable.bookId eq bookId.value) and
                 (DailyRiskSnapshotsTable.snapshotDate eq date.toMidnightUtc())
         }
     }
 
     private fun ResultRow.toDailyRiskSnapshot(): DailyRiskSnapshot = DailyRiskSnapshot(
         id = this[DailyRiskSnapshotsTable.id],
-        portfolioId = BookId(this[DailyRiskSnapshotsTable.portfolioId]),
+        bookId = BookId(this[DailyRiskSnapshotsTable.bookId]),
         snapshotDate = this[DailyRiskSnapshotsTable.snapshotDate].toLocalDate(),
         instrumentId = InstrumentId(this[DailyRiskSnapshotsTable.instrumentId]),
         assetClass = AssetClass.valueOf(this[DailyRiskSnapshotsTable.assetClass]),

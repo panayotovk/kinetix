@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ReportResponse(
-    val portfolioId: String,
+    val bookId: String,
     val format: String,
     val content: String,
     val generatedAt: String,

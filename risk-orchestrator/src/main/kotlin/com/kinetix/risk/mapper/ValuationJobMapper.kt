@@ -8,7 +8,7 @@ import com.kinetix.risk.routes.dtos.JobPhaseResponse
 
 fun ValuationJob.toSummaryResponse(): ValuationJobSummaryResponse = ValuationJobSummaryResponse(
     jobId = jobId.toString(),
-    portfolioId = portfolioId,
+    bookId = bookId,
     triggerType = triggerType.name,
     status = status.name,
     startedAt = startedAt.toString(),
@@ -34,7 +34,7 @@ fun ValuationJob.toSummaryResponse(): ValuationJobSummaryResponse = ValuationJob
 
 fun ValuationJob.toDetailResponse(): ValuationJobDetailResponse = ValuationJobDetailResponse(
     jobId = jobId.toString(),
-    portfolioId = portfolioId,
+    bookId = bookId,
     triggerType = triggerType.name,
     status = status.name,
     startedAt = startedAt.toString(),
@@ -59,7 +59,7 @@ fun ValuationJob.toValuationResult(): ValuationResult? {
     if (status != RunStatus.COMPLETED) return null
     if (calculationType == null || confidenceLevel == null) return null
     return ValuationResult(
-        portfolioId = BookId(portfolioId),
+        bookId = BookId(bookId),
         calculationType = CalculationType.valueOf(calculationType),
         confidenceLevel = ConfidenceLevel.valueOf(confidenceLevel),
         varValue = varValue,

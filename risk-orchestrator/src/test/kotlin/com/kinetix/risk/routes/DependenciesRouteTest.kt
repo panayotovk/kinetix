@@ -35,7 +35,7 @@ class DependenciesRouteTest : FunSpec({
         clearMocks(positionProvider, riskEngineClient, varCalculationService)
     }
 
-    test("POST /api/v1/risk/dependencies/{portfolioId} returns dependencies") {
+    test("POST /api/v1/risk/dependencies/{bookId} returns dependencies") {
         coEvery { positionProvider.getPositions(BookId("port-1")) } returns emptyList()
         coEvery { riskEngineClient.discoverDependencies(any(), any(), any()) } returns
             ProtoDataDependenciesResponse.newBuilder()
@@ -73,7 +73,7 @@ class DependenciesRouteTest : FunSpec({
 
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+            body["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
 
             val deps = body["dependencies"]?.jsonArray
             deps?.size shouldBe 2
@@ -93,7 +93,7 @@ class DependenciesRouteTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/dependencies/{portfolioId} uses default calc type and confidence level") {
+    test("POST /api/v1/risk/dependencies/{bookId} uses default calc type and confidence level") {
         coEvery { positionProvider.getPositions(BookId("port-1")) } returns emptyList()
         coEvery { riskEngineClient.discoverDependencies(any(), any(), any()) } returns
             ProtoDataDependenciesResponse.getDefaultInstance()
@@ -111,7 +111,7 @@ class DependenciesRouteTest : FunSpec({
 
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+            body["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
             body["dependencies"]?.jsonArray?.size shouldBe 0
 
             coVerify {
@@ -120,7 +120,7 @@ class DependenciesRouteTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/dependencies/{portfolioId} with MONTE_CARLO") {
+    test("POST /api/v1/risk/dependencies/{bookId} with MONTE_CARLO") {
         coEvery { positionProvider.getPositions(BookId("port-2")) } returns emptyList()
         coEvery { riskEngineClient.discoverDependencies(any(), any(), any()) } returns
             ProtoDataDependenciesResponse.newBuilder()
@@ -148,7 +148,7 @@ class DependenciesRouteTest : FunSpec({
 
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["portfolioId"]?.jsonPrimitive?.content shouldBe "port-2"
+            body["bookId"]?.jsonPrimitive?.content shouldBe "port-2"
 
             val deps = body["dependencies"]?.jsonArray
             deps?.size shouldBe 1
@@ -161,7 +161,7 @@ class DependenciesRouteTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/dependencies/{portfolioId} returns empty list when no positions") {
+    test("POST /api/v1/risk/dependencies/{bookId} returns empty list when no positions") {
         coEvery { positionProvider.getPositions(BookId("empty-portfolio")) } returns emptyList()
         coEvery { riskEngineClient.discoverDependencies(any(), any(), any()) } returns
             ProtoDataDependenciesResponse.getDefaultInstance()

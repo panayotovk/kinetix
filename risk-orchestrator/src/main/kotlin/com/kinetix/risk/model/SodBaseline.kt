@@ -7,7 +7,7 @@ import java.util.UUID
 
 data class SodBaseline(
     val id: Long? = null,
-    val portfolioId: BookId,
+    val bookId: BookId,
     val baselineDate: LocalDate,
     val snapshotType: SnapshotType,
     val createdAt: Instant,

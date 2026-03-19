@@ -41,7 +41,7 @@ class RiskAuditPublishingTest : FunSpec({
     test("finaliseOutputs publishes RISK_RUN_MANIFEST_FROZEN audit event with real model version") {
         val capture = DefaultRunManifestCapture(manifestRepo, blobStore, auditPublisher)
         val request = VaRCalculationRequest(
-            portfolioId = BookId("port-1"),
+            bookId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
         )
@@ -75,7 +75,7 @@ class RiskAuditPublishingTest : FunSpec({
         val event = eventSlot.captured
         event.shouldBeInstanceOf<ManifestFrozenEvent>()
         event.eventType shouldBe "RISK_RUN_MANIFEST_FROZEN"
-        event.portfolioId shouldBe "port-1"
+        event.bookId shouldBe "port-1"
         event.valuationDate shouldBe "2026-03-13"
         (event as ManifestFrozenEvent).positionCount shouldBe 1
         event.modelVersion shouldBe "0.1.0-dev"
@@ -92,7 +92,7 @@ class RiskAuditPublishingTest : FunSpec({
         val manifestId = UUID.randomUUID()
         val job = ValuationJob(
             jobId = jobId,
-            portfolioId = "port-1",
+            bookId = "port-1",
             triggerType = TriggerType.ON_DEMAND,
             status = RunStatus.COMPLETED,
             startedAt = Instant.parse("2026-03-13T17:00:00Z"),
@@ -123,7 +123,7 @@ class RiskAuditPublishingTest : FunSpec({
         val event = eventSlot.captured
         event.shouldBeInstanceOf<EodPromotedAuditEvent>()
         event.eventType shouldBe "RISK_RUN_EOD_PROMOTED"
-        event.portfolioId shouldBe "port-1"
+        event.bookId shouldBe "port-1"
         event.manifestId shouldBe manifestId.toString()
         (event as EodPromotedAuditEvent).promotedBy shouldBe "user-b"
         event.varValue shouldBe 5000.0
@@ -138,7 +138,7 @@ class RiskAuditPublishingTest : FunSpec({
         val jobId = UUID.randomUUID()
         val job = ValuationJob(
             jobId = jobId,
-            portfolioId = "port-1",
+            bookId = "port-1",
             triggerType = TriggerType.ON_DEMAND,
             status = RunStatus.COMPLETED,
             startedAt = Instant.parse("2026-03-13T17:00:00Z"),
@@ -172,7 +172,7 @@ class RiskAuditPublishingTest : FunSpec({
 
         val capture = DefaultRunManifestCapture(manifestRepo, blobStore, failingPublisher)
         val request = VaRCalculationRequest(
-            portfolioId = BookId("port-1"),
+            bookId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
         )
@@ -186,7 +186,7 @@ class RiskAuditPublishingTest : FunSpec({
         )
 
         // Manifest is captured successfully
-        manifest.portfolioId shouldBe "port-1"
+        manifest.bookId shouldBe "port-1"
         manifest.status shouldBe ManifestStatus.INPUTS_FROZEN
         coVerify { manifestRepo.save(manifest) }
 

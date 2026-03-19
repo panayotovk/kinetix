@@ -7,7 +7,7 @@ import java.util.UUID
 data class RunManifest(
     val manifestId: UUID,
     val jobId: UUID,
-    val portfolioId: String,
+    val bookId: String,
     val valuationDate: LocalDate,
     val capturedAt: Instant,
     val modelVersion: String,

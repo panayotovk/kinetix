@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class FrtbResultResponse(
-    val portfolioId: String,
+    val bookId: String,
     val sbmCharges: List<RiskClassChargeDto>,
     val totalSbmCharge: String,
     val grossJtd: String,

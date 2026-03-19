@@ -8,7 +8,7 @@ import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 
 object PnlAttributionsTable : Table("pnl_attributions") {
     val id = long("id").autoIncrement()
-    val portfolioId = varchar("portfolio_id", 64)
+    val bookId = varchar("book_id", 64)
     val attributionDate = date("attribution_date")
     val totalPnl = decimal("total_pnl", 20, 8)
     val deltaPnl = decimal("delta_pnl", 20, 8)

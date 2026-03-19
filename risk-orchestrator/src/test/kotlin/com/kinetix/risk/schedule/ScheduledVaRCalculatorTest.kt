@@ -28,7 +28,7 @@ class ScheduledVaRCalculatorTest : FunSpec({
         val calculator = ScheduledVaRCalculator(
             varCalculationService = varService,
             varCache = varCache,
-            portfolioIds = { listOf(BookId("port-1")) },
+            bookIds = { listOf(BookId("port-1")) },
             intervalMillis = 200,
         )
 
@@ -46,14 +46,14 @@ class ScheduledVaRCalculatorTest : FunSpec({
 
         val portfoliosCalculated = mutableSetOf<String>()
         coEvery { varService.calculateVaR(any(), any()) } answers {
-            portfoliosCalculated.add(firstArg<VaRCalculationRequest>().portfolioId.value)
+            portfoliosCalculated.add(firstArg<VaRCalculationRequest>().bookId.value)
             null
         }
 
         val calculator = ScheduledVaRCalculator(
             varCalculationService = varService,
             varCache = varCache,
-            portfolioIds = { listOf(BookId("port-1"), BookId("port-2"), BookId("port-3")) },
+            bookIds = { listOf(BookId("port-1"), BookId("port-2"), BookId("port-3")) },
             intervalMillis = 200,
         )
 
@@ -79,7 +79,7 @@ class ScheduledVaRCalculatorTest : FunSpec({
         val calculator = ScheduledVaRCalculator(
             varCalculationService = varService,
             varCache = varCache,
-            portfolioIds = { listOf(BookId("port-1")) },
+            bookIds = { listOf(BookId("port-1")) },
             intervalMillis = 200,
         )
 
@@ -101,7 +101,7 @@ class ScheduledVaRCalculatorTest : FunSpec({
         val calculator = ScheduledVaRCalculator(
             varCalculationService = varService,
             varCache = varCache,
-            portfolioIds = { listOf(BookId("port-1")) },
+            bookIds = { listOf(BookId("port-1")) },
             intervalMillis = 200,
         )
 

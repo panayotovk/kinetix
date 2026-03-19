@@ -19,12 +19,12 @@ private val YESTERDAY = LocalDate.of(2025, 1, 14)
 private val NOW = Instant.parse("2025-01-15T08:00:00Z")
 
 private fun baseline(
-    portfolioId: BookId = PORTFOLIO,
+    bookId: BookId = PORTFOLIO,
     baselineDate: LocalDate = TODAY,
     snapshotType: SnapshotType = SnapshotType.MANUAL,
     createdAt: Instant = NOW,
 ) = SodBaseline(
-    portfolioId = portfolioId,
+    bookId = bookId,
     baselineDate = baselineDate,
     snapshotType = snapshotType,
     createdAt = createdAt,
@@ -45,7 +45,7 @@ class ExposedSodBaselineRepositoryIntegrationTest : FunSpec({
 
         val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
         found.shouldNotBeNull()
-        found.portfolioId shouldBe PORTFOLIO
+        found.bookId shouldBe PORTFOLIO
         found.baselineDate shouldBe TODAY
         found.snapshotType shouldBe SnapshotType.MANUAL
         found.createdAt shouldBe NOW
@@ -88,8 +88,8 @@ class ExposedSodBaselineRepositoryIntegrationTest : FunSpec({
 
     test("different portfolios are stored independently") {
         val other = BookId("port-2")
-        repository.save(baseline(portfolioId = PORTFOLIO))
-        repository.save(baseline(portfolioId = other))
+        repository.save(baseline(bookId = PORTFOLIO))
+        repository.save(baseline(bookId = other))
 
         repository.findByBookIdAndDate(PORTFOLIO, TODAY).shouldNotBeNull()
         repository.findByBookIdAndDate(other, TODAY).shouldNotBeNull()

@@ -46,29 +46,29 @@ class PriceEventConsumer(
                     Json.decodeFromString<PriceEvent>(firstRecord.value()).correlationId
                 } catch (_: Exception) { null }
 
-                val portfolioIds = try {
+                val bookIds = try {
                     affectedPortfolios()
                 } catch (e: Exception) {
                     logger.error("Failed to fetch affected portfolios", e)
                     continue
                 }
 
-                for (portfolioId in portfolioIds) {
+                for (bookId in bookIds) {
                     try {
-                        retryableConsumer.process(portfolioId.value, "") {
+                        retryableConsumer.process(bookId.value, "") {
                             MDC.put("correlationId", priceCorrelationId ?: "")
                             try {
-                                logger.info("Price update received, triggering VaR recalculation for portfolio {}", portfolioId.value)
+                                logger.info("Price update received, triggering VaR recalculation for portfolio {}", bookId.value)
                                 val result = varCalculationService.calculateVaR(
                                     VaRCalculationRequest(
-                                        portfolioId = portfolioId,
+                                        bookId = bookId,
                                         calculationType = CalculationType.PARAMETRIC,
                                         confidenceLevel = ConfidenceLevel.CL_95,
                                     ),
                                     triggerType = TriggerType.PRICE_EVENT,
                                 )
                                 if (result != null) {
-                                    varCache?.put(portfolioId.value, result)
+                                    varCache?.put(bookId.value, result)
                                 }
                             } finally {
                                 MDC.remove("correlationId")
@@ -77,7 +77,7 @@ class PriceEventConsumer(
                     } catch (e: Exception) {
                         logger.error(
                             "Failed to recalculate VaR for portfolio {} after price update and retries",
-                            portfolioId.value, e,
+                            bookId.value, e,
                         )
                     }
                 }

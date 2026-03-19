@@ -25,7 +25,7 @@ class ScheduledSodSnapshotJobTest : FunSpec({
 
         val job = ScheduledSodSnapshotJob(
             sodSnapshotService = sodSnapshotService,
-            portfolioIds = { listOf(PORTFOLIO) },
+            bookIds = { listOf(PORTFOLIO) },
             sodTime = LocalTime.of(6, 0),
             nowProvider = { LocalTime.of(6, 30) },
         )
@@ -45,7 +45,7 @@ class ScheduledSodSnapshotJobTest : FunSpec({
 
         val job = ScheduledSodSnapshotJob(
             sodSnapshotService = sodSnapshotService,
-            portfolioIds = { listOf(PORTFOLIO) },
+            bookIds = { listOf(PORTFOLIO) },
             sodTime = LocalTime.of(6, 0),
             nowProvider = { LocalTime.of(6, 30) },
         )
@@ -58,7 +58,7 @@ class ScheduledSodSnapshotJobTest : FunSpec({
     test("skips snapshot before SOD time") {
         val job = ScheduledSodSnapshotJob(
             sodSnapshotService = sodSnapshotService,
-            portfolioIds = { listOf(PORTFOLIO) },
+            bookIds = { listOf(PORTFOLIO) },
             sodTime = LocalTime.of(6, 0),
             nowProvider = { LocalTime.of(5, 30) },
         )
@@ -77,7 +77,7 @@ class ScheduledSodSnapshotJobTest : FunSpec({
 
         val job = ScheduledSodSnapshotJob(
             sodSnapshotService = sodSnapshotService,
-            portfolioIds = { listOf(PORTFOLIO, portfolio2) },
+            bookIds = { listOf(PORTFOLIO, portfolio2) },
             sodTime = LocalTime.of(6, 0),
             nowProvider = { LocalTime.of(6, 30) },
         )
@@ -94,7 +94,7 @@ class ScheduledSodSnapshotJobTest : FunSpec({
 
         val job = ScheduledSodSnapshotJob(
             sodSnapshotService = sodSnapshotService,
-            portfolioIds = { listOf(PORTFOLIO, portfolio2) },
+            bookIds = { listOf(PORTFOLIO, portfolio2) },
             sodTime = LocalTime.of(6, 0),
             nowProvider = { LocalTime.of(6, 30) },
         )

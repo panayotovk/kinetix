@@ -28,7 +28,7 @@ class PriceEventConsumerIntegrationTest : FunSpec({
         val mockResult = mockk<ValuationResult>()
         val portfoliosCalculated = mutableListOf<String>()
         coEvery { varService.calculateVaR(any(), any()) } answers {
-            portfoliosCalculated.add(firstArg<VaRCalculationRequest>().portfolioId.value)
+            portfoliosCalculated.add(firstArg<VaRCalculationRequest>().bookId.value)
             mockResult
         }
 

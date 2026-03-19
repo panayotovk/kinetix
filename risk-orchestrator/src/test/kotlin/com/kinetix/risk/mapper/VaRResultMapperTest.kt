@@ -42,7 +42,7 @@ class VaRResultMapperTest : FunSpec({
 
         val result = response.toDomain()
 
-        result.portfolioId shouldBe BookId("port-1")
+        result.bookId shouldBe BookId("port-1")
         result.calculationType shouldBe CalculationType.PARAMETRIC
         result.confidenceLevel shouldBe ConfidenceLevel.CL_95
         result.varValue shouldBe 25000.0

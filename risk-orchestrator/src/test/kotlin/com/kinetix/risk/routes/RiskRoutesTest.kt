@@ -27,10 +27,10 @@ import java.time.Instant
 private val TEST_INSTANT = Instant.parse("2025-01-15T10:30:00Z")
 
 private fun valuationResult(
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     varValue: Double = 5000.0,
 ) = ValuationResult(
-    portfolioId = BookId(portfolioId),
+    bookId = BookId(bookId),
     calculationType = CalculationType.PARAMETRIC,
     confidenceLevel = ConfidenceLevel.CL_95,
     varValue = varValue,
@@ -45,7 +45,7 @@ private fun valuationResult(
 
 /** Mirrors the internal toResponse() extension in RiskMappers. */
 private fun ValuationResult.toResponse() = VaRResultResponse(
-    portfolioId = portfolioId.value,
+    bookId = bookId.value,
     calculationType = calculationType.name,
     confidenceLevel = confidenceLevel.name,
     varValue = "%.2f".format(varValue ?: 0.0),
@@ -82,17 +82,17 @@ class RiskRoutesTest : FunSpec({
         clearMocks(varCalculationService)
     }
 
-    test("GET /api/v1/risk/var/{portfolioId} returns cached result") {
-        val result = valuationResult(portfolioId = "port-1", varValue = 4200.0)
+    test("GET /api/v1/risk/var/{bookId} returns cached result") {
+        val result = valuationResult(bookId = "port-1", varValue = 4200.0)
         varCache.put("port-1", result)
 
         testApplication {
             install(ContentNegotiation) { json() }
             routing {
-                route("/api/v1/risk/var/{portfolioId}") {
+                route("/api/v1/risk/var/{bookId}") {
                     get {
-                        val portfolioId = call.parameters["portfolioId"]!!
-                        val cached = varCache.get(portfolioId)
+                        val bookId = call.parameters["bookId"]!!
+                        val cached = varCache.get(bookId)
                         if (cached != null) {
                             call.respond(cached.toResponse())
                         } else {
@@ -106,7 +106,7 @@ class RiskRoutesTest : FunSpec({
             response.status shouldBe HttpStatusCode.OK
 
             val body = Json.decodeFromString<VaRResultResponse>(response.bodyAsText())
-            body.portfolioId shouldBe "port-1"
+            body.bookId shouldBe "port-1"
             body.calculationType shouldBe "PARAMETRIC"
             body.confidenceLevel shouldBe "CL_95"
             body.varValue shouldBe "4200.00"
@@ -117,14 +117,14 @@ class RiskRoutesTest : FunSpec({
         }
     }
 
-    test("GET /api/v1/risk/var/{portfolioId} returns 404 when no cached result") {
+    test("GET /api/v1/risk/var/{bookId} returns 404 when no cached result") {
         testApplication {
             install(ContentNegotiation) { json() }
             routing {
-                route("/api/v1/risk/var/{portfolioId}") {
+                route("/api/v1/risk/var/{bookId}") {
                     get {
-                        val portfolioId = call.parameters["portfolioId"]!!
-                        val cached = varCache.get(portfolioId)
+                        val bookId = call.parameters["bookId"]!!
+                        val cached = varCache.get(bookId)
                         if (cached != null) {
                             call.respond(cached.toResponse())
                         } else {
@@ -139,19 +139,19 @@ class RiskRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/var/{portfolioId} returns 200 with VaR result when service returns result") {
-        val result = valuationResult(portfolioId = "port-2", varValue = 7500.0)
+    test("POST /api/v1/risk/var/{bookId} returns 200 with VaR result when service returns result") {
+        val result = valuationResult(bookId = "port-2", varValue = 7500.0)
         coEvery { varCalculationService.calculateVaR(any(), any()) } returns result
 
         testApplication {
             install(ContentNegotiation) { json() }
             routing {
-                route("/api/v1/risk/var/{portfolioId}") {
+                route("/api/v1/risk/var/{bookId}") {
                     post {
-                        val portfolioId = call.parameters["portfolioId"]!!
+                        val bookId = call.parameters["bookId"]!!
                         val body = call.receive<VaRCalculationRequestBody>()
                         val request = VaRCalculationRequest(
-                            portfolioId = BookId(portfolioId),
+                            bookId = BookId(bookId),
                             calculationType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC"),
                             confidenceLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95"),
                             timeHorizonDays = body.timeHorizonDays?.toInt() ?: 1,
@@ -159,7 +159,7 @@ class RiskRoutesTest : FunSpec({
                         )
                         val calcResult = varCalculationService.calculateVaR(request)
                         if (calcResult != null) {
-                            varCache.put(portfolioId, calcResult)
+                            varCache.put(bookId, calcResult)
                             call.respond(calcResult.toResponse())
                         } else {
                             call.respond(HttpStatusCode.NotFound)
@@ -176,24 +176,24 @@ class RiskRoutesTest : FunSpec({
             response.status shouldBe HttpStatusCode.OK
 
             val body = Json.decodeFromString<VaRResultResponse>(response.bodyAsText())
-            body.portfolioId shouldBe "port-2"
+            body.bookId shouldBe "port-2"
             body.varValue shouldBe "7500.00"
             body.expectedShortfall shouldBe "9375.00"
         }
     }
 
-    test("POST /api/v1/risk/var/{portfolioId} returns 404 when service returns null") {
+    test("POST /api/v1/risk/var/{bookId} returns 404 when service returns null") {
         coEvery { varCalculationService.calculateVaR(any(), any()) } returns null
 
         testApplication {
             install(ContentNegotiation) { json() }
             routing {
-                route("/api/v1/risk/var/{portfolioId}") {
+                route("/api/v1/risk/var/{bookId}") {
                     post {
-                        val portfolioId = call.parameters["portfolioId"]!!
+                        val bookId = call.parameters["bookId"]!!
                         val body = call.receive<VaRCalculationRequestBody>()
                         val request = VaRCalculationRequest(
-                            portfolioId = BookId(portfolioId),
+                            bookId = BookId(bookId),
                             calculationType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC"),
                             confidenceLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95"),
                             timeHorizonDays = body.timeHorizonDays?.toInt() ?: 1,
@@ -201,7 +201,7 @@ class RiskRoutesTest : FunSpec({
                         )
                         val calcResult = varCalculationService.calculateVaR(request)
                         if (calcResult != null) {
-                            varCache.put(portfolioId, calcResult)
+                            varCache.put(bookId, calcResult)
                             call.respond(calcResult.toResponse())
                         } else {
                             call.respond(HttpStatusCode.NotFound)
@@ -219,7 +219,7 @@ class RiskRoutesTest : FunSpec({
         }
     }
 
-    test("GET /api/v1/risk/positions/{portfolioId} returns position-level risk from cache") {
+    test("GET /api/v1/risk/positions/{bookId} returns position-level risk from cache") {
         val posRisk = listOf(
             PositionRisk(
                 instrumentId = InstrumentId("AAPL"),
@@ -239,9 +239,9 @@ class RiskRoutesTest : FunSpec({
         testApplication {
             install(ContentNegotiation) { json() }
             routing {
-                get("/api/v1/risk/positions/{portfolioId}") {
-                    val portfolioId = call.parameters["portfolioId"]!!
-                    val cached = varCache.get(portfolioId)
+                get("/api/v1/risk/positions/{bookId}") {
+                    val bookId = call.parameters["bookId"]!!
+                    val cached = varCache.get(bookId)
                     if (cached != null && cached.positionRisk.isNotEmpty()) {
                         call.respond(cached.positionRisk.map { it.toDto() })
                     } else {
@@ -265,13 +265,13 @@ class RiskRoutesTest : FunSpec({
         }
     }
 
-    test("GET /api/v1/risk/positions/{portfolioId} returns 404 when no cached data") {
+    test("GET /api/v1/risk/positions/{bookId} returns 404 when no cached data") {
         testApplication {
             install(ContentNegotiation) { json() }
             routing {
-                get("/api/v1/risk/positions/{portfolioId}") {
-                    val portfolioId = call.parameters["portfolioId"]!!
-                    val cached = varCache.get(portfolioId)
+                get("/api/v1/risk/positions/{bookId}") {
+                    val bookId = call.parameters["bookId"]!!
+                    val cached = varCache.get(bookId)
                     if (cached != null && cached.positionRisk.isNotEmpty()) {
                         call.respond(cached.positionRisk.map { it.toDto() })
                     } else {
@@ -305,10 +305,10 @@ class RiskRoutesTest : FunSpec({
         testApplication {
             install(ContentNegotiation) { json() }
             routing {
-                route("/api/v1/risk/var/{portfolioId}") {
+                route("/api/v1/risk/var/{bookId}") {
                     get {
-                        val portfolioId = call.parameters["portfolioId"]!!
-                        val cached = varCache.get(portfolioId)
+                        val bookId = call.parameters["bookId"]!!
+                        val cached = varCache.get(bookId)
                         if (cached != null) {
                             call.respond(cached.toResponse())
                         } else {

@@ -88,7 +88,7 @@ fun Route.runReplayRoutes(replayService: ReplayService) {
 private fun RunManifest.toResponse() = RunManifestResponse(
     manifestId = manifestId.toString(),
     jobId = jobId.toString(),
-    portfolioId = portfolioId,
+    bookId = bookId,
     valuationDate = valuationDate.toString(),
     capturedAt = capturedAt.toString(),
     modelVersion = modelVersion,

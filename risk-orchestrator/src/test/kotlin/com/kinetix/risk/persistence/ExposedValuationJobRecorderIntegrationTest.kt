@@ -21,13 +21,13 @@ import java.time.LocalDate
 import java.util.UUID
 
 private fun startedJob(
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     triggerType: TriggerType = TriggerType.ON_DEMAND,
     startedAt: Instant = Instant.parse("2025-01-15T10:00:00Z"),
     valuationDate: LocalDate = LocalDate.of(2025, 1, 15),
 ) = ValuationJob(
     jobId = UUID.randomUUID(),
-    portfolioId = portfolioId,
+    bookId = bookId,
     triggerType = triggerType,
     status = RunStatus.RUNNING,
     startedAt = startedAt,
@@ -37,14 +37,14 @@ private fun startedJob(
 )
 
 private fun completedJob(
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     triggerType: TriggerType = TriggerType.ON_DEMAND,
     startedAt: Instant = Instant.parse("2025-01-15T10:00:00Z"),
     varValue: Double = 5000.0,
     valuationDate: LocalDate = LocalDate.of(2025, 1, 15),
 ) = ValuationJob(
     jobId = UUID.randomUUID(),
-    portfolioId = portfolioId,
+    bookId = bookId,
     triggerType = triggerType,
     status = RunStatus.COMPLETED,
     startedAt = startedAt,
@@ -119,7 +119,7 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
         val found = recorder.findByJobId(job.jobId)
         found.shouldNotBeNull()
         found.jobId shouldBe job.jobId
-        found.portfolioId shouldBe "port-1"
+        found.bookId shouldBe "port-1"
         found.triggerType shouldBe TriggerType.ON_DEMAND
         found.status shouldBe RunStatus.COMPLETED
         found.calculationType shouldBe "PARAMETRIC"
@@ -361,9 +361,9 @@ class ExposedValuationJobRecorderIntegrationTest : FunSpec({
     }
 
     test("findDistinctBookIds returns all unique portfolio IDs") {
-        recorder.save(completedJob(portfolioId = "port-1", startedAt = Instant.parse("2025-01-15T10:00:00Z")))
-        recorder.save(completedJob(portfolioId = "port-2", startedAt = Instant.parse("2025-01-15T11:00:00Z")))
-        recorder.save(completedJob(portfolioId = "port-1", startedAt = Instant.parse("2025-01-15T12:00:00Z")))
+        recorder.save(completedJob(bookId = "port-1", startedAt = Instant.parse("2025-01-15T10:00:00Z")))
+        recorder.save(completedJob(bookId = "port-2", startedAt = Instant.parse("2025-01-15T11:00:00Z")))
+        recorder.save(completedJob(bookId = "port-1", startedAt = Instant.parse("2025-01-15T12:00:00Z")))
 
         val portfolios = recorder.findDistinctBookIds()
         portfolios shouldHaveSize 2

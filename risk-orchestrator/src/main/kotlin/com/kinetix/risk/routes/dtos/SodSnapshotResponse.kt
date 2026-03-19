@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class SodSnapshotResponse(
-    val portfolioId: String,
+    val bookId: String,
     val baselineDate: String,
     val snapshotType: String,
     val createdAt: String,

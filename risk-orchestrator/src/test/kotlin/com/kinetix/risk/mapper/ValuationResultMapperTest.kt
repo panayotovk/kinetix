@@ -57,7 +57,7 @@ class ValuationResultMapperTest : FunSpec({
 
         val result = response.toDomainValuation()
 
-        result.portfolioId shouldBe BookId("port-1")
+        result.bookId shouldBe BookId("port-1")
         result.calculationType shouldBe CalculationType.PARAMETRIC
         result.confidenceLevel shouldBe ConfidenceLevel.CL_95
         result.varValue shouldBe 25000.0
@@ -96,7 +96,7 @@ class ValuationResultMapperTest : FunSpec({
 
         val result = response.toDomainValuation()
 
-        result.portfolioId shouldBe BookId("port-2")
+        result.bookId shouldBe BookId("port-2")
         result.varValue shouldBe 10000.0
         result.greeks.shouldBeNull()
         result.computedOutputs shouldContainExactlyInAnyOrder listOf(

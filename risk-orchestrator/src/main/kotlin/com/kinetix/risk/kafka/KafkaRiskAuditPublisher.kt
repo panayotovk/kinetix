@@ -18,7 +18,7 @@ class KafkaRiskAuditPublisher(
     private val logger = LoggerFactory.getLogger(KafkaRiskAuditPublisher::class.java)
 
     override suspend fun publish(event: RiskAuditEvent) {
-        val key = "${event.portfolioId}:${event.jobId}"
+        val key = "${event.bookId}:${event.jobId}"
         val json = Json.encodeToString(event)
         val record = ProducerRecord(topic, key, json)
 

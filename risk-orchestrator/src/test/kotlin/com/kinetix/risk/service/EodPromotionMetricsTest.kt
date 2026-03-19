@@ -25,7 +25,7 @@ class EodPromotionMetricsTest : FunSpec({
         val jobId = UUID.randomUUID()
         val job = ValuationJob(
             jobId = jobId,
-            portfolioId = "port-1",
+            bookId = "port-1",
             triggerType = TriggerType.ON_DEMAND,
             status = RunStatus.COMPLETED,
             startedAt = Instant.now(),
@@ -71,7 +71,7 @@ class EodPromotionMetricsTest : FunSpec({
         val jobId = UUID.randomUUID()
         val job = ValuationJob(
             jobId = jobId,
-            portfolioId = "port-1",
+            bookId = "port-1",
             triggerType = TriggerType.ON_DEMAND,
             status = RunStatus.COMPLETED,
             startedAt = Instant.now(),

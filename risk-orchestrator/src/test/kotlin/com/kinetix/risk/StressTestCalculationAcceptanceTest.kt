@@ -35,7 +35,7 @@ private data class StressTestResult(
 )
 
 private data class GreeksResult(
-    val portfolioId: String,
+    val bookId: String,
     val delta: Map<AssetClass, Double>,
     val gamma: Map<AssetClass, Double>,
     val vega: Map<AssetClass, Double>,
@@ -103,7 +103,7 @@ private class StubGreeksCalculator {
 
     fun calculateGreeks(
         exposures: Map<AssetClass, Double>,
-        portfolioId: String,
+        bookId: String,
     ): GreeksResult {
         val confidenceZ = 1.645
         val sqrtT = sqrt(1.0 / 252.0)
@@ -157,7 +157,7 @@ private class StubGreeksCalculator {
         val varRateShifted = portfolioVar(exposures, rateBumpedVols)
         val rho = (varRateShifted - baseVar) / 0.0001
 
-        return GreeksResult(portfolioId, delta, gamma, vega, theta, rho)
+        return GreeksResult(bookId, delta, gamma, vega, theta, rho)
     }
 }
 

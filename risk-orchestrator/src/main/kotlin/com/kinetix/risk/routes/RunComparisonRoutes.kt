@@ -47,8 +47,8 @@ fun Route.runComparisonRoutes(
     meterRegistry: MeterRegistry = SimpleMeterRegistry(),
 ) {
     // Compare two runs by job IDs
-    post("/api/v1/risk/compare/{portfolioId}") {
-        val portfolioId = call.requirePathParam("portfolioId")
+    post("/api/v1/risk/compare/{bookId}") {
+        val bookId = call.requirePathParam("bookId")
         val body = call.receive<RunComparisonRequestBody>()
 
         val baseJobId = body.baseJobId
@@ -64,8 +64,8 @@ fun Route.runComparisonRoutes(
     }
 
     // Day-over-day comparison
-    get("/api/v1/risk/compare/{portfolioId}/day-over-day") {
-        val portfolioId = call.requirePathParam("portfolioId")
+    get("/api/v1/risk/compare/{bookId}/day-over-day") {
+        val bookId = call.requirePathParam("bookId")
         val targetDateStr = call.request.queryParameters["targetDate"]
         val baseDateStr = call.request.queryParameters["baseDate"]
 
@@ -88,14 +88,14 @@ fun Route.runComparisonRoutes(
             targetDate.minusDays(1)
         }
 
-        val comparison = runComparisonService.compareDayOverDay(portfolioId, targetDate, baseDate)
+        val comparison = runComparisonService.compareDayOverDay(bookId, targetDate, baseDate)
         call.respond(comparison.toResponse())
     }
 
     // VaR attribution (expensive — only invoked on explicit user request)
     if (varAttributionService != null) {
-        post("/api/v1/risk/compare/{portfolioId}/day-over-day/attribution") {
-            val portfolioId = call.requirePathParam("portfolioId")
+        post("/api/v1/risk/compare/{bookId}/day-over-day/attribution") {
+            val bookId = call.requirePathParam("bookId")
             val targetDateStr = call.request.queryParameters["targetDate"]
             val baseDateStr = call.request.queryParameters["baseDate"]
 
@@ -110,13 +110,13 @@ fun Route.runComparisonRoutes(
                 }
             } ?: targetDate.minusDays(1)
 
-            val baseJob = jobRecorder.findLatestCompletedByDate(portfolioId, baseDate)
+            val baseJob = jobRecorder.findLatestCompletedByDate(bookId, baseDate)
                 ?: return@post call.respond(HttpStatusCode.NotFound, "No completed job for base date $baseDate")
-            val targetJob = jobRecorder.findLatestCompletedByDate(portfolioId, targetDate)
+            val targetJob = jobRecorder.findLatestCompletedByDate(bookId, targetDate)
                 ?: return@post call.respond(HttpStatusCode.NotFound, "No completed job for target date $targetDate")
 
             val attribution = varAttributionService.attributeVaRChange(
-                BookId(portfolioId),
+                BookId(bookId),
                 baseJob,
                 targetJob,
             )
@@ -126,8 +126,8 @@ fun Route.runComparisonRoutes(
 
     // Model comparison — runs two valuations with different parameters and compares
     if (riskEngineClient != null && positionProvider != null) {
-        post("/api/v1/risk/compare/{portfolioId}/model") {
-            val portfolioId = call.requirePathParam("portfolioId")
+        post("/api/v1/risk/compare/{bookId}/model") {
+            val bookId = call.requirePathParam("bookId")
             val body = call.receive<ModelComparisonRequestBody>()
 
             val baseCalcType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC")
@@ -135,15 +135,15 @@ fun Route.runComparisonRoutes(
             val targetCalcType = CalculationType.valueOf(body.targetCalculationType ?: "MONTE_CARLO")
             val targetConfLevel = ConfidenceLevel.valueOf(body.targetConfidenceLevel ?: "CL_99")
 
-            val positions = positionProvider.getPositions(BookId(portfolioId))
+            val positions = positionProvider.getPositions(BookId(bookId))
 
             val baseRequest = VaRCalculationRequest(
-                portfolioId = BookId(portfolioId),
+                bookId = BookId(bookId),
                 calculationType = baseCalcType,
                 confidenceLevel = baseConfLevel,
             )
             val targetRequest = VaRCalculationRequest(
-                portfolioId = BookId(portfolioId),
+                bookId = BookId(bookId),
                 calculationType = targetCalcType,
                 confidenceLevel = targetConfLevel,
                 numSimulations = body.targetNumSimulations ?: 10_000,
@@ -160,7 +160,7 @@ fun Route.runComparisonRoutes(
                 baseSnapshot,
                 targetSnapshot,
                 ComparisonType.MODEL_GOVERNANCE,
-                portfolioId,
+                bookId,
             )
             call.respond(comparison.toResponse())
         }
@@ -170,7 +170,7 @@ fun Route.runComparisonRoutes(
     if (manifestRepo != null && blobStore != null && marketDataQuantDiffer != null) {
         val quantDiffSemaphore = Semaphore(2)
 
-        get("/api/v1/risk/compare/{portfolioId}/market-data-quant") {
+        get("/api/v1/risk/compare/{bookId}/market-data-quant") {
             val sample = Timer.start(meterRegistry)
             meterRegistry.counter("manifest.diff.requests.total").increment()
 

@@ -21,13 +21,13 @@ import java.util.Currency
 private val USD = Currency.getInstance("USD")
 
 private fun position(
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     instrumentId: String = "AAPL",
     assetClass: AssetClass = AssetClass.EQUITY,
     quantity: String = "100",
     marketPrice: String = "170.00",
 ) = Position(
-    bookId = BookId(portfolioId),
+    bookId = BookId(bookId),
     instrumentId = InstrumentId(instrumentId),
     assetClass = assetClass,
     quantity = BigDecimal(quantity),
@@ -36,14 +36,14 @@ private fun position(
 )
 
 private fun varResult(
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     calculationType: CalculationType = CalculationType.PARAMETRIC,
     varValue: Double = 5000.0,
     componentBreakdown: List<ComponentBreakdown> = listOf(
         ComponentBreakdown(AssetClass.EQUITY, 5000.0, 100.0),
     ),
 ) = ValuationResult(
-    portfolioId = BookId(portfolioId),
+    bookId = BookId(bookId),
     calculationType = calculationType,
     confidenceLevel = ConfidenceLevel.CL_95,
     varValue = varValue,
@@ -69,14 +69,14 @@ class CrossBookVaRCalculationServiceTest : FunSpec({
     }
 
     test("fetches positions for each book and calls risk engine with merged position list") {
-        val bookAPositions = listOf(position(portfolioId = "book-A", instrumentId = "AAPL"))
-        val bookBPositions = listOf(position(portfolioId = "book-B", instrumentId = "TSLA"))
+        val bookAPositions = listOf(position(bookId = "book-A", instrumentId = "AAPL"))
+        val bookBPositions = listOf(position(bookId = "book-B", instrumentId = "TSLA"))
         val mergedPositions = bookAPositions + bookBPositions
 
         coEvery { positionProvider.getPositions(BookId("book-A")) } returns bookAPositions
         coEvery { positionProvider.getPositions(BookId("book-B")) } returns bookBPositions
-        coEvery { varCache.get("book-A") } returns varResult(portfolioId = "book-A", varValue = 3000.0)
-        coEvery { varCache.get("book-B") } returns varResult(portfolioId = "book-B", varValue = 2000.0)
+        coEvery { varCache.get("book-A") } returns varResult(bookId = "book-A", varValue = 3000.0)
+        coEvery { varCache.get("book-B") } returns varResult(bookId = "book-B", varValue = 2000.0)
         coEvery { riskEngineClient.valuate(any(), any(), any()) } returns varResult(
             varValue = 4000.0,
             componentBreakdown = listOf(ComponentBreakdown(AssetClass.EQUITY, 4000.0, 100.0)),
@@ -119,11 +119,11 @@ class CrossBookVaRCalculationServiceTest : FunSpec({
     }
 
     test("proceeds with available books when one returns empty") {
-        val bookAPositions = listOf(position(portfolioId = "book-A", instrumentId = "AAPL"))
+        val bookAPositions = listOf(position(bookId = "book-A", instrumentId = "AAPL"))
 
         coEvery { positionProvider.getPositions(BookId("book-A")) } returns bookAPositions
         coEvery { positionProvider.getPositions(BookId("book-B")) } returns emptyList()
-        coEvery { varCache.get("book-A") } returns varResult(portfolioId = "book-A", varValue = 3000.0)
+        coEvery { varCache.get("book-A") } returns varResult(bookId = "book-A", varValue = 3000.0)
         coEvery { varCache.get("book-B") } returns null
         coEvery { riskEngineClient.valuate(any(), any(), any()) } returns varResult(
             varValue = 3000.0,
@@ -146,13 +146,13 @@ class CrossBookVaRCalculationServiceTest : FunSpec({
     }
 
     test("result includes diversification benefit computed from standalone VaRs") {
-        val bookAPositions = listOf(position(portfolioId = "book-A", instrumentId = "AAPL", marketPrice = "200.00"))
-        val bookBPositions = listOf(position(portfolioId = "book-B", instrumentId = "TSLA", marketPrice = "100.00"))
+        val bookAPositions = listOf(position(bookId = "book-A", instrumentId = "AAPL", marketPrice = "200.00"))
+        val bookBPositions = listOf(position(bookId = "book-B", instrumentId = "TSLA", marketPrice = "100.00"))
 
         coEvery { positionProvider.getPositions(BookId("book-A")) } returns bookAPositions
         coEvery { positionProvider.getPositions(BookId("book-B")) } returns bookBPositions
-        coEvery { varCache.get("book-A") } returns varResult(portfolioId = "book-A", varValue = 3000.0)
-        coEvery { varCache.get("book-B") } returns varResult(portfolioId = "book-B", varValue = 2000.0)
+        coEvery { varCache.get("book-A") } returns varResult(bookId = "book-A", varValue = 3000.0)
+        coEvery { varCache.get("book-B") } returns varResult(bookId = "book-B", varValue = 2000.0)
         coEvery { riskEngineClient.valuate(any(), any(), any()) } returns varResult(
             varValue = 4000.0,
             componentBreakdown = listOf(ComponentBreakdown(AssetClass.EQUITY, 4000.0, 100.0)),
@@ -175,10 +175,10 @@ class CrossBookVaRCalculationServiceTest : FunSpec({
     }
 
     test("publishes result to Kafka") {
-        val bookAPositions = listOf(position(portfolioId = "book-A", instrumentId = "AAPL"))
+        val bookAPositions = listOf(position(bookId = "book-A", instrumentId = "AAPL"))
 
         coEvery { positionProvider.getPositions(BookId("book-A")) } returns bookAPositions
-        coEvery { varCache.get("book-A") } returns varResult(portfolioId = "book-A", varValue = 5000.0)
+        coEvery { varCache.get("book-A") } returns varResult(bookId = "book-A", varValue = 5000.0)
         coEvery { riskEngineClient.valuate(any(), any(), any()) } returns varResult(
             varValue = 5000.0,
             componentBreakdown = listOf(ComponentBreakdown(AssetClass.EQUITY, 5000.0, 100.0)),
@@ -200,10 +200,10 @@ class CrossBookVaRCalculationServiceTest : FunSpec({
     }
 
     test("single book produces zero diversification benefit") {
-        val bookAPositions = listOf(position(portfolioId = "book-A", instrumentId = "AAPL"))
+        val bookAPositions = listOf(position(bookId = "book-A", instrumentId = "AAPL"))
 
         coEvery { positionProvider.getPositions(BookId("book-A")) } returns bookAPositions
-        coEvery { varCache.get("book-A") } returns varResult(portfolioId = "book-A", varValue = 5000.0)
+        coEvery { varCache.get("book-A") } returns varResult(bookId = "book-A", varValue = 5000.0)
         coEvery { riskEngineClient.valuate(any(), any(), any()) } returns varResult(
             varValue = 5000.0,
             componentBreakdown = listOf(ComponentBreakdown(AssetClass.EQUITY, 5000.0, 100.0)),

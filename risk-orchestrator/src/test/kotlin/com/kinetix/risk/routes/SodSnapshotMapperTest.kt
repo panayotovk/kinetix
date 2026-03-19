@@ -42,7 +42,7 @@ class SodSnapshotMapperTest : FunSpec({
     test("SodBaseline.toSnapshotResponse maps all fields") {
         val baseline = SodBaseline(
             id = 1,
-            portfolioId = BookId("port-1"),
+            bookId = BookId("port-1"),
             baselineDate = LocalDate.of(2025, 1, 15),
             snapshotType = SnapshotType.AUTO,
             createdAt = Instant.parse("2025-01-15T08:00:00Z"),
@@ -50,7 +50,7 @@ class SodSnapshotMapperTest : FunSpec({
 
         val response = baseline.toSnapshotResponse(snapshotCount = 5)
 
-        response.portfolioId shouldBe "port-1"
+        response.bookId shouldBe "port-1"
         response.baselineDate shouldBe "2025-01-15"
         response.snapshotType shouldBe "AUTO"
         response.createdAt shouldBe "2025-01-15T08:00:00Z"

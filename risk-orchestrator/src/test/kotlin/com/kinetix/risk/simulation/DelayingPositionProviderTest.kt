@@ -16,22 +16,22 @@ class DelayingPositionProviderTest : FunSpec({
     val delayRange = 100L..200L
     val provider = DelayingPositionProvider(delegate, delayRange)
 
-    val portfolioId = BookId("port-1")
+    val bookId = BookId("port-1")
     val positions = listOf(mockk<Position>())
 
     test("delegates getPositions to underlying provider and returns result") {
-        coEvery { delegate.getPositions(portfolioId) } returns positions
+        coEvery { delegate.getPositions(bookId) } returns positions
 
-        val result = provider.getPositions(portfolioId)
+        val result = provider.getPositions(bookId)
 
         result shouldBe positions
     }
 
     test("applies delay before returning") {
-        coEvery { delegate.getPositions(portfolioId) } returns positions
+        coEvery { delegate.getPositions(bookId) } returns positions
 
         val elapsed = measureTimeMillis {
-            provider.getPositions(portfolioId)
+            provider.getPositions(bookId)
         }
 
         elapsed shouldBeGreaterThanOrEqual delayRange.first

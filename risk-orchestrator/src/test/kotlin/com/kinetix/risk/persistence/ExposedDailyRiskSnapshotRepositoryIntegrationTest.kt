@@ -19,7 +19,7 @@ private val TODAY = LocalDate.now()
 private val YESTERDAY = LocalDate.now().minusDays(1)
 
 private fun snapshot(
-    portfolioId: BookId = PORTFOLIO,
+    bookId: BookId = PORTFOLIO,
     snapshotDate: LocalDate = TODAY,
     instrumentId: InstrumentId = AAPL,
     assetClass: AssetClass = AssetClass.EQUITY,
@@ -31,7 +31,7 @@ private fun snapshot(
     theta: Double? = -50.0,
     rho: Double? = 30.0,
 ) = DailyRiskSnapshot(
-    portfolioId = portfolioId,
+    bookId = bookId,
     snapshotDate = snapshotDate,
     instrumentId = instrumentId,
     assetClass = assetClass,
@@ -59,7 +59,7 @@ class ExposedDailyRiskSnapshotRepositoryIntegrationTest : FunSpec({
 
         val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
         found shouldHaveSize 1
-        found[0].portfolioId shouldBe PORTFOLIO
+        found[0].bookId shouldBe PORTFOLIO
         found[0].snapshotDate shouldBe TODAY
         found[0].instrumentId shouldBe AAPL
         found[0].assetClass shouldBe AssetClass.EQUITY

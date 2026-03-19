@@ -7,14 +7,14 @@ import java.util.Currency
 
 class ReplayPositionProvider(
     private val entries: List<PositionSnapshotEntry>,
-    private val portfolioId: String,
+    private val bookId: String,
 ) : PositionProvider {
 
-    override suspend fun getPositions(portfolioId: BookId): List<Position> {
+    override suspend fun getPositions(bookId: BookId): List<Position> {
         return entries.map { entry ->
             val currency = Currency.getInstance(entry.currency)
             Position(
-                bookId = BookId(this.portfolioId),
+                bookId = BookId(this.bookId),
                 instrumentId = InstrumentId(entry.instrumentId),
                 assetClass = AssetClass.valueOf(entry.assetClass),
                 quantity = entry.quantity,

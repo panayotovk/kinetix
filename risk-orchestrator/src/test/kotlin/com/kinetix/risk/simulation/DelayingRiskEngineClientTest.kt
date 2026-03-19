@@ -26,12 +26,12 @@ class DelayingRiskEngineClientTest : FunSpec({
 
     val positions = emptyList<Position>()
     val request = VaRCalculationRequest(
-        portfolioId = BookId("port-1"),
+        bookId = BookId("port-1"),
         calculationType = CalculationType.PARAMETRIC,
         confidenceLevel = ConfidenceLevel.CL_95,
     )
     val valuationResult = ValuationResult(
-        portfolioId = BookId("port-1"),
+        bookId = BookId("port-1"),
         calculationType = CalculationType.PARAMETRIC,
         confidenceLevel = ConfidenceLevel.CL_95,
         varValue = 50000.0,

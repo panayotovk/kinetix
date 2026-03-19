@@ -8,7 +8,7 @@ import java.time.LocalDate
 
 data class DailyRiskSnapshot(
     val id: Long? = null,
-    val portfolioId: BookId,
+    val bookId: BookId,
     val snapshotDate: LocalDate,
     val instrumentId: InstrumentId,
     val assetClass: AssetClass,

@@ -12,21 +12,21 @@ class NoOpValuationJobRecorder : ValuationJobRecorder {
     override suspend fun save(job: ValuationJob) {}
     override suspend fun update(job: ValuationJob) {}
     override suspend fun updateCurrentPhase(jobId: UUID, phase: JobPhaseName) {}
-    override suspend fun findByBookId(portfolioId: String, limit: Int, offset: Int, from: Instant?, to: Instant?, valuationDate: LocalDate?, runLabel: RunLabel?): List<ValuationJob> = emptyList()
-    override suspend fun countByBookId(portfolioId: String, from: Instant?, to: Instant?, valuationDate: LocalDate?, runLabel: RunLabel?): Long = 0
+    override suspend fun findByBookId(bookId: String, limit: Int, offset: Int, from: Instant?, to: Instant?, valuationDate: LocalDate?, runLabel: RunLabel?): List<ValuationJob> = emptyList()
+    override suspend fun countByBookId(bookId: String, from: Instant?, to: Instant?, valuationDate: LocalDate?, runLabel: RunLabel?): Long = 0
     override suspend fun findByJobId(jobId: UUID): ValuationJob? = null
     override suspend fun findDistinctBookIds(): List<String> = emptyList()
-    override suspend fun findLatestCompletedByDate(portfolioId: String, valuationDate: LocalDate): ValuationJob? = null
-    override suspend fun findLatestCompleted(portfolioId: String): ValuationJob? = null
-    override suspend fun findLatestCompletedBeforeDate(portfolioId: String, beforeDate: LocalDate): ValuationJob? = null
-    override suspend fun findOfficialEodByDate(portfolioId: String, valuationDate: LocalDate): ValuationJob? = null
-    override suspend fun findOfficialEodRange(portfolioId: String, from: LocalDate, to: LocalDate): List<ValuationJob> = emptyList()
+    override suspend fun findLatestCompletedByDate(bookId: String, valuationDate: LocalDate): ValuationJob? = null
+    override suspend fun findLatestCompleted(bookId: String): ValuationJob? = null
+    override suspend fun findLatestCompletedBeforeDate(bookId: String, beforeDate: LocalDate): ValuationJob? = null
+    override suspend fun findOfficialEodByDate(bookId: String, valuationDate: LocalDate): ValuationJob? = null
+    override suspend fun findOfficialEodRange(bookId: String, from: LocalDate, to: LocalDate): List<ValuationJob> = emptyList()
     override suspend fun promoteToOfficialEod(jobId: UUID, promotedBy: String, promotedAt: Instant): ValuationJob =
         throw UnsupportedOperationException("No-op recorder does not support EOD promotion")
     override suspend fun demoteOfficialEod(jobId: UUID): ValuationJob =
         throw UnsupportedOperationException("No-op recorder does not support EOD demotion")
     override suspend fun supersedeOfficialEod(jobId: UUID): ValuationJob =
         throw UnsupportedOperationException("No-op recorder does not support EOD supersession")
-    override suspend fun findChartData(portfolioId: String, from: Instant, to: Instant, bucketInterval: String): List<ChartBucketRow> = emptyList()
+    override suspend fun findChartData(bookId: String, from: Instant, to: Instant, bucketInterval: String): List<ChartBucketRow> = emptyList()
     override suspend fun resetOrphanedRunningJobs(): Int = 0
 }

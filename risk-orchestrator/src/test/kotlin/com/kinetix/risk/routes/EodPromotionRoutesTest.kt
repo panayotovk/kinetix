@@ -22,7 +22,7 @@ private val VALUATION_DATE = LocalDate.of(2026, 3, 13)
 
 private fun promotedJob() = ValuationJob(
     jobId = JOB_ID,
-    portfolioId = "port-1",
+    bookId = "port-1",
     triggerType = TriggerType.ON_DEMAND,
     status = RunStatus.COMPLETED,
     startedAt = Instant.parse("2026-03-13T17:00:00Z"),
@@ -60,7 +60,7 @@ class EodPromotionRoutesTest : FunSpec({
             val body = response.bodyAsText()
             body shouldContain "\"runLabel\":\"OFFICIAL_EOD\""
             body shouldContain "\"promotedBy\":\"user-b\""
-            body shouldContain "\"portfolioId\":\"port-1\""
+            body shouldContain "\"bookId\":\"port-1\""
         }
     }
 

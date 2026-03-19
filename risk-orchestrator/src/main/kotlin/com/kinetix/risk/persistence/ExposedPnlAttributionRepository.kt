@@ -21,10 +21,10 @@ class ExposedPnlAttributionRepository(private val db: Database? = null) : PnlAtt
 
     override suspend fun save(attribution: PnlAttribution): Unit = newSuspendedTransaction(db = db) {
         PnlAttributionsTable.upsert(
-            PnlAttributionsTable.portfolioId,
+            PnlAttributionsTable.bookId,
             PnlAttributionsTable.attributionDate,
         ) {
-            it[portfolioId] = attribution.portfolioId.value
+            it[bookId] = attribution.bookId.value
             it[attributionDate] = attribution.date.toKotlinxDate()
             it[currency] = attribution.currency
             it[totalPnl] = attribution.totalPnl
@@ -40,13 +40,13 @@ class ExposedPnlAttributionRepository(private val db: Database? = null) : PnlAtt
     }
 
     override suspend fun findByBookIdAndDate(
-        portfolioId: BookId,
+        bookId: BookId,
         date: LocalDate,
     ): PnlAttribution? = newSuspendedTransaction(db = db) {
         PnlAttributionsTable
             .selectAll()
             .where {
-                (PnlAttributionsTable.portfolioId eq portfolioId.value) and
+                (PnlAttributionsTable.bookId eq bookId.value) and
                     (PnlAttributionsTable.attributionDate eq date.toKotlinxDate())
             }
             .firstOrNull()
@@ -54,11 +54,11 @@ class ExposedPnlAttributionRepository(private val db: Database? = null) : PnlAtt
     }
 
     override suspend fun findLatestByBookId(
-        portfolioId: BookId,
+        bookId: BookId,
     ): PnlAttribution? = newSuspendedTransaction(db = db) {
         PnlAttributionsTable
             .selectAll()
-            .where { PnlAttributionsTable.portfolioId eq portfolioId.value }
+            .where { PnlAttributionsTable.bookId eq bookId.value }
             .orderBy(PnlAttributionsTable.attributionDate, SortOrder.DESC)
             .limit(1)
             .firstOrNull()
@@ -66,13 +66,13 @@ class ExposedPnlAttributionRepository(private val db: Database? = null) : PnlAtt
     }
 
     override suspend fun findByBookId(
-        portfolioId: BookId,
+        bookId: BookId,
         fromDate: LocalDate,
     ): List<PnlAttribution> = newSuspendedTransaction(db = db) {
         PnlAttributionsTable
             .selectAll()
             .where {
-                (PnlAttributionsTable.portfolioId eq portfolioId.value) and
+                (PnlAttributionsTable.bookId eq bookId.value) and
                     (PnlAttributionsTable.attributionDate greaterEq fromDate.toKotlinxDate())
             }
             .orderBy(PnlAttributionsTable.attributionDate, SortOrder.DESC)
@@ -104,7 +104,7 @@ class ExposedPnlAttributionRepository(private val db: Database? = null) : PnlAtt
     )
 
     private fun ResultRow.toPnlAttribution(): PnlAttribution = PnlAttribution(
-        portfolioId = BookId(this[PnlAttributionsTable.portfolioId]),
+        bookId = BookId(this[PnlAttributionsTable.bookId]),
         date = this[PnlAttributionsTable.attributionDate].toJavaDate(),
         currency = this[PnlAttributionsTable.currency],
         totalPnl = this[PnlAttributionsTable.totalPnl],

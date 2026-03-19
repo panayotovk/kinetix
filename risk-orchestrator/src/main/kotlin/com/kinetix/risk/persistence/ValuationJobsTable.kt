@@ -8,7 +8,7 @@ import kotlinx.serialization.json.Json
 
 object ValuationJobsTable : Table("valuation_jobs") {
     val jobId = uuid("job_id")
-    val portfolioId = varchar("portfolio_id", 255)
+    val bookId = varchar("book_id", 255)
     val triggerType = varchar("trigger_type", 50)
     val status = varchar("status", 20)
     val valuationDate = date("valuation_date")

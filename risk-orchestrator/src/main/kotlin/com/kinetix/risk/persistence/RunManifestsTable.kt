@@ -7,7 +7,7 @@ import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 object RunManifestsTable : Table("run_manifests") {
     val manifestId = uuid("manifest_id")
     val jobId = uuid("job_id")
-    val portfolioId = varchar("portfolio_id", 255)
+    val bookId = varchar("book_id", 255)
     val valuationDate = date("valuation_date")
     val capturedAt = timestampWithTimeZone("captured_at")
     val modelVersion = varchar("model_version", 100)

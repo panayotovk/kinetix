@@ -40,7 +40,7 @@ private fun position(
 )
 
 private fun valuationResult(
-    portfolioId: BookId = PORTFOLIO,
+    bookId: BookId = PORTFOLIO,
     jobId: UUID? = JOB_ID,
     positionRisk: List<PositionRisk> = listOf(
         PositionRisk(
@@ -56,7 +56,7 @@ private fun valuationResult(
         ),
     ),
 ) = ValuationResult(
-    portfolioId = portfolioId,
+    bookId = bookId,
     calculationType = CalculationType.PARAMETRIC,
     confidenceLevel = ConfidenceLevel.CL_95,
     varValue = 500.0,
@@ -106,7 +106,7 @@ class SodSnapshotServiceTest : FunSpec({
         coVerify {
             dailyRiskSnapshotRepository.saveAll(withArg { snapshots ->
                 snapshots.size shouldBe 1
-                snapshots[0].portfolioId shouldBe PORTFOLIO
+                snapshots[0].bookId shouldBe PORTFOLIO
                 snapshots[0].snapshotDate shouldBe TODAY
                 snapshots[0].instrumentId shouldBe InstrumentId("AAPL")
                 snapshots[0].quantity shouldBe BigDecimal("100")
@@ -118,7 +118,7 @@ class SodSnapshotServiceTest : FunSpec({
         }
         coVerify {
             sodBaselineRepository.save(withArg { baseline ->
-                baseline.portfolioId shouldBe PORTFOLIO
+                baseline.bookId shouldBe PORTFOLIO
                 baseline.baselineDate shouldBe TODAY
                 baseline.snapshotType shouldBe SnapshotType.MANUAL
                 baseline.sourceJobId shouldBe JOB_ID
@@ -170,7 +170,7 @@ class SodSnapshotServiceTest : FunSpec({
     test("getBaselineStatus returns status with exists=true when baseline exists") {
         val baseline = SodBaseline(
             id = 1,
-            portfolioId = PORTFOLIO,
+            bookId = PORTFOLIO,
             baselineDate = TODAY,
             snapshotType = SnapshotType.MANUAL,
             createdAt = Instant.parse("2025-01-15T08:00:00Z"),
@@ -234,7 +234,7 @@ class SodSnapshotServiceTest : FunSpec({
         )
         val job = ValuationJob(
             jobId = JOB_ID,
-            portfolioId = PORTFOLIO.value,
+            bookId = PORTFOLIO.value,
             triggerType = TriggerType.ON_DEMAND,
             status = RunStatus.COMPLETED,
             startedAt = Instant.parse("2025-01-15T07:00:00Z"),
@@ -277,7 +277,7 @@ class SodSnapshotServiceTest : FunSpec({
         )
         val job = ValuationJob(
             jobId = JOB_ID,
-            portfolioId = PORTFOLIO.value,
+            bookId = PORTFOLIO.value,
             triggerType = TriggerType.ON_DEMAND,
             status = RunStatus.RUNNING,
             startedAt = Instant.parse("2025-01-15T07:00:00Z"),
@@ -299,7 +299,7 @@ class SodSnapshotServiceTest : FunSpec({
         )
         val job = ValuationJob(
             jobId = JOB_ID,
-            portfolioId = "other-portfolio",
+            bookId = "other-portfolio",
             triggerType = TriggerType.ON_DEMAND,
             status = RunStatus.COMPLETED,
             startedAt = Instant.parse("2025-01-15T07:00:00Z"),

@@ -26,7 +26,7 @@ class HttpPositionServiceClientTest : FunSpec({
             respond(
                 content = """[
                     {
-                        "portfolioId": "port-1",
+                        "bookId": "port-1",
                         "instrumentId": "AAPL",
                         "assetClass": "EQUITY",
                         "quantity": "100",
@@ -74,9 +74,9 @@ class HttpPositionServiceClientTest : FunSpec({
         val httpClient = mockClient {
             respond(
                 content = """[
-                    {"portfolioId": "port-1"},
-                    {"portfolioId": "port-2"},
-                    {"portfolioId": "port-3"}
+                    {"bookId": "port-1"},
+                    {"bookId": "port-2"},
+                    {"bookId": "port-3"}
                 ]""",
                 headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
             )

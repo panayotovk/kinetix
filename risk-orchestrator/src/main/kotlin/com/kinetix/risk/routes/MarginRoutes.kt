@@ -27,9 +27,9 @@ fun Route.marginRoutes(
             code(HttpStatusCode.OK) { body<MarginEstimateResponse>() }
         }
     }) {
-        val portfolioId = BookId(call.requirePathParam("bookId"))
+        val bookId = BookId(call.requirePathParam("bookId"))
         val previousMTM = call.request.queryParameters["previousMTM"]?.toBigDecimalOrNull()
-        val positions = positionProvider.getPositions(portfolioId)
+        val positions = positionProvider.getPositions(bookId)
 
         val estimate = marginCalculator.calculate(positions, previousMTM)
 

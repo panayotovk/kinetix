@@ -18,7 +18,7 @@ class PnlAttributionMapperTest : FunSpec({
 
     test("maps PnlAttribution domain to PnlAttributionResponse DTO") {
         val attribution = PnlAttribution(
-            portfolioId = BookId("port-1"),
+            bookId = BookId("port-1"),
             date = LocalDate.of(2025, 1, 15),
             totalPnl = bd("10.00"),
             deltaPnl = bd("3.00"),
@@ -45,7 +45,7 @@ class PnlAttributionMapperTest : FunSpec({
 
         val response = attribution.toResponse()
 
-        response.portfolioId shouldBe "port-1"
+        response.bookId shouldBe "port-1"
         response.date shouldBe "2025-01-15"
         response.totalPnl shouldBe "10.00"
         response.deltaPnl shouldBe "3.00"
@@ -59,7 +59,7 @@ class PnlAttributionMapperTest : FunSpec({
 
     test("maps position attributions to DTOs") {
         val attribution = PnlAttribution(
-            portfolioId = BookId("port-1"),
+            bookId = BookId("port-1"),
             date = LocalDate.of(2025, 1, 15),
             totalPnl = bd("10.00"),
             deltaPnl = bd("3.00"),
@@ -118,7 +118,7 @@ class PnlAttributionMapperTest : FunSpec({
 
     test("maps empty position attributions list") {
         val attribution = PnlAttribution(
-            portfolioId = BookId("port-1"),
+            bookId = BookId("port-1"),
             date = LocalDate.of(2025, 1, 15),
             totalPnl = bd("0.00"),
             deltaPnl = bd("0.00"),

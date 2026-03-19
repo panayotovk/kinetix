@@ -38,7 +38,7 @@ class VaRCalculationServiceMetricsTest : FunSpec({
             )
         )
         val result = ValuationResult(
-            portfolioId = BookId("port-1"),
+            bookId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
             varValue = 5000.0,
@@ -55,7 +55,7 @@ class VaRCalculationServiceMetricsTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -77,7 +77,7 @@ class VaRCalculationServiceMetricsTest : FunSpec({
             )
         )
         val result = ValuationResult(
-            portfolioId = BookId("port-1"),
+            bookId = BookId("port-1"),
             calculationType = CalculationType.HISTORICAL,
             confidenceLevel = ConfidenceLevel.CL_95,
             varValue = 5000.0,
@@ -94,7 +94,7 @@ class VaRCalculationServiceMetricsTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.HISTORICAL,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )

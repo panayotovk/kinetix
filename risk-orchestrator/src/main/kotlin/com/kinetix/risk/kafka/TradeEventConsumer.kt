@@ -44,13 +44,13 @@ class TradeEventConsumer(
                             val event = Json.decodeFromString<TradeEventMessage>(record.value())
                             MDC.put("correlationId", event.correlationId ?: "")
                             try {
-                                val portfolioId = BookId(event.portfolioId)
+                                val bookId = BookId(event.bookId)
 
-                                logger.info("Trade event received for portfolio {}, triggering VaR recalculation", portfolioId.value)
+                                logger.info("Trade event received for portfolio {}, triggering VaR recalculation", bookId.value)
 
                                 val result = varCalculationService.calculateVaR(
                                     VaRCalculationRequest(
-                                        portfolioId = portfolioId,
+                                        bookId = bookId,
                                         calculationType = CalculationType.PARAMETRIC,
                                         confidenceLevel = ConfidenceLevel.CL_95,
                                     ),
@@ -58,7 +58,7 @@ class TradeEventConsumer(
                                     correlationId = event.correlationId,
                                 )
                                 if (result != null) {
-                                    varCache?.put(portfolioId.value, result)
+                                    varCache?.put(bookId.value, result)
                                 }
                             } finally {
                                 MDC.remove("correlationId")

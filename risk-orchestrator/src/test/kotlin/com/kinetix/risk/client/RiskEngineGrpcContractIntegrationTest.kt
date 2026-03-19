@@ -71,7 +71,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
             ),
         )
         val request = VaRCalculationRequest(
-            portfolioId = BookId("contract-port-1"),
+            bookId = BookId("contract-port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
             timeHorizonDays = 1,
@@ -80,7 +80,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
 
         val result = client.calculateVaR(request, positions)
 
-        result.portfolioId shouldBe BookId("contract-port-1")
+        result.bookId shouldBe BookId("contract-port-1")
         result.calculationType shouldBe CalculationType.PARAMETRIC
         result.confidenceLevel shouldBe ConfidenceLevel.CL_95
         result.varValue shouldBeGreaterThan 0.0
@@ -101,14 +101,14 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
             ),
         )
         val request = VaRCalculationRequest(
-            portfolioId = BookId("contract-port-2"),
+            bookId = BookId("contract-port-2"),
             calculationType = CalculationType.HISTORICAL,
             confidenceLevel = ConfidenceLevel.CL_99,
         )
 
         val result = client.calculateVaR(request, positions)
 
-        result.portfolioId shouldBe BookId("contract-port-2")
+        result.bookId shouldBe BookId("contract-port-2")
         result.calculationType shouldBe CalculationType.HISTORICAL
         result.confidenceLevel shouldBe ConfidenceLevel.CL_99
         result.varValue shouldBeGreaterThan 0.0
@@ -134,7 +134,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
             ),
         )
         val request = VaRCalculationRequest(
-            portfolioId = BookId("contract-port-3"),
+            bookId = BookId("contract-port-3"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
         )
@@ -157,7 +157,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
             ),
         )
         val request = VaRCalculationRequest(
-            portfolioId = BookId("contract-port-4"),
+            bookId = BookId("contract-port-4"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
             requestedOutputs = setOf(ValuationOutput.VAR, ValuationOutput.PV),
@@ -165,7 +165,7 @@ class RiskEngineGrpcContractIntegrationTest : FunSpec({
 
         val result = client.valuate(request, positions)
 
-        result.portfolioId shouldBe BookId("contract-port-4")
+        result.bookId shouldBe BookId("contract-port-4")
         result.calculationType shouldBe CalculationType.PARAMETRIC
         result.varValue shouldNotBe null
         result.pvValue shouldNotBe null

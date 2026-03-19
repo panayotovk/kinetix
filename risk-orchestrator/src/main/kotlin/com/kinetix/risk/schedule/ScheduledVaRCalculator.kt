@@ -15,7 +15,7 @@ import kotlin.coroutines.coroutineContext
 class ScheduledVaRCalculator(
     private val varCalculationService: VaRCalculationService,
     private val varCache: VaRCache,
-    private val portfolioIds: suspend () -> List<BookId>,
+    private val bookIds: suspend () -> List<BookId>,
     private val intervalMillis: Long = 60_000,
 ) {
     private val logger = LoggerFactory.getLogger(ScheduledVaRCalculator::class.java)
@@ -23,22 +23,22 @@ class ScheduledVaRCalculator(
     suspend fun start() {
         while (coroutineContext.isActive) {
             try {
-                val portfolios = portfolioIds()
-                for (portfolioId in portfolios) {
+                val portfolios = bookIds()
+                for (bookId in portfolios) {
                     try {
                         val result = varCalculationService.calculateVaR(
                             VaRCalculationRequest(
-                                portfolioId = portfolioId,
+                                bookId = bookId,
                                 calculationType = CalculationType.PARAMETRIC,
                                 confidenceLevel = ConfidenceLevel.CL_95,
                             ),
                             triggerType = TriggerType.SCHEDULED,
                         )
                         if (result != null) {
-                            varCache.put(portfolioId.value, result)
+                            varCache.put(bookId.value, result)
                         }
                     } catch (e: Exception) {
-                        logger.error("Scheduled VaR calculation failed for portfolio {}", portfolioId.value, e)
+                        logger.error("Scheduled VaR calculation failed for portfolio {}", bookId.value, e)
                     }
                 }
             } catch (e: Exception) {

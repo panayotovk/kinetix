@@ -16,14 +16,14 @@ import java.util.Currency
 private val USD = Currency.getInstance("USD")
 
 private fun position(
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     instrumentId: String = "AAPL",
     assetClass: AssetClass = AssetClass.EQUITY,
     quantity: String = "100",
     averageCost: String = "150.00",
     marketPrice: String = "170.00",
 ) = Position(
-    bookId = BookId(portfolioId),
+    bookId = BookId(bookId),
     instrumentId = InstrumentId(instrumentId),
     assetClass = assetClass,
     quantity = BigDecimal(quantity),
@@ -46,13 +46,13 @@ private fun hypotheticalTrade(
 )
 
 private fun valuationResult(
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     varValue: Double = 5000.0,
     expectedShortfall: Double = 6250.0,
     greeks: GreeksResult? = null,
     positionRisk: List<PositionRisk> = emptyList(),
 ) = ValuationResult(
-    portfolioId = BookId(portfolioId),
+    bookId = BookId(bookId),
     calculationType = CalculationType.PARAMETRIC,
     confidenceLevel = ConfidenceLevel.CL_95,
     varValue = varValue,
@@ -193,7 +193,7 @@ class WhatIfAnalysisServiceTest : FunSpec({
             coEvery { riskEngineClient.valuate(any(), neq(positions), any()) } returns hypotheticalResult
 
             val result = service.analyzeWhatIf(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 hypotheticalTrades = trades,
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
@@ -225,7 +225,7 @@ class WhatIfAnalysisServiceTest : FunSpec({
             coEvery { riskEngineClient.valuate(any(), neq(positions), any()) } returns hypotheticalResult
 
             val result = service.analyzeWhatIf(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 hypotheticalTrades = trades,
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
@@ -245,7 +245,7 @@ class WhatIfAnalysisServiceTest : FunSpec({
             coEvery { riskEngineClient.valuate(any(), any(), any()) } returns baseResult
 
             service.analyzeWhatIf(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 hypotheticalTrades = trades,
                 calculationType = CalculationType.MONTE_CARLO,
                 confidenceLevel = ConfidenceLevel.CL_99,

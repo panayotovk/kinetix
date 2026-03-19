@@ -7,8 +7,8 @@ class PositionServicePositionProvider(
     private val positionServiceClient: PositionServiceClient,
 ) : PositionProvider {
 
-    override suspend fun getPositions(portfolioId: BookId): List<Position> {
-        return when (val response = positionServiceClient.getPositions(portfolioId)) {
+    override suspend fun getPositions(bookId: BookId): List<Position> {
+        return when (val response = positionServiceClient.getPositions(bookId)) {
             is ClientResponse.Success -> response.value
             is ClientResponse.NotFound -> emptyList()
         }

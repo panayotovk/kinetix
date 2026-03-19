@@ -51,11 +51,11 @@ private fun job(
     jobId: UUID = UUID.randomUUID(),
     varValue: Double = 5000.0,
     theta: Double = -50.0,
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     valuationDate: LocalDate = LocalDate.of(2025, 1, 15),
 ) = ValuationJob(
     jobId = jobId,
-    portfolioId = portfolioId,
+    bookId = bookId,
     triggerType = TriggerType.ON_DEMAND,
     status = RunStatus.COMPLETED,
     startedAt = Instant.now(),
@@ -69,7 +69,7 @@ private fun job(
 )
 
 private fun valuationResult(varValue: Double = 5000.0) = ValuationResult(
-    portfolioId = BookId("port-1"),
+    bookId = BookId("port-1"),
     calculationType = CalculationType.PARAMETRIC,
     confidenceLevel = ConfidenceLevel.CL_95,
     varValue = varValue,

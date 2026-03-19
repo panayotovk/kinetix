@@ -16,14 +16,14 @@ private val VALUATION_DATE = LocalDate.of(2026, 3, 13)
 
 private fun completedJob(
     jobId: UUID = JOB_ID,
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     triggeredBy: String? = "user-a",
     runLabel: RunLabel? = null,
     promotedAt: Instant? = null,
     promotedBy: String? = null,
 ) = ValuationJob(
     jobId = jobId,
-    portfolioId = portfolioId,
+    bookId = bookId,
     triggerType = TriggerType.ON_DEMAND,
     status = RunStatus.COMPLETED,
     startedAt = Instant.parse("2026-03-13T17:00:00Z"),
@@ -42,7 +42,7 @@ private fun completedJob(
 
 private fun runningJob(jobId: UUID = JOB_ID) = ValuationJob(
     jobId = jobId,
-    portfolioId = "port-1",
+    bookId = "port-1",
     triggerType = TriggerType.ON_DEMAND,
     status = RunStatus.RUNNING,
     startedAt = Instant.parse("2026-03-13T17:00:00Z"),
@@ -51,7 +51,7 @@ private fun runningJob(jobId: UUID = JOB_ID) = ValuationJob(
 
 private fun failedJob(jobId: UUID = JOB_ID) = ValuationJob(
     jobId = jobId,
-    portfolioId = "port-1",
+    bookId = "port-1",
     triggerType = TriggerType.ON_DEMAND,
     status = RunStatus.FAILED,
     startedAt = Instant.parse("2026-03-13T17:00:00Z"),
@@ -216,7 +216,7 @@ class EodPromotionServiceTest : FunSpec({
         coVerify {
             eventPublisher.publish(match { event ->
                 event.jobId == JOB_ID.toString() &&
-                    event.portfolioId == "port-1" &&
+                    event.bookId == "port-1" &&
                     event.valuationDate == VALUATION_DATE.toString() &&
                     event.promotedBy == "user-b" &&
                     event.varValue == 5000.0 &&

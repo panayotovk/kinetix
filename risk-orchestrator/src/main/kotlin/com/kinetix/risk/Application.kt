@@ -507,7 +507,7 @@ fun Application.moduleWithRoutes() {
         ScheduledVaRCalculator(
             varCalculationService = varCalculationService,
             varCache = varCache,
-            portfolioIds = { when (val r = positionServiceClient.getDistinctBookIds()) {
+            bookIds = { when (val r = positionServiceClient.getDistinctBookIds()) {
                 is com.kinetix.risk.client.ClientResponse.Success -> r.value
                 is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
             } },
@@ -516,7 +516,7 @@ fun Application.moduleWithRoutes() {
     launch {
         ScheduledSodSnapshotJob(
             sodSnapshotService = sodSnapshotService,
-            portfolioIds = { when (val r = positionServiceClient.getDistinctBookIds()) {
+            bookIds = { when (val r = positionServiceClient.getDistinctBookIds()) {
                 is com.kinetix.risk.client.ClientResponse.Success -> r.value
                 is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
             } },
@@ -566,12 +566,12 @@ private suspend fun seedCacheFromDb(
     try {
         val portfolios = recorder.findDistinctBookIds()
         var seeded = 0
-        for (portfolioId in portfolios) {
-            val job = recorder.findLatestCompleted(portfolioId) ?: continue
+        for (bookId in portfolios) {
+            val job = recorder.findLatestCompleted(bookId) ?: continue
             val result = job.toValuationResult() ?: continue
-            cache.put(portfolioId, result)
+            cache.put(bookId, result)
             seeded++
-            log.info("Seeded VaR cache for portfolio {} from job {} (calculated {})", portfolioId, job.jobId, job.completedAt)
+            log.info("Seeded VaR cache for portfolio {} from job {} (calculated {})", bookId, job.jobId, job.completedAt)
         }
         log.info("Cache seeding complete: {}/{} portfolios seeded", seeded, portfolios.size)
     } catch (e: Exception) {

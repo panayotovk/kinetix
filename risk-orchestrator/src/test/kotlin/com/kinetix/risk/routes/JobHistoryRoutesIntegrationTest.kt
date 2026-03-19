@@ -25,7 +25,7 @@ private fun completedJob(
     startedAt: Instant = Instant.parse("2025-01-15T10:00:00Z"),
 ) = ValuationJob(
     jobId = UUID.randomUUID(),
-    portfolioId = "port-1",
+    bookId = "port-1",
     triggerType = TriggerType.ON_DEMAND,
     status = RunStatus.COMPLETED,
     startedAt = startedAt,

@@ -6,9 +6,9 @@ import java.util.concurrent.ConcurrentHashMap
 class InMemoryVaRCache : VaRCache {
     private val cache = ConcurrentHashMap<String, ValuationResult>()
 
-    override fun put(portfolioId: String, result: ValuationResult) {
-        cache[portfolioId] = result
+    override fun put(bookId: String, result: ValuationResult) {
+        cache[bookId] = result
     }
 
-    override fun get(portfolioId: String): ValuationResult? = cache[portfolioId]
+    override fun get(bookId: String): ValuationResult? = cache[bookId]
 }

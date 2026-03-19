@@ -51,7 +51,7 @@ class WhatIfAcceptanceTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/what-if/{portfolioId} returns 200 with comparison result") {
+    test("POST /api/v1/risk/what-if/{bookId} returns 200 with comparison result") {
         val whatIfResult = WhatIfResult(
             baseVaR = 5000.0,
             baseExpectedShortfall = 6250.0,
@@ -124,7 +124,7 @@ class WhatIfAcceptanceTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/what-if/{portfolioId} accepts empty trades list and returns 200") {
+    test("POST /api/v1/risk/what-if/{bookId} accepts empty trades list and returns 200") {
         val whatIfResult = WhatIfResult(
             baseVaR = 5000.0,
             baseExpectedShortfall = 6250.0,
@@ -153,7 +153,7 @@ class WhatIfAcceptanceTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/what-if/{portfolioId} returns 400 for invalid assetClass") {
+    test("POST /api/v1/risk/what-if/{bookId} returns 400 for invalid assetClass") {
         testApp {
             val response = client.post("/api/v1/risk/what-if/port-1") {
                 contentType(ContentType.Application.Json)

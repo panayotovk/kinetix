@@ -16,7 +16,7 @@ import java.util.UUID
 private val BASE_TIME = Instant.parse("2025-06-15T10:00:00Z")
 
 private fun completedJobWithSnapshots(
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     positionRisk: List<PositionRisk> = listOf(
         PositionRisk(
             instrumentId = InstrumentId("AAPL"),
@@ -39,7 +39,7 @@ private fun completedJobWithSnapshots(
     computedOutputs: Set<ValuationOutput> = setOf(ValuationOutput.VAR, ValuationOutput.EXPECTED_SHORTFALL, ValuationOutput.GREEKS),
 ) = ValuationJob(
     jobId = UUID.randomUUID(),
-    portfolioId = portfolioId,
+    bookId = bookId,
     triggerType = TriggerType.ON_DEMAND,
     status = RunStatus.COMPLETED,
     startedAt = BASE_TIME,
@@ -69,7 +69,7 @@ class ValuationJobMapperTest : FunSpec({
         val result = job.toValuationResult()
 
         result.shouldNotBeNull()
-        result.portfolioId.value shouldBe "port-1"
+        result.bookId.value shouldBe "port-1"
         result.calculationType shouldBe CalculationType.PARAMETRIC
         result.confidenceLevel shouldBe ConfidenceLevel.CL_95
         result.varValue shouldBe 5000.0
@@ -100,7 +100,7 @@ class ValuationJobMapperTest : FunSpec({
     test("returns null for a RUNNING job") {
         val job = ValuationJob(
             jobId = UUID.randomUUID(),
-            portfolioId = "port-1",
+            bookId = "port-1",
             triggerType = TriggerType.ON_DEMAND,
             status = RunStatus.RUNNING,
             startedAt = BASE_TIME,
@@ -114,7 +114,7 @@ class ValuationJobMapperTest : FunSpec({
     test("returns null for a FAILED job") {
         val job = ValuationJob(
             jobId = UUID.randomUUID(),
-            portfolioId = "port-1",
+            bookId = "port-1",
             triggerType = TriggerType.ON_DEMAND,
             status = RunStatus.FAILED,
             startedAt = BASE_TIME,

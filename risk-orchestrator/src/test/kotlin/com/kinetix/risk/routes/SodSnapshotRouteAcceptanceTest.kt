@@ -33,7 +33,7 @@ class SodSnapshotRouteAcceptanceTest : FunSpec({
         clearMocks(sodSnapshotService)
     }
 
-    test("GET /api/v1/risk/sod-snapshot/{portfolioId}/status returns baseline status when it exists") {
+    test("GET /api/v1/risk/sod-snapshot/{bookId}/status returns baseline status when it exists") {
         coEvery { sodSnapshotService.getBaselineStatus(any(), any()) } returns SodBaselineStatus(
             exists = true,
             baselineDate = "2025-01-15",
@@ -46,10 +46,10 @@ class SodSnapshotRouteAcceptanceTest : FunSpec({
         testApplication {
             install(ContentNegotiation) { json() }
             routing {
-                get("/api/v1/risk/sod-snapshot/{portfolioId}/status") {
-                    val portfolioId = call.parameters["portfolioId"]!!
+                get("/api/v1/risk/sod-snapshot/{bookId}/status") {
+                    val bookId = call.parameters["bookId"]!!
                     val status = sodSnapshotService.getBaselineStatus(
-                        BookId(portfolioId),
+                        BookId(bookId),
                         LocalDate.now(),
                     )
                     call.respond(status.toResponse())
@@ -69,7 +69,7 @@ class SodSnapshotRouteAcceptanceTest : FunSpec({
         }
     }
 
-    test("GET /api/v1/risk/sod-snapshot/{portfolioId}/status returns exists=false when no baseline") {
+    test("GET /api/v1/risk/sod-snapshot/{bookId}/status returns exists=false when no baseline") {
         coEvery { sodSnapshotService.getBaselineStatus(any(), any()) } returns SodBaselineStatus(
             exists = false,
         )
@@ -77,10 +77,10 @@ class SodSnapshotRouteAcceptanceTest : FunSpec({
         testApplication {
             install(ContentNegotiation) { json() }
             routing {
-                get("/api/v1/risk/sod-snapshot/{portfolioId}/status") {
-                    val portfolioId = call.parameters["portfolioId"]!!
+                get("/api/v1/risk/sod-snapshot/{bookId}/status") {
+                    val bookId = call.parameters["bookId"]!!
                     val status = sodSnapshotService.getBaselineStatus(
-                        BookId(portfolioId),
+                        BookId(bookId),
                         LocalDate.now(),
                     )
                     call.respond(status.toResponse())
@@ -98,7 +98,7 @@ class SodSnapshotRouteAcceptanceTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/risk/sod-snapshot/{portfolioId} creates manual snapshot and returns 201") {
+    test("POST /api/v1/risk/sod-snapshot/{bookId} creates manual snapshot and returns 201") {
         coEvery { sodSnapshotService.createSnapshot(any(), any(), any(), any()) } just Runs
         coEvery { sodSnapshotService.getBaselineStatus(any(), any()) } returns SodBaselineStatus(
             exists = true,
@@ -110,15 +110,15 @@ class SodSnapshotRouteAcceptanceTest : FunSpec({
         testApplication {
             install(ContentNegotiation) { json() }
             routing {
-                post("/api/v1/risk/sod-snapshot/{portfolioId}") {
-                    val portfolioId = call.parameters["portfolioId"]!!
+                post("/api/v1/risk/sod-snapshot/{bookId}") {
+                    val bookId = call.parameters["bookId"]!!
                     val today = LocalDate.now()
                     sodSnapshotService.createSnapshot(
-                        BookId(portfolioId),
+                        BookId(bookId),
                         SnapshotType.MANUAL,
                         date = today,
                     )
-                    val status = sodSnapshotService.getBaselineStatus(BookId(portfolioId), today)
+                    val status = sodSnapshotService.getBaselineStatus(BookId(bookId), today)
                     call.response.status(HttpStatusCode.Created)
                     call.respond(status.toResponse())
                 }
@@ -135,15 +135,15 @@ class SodSnapshotRouteAcceptanceTest : FunSpec({
         coVerify { sodSnapshotService.createSnapshot(BookId("port-1"), SnapshotType.MANUAL, any(), any()) }
     }
 
-    test("DELETE /api/v1/risk/sod-snapshot/{portfolioId} resets baseline and returns 204") {
+    test("DELETE /api/v1/risk/sod-snapshot/{bookId} resets baseline and returns 204") {
         coEvery { sodSnapshotService.resetBaseline(any(), any()) } just Runs
 
         testApplication {
             install(ContentNegotiation) { json() }
             routing {
-                delete("/api/v1/risk/sod-snapshot/{portfolioId}") {
-                    val portfolioId = call.parameters["portfolioId"]!!
-                    sodSnapshotService.resetBaseline(BookId(portfolioId), LocalDate.now())
+                delete("/api/v1/risk/sod-snapshot/{bookId}") {
+                    val bookId = call.parameters["bookId"]!!
+                    sodSnapshotService.resetBaseline(BookId(bookId), LocalDate.now())
                     call.response.status(HttpStatusCode.NoContent)
                     call.respond("")
                 }

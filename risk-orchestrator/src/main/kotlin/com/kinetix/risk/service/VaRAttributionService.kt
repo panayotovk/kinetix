@@ -18,7 +18,7 @@ class VaRAttributionService(
     private val positionProvider: PositionProvider,
 ) {
     suspend fun attributeVaRChange(
-        portfolioId: BookId,
+        bookId: BookId,
         baseJob: ValuationJob,
         targetJob: ValuationJob,
         inputChanges: InputChangeSummary? = null,
@@ -40,7 +40,7 @@ class VaRAttributionService(
         }
 
         // Step 1: Fetch current (target-date) positions
-        val currentPositions = positionProvider.getPositions(portfolioId)
+        val currentPositions = positionProvider.getPositions(bookId)
 
         // Step 2: Position effect — re-run with current positions under base calc parameters.
         val calcType = baseJob.calculationType
@@ -51,7 +51,7 @@ class VaRAttributionService(
             ?: ConfidenceLevel.CL_95
 
         val request = VaRCalculationRequest(
-            portfolioId = portfolioId,
+            bookId = bookId,
             calculationType = calcType,
             confidenceLevel = confLevel,
         )

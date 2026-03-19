@@ -23,13 +23,13 @@ class ResilientRiskEngineClientTest : FunSpec({
     val client = ResilientRiskEngineClient(delegate, circuitBreaker)
 
     val request = VaRCalculationRequest(
-        portfolioId = BookId("port-1"),
+        bookId = BookId("port-1"),
         calculationType = CalculationType.PARAMETRIC,
         confidenceLevel = ConfidenceLevel.CL_95,
     )
     val positions = emptyList<Position>()
     val result = ValuationResult(
-        portfolioId = BookId("port-1"),
+        bookId = BookId("port-1"),
         calculationType = CalculationType.PARAMETRIC,
         confidenceLevel = ConfidenceLevel.CL_95,
         varValue = 50000.0,

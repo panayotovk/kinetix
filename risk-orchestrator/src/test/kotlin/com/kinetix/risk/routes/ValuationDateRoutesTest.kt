@@ -25,13 +25,13 @@ import java.util.UUID
 private val TEST_DATE = LocalDate.of(2025, 3, 10)
 
 private fun completedJob(
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     valuationDate: LocalDate = TEST_DATE,
     startedAt: Instant = Instant.parse("2025-03-10T14:00:00Z"),
     varValue: Double = 5000.0,
 ) = ValuationJob(
     jobId = UUID.randomUUID(),
-    portfolioId = portfolioId,
+    bookId = bookId,
     triggerType = TriggerType.ON_DEMAND,
     status = RunStatus.COMPLETED,
     startedAt = startedAt,
@@ -62,8 +62,8 @@ private fun completedJob(
     phases = emptyList(),
 )
 
-private fun cachedResult(portfolioId: String = "port-1") = ValuationResult(
-    portfolioId = BookId(portfolioId),
+private fun cachedResult(bookId: String = "port-1") = ValuationResult(
+    bookId = BookId(bookId),
     calculationType = CalculationType.PARAMETRIC,
     confidenceLevel = ConfidenceLevel.CL_95,
     varValue = 4200.0,

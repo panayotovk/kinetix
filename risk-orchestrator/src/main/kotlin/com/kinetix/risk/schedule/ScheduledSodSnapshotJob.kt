@@ -12,7 +12,7 @@ import kotlin.coroutines.coroutineContext
 
 class ScheduledSodSnapshotJob(
     private val sodSnapshotService: SodSnapshotService,
-    private val portfolioIds: suspend () -> List<BookId>,
+    private val bookIds: suspend () -> List<BookId>,
     private val sodTime: LocalTime = LocalTime.of(6, 0),
     private val intervalMillis: Long = 60_000,
     private val nowProvider: () -> LocalTime = { LocalTime.now() },
@@ -37,17 +37,17 @@ class ScheduledSodSnapshotJob(
         }
 
         val today = LocalDate.now()
-        val portfolios = portfolioIds()
+        val portfolios = bookIds()
 
-        for (portfolioId in portfolios) {
+        for (bookId in portfolios) {
             try {
-                val status = sodSnapshotService.getBaselineStatus(portfolioId, today)
+                val status = sodSnapshotService.getBaselineStatus(bookId, today)
                 if (!status.exists) {
-                    sodSnapshotService.createSnapshot(portfolioId, SnapshotType.AUTO, date = today)
-                    logger.info("Auto SOD snapshot created for portfolio {}", portfolioId.value)
+                    sodSnapshotService.createSnapshot(bookId, SnapshotType.AUTO, date = today)
+                    logger.info("Auto SOD snapshot created for portfolio {}", bookId.value)
                 }
             } catch (e: Exception) {
-                logger.error("Scheduled SOD snapshot failed for portfolio {}", portfolioId.value, e)
+                logger.error("Scheduled SOD snapshot failed for portfolio {}", bookId.value, e)
             }
         }
     }

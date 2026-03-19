@@ -52,7 +52,7 @@ class RunComparisonAcceptanceTest : FunSpec({
 
     fun completedJob(
         jobId: UUID = UUID.randomUUID(),
-        portfolioId: String = "port-1",
+        bookId: String = "port-1",
         varValue: Double = 5000.0,
         es: Double = 6250.0,
         valuationDate: LocalDate = LocalDate.of(2025, 1, 15),
@@ -74,7 +74,7 @@ class RunComparisonAcceptanceTest : FunSpec({
         ),
     ) = ValuationJob(
         jobId = jobId,
-        portfolioId = portfolioId,
+        bookId = bookId,
         triggerType = TriggerType.ON_DEMAND,
         status = RunStatus.COMPLETED,
         startedAt = Instant.parse("2025-01-15T09:00:00Z"),

@@ -24,22 +24,22 @@ class SodSnapshotService(
     private val logger = LoggerFactory.getLogger(SodSnapshotService::class.java)
 
     suspend fun createSnapshot(
-        portfolioId: BookId,
+        bookId: BookId,
         snapshotType: SnapshotType,
         valuationResult: ValuationResult? = null,
         date: LocalDate = LocalDate.now(),
     ) {
         val result = valuationResult
-            ?: varCache.get(portfolioId.value)?.takeIf { isFreshEnough(it) }
-            ?: calculateFreshVaR(portfolioId)
-            ?: throw IllegalStateException("Cannot create SOD snapshot: no valuation data available for ${portfolioId.value}")
+            ?: varCache.get(bookId.value)?.takeIf { isFreshEnough(it) }
+            ?: calculateFreshVaR(bookId)
+            ?: throw IllegalStateException("Cannot create SOD snapshot: no valuation data available for ${bookId.value}")
 
-        val positions = positionProvider.getPositions(portfolioId)
+        val positions = positionProvider.getPositions(bookId)
 
         val snapshots = result.positionRisk.map { risk ->
             val position = positions.find { it.instrumentId == risk.instrumentId }
             DailyRiskSnapshot(
-                portfolioId = portfolioId,
+                bookId = bookId,
                 snapshotDate = date,
                 instrumentId = risk.instrumentId,
                 assetClass = risk.assetClass,
@@ -56,7 +56,7 @@ class SodSnapshotService(
         dailyRiskSnapshotRepository.saveAll(snapshots)
 
         val baseline = SodBaseline(
-            portfolioId = portfolioId,
+            bookId = bookId,
             baselineDate = date,
             snapshotType = snapshotType,
             createdAt = Instant.now(),
@@ -69,12 +69,12 @@ class SodSnapshotService(
 
         logger.info(
             "SOD snapshot created for portfolio {} on {} ({}, {} positions)",
-            portfolioId.value, date, snapshotType, snapshots.size,
+            bookId.value, date, snapshotType, snapshots.size,
         )
     }
 
-    suspend fun getBaselineStatus(portfolioId: BookId, date: LocalDate): SodBaselineStatus {
-        val baseline = sodBaselineRepository.findByBookIdAndDate(portfolioId, date)
+    suspend fun getBaselineStatus(bookId: BookId, date: LocalDate): SodBaselineStatus {
+        val baseline = sodBaselineRepository.findByBookIdAndDate(bookId, date)
         return if (baseline != null) {
             SodBaselineStatus(
                 exists = true,
@@ -90,7 +90,7 @@ class SodSnapshotService(
     }
 
     suspend fun createSnapshotFromJob(
-        portfolioId: BookId,
+        bookId: BookId,
         jobId: UUID,
         date: LocalDate = LocalDate.now(),
     ) {
@@ -101,14 +101,14 @@ class SodSnapshotService(
         require(job.status == RunStatus.COMPLETED) {
             "Valuation job $jobId is not completed (status: ${job.status})"
         }
-        require(job.portfolioId == portfolioId.value) {
-            "Valuation job $jobId belongs to portfolio ${job.portfolioId}, not ${portfolioId.value}"
+        require(job.bookId == bookId.value) {
+            "Valuation job $jobId belongs to portfolio ${job.bookId}, not ${bookId.value}"
         }
 
         val calcType = CalculationType.valueOf(job.calculationType ?: "PARAMETRIC")
         val confLevel = ConfidenceLevel.valueOf(job.confidenceLevel ?: "CL_95")
         val request = VaRCalculationRequest(
-            portfolioId = portfolioId,
+            bookId = bookId,
             calculationType = calcType,
             confidenceLevel = confLevel,
             requestedOutputs = ValuationOutput.entries.toSet(),
@@ -116,19 +116,19 @@ class SodSnapshotService(
         val result = varCalculationService.calculateVaR(request, TriggerType.SCHEDULED)
             ?: throw IllegalStateException("Re-calculation failed for job $jobId parameters")
 
-        createSnapshot(portfolioId, SnapshotType.MANUAL, result, date)
+        createSnapshot(bookId, SnapshotType.MANUAL, result, date)
     }
 
-    suspend fun resetBaseline(portfolioId: BookId, date: LocalDate) {
-        dailyRiskSnapshotRepository.deleteByBookIdAndDate(portfolioId, date)
-        sodBaselineRepository.deleteByBookIdAndDate(portfolioId, date)
-        logger.info("SOD baseline reset for portfolio {} on {}", portfolioId.value, date)
+    suspend fun resetBaseline(bookId: BookId, date: LocalDate) {
+        dailyRiskSnapshotRepository.deleteByBookIdAndDate(bookId, date)
+        sodBaselineRepository.deleteByBookIdAndDate(bookId, date)
+        logger.info("SOD baseline reset for portfolio {} on {}", bookId.value, date)
     }
 
-    private suspend fun calculateFreshVaR(portfolioId: BookId): ValuationResult? {
-        logger.info("No cached VaR for {}, triggering fresh calculation for SOD snapshot", portfolioId.value)
+    private suspend fun calculateFreshVaR(bookId: BookId): ValuationResult? {
+        logger.info("No cached VaR for {}, triggering fresh calculation for SOD snapshot", bookId.value)
         val request = VaRCalculationRequest(
-            portfolioId = portfolioId,
+            bookId = bookId,
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
             requestedOutputs = ValuationOutput.entries.toSet(),

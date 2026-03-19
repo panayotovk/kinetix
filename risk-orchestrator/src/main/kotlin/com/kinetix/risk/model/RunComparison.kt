@@ -5,7 +5,7 @@ import java.util.UUID
 data class RunComparison(
     val comparisonId: UUID,
     val type: ComparisonType,
-    val portfolioId: String,
+    val bookId: String,
     val baseRun: RunSnapshot,
     val targetRun: RunSnapshot,
     val portfolioDiff: PortfolioDiff,

@@ -2,7 +2,7 @@ package com.kinetix.risk.client
 
 import com.kinetix.common.model.BookId
 import com.kinetix.common.model.Position
-import com.kinetix.risk.client.dtos.PortfolioSummaryDto
+import com.kinetix.risk.client.dtos.BookSummaryDto
 import com.kinetix.risk.client.dtos.PositionDto
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -14,8 +14,8 @@ class HttpPositionServiceClient(
     private val baseUrl: String,
 ) : PositionServiceClient {
 
-    override suspend fun getPositions(portfolioId: BookId): ClientResponse<List<Position>> {
-        val response = httpClient.get("$baseUrl/api/v1/books/${portfolioId.value}/positions")
+    override suspend fun getPositions(bookId: BookId): ClientResponse<List<Position>> {
+        val response = httpClient.get("$baseUrl/api/v1/books/${bookId.value}/positions")
         if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
         val dtos: List<PositionDto> = response.body()
         return ClientResponse.Success(dtos.map { it.toDomain() })
@@ -24,7 +24,7 @@ class HttpPositionServiceClient(
     override suspend fun getDistinctBookIds(): ClientResponse<List<BookId>> {
         val response = httpClient.get("$baseUrl/api/v1/books")
         if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
-        val dtos: List<PortfolioSummaryDto> = response.body()
+        val dtos: List<BookSummaryDto> = response.body()
         return ClientResponse.Success(dtos.map { it.toDomain() })
     }
 }

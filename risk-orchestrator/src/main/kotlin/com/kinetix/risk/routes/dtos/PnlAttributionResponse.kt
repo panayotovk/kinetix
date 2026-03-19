@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class PnlAttributionResponse(
-    val portfolioId: String,
+    val bookId: String,
     val date: String,
     val totalPnl: String,
     val deltaPnl: String,

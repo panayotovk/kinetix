@@ -9,10 +9,10 @@ import io.kotest.matchers.shouldBe
 import java.time.Instant
 
 private fun valuationResult(
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     varValue: Double = 5000.0,
 ) = ValuationResult(
-    portfolioId = BookId(portfolioId),
+    bookId = BookId(bookId),
     calculationType = CalculationType.PARAMETRIC,
     confidenceLevel = ConfidenceLevel.CL_95,
     varValue = varValue,
@@ -29,7 +29,7 @@ class LatestVaRCacheTest : FunSpec({
 
     test("put then get returns the cached result") {
         val cache = LatestVaRCache()
-        val result = valuationResult(portfolioId = "port-1", varValue = 4200.0)
+        val result = valuationResult(bookId = "port-1", varValue = 4200.0)
 
         cache.put("port-1", result)
 
@@ -44,8 +44,8 @@ class LatestVaRCacheTest : FunSpec({
 
     test("put overwrites previous value") {
         val cache = LatestVaRCache()
-        val first = valuationResult(portfolioId = "port-1", varValue = 1000.0)
-        val second = valuationResult(portfolioId = "port-1", varValue = 9999.0)
+        val first = valuationResult(bookId = "port-1", varValue = 1000.0)
+        val second = valuationResult(bookId = "port-1", varValue = 9999.0)
 
         cache.put("port-1", first)
         cache.put("port-1", second)

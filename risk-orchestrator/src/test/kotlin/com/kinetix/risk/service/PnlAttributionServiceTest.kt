@@ -40,7 +40,7 @@ class PnlAttributionServiceTest : FunSpec({
         )
 
         val result = service.attribute(
-            portfolioId = BookId("port-1"),
+            bookId = BookId("port-1"),
             positions = listOf(input),
         )
 
@@ -70,7 +70,7 @@ class PnlAttributionServiceTest : FunSpec({
         )
 
         val result = service.attribute(
-            portfolioId = BookId("port-1"),
+            bookId = BookId("port-1"),
             positions = listOf(input),
         )
 
@@ -101,7 +101,7 @@ class PnlAttributionServiceTest : FunSpec({
         )
 
         val result = service.attribute(
-            portfolioId = BookId("port-1"),
+            bookId = BookId("port-1"),
             positions = listOf(input),
         )
 
@@ -133,7 +133,7 @@ class PnlAttributionServiceTest : FunSpec({
         )
 
         val result = service.attribute(
-            portfolioId = BookId("port-1"),
+            bookId = BookId("port-1"),
             positions = listOf(input),
         )
 
@@ -191,7 +191,7 @@ class PnlAttributionServiceTest : FunSpec({
         )
 
         val result = service.attribute(
-            portfolioId = BookId("port-1"),
+            bookId = BookId("port-1"),
             positions = inputs,
         )
 

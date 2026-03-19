@@ -29,10 +29,10 @@ private val VALUATION_DATE = LocalDate.of(2025, 6, 15)
 
 private fun completedJob(
     jobId: UUID = UUID.randomUUID(),
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
 ) = ValuationJob(
     jobId = jobId,
-    portfolioId = portfolioId,
+    bookId = bookId,
     triggerType = TriggerType.ON_DEMAND,
     status = RunStatus.COMPLETED,
     startedAt = BASE_TIME,
@@ -73,10 +73,10 @@ private fun completedJob(
 
 private fun valuationResult(
     jobId: UUID? = UUID.randomUUID(),
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     valuationDate: LocalDate? = VALUATION_DATE,
 ) = ValuationResult(
-    portfolioId = BookId(portfolioId),
+    bookId = BookId(bookId),
     calculationType = CalculationType.HISTORICAL,
     confidenceLevel = ConfidenceLevel.CL_99,
     varValue = 4000.0,

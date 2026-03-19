@@ -27,7 +27,7 @@ import com.kinetix.risk.routes.dtos.VaRAttributionResponse
 fun RunComparison.toResponse(): RunComparisonResponse = RunComparisonResponse(
     comparisonId = comparisonId.toString(),
     comparisonType = type.name,
-    portfolioId = portfolioId,
+    bookId = bookId,
     baseRun = baseRun.toResponse(),
     targetRun = targetRun.toResponse(),
     portfolioDiff = portfolioDiff.toResponse(),

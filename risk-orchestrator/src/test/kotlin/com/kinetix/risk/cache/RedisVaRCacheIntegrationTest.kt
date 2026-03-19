@@ -10,10 +10,10 @@ import io.kotest.matchers.shouldBe
 import java.time.Instant
 
 private fun valuationResult(
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     varValue: Double = 5000.0,
 ) = ValuationResult(
-    portfolioId = BookId(portfolioId),
+    bookId = BookId(bookId),
     calculationType = CalculationType.PARAMETRIC,
     confidenceLevel = ConfidenceLevel.CL_95,
     varValue = varValue,
@@ -36,13 +36,13 @@ class RedisVaRCacheIntegrationTest : FunSpec({
     }
 
     test("should store and retrieve VaR result") {
-        val result = valuationResult(portfolioId = "port-1", varValue = 4200.0)
+        val result = valuationResult(bookId = "port-1", varValue = 4200.0)
 
         cache.put("port-1", result)
 
         val cached = cache.get("port-1")
         cached.shouldNotBeNull()
-        cached.portfolioId shouldBe BookId("port-1")
+        cached.bookId shouldBe BookId("port-1")
         cached.varValue shouldBe 4200.0
         cached.expectedShortfall shouldBe 4200.0 * 1.25
         cached.calculationType shouldBe CalculationType.PARAMETRIC
@@ -55,8 +55,8 @@ class RedisVaRCacheIntegrationTest : FunSpec({
     }
 
     test("should overwrite existing entry") {
-        val first = valuationResult(portfolioId = "port-1", varValue = 1000.0)
-        val second = valuationResult(portfolioId = "port-1", varValue = 9999.0)
+        val first = valuationResult(bookId = "port-1", varValue = 1000.0)
+        val second = valuationResult(bookId = "port-1", varValue = 9999.0)
 
         cache.put("port-1", first)
         cache.put("port-1", second)
@@ -84,8 +84,8 @@ class RedisVaRCacheIntegrationTest : FunSpec({
     }
 
     test("should cache different portfolios independently") {
-        cache.put("port-1", valuationResult(portfolioId = "port-1", varValue = 1000.0))
-        cache.put("port-2", valuationResult(portfolioId = "port-2", varValue = 2000.0))
+        cache.put("port-1", valuationResult(bookId = "port-1", varValue = 1000.0))
+        cache.put("port-2", valuationResult(bookId = "port-2", varValue = 2000.0))
 
         cache.get("port-1")!!.varValue shouldBe 1000.0
         cache.get("port-2")!!.varValue shouldBe 2000.0

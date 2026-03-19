@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 data class RunManifestResponse(
     val manifestId: String,
     val jobId: String,
-    val portfolioId: String,
+    val bookId: String,
     val valuationDate: String,
     val capturedAt: String,
     val modelVersion: String,

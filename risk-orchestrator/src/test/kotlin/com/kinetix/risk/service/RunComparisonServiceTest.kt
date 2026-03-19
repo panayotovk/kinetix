@@ -30,12 +30,12 @@ private val BASE_TIME = Instant.parse("2025-01-14T10:00:00Z")
 
 private fun completedJob(
     jobId: UUID = UUID.randomUUID(),
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     valuationDate: LocalDate = TARGET_DATE,
     varValue: Double = 5000.0,
 ) = ValuationJob(
     jobId = jobId,
-    portfolioId = portfolioId,
+    bookId = bookId,
     triggerType = TriggerType.ON_DEMAND,
     status = RunStatus.COMPLETED,
     startedAt = BASE_TIME,
@@ -92,7 +92,7 @@ class RunComparisonServiceTest : FunSpec({
 
         comparison.comparisonId shouldNotBe null
         comparison.type shouldBe ComparisonType.RUN_OVER_RUN
-        comparison.portfolioId shouldBe "port-1"
+        comparison.bookId shouldBe "port-1"
         comparison.baseRun.varValue shouldBe 5000.0
         comparison.targetRun.varValue shouldBe 7000.0
         comparison.portfolioDiff.varChange shouldBe 2000.0
@@ -135,12 +135,12 @@ class RunComparisonServiceTest : FunSpec({
         coEvery { jobRecorder.findLatestCompletedByDate("port-1", TARGET_DATE) } returns targetJob
 
         val comparison = service.compareDayOverDay(
-            portfolioId = "port-1",
+            bookId = "port-1",
             targetDate = TARGET_DATE,
             baseDate = BASE_DATE,
         )
 
-        comparison.portfolioId shouldBe "port-1"
+        comparison.bookId shouldBe "port-1"
         comparison.baseRun.varValue shouldBe 4500.0
         comparison.targetRun.varValue shouldBe 5500.0
         comparison.portfolioDiff.varChange shouldBe 1000.0
@@ -161,7 +161,7 @@ class RunComparisonServiceTest : FunSpec({
         coEvery { jobRecorder.findLatestCompletedByDate("port-1", TARGET_DATE) } returns targetJob
 
         val comparison = service.compareDayOverDay(
-            portfolioId = "port-1",
+            bookId = "port-1",
             targetDate = TARGET_DATE,
             baseDate = BASE_DATE,
         )
@@ -182,7 +182,7 @@ class RunComparisonServiceTest : FunSpec({
         coEvery { jobRecorder.findOfficialEodByDate("port-1", TARGET_DATE) } returns targetEod
 
         val comparison = service.compareDayOverDay(
-            portfolioId = "port-1",
+            bookId = "port-1",
             targetDate = TARGET_DATE,
             baseDate = BASE_DATE,
         )
@@ -199,7 +199,7 @@ class RunComparisonServiceTest : FunSpec({
 
         val ex = shouldThrow<IllegalArgumentException> {
             service.compareDayOverDay(
-                portfolioId = "port-1",
+                bookId = "port-1",
                 targetDate = TARGET_DATE,
                 baseDate = BASE_DATE,
             )

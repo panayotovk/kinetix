@@ -6,7 +6,7 @@ import java.util.UUID
 
 data class ValuationJob(
     val jobId: UUID,
-    val portfolioId: String,
+    val bookId: String,
     val triggerType: TriggerType,
     val status: RunStatus,
     val startedAt: Instant,

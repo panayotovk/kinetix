@@ -13,7 +13,7 @@ interface ValuationJobRecorder {
     suspend fun update(job: ValuationJob)
     suspend fun updateCurrentPhase(jobId: UUID, phase: JobPhaseName)
     suspend fun findByBookId(
-        portfolioId: String,
+        bookId: String,
         limit: Int = 50,
         offset: Int = 0,
         from: Instant? = null,
@@ -22,7 +22,7 @@ interface ValuationJobRecorder {
         runLabel: RunLabel? = null,
     ): List<ValuationJob>
     suspend fun countByBookId(
-        portfolioId: String,
+        bookId: String,
         from: Instant? = null,
         to: Instant? = null,
         valuationDate: LocalDate? = null,
@@ -30,14 +30,14 @@ interface ValuationJobRecorder {
     ): Long
     suspend fun findByJobId(jobId: UUID): ValuationJob?
     suspend fun findDistinctBookIds(): List<String>
-    suspend fun findLatestCompletedByDate(portfolioId: String, valuationDate: LocalDate): ValuationJob?
-    suspend fun findLatestCompleted(portfolioId: String): ValuationJob?
-    suspend fun findLatestCompletedBeforeDate(portfolioId: String, beforeDate: LocalDate): ValuationJob?
-    suspend fun findOfficialEodByDate(portfolioId: String, valuationDate: LocalDate): ValuationJob?
-    suspend fun findOfficialEodRange(portfolioId: String, from: LocalDate, to: LocalDate): List<ValuationJob>
+    suspend fun findLatestCompletedByDate(bookId: String, valuationDate: LocalDate): ValuationJob?
+    suspend fun findLatestCompleted(bookId: String): ValuationJob?
+    suspend fun findLatestCompletedBeforeDate(bookId: String, beforeDate: LocalDate): ValuationJob?
+    suspend fun findOfficialEodByDate(bookId: String, valuationDate: LocalDate): ValuationJob?
+    suspend fun findOfficialEodRange(bookId: String, from: LocalDate, to: LocalDate): List<ValuationJob>
     suspend fun promoteToOfficialEod(jobId: UUID, promotedBy: String, promotedAt: Instant): ValuationJob
     suspend fun demoteOfficialEod(jobId: UUID): ValuationJob
     suspend fun supersedeOfficialEod(jobId: UUID): ValuationJob
-    suspend fun findChartData(portfolioId: String, from: Instant, to: Instant, bucketInterval: String): List<ChartBucketRow>
+    suspend fun findChartData(bookId: String, from: Instant, to: Instant, bucketInterval: String): List<ChartBucketRow>
     suspend fun resetOrphanedRunningJobs(): Int
 }

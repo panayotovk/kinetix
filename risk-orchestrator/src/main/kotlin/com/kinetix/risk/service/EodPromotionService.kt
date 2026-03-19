@@ -63,7 +63,7 @@ class EodPromotionService(
             }
 
             // Supersede existing Official EOD for same portfolio/date if one exists
-            val existingEod = jobRecorder.findOfficialEodByDate(job.portfolioId, job.valuationDate)
+            val existingEod = jobRecorder.findOfficialEodByDate(job.bookId, job.valuationDate)
             if (existingEod != null && existingEod.jobId != jobId) {
                 jobRecorder.supersedeOfficialEod(existingEod.jobId)
             }
@@ -73,7 +73,7 @@ class EodPromotionService(
             eventPublisher.publish(
                 OfficialEodPromotedEvent(
                     jobId = promoted.jobId.toString(),
-                    portfolioId = promoted.portfolioId,
+                    bookId = promoted.bookId,
                     valuationDate = promoted.valuationDate.toString(),
                     promotedBy = promotedBy,
                     promotedAt = promoted.promotedAt.toString(),
@@ -88,7 +88,7 @@ class EodPromotionService(
                     riskAuditPublisher.publish(
                         EodPromotedAuditEvent(
                             jobId = promoted.jobId.toString(),
-                            portfolioId = promoted.portfolioId,
+                            bookId = promoted.bookId,
                             valuationDate = promoted.valuationDate.toString(),
                             manifestId = promoted.manifestId.toString(),
                             promotedBy = promotedBy,
@@ -111,7 +111,7 @@ class EodPromotionService(
             meterRegistry.gauge(
                 "eod.promotion.last_timestamp",
                 listOf(
-                    io.micrometer.core.instrument.Tag.of("portfolio_id", promoted.portfolioId),
+                    io.micrometer.core.instrument.Tag.of("book_id", promoted.bookId),
                 ),
                 promoted.promotedAt!!.epochSecond.toDouble(),
             )
@@ -133,16 +133,16 @@ class EodPromotionService(
 
         val demoted = jobRecorder.demoteOfficialEod(jobId)
         logger.warn(
-            "eod_demotion_performed job_id={} portfolio_id={} demoted_by={}",
+            "eod_demotion_performed job_id={} book_id={} demoted_by={}",
             jobId,
-            demoted.portfolioId,
+            demoted.bookId,
             demotedBy,
         )
         return demoted
     }
 
-    suspend fun findOfficialEod(portfolioId: String, valuationDate: LocalDate): ValuationJob? {
-        return jobRecorder.findOfficialEodByDate(portfolioId, valuationDate)
+    suspend fun findOfficialEod(bookId: String, valuationDate: LocalDate): ValuationJob? {
+        return jobRecorder.findOfficialEodByDate(bookId, valuationDate)
     }
 
     private suspend fun refreshMatViewWithRetry(jobId: UUID) {

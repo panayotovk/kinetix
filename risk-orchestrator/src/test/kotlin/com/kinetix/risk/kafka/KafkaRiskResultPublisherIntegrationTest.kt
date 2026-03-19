@@ -20,7 +20,7 @@ class KafkaRiskResultPublisherIntegrationTest : FunSpec({
         val publisher = KafkaRiskResultPublisher(producer, topic)
 
         val result = ValuationResult(
-            portfolioId = BookId("port-1"),
+            bookId = BookId("port-1"),
             calculationType = CalculationType.PARAMETRIC,
             confidenceLevel = ConfidenceLevel.CL_95,
             varValue = 25000.0,
@@ -46,7 +46,7 @@ class KafkaRiskResultPublisherIntegrationTest : FunSpec({
         record.key() shouldBe "port-1"
 
         val event = Json.decodeFromString<RiskResultEvent>(record.value())
-        event.portfolioId shouldBe "port-1"
+        event.bookId shouldBe "port-1"
         event.calculationType shouldBe "PARAMETRIC"
         event.confidenceLevel shouldBe "CL_95"
         event.varValue shouldBe "25000.0"
@@ -67,7 +67,7 @@ class KafkaRiskResultPublisherIntegrationTest : FunSpec({
         val publisher = KafkaRiskResultPublisher(producer, topic)
 
         val result = ValuationResult(
-            portfolioId = BookId("my-portfolio"),
+            bookId = BookId("my-portfolio"),
             calculationType = CalculationType.MONTE_CARLO,
             confidenceLevel = ConfidenceLevel.CL_99,
             varValue = 50000.0,

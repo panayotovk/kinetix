@@ -26,13 +26,13 @@ import java.util.Currency
 private val USD = Currency.getInstance("USD")
 
 private fun position(
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     instrumentId: String = "AAPL",
     assetClass: AssetClass = AssetClass.EQUITY,
     quantity: String = "100",
     marketPrice: String = "170.00",
 ) = Position(
-    bookId = BookId(portfolioId),
+    bookId = BookId(bookId),
     instrumentId = InstrumentId(instrumentId),
     assetClass = assetClass,
     quantity = BigDecimal(quantity),
@@ -41,14 +41,14 @@ private fun position(
 )
 
 private fun varResult(
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     calculationType: CalculationType = CalculationType.PARAMETRIC,
     varValue: Double = 5000.0,
     componentBreakdown: List<ComponentBreakdown> = listOf(
         ComponentBreakdown(AssetClass.EQUITY, 5000.0, 100.0),
     ),
 ) = ValuationResult(
-    portfolioId = BookId(portfolioId),
+    bookId = BookId(bookId),
     calculationType = calculationType,
     confidenceLevel = ConfidenceLevel.CL_95,
     varValue = varValue,
@@ -88,7 +88,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         val result = serviceNoRecorder.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -108,7 +108,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         val result = serviceNoRecorder.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("empty"),
+                bookId = BookId("empty"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -132,7 +132,7 @@ class VaRCalculationServiceTest : FunSpec({
 
             val result = serviceNoRecorder.calculateVaR(
                 VaRCalculationRequest(
-                    portfolioId = BookId("port-1"),
+                    bookId = BookId("port-1"),
                     calculationType = calcType,
                     confidenceLevel = ConfidenceLevel.CL_95,
                 )
@@ -162,7 +162,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         val result = serviceNoRecorder.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -181,7 +181,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -191,7 +191,7 @@ class VaRCalculationServiceTest : FunSpec({
         coVerify { jobRecorder.save(capture(saveSlot)) }
 
         val startedJob = saveSlot.captured
-        startedJob.portfolioId shouldBe "port-1"
+        startedJob.bookId shouldBe "port-1"
         startedJob.status shouldBe RunStatus.RUNNING
         startedJob.triggerType shouldBe TriggerType.ON_DEMAND
         startedJob.calculationType shouldBe "PARAMETRIC"
@@ -214,7 +214,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -224,7 +224,7 @@ class VaRCalculationServiceTest : FunSpec({
         coVerify { jobRecorder.update(capture(updateSlot)) }
 
         val job = updateSlot.captured
-        job.portfolioId shouldBe "port-1"
+        job.bookId shouldBe "port-1"
         job.status shouldBe RunStatus.COMPLETED
         job.triggerType shouldBe TriggerType.ON_DEMAND
         job.calculationType shouldBe "PARAMETRIC"
@@ -260,7 +260,7 @@ class VaRCalculationServiceTest : FunSpec({
         try {
             service.calculateVaR(
                 VaRCalculationRequest(
-                    portfolioId = BookId("port-1"),
+                    bookId = BookId("port-1"),
                     calculationType = CalculationType.PARAMETRIC,
                     confidenceLevel = ConfidenceLevel.CL_95,
                 )
@@ -290,7 +290,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         val result = service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -310,7 +310,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         val result = service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -329,7 +329,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             ),
@@ -367,7 +367,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         serviceWithDiscoverer.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -435,7 +435,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         serviceWithFetcher.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -508,7 +508,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         serviceWithFetcher.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -565,7 +565,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         serviceWithDiscoverer.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -600,7 +600,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -642,7 +642,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -676,7 +676,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -715,7 +715,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -752,7 +752,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -789,7 +789,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -818,7 +818,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         val result = serviceNoRecorder.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -852,7 +852,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         val result = serviceNoRecorder.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -896,7 +896,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         val result = serviceNoRecorder.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -926,7 +926,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         val result = serviceNoRecorder.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -950,7 +950,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             ),
@@ -970,7 +970,7 @@ class VaRCalculationServiceTest : FunSpec({
         try {
             service.calculateVaR(
                 VaRCalculationRequest(
-                    portfolioId = BookId("port-1"),
+                    bookId = BookId("port-1"),
                     calculationType = CalculationType.PARAMETRIC,
                     confidenceLevel = ConfidenceLevel.CL_95,
                 ),
@@ -994,7 +994,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -1022,7 +1022,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         val result = serviceNoRecorder.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -1050,7 +1050,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )
@@ -1075,7 +1075,7 @@ class VaRCalculationServiceTest : FunSpec({
 
         val result = service.calculateVaR(
             VaRCalculationRequest(
-                portfolioId = BookId("port-1"),
+                bookId = BookId("port-1"),
                 calculationType = CalculationType.PARAMETRIC,
                 confidenceLevel = ConfidenceLevel.CL_95,
             )

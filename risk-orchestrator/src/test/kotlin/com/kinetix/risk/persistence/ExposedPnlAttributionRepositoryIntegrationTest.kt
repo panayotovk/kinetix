@@ -23,7 +23,7 @@ private val YESTERDAY = LocalDate.now().minusDays(1)
 private fun bd(value: String) = BigDecimal(value)
 
 private fun attribution(
-    portfolioId: BookId = PORTFOLIO,
+    bookId: BookId = PORTFOLIO,
     date: LocalDate = TODAY,
     totalPnl: String = "10.00",
     deltaPnl: String = "3.00",
@@ -57,7 +57,7 @@ private fun attribution(
         ),
     ),
 ) = PnlAttribution(
-    portfolioId = portfolioId,
+    bookId = bookId,
     date = date,
     totalPnl = bd(totalPnl),
     deltaPnl = bd(deltaPnl),
@@ -85,7 +85,7 @@ class ExposedPnlAttributionRepositoryIntegrationTest : FunSpec({
 
         val found = repository.findByBookIdAndDate(PORTFOLIO, TODAY)
         found.shouldNotBeNull()
-        found.portfolioId shouldBe PORTFOLIO
+        found.bookId shouldBe PORTFOLIO
         found.date shouldBe TODAY
         found.totalPnl.compareTo(bd("10.00")) shouldBe 0
         found.deltaPnl.compareTo(bd("3.00")) shouldBe 0
@@ -162,8 +162,8 @@ class ExposedPnlAttributionRepositoryIntegrationTest : FunSpec({
 
     test("attributions for different portfolios are isolated") {
         val portfolio2 = BookId("port-2")
-        repository.save(attribution(portfolioId = PORTFOLIO, totalPnl = "10.00"))
-        repository.save(attribution(portfolioId = portfolio2, totalPnl = "20.00"))
+        repository.save(attribution(bookId = PORTFOLIO, totalPnl = "10.00"))
+        repository.save(attribution(bookId = portfolio2, totalPnl = "20.00"))
 
         val port1 = repository.findByBookId(PORTFOLIO)
         port1 shouldHaveSize 1

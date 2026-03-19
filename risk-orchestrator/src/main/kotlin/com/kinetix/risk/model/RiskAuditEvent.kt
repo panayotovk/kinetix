@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 sealed interface RiskAuditEvent {
     val eventType: String
     val jobId: String
-    val portfolioId: String
+    val bookId: String
     val valuationDate: String
     val manifestId: String
 }
@@ -14,7 +14,7 @@ sealed interface RiskAuditEvent {
 @Serializable
 data class ManifestFrozenEvent(
     override val jobId: String,
-    override val portfolioId: String,
+    override val bookId: String,
     override val valuationDate: String,
     override val manifestId: String,
     val capturedAt: String,
@@ -32,7 +32,7 @@ data class ManifestFrozenEvent(
 @Serializable
 data class EodPromotedAuditEvent(
     override val jobId: String,
-    override val portfolioId: String,
+    override val bookId: String,
     override val valuationDate: String,
     override val manifestId: String,
     val promotedBy: String,
@@ -46,7 +46,7 @@ data class EodPromotedAuditEvent(
 @Serializable
 data class RunReplayedAuditEvent(
     override val jobId: String,
-    override val portfolioId: String,
+    override val bookId: String,
     override val valuationDate: String,
     override val manifestId: String,
     val replayedAt: String,

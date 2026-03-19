@@ -27,13 +27,13 @@ import java.util.UUID
 private val json = Json { ignoreUnknownKeys = true }
 
 private fun eodJob(
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     valuationDate: LocalDate,
     varValue: Double = 10_000.0,
     expectedShortfall: Double = 12_500.0,
 ) = ValuationJob(
     jobId = UUID.randomUUID(),
-    portfolioId = portfolioId,
+    bookId = bookId,
     triggerType = TriggerType.SCHEDULED,
     status = RunStatus.COMPLETED,
     startedAt = valuationDate.atStartOfDay().toInstant(java.time.ZoneOffset.UTC),
@@ -87,7 +87,7 @@ class EodTimelineAcceptanceTest : FunSpec({
             response.status shouldBe HttpStatusCode.OK
 
             val body = json.decodeFromString<EodTimelineResponse>(response.bodyAsText())
-            body.portfolioId shouldBe "port-1"
+            body.bookId shouldBe "port-1"
             body.from shouldBe "2025-01-13"
             body.to shouldBe "2025-01-15"
             body.entries.size shouldBe 3

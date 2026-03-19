@@ -26,20 +26,20 @@ class RunComparisonService(
         val base = baseJob.toRunSnapshot("Base", baseModelVersion)
         val target = targetJob.toRunSnapshot("Target", targetModelVersion)
         val inputChanges = loadInputChanges(baseJob.manifestId, targetJob.manifestId)
-        return compareSnapshots(base, target, ComparisonType.RUN_OVER_RUN, baseJob.portfolioId, inputChanges)
+        return compareSnapshots(base, target, ComparisonType.RUN_OVER_RUN, baseJob.bookId, inputChanges)
     }
 
     suspend fun compareDayOverDay(
-        portfolioId: String,
+        bookId: String,
         targetDate: LocalDate,
         baseDate: LocalDate,
     ): RunComparison {
-        val baseJob = jobRecorder.findOfficialEodByDate(portfolioId, baseDate)
-            ?: jobRecorder.findLatestCompletedByDate(portfolioId, baseDate)
-            ?: throw IllegalArgumentException("No completed job for portfolio $portfolioId on $baseDate")
-        val targetJob = jobRecorder.findOfficialEodByDate(portfolioId, targetDate)
-            ?: jobRecorder.findLatestCompletedByDate(portfolioId, targetDate)
-            ?: throw IllegalArgumentException("No completed job for portfolio $portfolioId on $targetDate")
+        val baseJob = jobRecorder.findOfficialEodByDate(bookId, baseDate)
+            ?: jobRecorder.findLatestCompletedByDate(bookId, baseDate)
+            ?: throw IllegalArgumentException("No completed job for portfolio $bookId on $baseDate")
+        val targetJob = jobRecorder.findOfficialEodByDate(bookId, targetDate)
+            ?: jobRecorder.findLatestCompletedByDate(bookId, targetDate)
+            ?: throw IllegalArgumentException("No completed job for portfolio $bookId on $targetDate")
 
         val baseModelVersion = resolveModelVersion(baseJob.manifestId)
         val targetModelVersion = resolveModelVersion(targetJob.manifestId)
@@ -48,7 +48,7 @@ class RunComparisonService(
         val base = baseJob.toRunSnapshot(baseLabel, baseModelVersion)
         val target = targetJob.toRunSnapshot(targetLabel, targetModelVersion)
         val inputChanges = loadInputChanges(baseJob.manifestId, targetJob.manifestId)
-        return compareSnapshots(base, target, ComparisonType.RUN_OVER_RUN, portfolioId, inputChanges)
+        return compareSnapshots(base, target, ComparisonType.RUN_OVER_RUN, bookId, inputChanges)
     }
 
     private suspend fun resolveModelVersion(manifestId: UUID?): String? {
@@ -83,12 +83,12 @@ class RunComparisonService(
         base: RunSnapshot,
         target: RunSnapshot,
         type: ComparisonType,
-        portfolioId: String,
+        bookId: String,
         inputChanges: InputChangeSummary? = null,
     ): RunComparison = RunComparison(
         comparisonId = UUID.randomUUID(),
         type = type,
-        portfolioId = portfolioId,
+        bookId = bookId,
         baseRun = base,
         targetRun = target,
         portfolioDiff = differ.computePortfolioDiff(base, target),

@@ -93,7 +93,7 @@ class WhatIfMapperTest : FunSpec({
         response.calculatedAt shouldBe "2026-02-28T10:00:00Z"
         response.basePositionRisk shouldBe listOf(positionRisk.toDto())
         response.hypotheticalPositionRisk shouldBe listOf(positionRisk.toDto())
-        response.baseGreeks!!.portfolioId shouldBe ""
+        response.baseGreeks!!.bookId shouldBe ""
         response.baseGreeks!!.theta shouldBe "-45.000000"
         response.baseGreeks!!.rho shouldBe "120.000000"
     }

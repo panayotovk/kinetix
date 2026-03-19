@@ -17,7 +17,7 @@ class WhatIfAnalysisService(
         trades: List<HypotheticalTrade>,
     ): List<Position> {
         val positionsByInstrument = positions.associateBy { it.instrumentId }.toMutableMap()
-        val portfolioId = positions.firstOrNull()?.bookId ?: BookId("unknown")
+        val bookId = positions.firstOrNull()?.bookId ?: BookId("unknown")
 
         for (trade in trades) {
             val existing = positionsByInstrument[trade.instrumentId]
@@ -36,7 +36,7 @@ class WhatIfAnalysisService(
             } else {
                 val signedQty = trade.quantity * trade.side.sign.toBigDecimal()
                 val newPosition = Position(
-                    bookId = portfolioId,
+                    bookId = bookId,
                     instrumentId = trade.instrumentId,
                     assetClass = trade.assetClass,
                     quantity = signedQty,
@@ -51,16 +51,16 @@ class WhatIfAnalysisService(
     }
 
     suspend fun analyzeWhatIf(
-        portfolioId: BookId,
+        bookId: BookId,
         hypotheticalTrades: List<HypotheticalTrade>,
         calculationType: CalculationType,
         confidenceLevel: ConfidenceLevel,
     ): WhatIfResult {
-        val positions = positionProvider.getPositions(portfolioId)
+        val positions = positionProvider.getPositions(bookId)
         val hypotheticalPositions = applyHypotheticalTrades(positions, hypotheticalTrades)
 
         val request = VaRCalculationRequest(
-            portfolioId = portfolioId,
+            bookId = bookId,
             calculationType = calculationType,
             confidenceLevel = confidenceLevel,
         )

@@ -6,10 +6,10 @@ import java.time.LocalDate
 
 interface PnlAttributionRepository {
     suspend fun save(attribution: PnlAttribution)
-    suspend fun findByBookIdAndDate(portfolioId: BookId, date: LocalDate): PnlAttribution?
-    suspend fun findLatestByBookId(portfolioId: BookId): PnlAttribution?
+    suspend fun findByBookIdAndDate(bookId: BookId, date: LocalDate): PnlAttribution?
+    suspend fun findLatestByBookId(bookId: BookId): PnlAttribution?
     suspend fun findByBookId(
-        portfolioId: BookId,
+        bookId: BookId,
         fromDate: LocalDate = LocalDate.now().minusDays(90),
     ): List<PnlAttribution>
 }

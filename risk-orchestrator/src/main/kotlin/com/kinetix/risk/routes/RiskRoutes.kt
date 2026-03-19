@@ -58,23 +58,23 @@ fun Route.riskRoutes(
     jobRecorder: ValuationJobRecorder? = null,
 ) {
     // VaR routes
-    route("/api/v1/risk/var/{portfolioId}") {
+    route("/api/v1/risk/var/{bookId}") {
         post({
             summary = "Calculate VaR for a portfolio"
             tags = listOf("VaR")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Portfolio identifier" }
                 body<VaRCalculationRequestBody>()
             }
         }) {
-            val portfolioId = call.requirePathParam("portfolioId")
+            val bookId = call.requirePathParam("bookId")
             val body = call.receive<VaRCalculationRequestBody>()
             val requestedOutputs = body.requestedOutputs
                 ?.mapNotNull { runCatching { ValuationOutput.valueOf(it) }.getOrNull() }
                 ?.toSet()
                 ?: ValuationOutput.entries.toSet()
             val request = VaRCalculationRequest(
-                portfolioId = BookId(portfolioId),
+                bookId = BookId(bookId),
                 calculationType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC"),
                 confidenceLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95"),
                 timeHorizonDays = body.timeHorizonDays?.toInt() ?: 1,
@@ -83,7 +83,7 @@ fun Route.riskRoutes(
             )
             val result = varCalculationService.calculateVaR(request)
             if (result != null) {
-                varCache.put(portfolioId, result)
+                varCache.put(bookId, result)
                 call.respond(result.toResponse())
             } else {
                 call.respond(HttpStatusCode.NotFound)
@@ -94,14 +94,14 @@ fun Route.riskRoutes(
             summary = "Get latest cached VaR result"
             tags = listOf("VaR")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Portfolio identifier" }
                 queryParameter<String>("valuationDate") {
                     description = "Valuation date (YYYY-MM-DD). When set, returns historical snapshot."
                     required = false
                 }
             }
         }) {
-            val portfolioId = call.requirePathParam("portfolioId")
+            val bookId = call.requirePathParam("bookId")
             val valuationDateParam = call.request.queryParameters["valuationDate"]
 
             if (valuationDateParam != null) {
@@ -115,7 +115,7 @@ fun Route.riskRoutes(
                     call.respond(HttpStatusCode.NotFound, "No risk snapshot for future date")
                     return@get
                 }
-                val job = jobRecorder?.findLatestCompletedByDate(portfolioId, valuationDate)
+                val job = jobRecorder?.findLatestCompletedByDate(bookId, valuationDate)
                 if (job != null) {
                     val result = job.toValuationResult()
                     if (result != null) {
@@ -127,7 +127,7 @@ fun Route.riskRoutes(
                     call.respond(HttpStatusCode.NotFound)
                 }
             } else {
-                val cached = varCache.get(portfolioId)
+                val cached = varCache.get(bookId)
                 if (cached != null) {
                     call.respond(cached.toResponse())
                 } else {
@@ -138,18 +138,18 @@ fun Route.riskRoutes(
     }
 
     // Position-level risk routes
-    get("/api/v1/risk/positions/{portfolioId}", {
+    get("/api/v1/risk/positions/{bookId}", {
         summary = "Get position-level risk breakdown"
         tags = listOf("Position Risk")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Portfolio identifier" }
             queryParameter<String>("valuationDate") {
                 description = "Valuation date (YYYY-MM-DD). When set, returns historical snapshot."
                 required = false
             }
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
         val valuationDateParam = call.request.queryParameters["valuationDate"]
 
         if (valuationDateParam != null) {
@@ -159,14 +159,14 @@ fun Route.riskRoutes(
                 call.respond(HttpStatusCode.BadRequest, "Invalid 'valuationDate' format. Expected YYYY-MM-DD.")
                 return@get
             }
-            val job = jobRecorder?.findLatestCompletedByDate(portfolioId, valuationDate)
+            val job = jobRecorder?.findLatestCompletedByDate(bookId, valuationDate)
             if (job != null && job.positionRiskSnapshot.isNotEmpty()) {
                 call.respond(job.positionRiskSnapshot.map { it.toDto() })
             } else {
                 call.respond(HttpStatusCode.NotFound)
             }
         } else {
-            val cached = varCache.get(portfolioId)
+            val cached = varCache.get(bookId)
             if (cached != null && cached.positionRisk.isNotEmpty()) {
                 call.respond(cached.positionRisk.map { it.toDto() })
             } else {
@@ -177,18 +177,18 @@ fun Route.riskRoutes(
 
     // P&L attribution routes
     if (pnlAttributionRepository != null) {
-        get("/api/v1/risk/pnl-attribution/{portfolioId}", {
+        get("/api/v1/risk/pnl-attribution/{bookId}", {
             summary = "Get P&L attribution for a portfolio"
             tags = listOf("P&L Attribution")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Portfolio identifier" }
                 queryParameter<String>("date") {
                     description = "Attribution date (ISO-8601 date, e.g. 2025-01-15). Defaults to latest available."
                     required = false
                 }
             }
         }) {
-            val portfolioId = call.requirePathParam("portfolioId")
+            val bookId = call.requirePathParam("bookId")
             val dateParam = call.request.queryParameters["date"]
 
             val attribution = if (dateParam != null) {
@@ -198,9 +198,9 @@ fun Route.riskRoutes(
                     call.respond(HttpStatusCode.BadRequest, "Invalid 'date' parameter")
                     return@get
                 }
-                pnlAttributionRepository.findByBookIdAndDate(BookId(portfolioId), date)
+                pnlAttributionRepository.findByBookIdAndDate(BookId(bookId), date)
             } else {
-                pnlAttributionRepository.findLatestByBookId(BookId(portfolioId))
+                pnlAttributionRepository.findLatestByBookId(BookId(bookId))
             }
 
             if (attribution != null) {
@@ -213,45 +213,45 @@ fun Route.riskRoutes(
 
     // SOD snapshot routes
     if (sodSnapshotService != null) {
-        get("/api/v1/risk/sod-snapshot/{portfolioId}/status", {
+        get("/api/v1/risk/sod-snapshot/{bookId}/status", {
             summary = "Get SOD baseline status for a portfolio"
             tags = listOf("SOD Snapshot")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Portfolio identifier" }
             }
         }) {
-            val portfolioId = call.requirePathParam("portfolioId")
+            val bookId = call.requirePathParam("bookId")
             val status = sodSnapshotService.getBaselineStatus(
-                BookId(portfolioId),
+                BookId(bookId),
                 LocalDate.now(),
             )
             call.respond(status.toResponse())
         }
 
-        post("/api/v1/risk/sod-snapshot/{portfolioId}", {
+        post("/api/v1/risk/sod-snapshot/{bookId}", {
             summary = "Create manual SOD snapshot"
             tags = listOf("SOD Snapshot")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Portfolio identifier" }
                 queryParameter<String>("jobId") {
                     description = "Optional VaR job ID to use as baseline source"
                     required = false
                 }
             }
         }) {
-            val portfolioId = call.requirePathParam("portfolioId")
+            val bookId = call.requirePathParam("bookId")
             val today = LocalDate.now()
             val jobIdParam = call.request.queryParameters["jobId"]
             try {
                 if (jobIdParam != null) {
                     sodSnapshotService.createSnapshotFromJob(
-                        BookId(portfolioId),
+                        BookId(bookId),
                         java.util.UUID.fromString(jobIdParam),
                         today,
                     )
                 } else {
                     sodSnapshotService.createSnapshot(
-                        BookId(portfolioId),
+                        BookId(bookId),
                         SnapshotType.MANUAL,
                         date = today,
                     )
@@ -269,20 +269,20 @@ fun Route.riskRoutes(
                 )
                 return@post
             }
-            val status = sodSnapshotService.getBaselineStatus(BookId(portfolioId), today)
+            val status = sodSnapshotService.getBaselineStatus(BookId(bookId), today)
             call.response.status(HttpStatusCode.Created)
             call.respond(status.toResponse())
         }
 
-        delete("/api/v1/risk/sod-snapshot/{portfolioId}", {
+        delete("/api/v1/risk/sod-snapshot/{bookId}", {
             summary = "Reset SOD baseline for a portfolio"
             tags = listOf("SOD Snapshot")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Portfolio identifier" }
             }
         }) {
-            val portfolioId = call.requirePathParam("portfolioId")
-            sodSnapshotService.resetBaseline(BookId(portfolioId), LocalDate.now())
+            val bookId = call.requirePathParam("bookId")
+            sodSnapshotService.resetBaseline(BookId(bookId), LocalDate.now())
             call.response.status(HttpStatusCode.NoContent)
             call.respond("")
         }
@@ -290,16 +290,16 @@ fun Route.riskRoutes(
 
     // P&L computation route
     if (pnlComputationService != null) {
-        post("/api/v1/risk/pnl-attribution/{portfolioId}/compute", {
+        post("/api/v1/risk/pnl-attribution/{bookId}/compute", {
             summary = "Trigger P&L attribution computation"
             tags = listOf("P&L Attribution")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Portfolio identifier" }
             }
         }) {
-            val portfolioId = call.requirePathParam("portfolioId")
+            val bookId = call.requirePathParam("bookId")
             try {
-                val attribution = pnlComputationService.compute(BookId(portfolioId))
+                val attribution = pnlComputationService.compute(BookId(bookId))
                 call.respond(attribution.toResponse())
             } catch (e: NoSodBaselineException) {
                 call.response.status(HttpStatusCode.PreconditionFailed)
@@ -312,16 +312,16 @@ fun Route.riskRoutes(
 
     // What-if analysis routes
     if (whatIfAnalysisService != null) {
-        route("/api/v1/risk/what-if/{portfolioId}") {
+        route("/api/v1/risk/what-if/{bookId}") {
             post({
                 summary = "Run what-if analysis for a portfolio"
                 tags = listOf("What-If")
                 request {
-                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                    pathParameter<String>("bookId") { description = "Portfolio identifier" }
                     body<WhatIfRequestBody>()
                 }
             }) {
-                val portfolioId = call.requirePathParam("portfolioId")
+                val bookId = call.requirePathParam("bookId")
                 val body = call.receive<WhatIfRequestBody>()
 
                 val trades = body.hypotheticalTrades.map { it.toDomain() }
@@ -329,7 +329,7 @@ fun Route.riskRoutes(
                 val confLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95")
 
                 val result = whatIfAnalysisService.analyzeWhatIf(
-                    portfolioId = BookId(portfolioId),
+                    bookId = BookId(bookId),
                     hypotheticalTrades = trades,
                     calculationType = calcType,
                     confidenceLevel = confLevel,
@@ -341,23 +341,23 @@ fun Route.riskRoutes(
     }
 
     // Stress test routes
-    route("/api/v1/risk/stress/{portfolioId}") {
+    route("/api/v1/risk/stress/{bookId}") {
         post({
             summary = "Run stress test for a portfolio"
             tags = listOf("Stress Tests")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Portfolio identifier" }
                 body<StressTestRequestBody>()
             }
         }) {
-            val portfolioId = call.requirePathParam("portfolioId")
+            val bookId = call.requirePathParam("bookId")
             val body = call.receive<StressTestRequestBody>()
-            val positions = positionProvider.getPositions(BookId(portfolioId))
+            val positions = positionProvider.getPositions(BookId(bookId))
             val calcType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC")
             val confLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95")
 
             val protoRequest = StressTestRequest.newBuilder()
-                .setBookId(ProtoBookId.newBuilder().setValue(portfolioId))
+                .setBookId(ProtoBookId.newBuilder().setValue(bookId))
                 .setScenarioName(body.scenarioName)
                 .setCalculationType(calcType.toProto())
                 .setConfidenceLevel(confLevel.toProto())
@@ -383,17 +383,17 @@ fun Route.riskRoutes(
     }
 
     // Batch stress test route
-    post("/api/v1/risk/stress/{portfolioId}/batch", {
+    post("/api/v1/risk/stress/{bookId}/batch", {
         summary = "Run all stress tests for a portfolio"
         tags = listOf("Stress Tests")
         request {
-            pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+            pathParameter<String>("bookId") { description = "Portfolio identifier" }
             body<StressTestBatchRequestBody>()
         }
     }) {
-        val portfolioId = call.requirePathParam("portfolioId")
+        val bookId = call.requirePathParam("bookId")
         val body = call.receive<StressTestBatchRequestBody>()
-        val positions = positionProvider.getPositions(BookId(portfolioId))
+        val positions = positionProvider.getPositions(BookId(bookId))
         val calcType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC")
         val confLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95")
         val timeHorizon = body.timeHorizonDays?.toInt() ?: 1
@@ -403,7 +403,7 @@ fun Route.riskRoutes(
             body.scenarioNames.map { scenarioName ->
                 async {
                     val protoRequest = StressTestRequest.newBuilder()
-                        .setBookId(ProtoBookId.newBuilder().setValue(portfolioId))
+                        .setBookId(ProtoBookId.newBuilder().setValue(bookId))
                         .setScenarioName(scenarioName)
                         .setCalculationType(calcType.toProto())
                         .setConfidenceLevel(confLevel.toProto())
@@ -436,19 +436,19 @@ fun Route.riskRoutes(
     }
 
     // Greeks routes — convenience wrapper that goes through the full valuation pipeline
-    route("/api/v1/risk/greeks/{portfolioId}") {
+    route("/api/v1/risk/greeks/{bookId}") {
         post({
             summary = "Calculate Greeks for a portfolio"
             tags = listOf("Greeks")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Portfolio identifier" }
                 body<VaRCalculationRequestBody>()
             }
         }) {
-            val portfolioId = call.requirePathParam("portfolioId")
+            val bookId = call.requirePathParam("bookId")
             val body = call.receive<VaRCalculationRequestBody>()
             val request = VaRCalculationRequest(
-                portfolioId = BookId(portfolioId),
+                bookId = BookId(bookId),
                 calculationType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC"),
                 confidenceLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95"),
                 timeHorizonDays = body.timeHorizonDays?.toInt() ?: 1,
@@ -457,11 +457,11 @@ fun Route.riskRoutes(
             )
             val result = varCalculationService.calculateVaR(request)
             if (result?.greeks != null) {
-                varCache.put(portfolioId, result)
+                varCache.put(bookId, result)
                 val greeks = result.greeks
                 call.respond(
                     GreeksResponse(
-                        portfolioId = portfolioId,
+                        bookId = bookId,
                         assetClassGreeks = greeks.assetClassGreeks.map {
                             GreekValuesDto(
                                 assetClass = it.assetClass.name,
@@ -482,26 +482,26 @@ fun Route.riskRoutes(
     }
 
     // FRTB routes
-    route("/api/v1/regulatory/frtb/{portfolioId}") {
+    route("/api/v1/regulatory/frtb/{bookId}") {
         post({
             summary = "Calculate FRTB for a portfolio"
             tags = listOf("Regulatory")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Portfolio identifier" }
             }
         }) {
-            val portfolioId = call.requirePathParam("portfolioId")
-            val positions = positionProvider.getPositions(BookId(portfolioId))
+            val bookId = call.requirePathParam("bookId")
+            val positions = positionProvider.getPositions(BookId(bookId))
 
             val protoRequest = FrtbRequest.newBuilder()
-                .setBookId(ProtoBookId.newBuilder().setValue(portfolioId))
+                .setBookId(ProtoBookId.newBuilder().setValue(bookId))
                 .addAllPositions(positions.map { it.toProto() })
                 .build()
 
             val response = regulatoryStub.calculateFrtb(protoRequest)
             call.respond(
                 FrtbResultResponse(
-                    portfolioId = response.bookId,
+                    bookId = response.bookId,
                     sbmCharges = response.sbm.riskClassChargesList.map {
                         RiskClassChargeDto(
                             riskClass = FRTB_RISK_CLASS_NAMES[it.riskClass] ?: it.riskClass.name,
@@ -526,25 +526,25 @@ fun Route.riskRoutes(
     }
 
     // Report routes
-    route("/api/v1/regulatory/report/{portfolioId}") {
+    route("/api/v1/regulatory/report/{bookId}") {
         post({
             summary = "Generate regulatory report"
             tags = listOf("Regulatory")
             request {
-                pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                pathParameter<String>("bookId") { description = "Portfolio identifier" }
                 body<GenerateReportRequestBody>()
             }
         }) {
-            val portfolioId = call.requirePathParam("portfolioId")
+            val bookId = call.requirePathParam("bookId")
             val body = call.receive<GenerateReportRequestBody>()
-            val positions = positionProvider.getPositions(BookId(portfolioId))
+            val positions = positionProvider.getPositions(BookId(bookId))
             val format = when (body.format?.uppercase()) {
                 "XBRL" -> ReportFormat.XBRL
                 else -> ReportFormat.CSV
             }
 
             val protoRequest = GenerateReportRequest.newBuilder()
-                .setBookId(ProtoBookId.newBuilder().setValue(portfolioId))
+                .setBookId(ProtoBookId.newBuilder().setValue(bookId))
                 .addAllPositions(positions.map { it.toProto() })
                 .setFormat(format)
                 .build()
@@ -552,7 +552,7 @@ fun Route.riskRoutes(
             val response = regulatoryStub.generateReport(protoRequest)
             call.respond(
                 ReportResponse(
-                    portfolioId = response.bookId,
+                    bookId = response.bookId,
                     format = response.format.name,
                     content = response.content,
                     generatedAt = Instant.ofEpochSecond(response.generatedAt.seconds, response.generatedAt.nanos.toLong()).toString(),
@@ -563,25 +563,25 @@ fun Route.riskRoutes(
 
     // Market data dependencies routes
     if (riskEngineClient != null) {
-        route("/api/v1/risk/dependencies/{portfolioId}") {
+        route("/api/v1/risk/dependencies/{bookId}") {
             post({
                 summary = "Discover market data dependencies"
                 tags = listOf("Dependencies")
                 request {
-                    pathParameter<String>("portfolioId") { description = "Portfolio identifier" }
+                    pathParameter<String>("bookId") { description = "Portfolio identifier" }
                     body<DependenciesRequestBody>()
                 }
             }) {
-                val portfolioId = call.requirePathParam("portfolioId")
+                val bookId = call.requirePathParam("bookId")
                 val body = call.receive<DependenciesRequestBody>()
-                val positions = positionProvider.getPositions(BookId(portfolioId))
+                val positions = positionProvider.getPositions(BookId(bookId))
                 val calcType = body.calculationType ?: "PARAMETRIC"
                 val confLevel = body.confidenceLevel ?: "CL_95"
 
                 val response = riskEngineClient.discoverDependencies(positions, calcType, confLevel)
                 call.respond(
                     DataDependenciesResponse(
-                        portfolioId = portfolioId,
+                        bookId = bookId,
                         dependencies = response.dependenciesList.map {
                             MarketDataDependencyDto(
                                 dataType = MARKET_DATA_TYPE_NAMES[it.dataType] ?: it.dataType.name,

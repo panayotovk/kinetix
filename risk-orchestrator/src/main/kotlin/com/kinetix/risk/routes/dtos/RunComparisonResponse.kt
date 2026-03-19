@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 data class RunComparisonResponse(
     val comparisonId: String,
     val comparisonType: String,
-    val portfolioId: String,
+    val bookId: String,
     val baseRun: RunSnapshotResponse,
     val targetRun: RunSnapshotResponse,
     val portfolioDiff: PortfolioDiffResponse,

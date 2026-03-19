@@ -6,7 +6,7 @@ import java.time.Instant
 import java.time.LocalDate
 
 data class PnlAttribution(
-    val portfolioId: BookId,
+    val bookId: BookId,
     val date: LocalDate,
     val currency: String = "USD",
     val totalPnl: BigDecimal,
