@@ -51,7 +51,9 @@ import com.kinetix.risk.service.RunComparisonService
 import com.kinetix.risk.service.SnapshotDiffer
 import com.kinetix.risk.service.VaRAttributionService
 import com.kinetix.risk.persistence.ExposedBlobRetentionRepository
+import com.kinetix.risk.persistence.ExposedManifestRetentionRepository
 import com.kinetix.risk.schedule.ScheduledBlobRetentionJob
+import com.kinetix.risk.schedule.ScheduledManifestRetentionJob
 import com.kinetix.risk.schedule.ScheduledSodSnapshotJob
 import com.kinetix.risk.schedule.ScheduledVaRCalculator
 import com.kinetix.risk.service.DefaultRunManifestCapture
@@ -283,6 +285,7 @@ fun Application.moduleWithRoutes() {
                 exec("REFRESH MATERIALIZED VIEW CONCURRENTLY daily_official_eod_summary")
             }
         },
+        manifestRepository = manifestRepo,
     )
 
     val varCalculationService = VaRCalculationService(
@@ -513,6 +516,11 @@ fun Application.moduleWithRoutes() {
     launch {
         ScheduledBlobRetentionJob(
             blobRetentionRepository = ExposedBlobRetentionRepository(riskDb),
+        ).start()
+    }
+    launch {
+        ScheduledManifestRetentionJob(
+            manifestRetentionRepository = ExposedManifestRetentionRepository(riskDb),
         ).start()
     }
 
