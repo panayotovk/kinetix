@@ -12,6 +12,8 @@ type SortDirection = 'asc' | 'desc'
 interface PositionGridProps {
   positions: PositionDto[]
   connected?: boolean
+  reconnecting?: boolean
+  lastConnectedAt?: Date | null
   positionRisk?: PositionRiskDto[]
   showBookColumn?: boolean
 }
@@ -56,7 +58,7 @@ function loadColumnVisibility(): Record<string, boolean> {
   return {}
 }
 
-export function PositionGrid({ positions, connected, positionRisk, showBookColumn = false }: PositionGridProps) {
+export function PositionGrid({ positions, connected, reconnecting, lastConnectedAt, positionRisk, showBookColumn = false }: PositionGridProps) {
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
   const [currentPage, setCurrentPage] = useState(1)
@@ -205,6 +207,11 @@ export function PositionGrid({ positions, connected, positionRisk, showBookColum
             <>
               <WifiOff className="h-4 w-4 text-red-600" />
               <span className="text-red-600 font-medium">Disconnected</span>
+              {lastConnectedAt && (
+                <span data-testid="stale-timestamp" className="text-slate-500 ml-1">
+                  as of {lastConnectedAt.toLocaleTimeString()}
+                </span>
+              )}
             </>
           )}
         </div>
@@ -371,13 +378,13 @@ export function PositionGrid({ positions, connected, positionRisk, showBookColum
                   assetClass: <td key="assetClass" className="px-4 py-2 text-sm text-slate-600">{pos.assetClass}</td>,
                   quantity: <td key="quantity" className="px-4 py-2 text-sm text-right">{formatQuantity(pos.quantity)}</td>,
                   avgCost: <td key="avgCost" className="px-4 py-2 text-sm text-right">{formatMoney(pos.averageCost.amount, pos.averageCost.currency)}</td>,
-                  marketPrice: <td key="marketPrice" className="px-4 py-2 text-sm text-right">{formatMoney(pos.marketPrice.amount, pos.marketPrice.currency)}</td>,
-                  marketValue: <td key="marketValue" className="px-4 py-2 text-sm text-right">{formatMoney(pos.marketValue.amount, pos.marketValue.currency)}</td>,
+                  marketPrice: <td key="marketPrice" className={`px-4 py-2 text-sm text-right ${reconnecting ? 'opacity-60' : ''}`}>{formatMoney(pos.marketPrice.amount, pos.marketPrice.currency)}</td>,
+                  marketValue: <td key="marketValue" className={`px-4 py-2 text-sm text-right ${reconnecting ? 'opacity-60' : ''}`}>{formatMoney(pos.marketValue.amount, pos.marketValue.currency)}</td>,
                   unrealizedPnl: (
                     <td
                       key="unrealizedPnl"
                       data-testid={`pnl-${pos.instrumentId}`}
-                      className={`px-4 py-2 text-sm text-right ${pnlColorClass(pos.unrealizedPnl.amount)}`}
+                      className={`px-4 py-2 text-sm text-right ${pnlColorClass(pos.unrealizedPnl.amount)} ${reconnecting ? 'opacity-60' : ''}`}
                     >
                       {formatMoney(pos.unrealizedPnl.amount, pos.unrealizedPnl.currency)}
                     </td>

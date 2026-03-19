@@ -84,7 +84,7 @@ function App() {
   const hierarchy = useHierarchySelector()
   const isAllSelected = bookSelector.isAllSelected
   const effectiveBookId = hierarchy.effectiveBookId ?? (isAllSelected ? null : rawBookId)
-  const { positions, connected, reconnecting } = usePriceStream(
+  const { positions, connected, reconnecting, lastConnectedAt } = usePriceStream(
     isAllSelected ? bookSelector.aggregatedPositions : initialPositions,
   )
   const { positionRisk } = usePositionRisk(effectiveBookId)
@@ -122,7 +122,10 @@ function App() {
         </div>
         <div className="flex items-center gap-3">
           <HierarchySelector hierarchy={hierarchy} />
-          <DataQualityIndicator status={dataQuality.status} loading={dataQuality.loading} />
+          <DataQualityIndicator
+            status={reconnecting && dataQuality.status ? { ...dataQuality.status, status: 'WARNING' } : dataQuality.status}
+            loading={dataQuality.loading}
+          />
           <button
             data-testid="save-workspace-button"
             onClick={() => {
@@ -229,6 +232,8 @@ function App() {
                     <PositionGrid
                       positions={positions}
                       connected={connected}
+                      reconnecting={reconnecting}
+                      lastConnectedAt={lastConnectedAt}
                       positionRisk={positionRisk}
                       showBookColumn={hierarchy.selection.level !== 'book'}
                     />
