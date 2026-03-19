@@ -25,7 +25,7 @@ class AuditRoutesTest : FunSpec({
             AuditEvent(
                 id = 1,
                 tradeId = "t-1",
-                portfolioId = "port-1",
+                bookId = "port-1",
                 instrumentId = "AAPL",
                 assetClass = "EQUITY",
                 side = "BUY",
@@ -38,7 +38,7 @@ class AuditRoutesTest : FunSpec({
             AuditEvent(
                 id = 2,
                 tradeId = "t-2",
-                portfolioId = "port-1",
+                bookId = "port-1",
                 instrumentId = "MSFT",
                 assetClass = "EQUITY",
                 side = "SELL",
@@ -58,7 +58,7 @@ class AuditRoutesTest : FunSpec({
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
             body.size shouldBe 2
             body[0].jsonObject["tradeId"]?.jsonPrimitive?.content shouldBe "t-1"
-            body[0].jsonObject["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+            body[0].jsonObject["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
             body[0].jsonObject["instrumentId"]?.jsonPrimitive?.content shouldBe "AAPL"
             body[1].jsonObject["tradeId"]?.jsonPrimitive?.content shouldBe "t-2"
         }
@@ -75,11 +75,11 @@ class AuditRoutesTest : FunSpec({
         }
     }
 
-    test("GET /api/v1/audit/events?portfolioId=X filters by portfolio") {
+    test("GET /api/v1/audit/events?bookId=X filters by book") {
         val event = AuditEvent(
             id = 1,
             tradeId = "t-1",
-            portfolioId = "port-1",
+            bookId = "port-1",
             instrumentId = "AAPL",
             assetClass = "EQUITY",
             side = "BUY",
@@ -93,11 +93,11 @@ class AuditRoutesTest : FunSpec({
 
         testApplication {
             application { module(repository) }
-            val response = client.get("/api/v1/audit/events?portfolioId=port-1")
+            val response = client.get("/api/v1/audit/events?bookId=port-1")
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
             body.size shouldBe 1
-            body[0].jsonObject["portfolioId"]?.jsonPrimitive?.content shouldBe "port-1"
+            body[0].jsonObject["bookId"]?.jsonPrimitive?.content shouldBe "port-1"
 
             coVerify(exactly = 1) { repository.findByBookId("port-1") }
             coVerify(exactly = 0) { repository.findAll() }
@@ -108,7 +108,7 @@ class AuditRoutesTest : FunSpec({
         val event1 = AuditEvent(
             id = 1,
             tradeId = "t-1",
-            portfolioId = "port-1",
+            bookId = "port-1",
             instrumentId = "AAPL",
             assetClass = "EQUITY",
             side = "BUY",
@@ -124,7 +124,7 @@ class AuditRoutesTest : FunSpec({
         val event2 = AuditEvent(
             id = 2,
             tradeId = "t-2",
-            portfolioId = "port-1",
+            bookId = "port-1",
             instrumentId = "MSFT",
             assetClass = "EQUITY",
             side = "SELL",

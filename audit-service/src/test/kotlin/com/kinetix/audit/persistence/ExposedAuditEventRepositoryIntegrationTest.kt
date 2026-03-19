@@ -11,7 +11,7 @@ private val NOW = Instant.parse("2026-01-15T10:00:00Z")
 
 private fun auditEvent(
     tradeId: String = "t-1",
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     instrumentId: String = "AAPL",
     assetClass: String = "EQUITY",
     side: String = "BUY",
@@ -22,7 +22,7 @@ private fun auditEvent(
     receivedAt: Instant = NOW,
 ) = AuditEvent(
     tradeId = tradeId,
-    portfolioId = portfolioId,
+    bookId = bookId,
     instrumentId = instrumentId,
     assetClass = assetClass,
     side = side,
@@ -50,7 +50,7 @@ class ExposedAuditEventRepositoryIntegrationTest : FunSpec({
         val found = repository.findAll()
         found shouldHaveSize 1
         found[0].tradeId shouldBe "t-1"
-        found[0].portfolioId shouldBe "port-1"
+        found[0].bookId shouldBe "port-1"
         found[0].instrumentId shouldBe "AAPL"
         found[0].side shouldBe "BUY"
         found[0].quantity shouldBe "100"
@@ -59,13 +59,13 @@ class ExposedAuditEventRepositoryIntegrationTest : FunSpec({
     }
 
     test("findByBookId returns only matching events") {
-        repository.save(auditEvent(tradeId = "t-1", portfolioId = "port-1"))
-        repository.save(auditEvent(tradeId = "t-2", portfolioId = "port-2"))
-        repository.save(auditEvent(tradeId = "t-3", portfolioId = "port-1"))
+        repository.save(auditEvent(tradeId = "t-1", bookId = "port-1"))
+        repository.save(auditEvent(tradeId = "t-2", bookId = "port-2"))
+        repository.save(auditEvent(tradeId = "t-3", bookId = "port-1"))
 
         val results = repository.findByBookId("port-1")
         results shouldHaveSize 2
-        results.forEach { it.portfolioId shouldBe "port-1" }
+        results.forEach { it.bookId shouldBe "port-1" }
     }
 
     test("findByBookId returns empty list for unknown portfolio") {
@@ -87,7 +87,7 @@ class ExposedAuditEventRepositoryIntegrationTest : FunSpec({
     test("save preserves all fields accurately") {
         val event = auditEvent(
             tradeId = "t-precise",
-            portfolioId = "port-precise",
+            bookId = "port-precise",
             instrumentId = "TSLA",
             assetClass = "EQUITY",
             side = "SELL",

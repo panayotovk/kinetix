@@ -30,6 +30,7 @@ class AuditEventConsumerIntegrationTest : FunSpec({
         val event = TradeEventMessage(
             tradeId = "t-1",
             portfolioId = "port-1",
+            bookId = "port-1",
             instrumentId = "AAPL",
             assetClass = "EQUITY",
             side = "BUY",
@@ -51,7 +52,7 @@ class AuditEventConsumerIntegrationTest : FunSpec({
         val events = repository.findAll()
         events.size shouldBe 1
         events[0].tradeId shouldBe "t-1"
-        events[0].portfolioId shouldBe "port-1"
+        events[0].bookId shouldBe "port-1"
         events[0].instrumentId shouldBe "AAPL"
         events[0].assetClass shouldBe "EQUITY"
         events[0].side shouldBe "BUY"
@@ -73,9 +74,9 @@ class AuditEventConsumerIntegrationTest : FunSpec({
 
         val producer = KafkaTestSetup.createProducer(bootstrapServers)
         val events = listOf(
-            TradeEventMessage(tradeId = "t-10", portfolioId = "port-2", instrumentId = "MSFT", assetClass = "EQUITY", side = "BUY", quantity = "50", priceAmount = "300.00", priceCurrency = "USD", tradedAt = "2025-01-15T10:00:00Z"),
-            TradeEventMessage(tradeId = "t-11", portfolioId = "port-2", instrumentId = "GOOG", assetClass = "EQUITY", side = "SELL", quantity = "25", priceAmount = "180.00", priceCurrency = "USD", tradedAt = "2025-01-15T11:00:00Z"),
-            TradeEventMessage(tradeId = "t-12", portfolioId = "port-2", instrumentId = "TSLA", assetClass = "EQUITY", side = "BUY", quantity = "10", priceAmount = "250.00", priceCurrency = "USD", tradedAt = "2025-01-15T12:00:00Z"),
+            TradeEventMessage(tradeId = "t-10", portfolioId = "port-2", bookId = "port-2", instrumentId = "MSFT", assetClass = "EQUITY", side = "BUY", quantity = "50", priceAmount = "300.00", priceCurrency = "USD", tradedAt = "2025-01-15T10:00:00Z"),
+            TradeEventMessage(tradeId = "t-11", portfolioId = "port-2", bookId = "port-2", instrumentId = "GOOG", assetClass = "EQUITY", side = "SELL", quantity = "25", priceAmount = "180.00", priceCurrency = "USD", tradedAt = "2025-01-15T11:00:00Z"),
+            TradeEventMessage(tradeId = "t-12", portfolioId = "port-2", bookId = "port-2", instrumentId = "TSLA", assetClass = "EQUITY", side = "BUY", quantity = "10", priceAmount = "250.00", priceCurrency = "USD", tradedAt = "2025-01-15T12:00:00Z"),
         )
 
         for (event in events) {

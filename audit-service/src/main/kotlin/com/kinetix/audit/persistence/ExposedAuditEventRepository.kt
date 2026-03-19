@@ -43,7 +43,7 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
 
         AuditEventsTable.insert {
             it[tradeId] = event.tradeId
-            it[portfolioId] = event.portfolioId
+            it[bookId] = event.bookId
             it[instrumentId] = event.instrumentId
             it[assetClass] = event.assetClass
             it[side] = event.side
@@ -67,10 +67,10 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
             .map { it.toAuditEvent() }
     }
 
-    override suspend fun findByBookId(portfolioId: String): List<AuditEvent> = newSuspendedTransaction(db = db) {
+    override suspend fun findByBookId(bookId: String): List<AuditEvent> = newSuspendedTransaction(db = db) {
         AuditEventsTable
             .selectAll()
-            .where { AuditEventsTable.portfolioId eq portfolioId }
+            .where { AuditEventsTable.bookId eq bookId }
             .orderBy(AuditEventsTable.id)
             .map { it.toAuditEvent() }
     }
@@ -98,7 +98,7 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
     private fun ResultRow.toAuditEvent(): AuditEvent = AuditEvent(
         id = this[AuditEventsTable.id],
         tradeId = this[AuditEventsTable.tradeId],
-        portfolioId = this[AuditEventsTable.portfolioId],
+        bookId = this[AuditEventsTable.bookId],
         instrumentId = this[AuditEventsTable.instrumentId],
         assetClass = this[AuditEventsTable.assetClass],
         side = this[AuditEventsTable.side],

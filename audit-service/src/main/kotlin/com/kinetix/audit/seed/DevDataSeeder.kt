@@ -42,7 +42,7 @@ class DevDataSeeder(
             // ── equity-growth portfolio: 5 equity trades (existing) ──
             AuditEvent(
                 tradeId = "seed-eq-aapl-001",
-                portfolioId = "equity-growth",
+                bookId ="equity-growth",
                 instrumentId = "AAPL",
                 assetClass = "EQUITY",
                 side = "BUY",
@@ -54,7 +54,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-eq-googl-001",
-                portfolioId = "equity-growth",
+                bookId ="equity-growth",
                 instrumentId = "GOOGL",
                 assetClass = "EQUITY",
                 side = "BUY",
@@ -66,7 +66,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-eq-msft-001",
-                portfolioId = "equity-growth",
+                bookId ="equity-growth",
                 instrumentId = "MSFT",
                 assetClass = "EQUITY",
                 side = "BUY",
@@ -78,7 +78,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-eq-amzn-001",
-                portfolioId = "equity-growth",
+                bookId ="equity-growth",
                 instrumentId = "AMZN",
                 assetClass = "EQUITY",
                 side = "BUY",
@@ -90,7 +90,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-eq-tsla-001",
-                portfolioId = "equity-growth",
+                bookId ="equity-growth",
                 instrumentId = "TSLA",
                 assetClass = "EQUITY",
                 side = "BUY",
@@ -104,7 +104,7 @@ class DevDataSeeder(
             // ── multi-asset portfolio: 6 trades across asset classes (existing) ──
             AuditEvent(
                 tradeId = "seed-ma-aapl-001",
-                portfolioId = "multi-asset",
+                bookId ="multi-asset",
                 instrumentId = "AAPL",
                 assetClass = "EQUITY",
                 side = "BUY",
@@ -116,7 +116,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-ma-eurusd-001",
-                portfolioId = "multi-asset",
+                bookId ="multi-asset",
                 instrumentId = "EURUSD",
                 assetClass = "FX",
                 side = "BUY",
@@ -128,7 +128,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-ma-us10y-001",
-                portfolioId = "multi-asset",
+                bookId ="multi-asset",
                 instrumentId = "US10Y",
                 assetClass = "FIXED_INCOME",
                 side = "BUY",
@@ -140,7 +140,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-ma-gc-001",
-                portfolioId = "multi-asset",
+                bookId ="multi-asset",
                 instrumentId = "GC",
                 assetClass = "COMMODITY",
                 side = "BUY",
@@ -152,7 +152,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-ma-spx-put-001",
-                portfolioId = "multi-asset",
+                bookId ="multi-asset",
                 instrumentId = "SPX-PUT-4500",
                 assetClass = "DERIVATIVE",
                 side = "BUY",
@@ -164,7 +164,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-ma-msft-001",
-                portfolioId = "multi-asset",
+                bookId ="multi-asset",
                 instrumentId = "MSFT",
                 assetClass = "EQUITY",
                 side = "BUY",
@@ -178,7 +178,7 @@ class DevDataSeeder(
             // ── fixed-income portfolio: 3 fixed income trades (existing) ──
             AuditEvent(
                 tradeId = "seed-fi-us2y-001",
-                portfolioId = "fixed-income",
+                bookId ="fixed-income",
                 instrumentId = "US2Y",
                 assetClass = "FIXED_INCOME",
                 side = "BUY",
@@ -190,7 +190,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-fi-us10y-001",
-                portfolioId = "fixed-income",
+                bookId ="fixed-income",
                 instrumentId = "US10Y",
                 assetClass = "FIXED_INCOME",
                 side = "BUY",
@@ -202,7 +202,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-fi-us30y-001",
-                portfolioId = "fixed-income",
+                bookId ="fixed-income",
                 instrumentId = "US30Y",
                 assetClass = "FIXED_INCOME",
                 side = "BUY",
@@ -216,7 +216,7 @@ class DevDataSeeder(
             // ── emerging-markets portfolio: 5 positions + 1 sell ──
             AuditEvent(
                 tradeId = "seed-em-baba-001",
-                portfolioId = "emerging-markets",
+                bookId ="emerging-markets",
                 instrumentId = "BABA",
                 assetClass = "EQUITY",
                 side = "BUY",
@@ -228,7 +228,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-em-tsla-001",
-                portfolioId = "emerging-markets",
+                bookId ="emerging-markets",
                 instrumentId = "TSLA",
                 assetClass = "EQUITY",
                 side = "BUY",
@@ -240,7 +240,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-em-eurusd-001",
-                portfolioId = "emerging-markets",
+                bookId ="emerging-markets",
                 instrumentId = "EURUSD",
                 assetClass = "FX",
                 side = "BUY",
@@ -252,7 +252,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-em-gbpusd-001",
-                portfolioId = "emerging-markets",
+                bookId ="emerging-markets",
                 instrumentId = "GBPUSD",
                 assetClass = "FX",
                 side = "BUY",
@@ -264,7 +264,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-em-usdjpy-001",
-                portfolioId = "emerging-markets",
+                bookId ="emerging-markets",
                 instrumentId = "USDJPY",
                 assetClass = "FX",
                 side = "BUY",
@@ -276,7 +276,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-em-baba-002",
-                portfolioId = "emerging-markets",
+                bookId ="emerging-markets",
                 instrumentId = "BABA",
                 assetClass = "EQUITY",
                 side = "SELL",
@@ -290,7 +290,7 @@ class DevDataSeeder(
             // ── macro-hedge portfolio: 6 positions + 1 sell ──
             AuditEvent(
                 tradeId = "seed-mh-usdjpy-001",
-                portfolioId = "macro-hedge",
+                bookId ="macro-hedge",
                 instrumentId = "USDJPY",
                 assetClass = "FX",
                 side = "BUY",
@@ -302,7 +302,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-mh-gc-001",
-                portfolioId = "macro-hedge",
+                bookId ="macro-hedge",
                 instrumentId = "GC",
                 assetClass = "COMMODITY",
                 side = "BUY",
@@ -314,7 +314,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-mh-cl-001",
-                portfolioId = "macro-hedge",
+                bookId ="macro-hedge",
                 instrumentId = "CL",
                 assetClass = "COMMODITY",
                 side = "BUY",
@@ -326,7 +326,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-mh-si-001",
-                portfolioId = "macro-hedge",
+                bookId ="macro-hedge",
                 instrumentId = "SI",
                 assetClass = "COMMODITY",
                 side = "BUY",
@@ -338,7 +338,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-mh-de10y-001",
-                portfolioId = "macro-hedge",
+                bookId ="macro-hedge",
                 instrumentId = "DE10Y",
                 assetClass = "FIXED_INCOME",
                 side = "BUY",
@@ -350,7 +350,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-mh-spx-put-001",
-                portfolioId = "macro-hedge",
+                bookId ="macro-hedge",
                 instrumentId = "SPX-PUT-4500",
                 assetClass = "DERIVATIVE",
                 side = "BUY",
@@ -362,7 +362,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-mh-gc-002",
-                portfolioId = "macro-hedge",
+                bookId ="macro-hedge",
                 instrumentId = "GC",
                 assetClass = "COMMODITY",
                 side = "SELL",
@@ -376,7 +376,7 @@ class DevDataSeeder(
             // ── tech-momentum portfolio: 4 positions + 1 sell ──
             AuditEvent(
                 tradeId = "seed-tm-nvda-001",
-                portfolioId = "tech-momentum",
+                bookId ="tech-momentum",
                 instrumentId = "NVDA",
                 assetClass = "EQUITY",
                 side = "BUY",
@@ -388,7 +388,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-tm-meta-001",
-                portfolioId = "tech-momentum",
+                bookId ="tech-momentum",
                 instrumentId = "META",
                 assetClass = "EQUITY",
                 side = "BUY",
@@ -400,7 +400,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-tm-msft-001",
-                portfolioId = "tech-momentum",
+                bookId ="tech-momentum",
                 instrumentId = "MSFT",
                 assetClass = "EQUITY",
                 side = "BUY",
@@ -412,7 +412,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-tm-googl-001",
-                portfolioId = "tech-momentum",
+                bookId ="tech-momentum",
                 instrumentId = "GOOGL",
                 assetClass = "EQUITY",
                 side = "BUY",
@@ -424,7 +424,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-tm-meta-002",
-                portfolioId = "tech-momentum",
+                bookId ="tech-momentum",
                 instrumentId = "META",
                 assetClass = "EQUITY",
                 side = "SELL",
@@ -438,7 +438,7 @@ class DevDataSeeder(
             // ── balanced-income portfolio: 5 positions + 1 sell ──
             AuditEvent(
                 tradeId = "seed-bi-us10y-001",
-                portfolioId = "balanced-income",
+                bookId ="balanced-income",
                 instrumentId = "US10Y",
                 assetClass = "FIXED_INCOME",
                 side = "BUY",
@@ -450,7 +450,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-bi-us30y-001",
-                portfolioId = "balanced-income",
+                bookId ="balanced-income",
                 instrumentId = "US30Y",
                 assetClass = "FIXED_INCOME",
                 side = "BUY",
@@ -462,7 +462,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-bi-de10y-001",
-                portfolioId = "balanced-income",
+                bookId ="balanced-income",
                 instrumentId = "DE10Y",
                 assetClass = "FIXED_INCOME",
                 side = "BUY",
@@ -474,7 +474,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-bi-jpm-001",
-                portfolioId = "balanced-income",
+                bookId ="balanced-income",
                 instrumentId = "JPM",
                 assetClass = "EQUITY",
                 side = "BUY",
@@ -486,7 +486,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-bi-aapl-001",
-                portfolioId = "balanced-income",
+                bookId ="balanced-income",
                 instrumentId = "AAPL",
                 assetClass = "EQUITY",
                 side = "BUY",
@@ -498,7 +498,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-bi-us30y-002",
-                portfolioId = "balanced-income",
+                bookId ="balanced-income",
                 instrumentId = "US30Y",
                 assetClass = "FIXED_INCOME",
                 side = "SELL",
@@ -512,7 +512,7 @@ class DevDataSeeder(
             // ── derivatives-book portfolio: 5 positions + 1 sell ──
             AuditEvent(
                 tradeId = "seed-db-spx-call-001",
-                portfolioId = "derivatives-book",
+                bookId ="derivatives-book",
                 instrumentId = "SPX-CALL-5000",
                 assetClass = "DERIVATIVE",
                 side = "BUY",
@@ -524,7 +524,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-db-vix-put-001",
-                portfolioId = "derivatives-book",
+                bookId ="derivatives-book",
                 instrumentId = "VIX-PUT-15",
                 assetClass = "DERIVATIVE",
                 side = "BUY",
@@ -536,7 +536,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-db-spx-put-001",
-                portfolioId = "derivatives-book",
+                bookId ="derivatives-book",
                 instrumentId = "SPX-PUT-4500",
                 assetClass = "DERIVATIVE",
                 side = "BUY",
@@ -548,7 +548,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-db-nvda-001",
-                portfolioId = "derivatives-book",
+                bookId ="derivatives-book",
                 instrumentId = "NVDA",
                 assetClass = "EQUITY",
                 side = "BUY",
@@ -560,7 +560,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-db-tsla-001",
-                portfolioId = "derivatives-book",
+                bookId ="derivatives-book",
                 instrumentId = "TSLA",
                 assetClass = "EQUITY",
                 side = "BUY",
@@ -572,7 +572,7 @@ class DevDataSeeder(
             ),
             AuditEvent(
                 tradeId = "seed-db-spx-call-002",
-                portfolioId = "derivatives-book",
+                bookId ="derivatives-book",
                 instrumentId = "SPX-CALL-5000",
                 assetClass = "DERIVATIVE",
                 side = "SELL",

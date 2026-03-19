@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 data class AuditEventResponse(
     val id: Long,
     val tradeId: String,
-    val portfolioId: String,
+    val bookId: String,
     val instrumentId: String,
     val assetClass: String,
     val side: String,
@@ -32,7 +32,7 @@ data class ErrorResponse(
 fun AuditEvent.toResponse(): AuditEventResponse = AuditEventResponse(
     id = id,
     tradeId = tradeId,
-    portfolioId = portfolioId,
+    bookId = bookId,
     instrumentId = instrumentId,
     assetClass = assetClass,
     side = side,

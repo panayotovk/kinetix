@@ -14,7 +14,7 @@ class AuditMetadataTest : FunSpec({
         val event = AuditEvent(
             id = 1,
             tradeId = "t-1",
-            portfolioId = "port-1",
+            bookId = "port-1",
             instrumentId = "AAPL",
             assetClass = "EQUITY",
             side = "BUY",
@@ -37,7 +37,7 @@ class AuditMetadataTest : FunSpec({
         val event = AuditEvent(
             id = 1,
             tradeId = "t-1",
-            portfolioId = "port-1",
+            bookId = "port-1",
             instrumentId = "AAPL",
             assetClass = "EQUITY",
             side = "BUY",

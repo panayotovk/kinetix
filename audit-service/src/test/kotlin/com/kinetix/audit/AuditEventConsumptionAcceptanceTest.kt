@@ -14,7 +14,7 @@ private val BASE_TIME: Instant = Instant.parse("2026-02-01T09:00:00Z")
 
 private fun tradeEvent(
     tradeId: String = "t-1",
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     instrumentId: String = "AAPL",
     assetClass: String = "EQUITY",
     side: String = "BUY",
@@ -28,7 +28,7 @@ private fun tradeEvent(
     eventType: String = "TRADE_BOOKED",
 ) = AuditEvent(
     tradeId = tradeId,
-    portfolioId = portfolioId,
+    bookId = bookId,
     instrumentId = instrumentId,
     assetClass = assetClass,
     side = side,
@@ -53,40 +53,40 @@ class AuditEventConsumptionAcceptanceTest : BehaviorSpec({
         }
     }
 
-    given("audit events for portfolioId='port-1' and portfolioId='port-2'") {
-        `when`("queried by portfolioId='port-1'") {
+    given("audit events for bookId='port-1' and bookId='port-2'") {
+        `when`("queried by bookId='port-1'") {
             then("only port-1 events are returned") {
-                repository.save(tradeEvent(tradeId = "t-1", portfolioId = "port-1", receivedAt = BASE_TIME))
-                repository.save(tradeEvent(tradeId = "t-2", portfolioId = "port-2", receivedAt = BASE_TIME.plusSeconds(1)))
-                repository.save(tradeEvent(tradeId = "t-3", portfolioId = "port-1", receivedAt = BASE_TIME.plusSeconds(2)))
-                repository.save(tradeEvent(tradeId = "t-4", portfolioId = "port-2", receivedAt = BASE_TIME.plusSeconds(3)))
-                repository.save(tradeEvent(tradeId = "t-5", portfolioId = "port-1", receivedAt = BASE_TIME.plusSeconds(4)))
+                repository.save(tradeEvent(tradeId = "t-1", bookId = "port-1", receivedAt = BASE_TIME))
+                repository.save(tradeEvent(tradeId = "t-2", bookId = "port-2", receivedAt = BASE_TIME.plusSeconds(1)))
+                repository.save(tradeEvent(tradeId = "t-3", bookId = "port-1", receivedAt = BASE_TIME.plusSeconds(2)))
+                repository.save(tradeEvent(tradeId = "t-4", bookId = "port-2", receivedAt = BASE_TIME.plusSeconds(3)))
+                repository.save(tradeEvent(tradeId = "t-5", bookId = "port-1", receivedAt = BASE_TIME.plusSeconds(4)))
 
                 val results = repository.findByBookId("port-1")
 
                 results shouldHaveSize 3
-                results.forEach { it.portfolioId shouldBe "port-1" }
+                results.forEach { it.bookId shouldBe "port-1" }
                 results.map { it.tradeId } shouldBe listOf("t-1", "t-3", "t-5")
             }
         }
 
-        `when`("queried by portfolioId='port-2'") {
+        `when`("queried by bookId='port-2'") {
             then("only port-2 events are returned") {
-                repository.save(tradeEvent(tradeId = "t-1", portfolioId = "port-1", receivedAt = BASE_TIME))
-                repository.save(tradeEvent(tradeId = "t-2", portfolioId = "port-2", receivedAt = BASE_TIME.plusSeconds(1)))
-                repository.save(tradeEvent(tradeId = "t-3", portfolioId = "port-1", receivedAt = BASE_TIME.plusSeconds(2)))
+                repository.save(tradeEvent(tradeId = "t-1", bookId = "port-1", receivedAt = BASE_TIME))
+                repository.save(tradeEvent(tradeId = "t-2", bookId = "port-2", receivedAt = BASE_TIME.plusSeconds(1)))
+                repository.save(tradeEvent(tradeId = "t-3", bookId = "port-1", receivedAt = BASE_TIME.plusSeconds(2)))
 
                 val results = repository.findByBookId("port-2")
 
                 results shouldHaveSize 1
-                results[0].portfolioId shouldBe "port-2"
+                results[0].bookId shouldBe "port-2"
                 results[0].tradeId shouldBe "t-2"
             }
         }
 
-        `when`("queried by an unknown portfolioId") {
+        `when`("queried by an unknown bookId") {
             then("an empty list is returned") {
-                repository.save(tradeEvent(tradeId = "t-1", portfolioId = "port-1"))
+                repository.save(tradeEvent(tradeId = "t-1", bookId = "port-1"))
 
                 val results = repository.findByBookId("port-unknown")
 

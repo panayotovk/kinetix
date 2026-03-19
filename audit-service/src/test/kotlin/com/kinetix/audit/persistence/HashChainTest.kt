@@ -13,7 +13,7 @@ private val NOW = Instant.parse("2026-01-15T10:00:00Z")
 private fun auditEvent(
     id: Long = 0,
     tradeId: String = "t-1",
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     instrumentId: String = "AAPL",
     assetClass: String = "EQUITY",
     side: String = "BUY",
@@ -28,7 +28,7 @@ private fun auditEvent(
 ) = AuditEvent(
     id = id,
     tradeId = tradeId,
-    portfolioId = portfolioId,
+    bookId = bookId,
     instrumentId = instrumentId,
     assetClass = assetClass,
     side = side,

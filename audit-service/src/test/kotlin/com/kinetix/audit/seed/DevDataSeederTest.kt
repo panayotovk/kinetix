@@ -29,7 +29,7 @@ class DevDataSeederTest : FunSpec({
             AuditEvent(
                 id = 1,
                 tradeId = "seed-eq-aapl-001",
-                portfolioId = "equity-growth",
+                bookId = "equity-growth",
                 instrumentId = "AAPL",
                 assetClass = "EQUITY",
                 side = "BUY",
@@ -56,8 +56,8 @@ class DevDataSeederTest : FunSpec({
         tradeIds.all { it.startsWith("seed-") } shouldBe true
     }
 
-    test("events cover all eight portfolios") {
-        val portfolios = DevDataSeeder.EVENTS.map { it.portfolioId }.distinct().sorted()
+    test("events cover all eight books") {
+        val portfolios = DevDataSeeder.EVENTS.map { it.bookId }.distinct().sorted()
         portfolios shouldBe listOf(
             "balanced-income", "derivatives-book", "emerging-markets",
             "equity-growth", "fixed-income", "macro-hedge",

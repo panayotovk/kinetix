@@ -15,7 +15,7 @@ private val BASE_TIME: Instant = Instant.parse("2026-01-15T10:00:00Z")
 
 private fun tradeEvent(
     tradeId: String = "t-1",
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     instrumentId: String = "AAPL",
     assetClass: String = "EQUITY",
     side: String = "BUY",
@@ -29,7 +29,7 @@ private fun tradeEvent(
     eventType: String = "TRADE_BOOKED",
 ) = AuditEvent(
     tradeId = tradeId,
-    portfolioId = portfolioId,
+    bookId = bookId,
     instrumentId = instrumentId,
     assetClass = assetClass,
     side = side,

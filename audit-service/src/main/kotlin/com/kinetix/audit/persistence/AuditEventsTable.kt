@@ -6,7 +6,7 @@ import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 object AuditEventsTable : Table("audit_events") {
     val id = long("id").autoIncrement()
     val tradeId = varchar("trade_id", 255)
-    val portfolioId = varchar("portfolio_id", 255)
+    val bookId = varchar("book_id", 255)
     val instrumentId = varchar("instrument_id", 255)
     val assetClass = varchar("asset_class", 50)
     val side = varchar("side", 10)

@@ -21,8 +21,8 @@ fun Route.auditRoutes(repository: AuditEventRepository) {
             summary = "List audit events"
             tags = listOf("Audit")
             request {
-                queryParameter<String>("portfolioId") {
-                    description = "Filter by portfolio ID"
+                queryParameter<String>("bookId") {
+                    description = "Filter by book ID"
                     required = false
                 }
                 queryParameter<Long>("afterId") {
@@ -35,13 +35,13 @@ fun Route.auditRoutes(repository: AuditEventRepository) {
                 }
             }
         }) {
-            val portfolioId = call.request.queryParameters["portfolioId"]
+            val bookId = call.request.queryParameters["bookId"]
             val afterId = call.request.queryParameters["afterId"]?.toLongOrNull() ?: 0L
             val limit = (call.request.queryParameters["limit"]?.toIntOrNull() ?: DEFAULT_PAGE_LIMIT)
                 .coerceIn(1, MAX_PAGE_LIMIT)
 
-            val events = if (portfolioId != null) {
-                repository.findByBookId(portfolioId)
+            val events = if (bookId != null) {
+                repository.findByBookId(bookId)
             } else {
                 repository.findPage(afterId, limit)
             }

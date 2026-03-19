@@ -9,7 +9,7 @@ object AuditHasher {
         val data = buildString {
             append(event.receivedAt)
             append(event.tradeId)
-            append(event.portfolioId)
+            append(event.bookId)
             append(event.instrumentId)
             append(event.assetClass)
             append(event.side)

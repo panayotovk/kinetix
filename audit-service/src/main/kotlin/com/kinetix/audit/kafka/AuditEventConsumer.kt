@@ -43,8 +43,8 @@ class AuditEventConsumer(
                                 val auditEvent = event.toAuditEvent(receivedAt = Instant.now())
                                 repository.save(auditEvent)
                                 logger.info(
-                                    "Audit event persisted: tradeId={}, portfolioId={}, eventType={}",
-                                    auditEvent.tradeId, auditEvent.portfolioId, auditEvent.eventType,
+                                    "Audit event persisted: tradeId={}, bookId={}, eventType={}",
+                                    auditEvent.tradeId, auditEvent.bookId, auditEvent.eventType,
                                 )
                             } finally {
                                 MDC.remove("correlationId")
@@ -71,7 +71,7 @@ class AuditEventConsumer(
 
     private fun TradeEventMessage.toAuditEvent(receivedAt: Instant): AuditEvent = AuditEvent(
         tradeId = tradeId,
-        portfolioId = portfolioId,
+        bookId = bookId,
         instrumentId = instrumentId,
         assetClass = assetClass,
         side = side,
