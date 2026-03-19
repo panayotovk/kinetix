@@ -8,6 +8,7 @@ import java.time.LocalDate
 data class PnlAttribution(
     val portfolioId: BookId,
     val date: LocalDate,
+    val currency: String = "USD",
     val totalPnl: BigDecimal,
     val deltaPnl: BigDecimal,
     val gammaPnl: BigDecimal,

@@ -18,6 +18,7 @@ object PnlAttributionsTable : Table("pnl_attributions") {
     val rhoPnl = decimal("rho_pnl", 20, 8)
     val unexplainedPnl = decimal("unexplained_pnl", 20, 8)
     val positionAttributions = jsonb<List<PositionPnlAttributionJson>>("position_attributions", Json).nullable()
+    val currency = varchar("currency", 3).default("USD")
     val createdAt = timestampWithTimeZone("created_at")
 
     override val primaryKey = PrimaryKey(id)

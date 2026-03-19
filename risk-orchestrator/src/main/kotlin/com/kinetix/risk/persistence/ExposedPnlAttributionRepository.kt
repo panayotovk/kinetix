@@ -26,6 +26,7 @@ class ExposedPnlAttributionRepository(private val db: Database? = null) : PnlAtt
         ) {
             it[portfolioId] = attribution.portfolioId.value
             it[attributionDate] = attribution.date.toKotlinxDate()
+            it[currency] = attribution.currency
             it[totalPnl] = attribution.totalPnl
             it[deltaPnl] = attribution.deltaPnl
             it[gammaPnl] = attribution.gammaPnl
@@ -105,6 +106,7 @@ class ExposedPnlAttributionRepository(private val db: Database? = null) : PnlAtt
     private fun ResultRow.toPnlAttribution(): PnlAttribution = PnlAttribution(
         portfolioId = BookId(this[PnlAttributionsTable.portfolioId]),
         date = this[PnlAttributionsTable.attributionDate].toJavaDate(),
+        currency = this[PnlAttributionsTable.currency],
         totalPnl = this[PnlAttributionsTable.totalPnl],
         deltaPnl = this[PnlAttributionsTable.deltaPnl],
         gammaPnl = this[PnlAttributionsTable.gammaPnl],
