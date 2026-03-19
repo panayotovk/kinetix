@@ -29,7 +29,7 @@ class ExposedTradeEventRepository(private val db: Database? = null) : TradeEvent
             it[status] = trade.status.name
             it[originalTradeId] = trade.originalTradeId?.value
             it[counterpartyId] = trade.counterpartyId
-            it[instrumentType] = trade.instrumentType
+            it[instrumentType] = trade.instrumentType ?: "UNKNOWN"
         }
     }
 
