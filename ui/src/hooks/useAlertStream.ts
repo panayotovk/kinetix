@@ -20,13 +20,16 @@ interface UseAlertStreamResult {
   alerts: AlertEventDto[]
   connected: boolean
   reconnecting: boolean
+  exhausted: boolean
   acknowledgeLocal: (alertId: string, status: string) => void
+  manualReconnect: () => void
 }
 
 export function useAlertStream(wsUrl?: string): UseAlertStreamResult {
   const [alerts, setAlerts] = useState<AlertEventDto[]>([])
   const [connected, setConnected] = useState(false)
   const [reconnecting, setReconnecting] = useState(false)
+  const [exhausted, setExhausted] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pollingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -115,6 +118,7 @@ export function useAlertStream(wsUrl?: string): UseAlertStreamResult {
       ws.onopen = () => {
         setConnected(true)
         setReconnecting(false)
+        setExhausted(false)
         attemptRef.current = 0
 
         // Stop polling fallback
@@ -139,7 +143,11 @@ export function useAlertStream(wsUrl?: string): UseAlertStreamResult {
 
       const scheduleReconnect = () => {
         if (unmountedRef.current) return
-        if (attemptRef.current >= MAX_RECONNECT_ATTEMPTS) return
+        if (attemptRef.current >= MAX_RECONNECT_ATTEMPTS) {
+          setReconnecting(false)
+          setExhausted(true)
+          return
+        }
 
         setConnected(false)
         setReconnecting(true)
@@ -198,5 +206,16 @@ export function useAlertStream(wsUrl?: string): UseAlertStreamResult {
     }
   }, [wsUrl, loadAlerts, handleIncoming])
 
-  return { alerts, connected, reconnecting, acknowledgeLocal }
+  const manualReconnect = useCallback(() => {
+    attemptRef.current = 0
+    setExhausted(false)
+    setReconnecting(false)
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current)
+      reconnectTimerRef.current = null
+    }
+    connectRef.current()
+  }, [])
+
+  return { alerts, connected, reconnecting, exhausted, acknowledgeLocal, manualReconnect }
 }

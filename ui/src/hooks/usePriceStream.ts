@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ClientMessage, PositionDto, PriceUpdateMessage } from '../types'
 
 export function applyPriceUpdate(
@@ -34,8 +34,10 @@ interface UsePriceStreamResult {
   positions: PositionDto[]
   connected: boolean
   reconnecting: boolean
+  exhausted: boolean
   lastConnectedAt: Date | null
   disconnectedSince: Date | null
+  manualReconnect: () => void
 }
 
 export function usePriceStream(
@@ -46,6 +48,7 @@ export function usePriceStream(
   const [positions, setPositions] = useState<PositionDto[]>(initialPositions)
   const [connected, setConnected] = useState(false)
   const [reconnecting, setReconnecting] = useState(false)
+  const [exhausted, setExhausted] = useState(false)
   const [lastConnectedAt, setLastConnectedAt] = useState<Date | null>(null)
   const [disconnectedSince, setDisconnectedSince] = useState<Date | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
@@ -77,6 +80,7 @@ export function usePriceStream(
         const wasReconnecting = attemptRef.current > 0
         setConnected(true)
         setReconnecting(false)
+        setExhausted(false)
         setLastConnectedAt(new Date())
         setDisconnectedSince(null)
         attemptRef.current = 0
@@ -105,7 +109,11 @@ export function usePriceStream(
 
       const scheduleReconnect = () => {
         if (unmountedRef.current) return
-        if (attemptRef.current >= MAX_RECONNECT_ATTEMPTS) return
+        if (attemptRef.current >= MAX_RECONNECT_ATTEMPTS) {
+          setReconnecting(false)
+          setExhausted(true)
+          return
+        }
 
         setConnected(false)
         setReconnecting(true)
@@ -162,5 +170,16 @@ export function usePriceStream(
     }
   }, [initialPositions, wsUrl, onReconnect])
 
-  return { positions, connected, reconnecting, lastConnectedAt, disconnectedSince }
+  const manualReconnect = useCallback(() => {
+    attemptRef.current = 0
+    setExhausted(false)
+    setReconnecting(false)
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current)
+      reconnectTimerRef.current = null
+    }
+    connectRef.current()
+  }, [])
+
+  return { positions, connected, reconnecting, exhausted, lastConnectedAt, disconnectedSince, manualReconnect }
 }
