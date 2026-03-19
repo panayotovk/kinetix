@@ -64,7 +64,7 @@ class AuditEventConsumer(
         } finally {
             withContext(NonCancellable + Dispatchers.IO) {
                 logger.info("Closing audit event Kafka consumer")
-                consumer.close(Duration.ofSeconds(5))
+                consumer.close(Duration.ofSeconds(10))
             }
         }
     }
