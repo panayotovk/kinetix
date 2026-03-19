@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "ui.fullname" . }}-test-health
+  annotations:
+    "helm.sh/hook": test
+spec:
+  restartPolicy: Never
+  containers:
+    - name: test-health
+      image: busybox
+      command: ["wget", "-qO-", "http://{{ include "ui.fullname" . }}:{{ .Values.service.port }}/healthz"]
