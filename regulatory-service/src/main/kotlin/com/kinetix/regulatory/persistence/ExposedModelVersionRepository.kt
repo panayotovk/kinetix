@@ -3,6 +3,7 @@ package com.kinetix.regulatory.persistence
 import com.kinetix.regulatory.governance.ModelVersion
 import com.kinetix.regulatory.governance.ModelVersionRepository
 import com.kinetix.regulatory.governance.ModelVersionStatus
+import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -31,7 +32,7 @@ class ExposedModelVersionRepository(private val db: Database? = null) : ModelVer
                 it[modelName] = modelVersion.modelName
                 it[version] = modelVersion.version
                 it[status] = modelVersion.status.name
-                it[parameters] = modelVersion.parameters
+                it[parameters] = Json.parseToJsonElement(modelVersion.parameters)
                 it[approvedBy] = modelVersion.approvedBy
                 it[approvedAt] = modelVersion.approvedAt?.let { ts ->
                     OffsetDateTime.ofInstant(ts, ZoneOffset.UTC)
@@ -61,7 +62,7 @@ class ExposedModelVersionRepository(private val db: Database? = null) : ModelVer
         modelName = this[ModelVersionsTable.modelName],
         version = this[ModelVersionsTable.version],
         status = ModelVersionStatus.valueOf(this[ModelVersionsTable.status]),
-        parameters = this[ModelVersionsTable.parameters],
+        parameters = Json.encodeToString(this[ModelVersionsTable.parameters]),
         approvedBy = this[ModelVersionsTable.approvedBy],
         approvedAt = this[ModelVersionsTable.approvedAt]?.toInstant(),
         createdAt = this[ModelVersionsTable.createdAt].toInstant(),
