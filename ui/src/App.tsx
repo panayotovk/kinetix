@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Activity, BarChart3, ScrollText, TrendingUp, Shield, FlaskConical, Scale, Bell, Server, FlaskRound, Sun, Moon, Save, CalendarDays } from 'lucide-react'
 import { PositionGrid } from './components/PositionGrid'
 import { TradeBlotter } from './components/TradeBlotter'
@@ -84,7 +84,7 @@ function App() {
   const hierarchy = useHierarchySelector()
   const isAllSelected = bookSelector.isAllSelected
   const effectiveBookId = hierarchy.effectiveBookId ?? (isAllSelected ? null : rawBookId)
-  const { positions, connected, reconnecting, lastConnectedAt } = usePriceStream(
+  const { positions, connected, reconnecting, lastConnectedAt, disconnectedSince } = usePriceStream(
     isAllSelected ? bookSelector.aggregatedPositions : initialPositions,
   )
   const { positionRisk } = usePositionRisk(effectiveBookId)
@@ -112,6 +112,18 @@ function App() {
   const hierarchySummary = useHierarchySummary(hierarchy.selection)
   const { isDark, toggle: toggleTheme } = useTheme()
   const dataQuality = useDataQuality()
+
+  const [disconnectElapsed, setDisconnectElapsed] = useState(0)
+  useEffect(() => {
+    if (!disconnectedSince) return
+    const update = () => setDisconnectElapsed(Math.floor((Date.now() - disconnectedSince.getTime()) / 1000))
+    update()
+    const timer = setInterval(update, 1000)
+    return () => {
+      clearInterval(timer)
+      setDisconnectElapsed(0)
+    }
+  }, [disconnectedSince])
 
   return (
     <div className="min-h-screen bg-surface-50 dark:bg-surface-900 dark:text-slate-100 flex flex-col">
@@ -186,11 +198,32 @@ function App() {
         ))}
       </nav>
 
-      {reconnecting && (
-        <div data-testid="reconnecting-banner" className="bg-amber-100 border-b border-amber-300 px-6 py-2 text-sm text-amber-800 font-medium" role="alert">
-          Reconnecting...
-        </div>
-      )}
+      {reconnecting && (() => {
+        const healthUp = systemHealth.health?.status === 'UP'
+        const healthDegraded = systemHealth.health?.status === 'DEGRADED'
+        const healthUnknown = !systemHealth.health
+        let bannerText: string
+        let bannerClass: string
+        if (healthDegraded) {
+          bannerText = 'System update in progress. Prices paused.'
+          bannerClass = 'bg-blue-50 border-b border-blue-200 text-blue-700'
+        } else if (healthUnknown) {
+          bannerText = 'Unable to reach server. Reconnecting...'
+          bannerClass = 'bg-amber-100 border-b border-amber-300 text-amber-800'
+        } else if (healthUp) {
+          bannerText = 'Price feed interrupted. Reconnecting...'
+          bannerClass = 'bg-amber-100 border-b border-amber-300 text-amber-800'
+        } else {
+          bannerText = 'Reconnecting...'
+          bannerClass = 'bg-amber-100 border-b border-amber-300 text-amber-800'
+        }
+        const elapsed = disconnectElapsed > 0 ? ` (${disconnectElapsed}s)` : ''
+        return (
+          <div data-testid="reconnecting-banner" className={`${bannerClass} px-6 py-2 text-sm font-medium`} role="alert">
+            {bannerText}{elapsed}
+          </div>
+        )
+      })()}
 
       <main className="flex-1 p-6 dark:bg-surface-900" role="tabpanel" aria-labelledby={`tab-${activeTab}`}>
         {activeTab === 'system' ? (

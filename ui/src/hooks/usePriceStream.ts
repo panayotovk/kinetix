@@ -35,6 +35,7 @@ interface UsePriceStreamResult {
   connected: boolean
   reconnecting: boolean
   lastConnectedAt: Date | null
+  disconnectedSince: Date | null
 }
 
 export function usePriceStream(
@@ -45,6 +46,7 @@ export function usePriceStream(
   const [connected, setConnected] = useState(false)
   const [reconnecting, setReconnecting] = useState(false)
   const [lastConnectedAt, setLastConnectedAt] = useState<Date | null>(null)
+  const [disconnectedSince, setDisconnectedSince] = useState<Date | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const attemptRef = useRef(0)
@@ -74,6 +76,7 @@ export function usePriceStream(
         setConnected(true)
         setReconnecting(false)
         setLastConnectedAt(new Date())
+        setDisconnectedSince(null)
         attemptRef.current = 0
         const subscribeMsg: ClientMessage = {
           type: 'subscribe',
@@ -101,6 +104,7 @@ export function usePriceStream(
 
         setConnected(false)
         setReconnecting(true)
+        setDisconnectedSince((prev) => prev ?? new Date())
 
         const backoff = Math.min(
           BASE_BACKOFF_MS * Math.pow(2, attemptRef.current),
@@ -153,5 +157,5 @@ export function usePriceStream(
     }
   }, [initialPositions, wsUrl])
 
-  return { positions, connected, reconnecting, lastConnectedAt }
+  return { positions, connected, reconnecting, lastConnectedAt, disconnectedSince }
 }
