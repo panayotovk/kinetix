@@ -16,8 +16,8 @@ import java.util.Currency
 class ExposedPositionRepository(private val db: Database? = null) : PositionRepository {
 
     override suspend fun save(position: Position): Unit = newSuspendedTransaction(db = db) {
-        PositionsTable.upsert(PositionsTable.portfolioId, PositionsTable.instrumentId) {
-            it[portfolioId] = position.bookId.value
+        PositionsTable.upsert(PositionsTable.bookId, PositionsTable.instrumentId) {
+            it[bookId] = position.bookId.value
             it[instrumentId] = position.instrumentId.value
             it[assetClass] = position.assetClass.name
             it[quantity] = position.quantity
@@ -30,10 +30,10 @@ class ExposedPositionRepository(private val db: Database? = null) : PositionRepo
         }
     }
 
-    override suspend fun findByBookId(portfolioId: BookId): List<Position> = newSuspendedTransaction(db = db) {
+    override suspend fun findByBookId(bookId: BookId): List<Position> = newSuspendedTransaction(db = db) {
         PositionsTable
             .selectAll()
-            .where { PositionsTable.portfolioId eq portfolioId.value }
+            .where { PositionsTable.bookId eq bookId.value }
             .map { it.toPosition() }
     }
 
@@ -45,13 +45,13 @@ class ExposedPositionRepository(private val db: Database? = null) : PositionRepo
     }
 
     override suspend fun findByKey(
-        portfolioId: BookId,
+        bookId: BookId,
         instrumentId: InstrumentId,
     ): Position? = newSuspendedTransaction(db = db) {
         PositionsTable
             .selectAll()
             .where {
-                (PositionsTable.portfolioId eq portfolioId.value) and
+                (PositionsTable.bookId eq bookId.value) and
                     (PositionsTable.instrumentId eq instrumentId.value)
             }
             .singleOrNull()
@@ -59,24 +59,24 @@ class ExposedPositionRepository(private val db: Database? = null) : PositionRepo
     }
 
     override suspend fun delete(
-        portfolioId: BookId,
+        bookId: BookId,
         instrumentId: InstrumentId,
     ): Unit = newSuspendedTransaction(db = db) {
         PositionsTable.deleteWhere {
-            (PositionsTable.portfolioId eq portfolioId.value) and
+            (PositionsTable.bookId eq bookId.value) and
                 (PositionsTable.instrumentId eq instrumentId.value)
         }
     }
 
     override suspend fun findDistinctBookIds(): List<BookId> = newSuspendedTransaction(db = db) {
         PositionsTable
-            .select(PositionsTable.portfolioId)
+            .select(PositionsTable.bookId)
             .withDistinct()
-            .map { BookId(it[PositionsTable.portfolioId]) }
+            .map { BookId(it[PositionsTable.bookId]) }
     }
 
     private fun ResultRow.toPosition(): Position = Position(
-        bookId = BookId(this[PositionsTable.portfolioId]),
+        bookId = BookId(this[PositionsTable.bookId]),
         instrumentId = InstrumentId(this[PositionsTable.instrumentId]),
         assetClass = AssetClass.valueOf(this[PositionsTable.assetClass]),
         quantity = this[PositionsTable.quantity],

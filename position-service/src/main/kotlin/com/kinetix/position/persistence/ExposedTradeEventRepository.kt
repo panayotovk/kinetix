@@ -17,7 +17,7 @@ class ExposedTradeEventRepository(private val db: Database? = null) : TradeEvent
     override suspend fun save(trade: Trade): Unit = newSuspendedTransaction(db = db) {
         TradeEventsTable.insert {
             it[tradeId] = trade.tradeId.value
-            it[portfolioId] = trade.bookId.value
+            it[bookId] = trade.bookId.value
             it[instrumentId] = trade.instrumentId.value
             it[assetClass] = trade.assetClass.name
             it[side] = trade.side.name
@@ -42,10 +42,10 @@ class ExposedTradeEventRepository(private val db: Database? = null) : TradeEvent
             ?.toTrade()
     }
 
-    override suspend fun findByBookId(portfolioId: BookId): List<Trade> = newSuspendedTransaction(db = db) {
+    override suspend fun findByBookId(bookId: BookId): List<Trade> = newSuspendedTransaction(db = db) {
         TradeEventsTable
             .selectAll()
-            .where { TradeEventsTable.portfolioId eq portfolioId.value }
+            .where { TradeEventsTable.bookId eq bookId.value }
             .orderBy(TradeEventsTable.tradedAt)
             .map { it.toTrade() }
     }
@@ -65,7 +65,7 @@ class ExposedTradeEventRepository(private val db: Database? = null) : TradeEvent
 
     private fun ResultRow.toTrade(): Trade = Trade(
         tradeId = TradeId(this[TradeEventsTable.tradeId]),
-        bookId = BookId(this[TradeEventsTable.portfolioId]),
+        bookId = BookId(this[TradeEventsTable.bookId]),
         instrumentId = InstrumentId(this[TradeEventsTable.instrumentId]),
         assetClass = AssetClass.valueOf(this[TradeEventsTable.assetClass]),
         side = Side.valueOf(this[TradeEventsTable.side]),

@@ -15,8 +15,8 @@ class TradeLifecycleService(
     private val logger = LoggerFactory.getLogger(TradeLifecycleService::class.java)
 
     suspend fun handleAmend(command: AmendTradeCommand): BookTradeResult {
-        logger.info("Amending trade: originalTradeId={}, newTradeId={}, portfolio={}",
-            command.originalTradeId.value, command.newTradeId.value, command.portfolioId.value)
+        logger.info("Amending trade: originalTradeId={}, newTradeId={}, book={}",
+            command.originalTradeId.value, command.newTradeId.value, command.bookId.value)
 
         val originalTrade = tradeEventRepository.findByTradeId(command.originalTradeId)
             ?: throw IllegalArgumentException("Trade not found: ${command.originalTradeId.value}")
@@ -35,7 +35,7 @@ class TradeLifecycleService(
 
             val amendTrade = Trade(
                 tradeId = command.newTradeId,
-                bookId = command.portfolioId,
+                bookId = command.bookId,
                 instrumentId = command.instrumentId,
                 assetClass = command.assetClass,
                 side = command.side,

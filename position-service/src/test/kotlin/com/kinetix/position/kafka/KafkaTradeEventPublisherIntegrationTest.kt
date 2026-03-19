@@ -15,7 +15,7 @@ private val USD = Currency.getInstance("USD")
 
 private fun trade(
     tradeId: String = "t-1",
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     instrumentId: String = "AAPL",
     assetClass: AssetClass = AssetClass.EQUITY,
     side: Side = Side.BUY,
@@ -24,7 +24,7 @@ private fun trade(
     tradedAt: Instant = Instant.parse("2025-01-15T10:00:00Z"),
 ) = Trade(
     tradeId = TradeId(tradeId),
-    bookId = BookId(portfolioId),
+    bookId = BookId(bookId),
     instrumentId = InstrumentId(instrumentId),
     assetClass = assetClass,
     side = side,
@@ -68,13 +68,13 @@ class KafkaTradeEventPublisherIntegrationTest : FunSpec({
         producer.close()
     }
 
-    test("uses portfolioId as partition key for ordering guarantee") {
+    test("uses bookId as partition key for ordering guarantee") {
         val topic = "trades.lifecycle.ordering-test"
         val producer = KafkaTestSetup.createProducer(bootstrapServers)
         val publisher = KafkaTradeEventPublisher(producer, topic)
 
-        publisher.publish(TradeEvent(trade = trade(tradeId = "t-ord-1", portfolioId = "port-A")))
-        publisher.publish(TradeEvent(trade = trade(tradeId = "t-ord-2", portfolioId = "port-A")))
+        publisher.publish(TradeEvent(trade = trade(tradeId = "t-ord-1", bookId = "port-A")))
+        publisher.publish(TradeEvent(trade = trade(tradeId = "t-ord-2", bookId = "port-A")))
 
         val consumer = KafkaTestSetup.createConsumer(bootstrapServers, "ordering-test-group")
         consumer.subscribe(listOf(topic))
@@ -83,7 +83,7 @@ class KafkaTradeEventPublisherIntegrationTest : FunSpec({
         records.count() shouldBe 2
 
         val partitions = records.map { it.partition() }.toSet()
-        partitions.size shouldBe 1 // same portfolio → same partition
+        partitions.size shouldBe 1 // same book → same partition
 
         val events = records.map { Json.decodeFromString<TradeEventMessage>(it.value()) }
         events[0].tradeId shouldBe "t-ord-1"

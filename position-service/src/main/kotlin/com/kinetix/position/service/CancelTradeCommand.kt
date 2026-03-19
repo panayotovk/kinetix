@@ -5,5 +5,5 @@ import com.kinetix.common.model.TradeId
 
 data class CancelTradeCommand(
     val tradeId: TradeId,
-    val portfolioId: BookId,
+    val bookId: BookId,
 )

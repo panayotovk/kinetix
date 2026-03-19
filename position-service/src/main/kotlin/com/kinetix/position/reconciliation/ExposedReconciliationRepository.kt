@@ -11,17 +11,17 @@ class ExposedReconciliationRepository(private val db: Database? = null) : Reconc
             val rows = mutableListOf<PositionQuantity>()
             exec(
                 """
-                SELECT portfolio_id, instrument_id,
+                SELECT book_id, instrument_id,
                        SUM(CASE WHEN side = 'BUY' THEN quantity ELSE -quantity END) AS net_quantity
                 FROM trade_events
                 WHERE status = 'LIVE'
-                GROUP BY portfolio_id, instrument_id
+                GROUP BY book_id, instrument_id
                 """.trimIndent()
             ) { rs ->
                 while (rs.next()) {
                     rows.add(
                         PositionQuantity(
-                            portfolioId = rs.getString("portfolio_id"),
+                            bookId = rs.getString("book_id"),
                             instrumentId = rs.getString("instrument_id"),
                             quantity = rs.getBigDecimal("net_quantity"),
                         )
@@ -36,14 +36,14 @@ class ExposedReconciliationRepository(private val db: Database? = null) : Reconc
             val rows = mutableListOf<PositionQuantity>()
             exec(
                 """
-                SELECT portfolio_id, instrument_id, quantity
+                SELECT book_id, instrument_id, quantity
                 FROM positions
                 """.trimIndent()
             ) { rs ->
                 while (rs.next()) {
                     rows.add(
                         PositionQuantity(
-                            portfolioId = rs.getString("portfolio_id"),
+                            bookId = rs.getString("book_id"),
                             instrumentId = rs.getString("instrument_id"),
                             quantity = rs.getBigDecimal("quantity"),
                         )

@@ -29,8 +29,8 @@ fun Route.counterpartyRoutes(counterpartyExposureService: CounterpartyExposureSe
         summary = "Get counterparty exposure aggregation"
         tags = listOf("Counterparty Risk")
         request {
-            queryParameter<String>("portfolioId") {
-                description = "Portfolio identifier"
+            queryParameter<String>("bookId") {
+                description = "Book identifier"
                 required = true
             }
         }
@@ -38,9 +38,9 @@ fun Route.counterpartyRoutes(counterpartyExposureService: CounterpartyExposureSe
             code(HttpStatusCode.OK) { body<List<CounterpartyExposureResponse>>() }
         }
     }) {
-        val portfolioId = call.request.queryParameters["portfolioId"]
-            ?: throw IllegalArgumentException("Missing required query parameter: portfolioId")
-        val exposures = counterpartyExposureService.getExposures(BookId(portfolioId))
+        val bookId = call.request.queryParameters["bookId"]
+            ?: throw IllegalArgumentException("Missing required query parameter: bookId")
+        val exposures = counterpartyExposureService.getExposures(BookId(bookId))
         call.respond(exposures.map { it.toResponse() })
     }
 }

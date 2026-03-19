@@ -28,12 +28,12 @@ data class MoneyDto(
 
 @Serializable
 data class PortfolioSummaryResponse(
-    val portfolioId: String,
+    val bookId: String,
 )
 
 @Serializable
 data class PositionResponse(
-    val portfolioId: String,
+    val bookId: String,
     val instrumentId: String,
     val assetClass: String,
     val quantity: String,
@@ -47,7 +47,7 @@ data class PositionResponse(
 @Serializable
 data class TradeResponse(
     val tradeId: String,
-    val portfolioId: String,
+    val bookId: String,
     val instrumentId: String,
     val assetClass: String,
     val side: String,
@@ -123,7 +123,7 @@ data class CurrencyExposureDto(
 
 @Serializable
 data class PortfolioAggregationResponse(
-    val portfolioId: String,
+    val bookId: String,
     val baseCurrency: String,
     val totalNav: MoneyDto,
     val totalUnrealizedPnl: MoneyDto,
@@ -135,7 +135,7 @@ data class PortfolioAggregationResponse(
 private fun Money.toDto() = MoneyDto(amount.toPlainString(), currency.currencyCode)
 
 private fun Position.toResponse() = PositionResponse(
-    portfolioId = bookId.value,
+    bookId = bookId.value,
     instrumentId = instrumentId.value,
     assetClass = assetClass.name,
     quantity = quantity.toPlainString(),
@@ -148,7 +148,7 @@ private fun Position.toResponse() = PositionResponse(
 
 private fun Trade.toResponse() = TradeResponse(
     tradeId = tradeId.value,
-    portfolioId = bookId.value,
+    bookId = bookId.value,
     instrumentId = instrumentId.value,
     assetClass = assetClass.name,
     side = side.name,
@@ -176,7 +176,7 @@ private fun com.kinetix.position.model.CurrencyExposure.toDto() = CurrencyExposu
 )
 
 private fun com.kinetix.position.model.PortfolioSummary.toResponse() = PortfolioAggregationResponse(
-    portfolioId = portfolioId.value,
+    bookId = bookId.value,
     baseCurrency = baseCurrency.currencyCode,
     totalNav = totalNav.toDto(),
     totalUnrealizedPnl = totalUnrealizedPnl.toDto(),
@@ -202,8 +202,8 @@ fun Route.positionRoutes(
                 code(HttpStatusCode.OK) { body<List<PortfolioSummaryResponse>>() }
             }
         }) {
-            val portfolioIds = positionRepository.findDistinctBookIds()
-            call.respond(portfolioIds.map { PortfolioSummaryResponse(it.value) })
+            val bookIds = positionRepository.findDistinctBookIds()
+            call.respond(bookIds.map { PortfolioSummaryResponse(it.value) })
         }
 
         route("/{bookId}") {
@@ -219,8 +219,8 @@ fun Route.positionRoutes(
                         code(HttpStatusCode.OK) { body<List<TradeResponse>>() }
                     }
                 }) {
-                    val portfolioId = BookId(call.requirePathParam("bookId"))
-                    val trades = tradeEventRepository.findByBookId(portfolioId)
+                    val bookId = BookId(call.requirePathParam("bookId"))
+                    val trades = tradeEventRepository.findByBookId(bookId)
                     call.respond(trades.map { it.toResponse() })
                 }
 
@@ -237,7 +237,7 @@ fun Route.positionRoutes(
                         code(HttpStatusCode.UnprocessableEntity) { body<LimitBreachResponse>() }
                     }
                 }) {
-                    val portfolioId = BookId(call.requirePathParam("bookId"))
+                    val bookId = BookId(call.requirePathParam("bookId"))
                     val request = call.receive<BookTradeRequest>()
                     val qty = BigDecimal(request.quantity)
                     require(qty > BigDecimal.ZERO) { "Trade quantity must be positive, was $qty" }
@@ -245,7 +245,7 @@ fun Route.positionRoutes(
                     require(priceAmt >= BigDecimal.ZERO) { "Trade price must be non-negative, was $priceAmt" }
                     val command = BookTradeCommand(
                         tradeId = TradeId(request.tradeId ?: UUID.randomUUID().toString()),
-                        portfolioId = portfolioId,
+                        bookId = bookId,
                         instrumentId = InstrumentId(request.instrumentId),
                         assetClass = AssetClass.valueOf(request.assetClass),
                         side = Side.valueOf(request.side),
@@ -288,8 +288,8 @@ fun Route.positionRoutes(
                         code(HttpStatusCode.OK) { body<List<PositionResponse>>() }
                     }
                 }) {
-                    val portfolioId = BookId(call.requirePathParam("bookId"))
-                    val positions = positionQueryService.handle(GetPositionsQuery(portfolioId))
+                    val bookId = BookId(call.requirePathParam("bookId"))
+                    val positions = positionQueryService.handle(GetPositionsQuery(bookId))
                     call.respond(positions.map { it.toResponse() })
                 }
             }
@@ -309,11 +309,11 @@ fun Route.positionRoutes(
                         code(HttpStatusCode.OK) { body<PortfolioAggregationResponse>() }
                     }
                 }) {
-                    val portfolioId = BookId(call.requirePathParam("bookId"))
+                    val bookId = BookId(call.requirePathParam("bookId"))
                     val baseCurrency = call.request.queryParameters["baseCurrency"]
                         ?.let { Currency.getInstance(it) }
                         ?: Currency.getInstance("USD")
-                    val summary = portfolioAggregationService.aggregate(portfolioId, baseCurrency)
+                    val summary = portfolioAggregationService.aggregate(bookId, baseCurrency)
                     call.respond(summary.toResponse())
                 }
             }
@@ -332,7 +332,7 @@ fun Route.positionRoutes(
                         code(HttpStatusCode.BadRequest) { body<ErrorResponse>() }
                     }
                 }) {
-                    val portfolioId = BookId(call.requirePathParam("bookId"))
+                    val bookId = BookId(call.requirePathParam("bookId"))
                     val tradeId = TradeId(call.requirePathParam("tradeId"))
                     val request = call.receive<AmendTradeRequest>()
                     val qty = BigDecimal(request.quantity)
@@ -342,7 +342,7 @@ fun Route.positionRoutes(
                     val command = AmendTradeCommand(
                         originalTradeId = tradeId,
                         newTradeId = TradeId(request.newTradeId ?: UUID.randomUUID().toString()),
-                        portfolioId = portfolioId,
+                        bookId = bookId,
                         instrumentId = InstrumentId(request.instrumentId),
                         assetClass = AssetClass.valueOf(request.assetClass),
                         side = Side.valueOf(request.side),
@@ -372,11 +372,11 @@ fun Route.positionRoutes(
                         code(HttpStatusCode.BadRequest) { body<ErrorResponse>() }
                     }
                 }) {
-                    val portfolioId = BookId(call.requirePathParam("bookId"))
+                    val bookId = BookId(call.requirePathParam("bookId"))
                     val tradeId = TradeId(call.requirePathParam("tradeId"))
                     val command = CancelTradeCommand(
                         tradeId = tradeId,
-                        portfolioId = portfolioId,
+                        bookId = bookId,
                     )
                     val result = tradeLifecycleService.handleCancel(command)
                     call.respond(

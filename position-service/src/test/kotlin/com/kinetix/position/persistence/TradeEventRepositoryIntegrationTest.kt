@@ -17,7 +17,7 @@ private val USD = Currency.getInstance("USD")
 
 private fun trade(
     tradeId: String = "t-1",
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     instrumentId: String = "AAPL",
     assetClass: AssetClass = AssetClass.EQUITY,
     side: Side = Side.BUY,
@@ -26,7 +26,7 @@ private fun trade(
     tradedAt: Instant = Instant.parse("2025-01-15T10:00:00Z"),
 ) = Trade(
     tradeId = TradeId(tradeId),
-    bookId = BookId(portfolioId),
+    bookId = BookId(bookId),
     instrumentId = InstrumentId(instrumentId),
     assetClass = assetClass,
     side = side,
@@ -66,9 +66,9 @@ class TradeEventRepositoryIntegrationTest : FunSpec({
     }
 
     test("findByBookId returns all trades for portfolio") {
-        repository.save(trade(tradeId = "t-1", portfolioId = "port-1", instrumentId = "AAPL"))
-        repository.save(trade(tradeId = "t-2", portfolioId = "port-1", instrumentId = "MSFT"))
-        repository.save(trade(tradeId = "t-3", portfolioId = "port-2", instrumentId = "AAPL"))
+        repository.save(trade(tradeId = "t-1", bookId = "port-1", instrumentId = "AAPL"))
+        repository.save(trade(tradeId = "t-2", bookId = "port-1", instrumentId = "MSFT"))
+        repository.save(trade(tradeId = "t-3", bookId = "port-2", instrumentId = "AAPL"))
 
         val results = repository.findByBookId(BookId("port-1"))
         results shouldHaveSize 2

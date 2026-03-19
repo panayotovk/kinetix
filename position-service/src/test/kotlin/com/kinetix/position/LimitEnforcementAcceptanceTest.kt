@@ -50,7 +50,7 @@ class LimitEnforcementAcceptanceTest : BehaviorSpec({
                     service.handle(
                         BookTradeCommand(
                             tradeId = TradeId("t-notional-1"),
-                            portfolioId = BookId("port-notional-1"),
+                            bookId = BookId("port-notional-1"),
                             instrumentId = InstrumentId("AAPL"),
                             assetClass = AssetClass.EQUITY,
                             side = Side.BUY,
@@ -110,7 +110,7 @@ class LimitEnforcementAcceptanceTest : BehaviorSpec({
                     service.handle(
                         BookTradeCommand(
                             tradeId = TradeId("t-conc-1"),
-                            portfolioId = BookId("port-conc-1"),
+                            bookId = BookId("port-conc-1"),
                             instrumentId = InstrumentId("AAPL"),
                             assetClass = AssetClass.EQUITY,
                             side = Side.BUY,

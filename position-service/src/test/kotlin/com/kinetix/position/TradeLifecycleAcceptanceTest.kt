@@ -47,7 +47,7 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
                 booking.handle(
                     BookTradeCommand(
                         tradeId = TradeId("t-amend-orig"),
-                        portfolioId = BookId("port-amend-1"),
+                        bookId = BookId("port-amend-1"),
                         instrumentId = InstrumentId("AAPL"),
                         assetClass = AssetClass.EQUITY,
                         side = Side.BUY,
@@ -60,7 +60,7 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
                     AmendTradeCommand(
                         originalTradeId = TradeId("t-amend-orig"),
                         newTradeId = TradeId("t-amend-new"),
-                        portfolioId = BookId("port-amend-1"),
+                        bookId = BookId("port-amend-1"),
                         instrumentId = InstrumentId("AAPL"),
                         assetClass = AssetClass.EQUITY,
                         side = Side.BUY,
@@ -98,7 +98,7 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
                 booking.handle(
                     BookTradeCommand(
                         tradeId = TradeId("t-cancel-1"),
-                        portfolioId = BookId("port-cancel-1"),
+                        bookId = BookId("port-cancel-1"),
                         instrumentId = InstrumentId("AAPL"),
                         assetClass = AssetClass.EQUITY,
                         side = Side.BUY,
@@ -132,7 +132,7 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
                 booking.handle(
                     BookTradeCommand(
                         tradeId = TradeId("t-pnl-buy"),
-                        portfolioId = BookId("port-pnl-1"),
+                        bookId = BookId("port-pnl-1"),
                         instrumentId = InstrumentId("AAPL"),
                         assetClass = AssetClass.EQUITY,
                         side = Side.BUY,
@@ -144,7 +144,7 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
                 booking.handle(
                     BookTradeCommand(
                         tradeId = TradeId("t-pnl-sell"),
-                        portfolioId = BookId("port-pnl-1"),
+                        bookId = BookId("port-pnl-1"),
                         instrumentId = InstrumentId("AAPL"),
                         assetClass = AssetClass.EQUITY,
                         side = Side.SELL,

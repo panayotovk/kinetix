@@ -25,8 +25,8 @@ class PositionReconciliationJob(
             val tradeQuantities = reconciliationRepository.findTradeQuantityByPosition()
             val positionQuantities = reconciliationRepository.findCurrentPositionQuantities()
 
-            val tradeMap = tradeQuantities.associateBy { it.portfolioId to it.instrumentId }
-            val positionMap = positionQuantities.associateBy { it.portfolioId to it.instrumentId }
+            val tradeMap = tradeQuantities.associateBy { it.bookId to it.instrumentId }
+            val positionMap = positionQuantities.associateBy { it.bookId to it.instrumentId }
 
             val allKeys = tradeMap.keys + positionMap.keys
 
@@ -38,7 +38,7 @@ class PositionReconciliationJob(
                 if (tradeQty.compareTo(positionQty) != 0) {
                     discrepancyCount++
                     logger.warn(
-                        "Reconciliation mismatch: portfolio={} instrument={} tradeQty={} positionQty={}",
+                        "Reconciliation mismatch: book={} instrument={} tradeQty={} positionQty={}",
                         key.first, key.second, tradeQty, positionQty,
                     )
                 }

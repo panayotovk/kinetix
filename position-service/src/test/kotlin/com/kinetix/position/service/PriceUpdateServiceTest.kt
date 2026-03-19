@@ -16,14 +16,14 @@ private fun usd(amount: String) = Money(BigDecimal(amount), USD)
 private fun eur(amount: String) = Money(BigDecimal(amount), EUR)
 
 private fun position(
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     instrumentId: InstrumentId = AAPL,
     assetClass: AssetClass = AssetClass.EQUITY,
     quantity: String = "100",
     averageCost: Money = usd("150.00"),
     marketPrice: Money = usd("155.00"),
 ) = Position(
-    bookId = BookId(portfolioId),
+    bookId = BookId(bookId),
     instrumentId = instrumentId,
     assetClass = assetClass,
     quantity = BigDecimal(quantity),
@@ -41,8 +41,8 @@ class PriceUpdateServiceTest : FunSpec({
     }
 
     test("updates market price for all positions holding the instrument") {
-        val pos1 = position(portfolioId = "port-1")
-        val pos2 = position(portfolioId = "port-2")
+        val pos1 = position(bookId = "port-1")
+        val pos2 = position(bookId = "port-2")
         coEvery { positionRepo.findByInstrumentId(AAPL) } returns listOf(pos1, pos2)
         coEvery { positionRepo.save(any()) } just runs
 
@@ -62,8 +62,8 @@ class PriceUpdateServiceTest : FunSpec({
     }
 
     test("skips positions with currency mismatch") {
-        val usdPosition = position(portfolioId = "port-1", averageCost = usd("150.00"), marketPrice = usd("155.00"))
-        val eurPosition = position(portfolioId = "port-2", averageCost = eur("130.00"), marketPrice = eur("135.00"))
+        val usdPosition = position(bookId = "port-1", averageCost = usd("150.00"), marketPrice = usd("155.00"))
+        val eurPosition = position(bookId = "port-2", averageCost = eur("130.00"), marketPrice = eur("135.00"))
         coEvery { positionRepo.findByInstrumentId(AAPL) } returns listOf(usdPosition, eurPosition)
         coEvery { positionRepo.save(any()) } just runs
 
@@ -74,7 +74,7 @@ class PriceUpdateServiceTest : FunSpec({
     }
 
     test("saves each updated position with new market price") {
-        val pos = position(portfolioId = "port-1", marketPrice = usd("155.00"))
+        val pos = position(bookId = "port-1", marketPrice = usd("155.00"))
         coEvery { positionRepo.findByInstrumentId(AAPL) } returns listOf(pos)
         val savedPosition = slot<Position>()
         coEvery { positionRepo.save(capture(savedPosition)) } just runs

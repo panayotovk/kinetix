@@ -14,10 +14,10 @@ class PortfolioAggregationService(
     private val fxRateProvider: FxRateProvider,
 ) {
     suspend fun aggregate(
-        portfolioId: BookId,
+        bookId: BookId,
         baseCurrency: Currency = Currency.getInstance("USD"),
     ): PortfolioSummary {
-        val positions = positionRepository.findByBookId(portfolioId)
+        val positions = positionRepository.findByBookId(bookId)
 
         val byCurrency = positions.groupBy { it.currency }
 
@@ -53,7 +53,7 @@ class PortfolioAggregationService(
         }
 
         return PortfolioSummary(
-            portfolioId = portfolioId,
+            bookId = bookId,
             baseCurrency = baseCurrency,
             totalNav = Money(totalNavAmount, baseCurrency),
             totalUnrealizedPnl = Money(totalPnlAmount, baseCurrency),

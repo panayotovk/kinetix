@@ -19,7 +19,7 @@ private fun usd(amount: String) = Money(BigDecimal(amount), USD)
 
 private fun command(
     tradeId: String = "t-1",
-    portfolioId: BookId = PORTFOLIO,
+    bookId: BookId = PORTFOLIO,
     instrumentId: InstrumentId = AAPL,
     assetClass: AssetClass = AssetClass.EQUITY,
     side: Side = Side.BUY,
@@ -28,7 +28,7 @@ private fun command(
     tradedAt: Instant = Instant.parse("2025-01-15T10:00:00Z"),
 ) = BookTradeCommand(
     tradeId = TradeId(tradeId),
-    portfolioId = portfolioId,
+    bookId = bookId,
     instrumentId = instrumentId,
     assetClass = assetClass,
     side = side,
@@ -38,14 +38,14 @@ private fun command(
 )
 
 private fun position(
-    portfolioId: BookId = PORTFOLIO,
+    bookId: BookId = PORTFOLIO,
     instrumentId: InstrumentId = AAPL,
     assetClass: AssetClass = AssetClass.EQUITY,
     quantity: String = "100",
     averageCost: String = "150.00",
     marketPrice: String = "155.00",
 ) = Position(
-    bookId = portfolioId,
+    bookId = bookId,
     instrumentId = instrumentId,
     assetClass = assetClass,
     quantity = BigDecimal(quantity),

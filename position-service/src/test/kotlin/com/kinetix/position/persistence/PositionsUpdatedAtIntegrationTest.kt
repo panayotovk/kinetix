@@ -11,7 +11,7 @@ class PositionsUpdatedAtIntegrationTest : FunSpec({
 
     beforeEach {
         transaction(db) {
-            exec("DELETE FROM positions WHERE portfolio_id = 'upd-port-1'")
+            exec("DELETE FROM positions WHERE book_id = 'upd-port-1'")
         }
     }
 
@@ -20,7 +20,7 @@ class PositionsUpdatedAtIntegrationTest : FunSpec({
             exec(
                 """
                 INSERT INTO positions (
-                    portfolio_id, instrument_id, asset_class, quantity,
+                    book_id, instrument_id, asset_class, quantity,
                     avg_cost_amount, market_price_amount, currency, updated_at,
                     realized_pnl_amount
                 ) VALUES (
@@ -34,7 +34,7 @@ class PositionsUpdatedAtIntegrationTest : FunSpec({
 
         var updatedAtBefore: String? = null
         transaction(db) {
-            exec("SELECT updated_at FROM positions WHERE portfolio_id = 'upd-port-1' AND instrument_id = 'AAPL'") { rs ->
+            exec("SELECT updated_at FROM positions WHERE book_id = 'upd-port-1' AND instrument_id = 'AAPL'") { rs ->
                 if (rs.next()) updatedAtBefore = rs.getString("updated_at")
             }
         }
@@ -42,12 +42,12 @@ class PositionsUpdatedAtIntegrationTest : FunSpec({
         delay(50)
 
         transaction(db) {
-            exec("UPDATE positions SET quantity = 200.00 WHERE portfolio_id = 'upd-port-1' AND instrument_id = 'AAPL'")
+            exec("UPDATE positions SET quantity = 200.00 WHERE book_id = 'upd-port-1' AND instrument_id = 'AAPL'")
         }
 
         var updatedAtAfter: String? = null
         transaction(db) {
-            exec("SELECT updated_at FROM positions WHERE portfolio_id = 'upd-port-1' AND instrument_id = 'AAPL'") { rs ->
+            exec("SELECT updated_at FROM positions WHERE book_id = 'upd-port-1' AND instrument_id = 'AAPL'") { rs ->
                 if (rs.next()) updatedAtAfter = rs.getString("updated_at")
             }
         }

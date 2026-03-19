@@ -20,7 +20,7 @@ private fun usd(amount: String) = Money(BigDecimal(amount), USD)
 
 private fun trade(
     tradeId: String = "t-1",
-    portfolioId: BookId = PORTFOLIO,
+    bookId: BookId = PORTFOLIO,
     instrumentId: InstrumentId = AAPL,
     assetClass: AssetClass = AssetClass.EQUITY,
     side: Side = Side.BUY,
@@ -32,7 +32,7 @@ private fun trade(
     originalTradeId: TradeId? = null,
 ) = Trade(
     tradeId = TradeId(tradeId),
-    bookId = portfolioId,
+    bookId = bookId,
     instrumentId = instrumentId,
     assetClass = assetClass,
     side = side,
@@ -45,7 +45,7 @@ private fun trade(
 )
 
 private fun position(
-    portfolioId: BookId = PORTFOLIO,
+    bookId: BookId = PORTFOLIO,
     instrumentId: InstrumentId = AAPL,
     assetClass: AssetClass = AssetClass.EQUITY,
     quantity: String = "100",
@@ -53,7 +53,7 @@ private fun position(
     marketPrice: String = "155.00",
     realizedPnl: String = "0",
 ) = Position(
-    bookId = portfolioId,
+    bookId = bookId,
     instrumentId = instrumentId,
     assetClass = assetClass,
     quantity = BigDecimal(quantity),
@@ -91,7 +91,7 @@ class TradeLifecycleServiceTest : FunSpec({
         val command = AmendTradeCommand(
             originalTradeId = TradeId("t-1"),
             newTradeId = TradeId("t-1-amend"),
-            portfolioId = PORTFOLIO,
+            bookId = PORTFOLIO,
             instrumentId = AAPL,
             assetClass = AssetClass.EQUITY,
             side = Side.BUY,
@@ -123,7 +123,7 @@ class TradeLifecycleServiceTest : FunSpec({
         val command = AmendTradeCommand(
             originalTradeId = TradeId("t-1"),
             newTradeId = TradeId("t-1-amend"),
-            portfolioId = PORTFOLIO,
+            bookId = PORTFOLIO,
             instrumentId = AAPL,
             assetClass = AssetClass.EQUITY,
             side = Side.BUY,
@@ -148,7 +148,7 @@ class TradeLifecycleServiceTest : FunSpec({
 
         val command = CancelTradeCommand(
             tradeId = TradeId("t-1"),
-            portfolioId = PORTFOLIO,
+            bookId = PORTFOLIO,
         )
 
         val result = service.handleCancel(command)
@@ -168,7 +168,7 @@ class TradeLifecycleServiceTest : FunSpec({
 
         val command = CancelTradeCommand(
             tradeId = TradeId("t-1"),
-            portfolioId = PORTFOLIO,
+            bookId = PORTFOLIO,
         )
 
         service.handleCancel(command)
@@ -183,7 +183,7 @@ class TradeLifecycleServiceTest : FunSpec({
 
         val command = CancelTradeCommand(
             tradeId = TradeId("t-1"),
-            portfolioId = PORTFOLIO,
+            bookId = PORTFOLIO,
         )
 
         shouldThrow<InvalidTradeStateException> {
@@ -199,7 +199,7 @@ class TradeLifecycleServiceTest : FunSpec({
         val command = AmendTradeCommand(
             originalTradeId = TradeId("t-1"),
             newTradeId = TradeId("t-1-amend"),
-            portfolioId = PORTFOLIO,
+            bookId = PORTFOLIO,
             instrumentId = AAPL,
             assetClass = AssetClass.EQUITY,
             side = Side.BUY,
@@ -218,7 +218,7 @@ class TradeLifecycleServiceTest : FunSpec({
 
         val command = CancelTradeCommand(
             tradeId = TradeId("unknown"),
-            portfolioId = PORTFOLIO,
+            bookId = PORTFOLIO,
         )
 
         shouldThrow<IllegalArgumentException> {
@@ -239,7 +239,7 @@ class TradeLifecycleServiceTest : FunSpec({
         val command = AmendTradeCommand(
             originalTradeId = TradeId("t-1"),
             newTradeId = TradeId("t-1-amend"),
-            portfolioId = PORTFOLIO,
+            bookId = PORTFOLIO,
             instrumentId = AAPL,
             assetClass = AssetClass.EQUITY,
             side = Side.BUY,
@@ -264,7 +264,7 @@ class TradeLifecycleServiceTest : FunSpec({
 
         val command = CancelTradeCommand(
             tradeId = TradeId("t-1"),
-            portfolioId = PORTFOLIO,
+            bookId = PORTFOLIO,
         )
 
         service.handleCancel(command)

@@ -9,7 +9,7 @@ import java.time.Instant
 interface TradeEventRepository {
     suspend fun save(trade: Trade)
     suspend fun findByTradeId(tradeId: TradeId): Trade?
-    suspend fun findByBookId(portfolioId: BookId): List<Trade>
+    suspend fun findByBookId(bookId: BookId): List<Trade>
     suspend fun updateStatus(tradeId: TradeId, status: TradeStatus)
     suspend fun countSince(since: Instant): Long
 }

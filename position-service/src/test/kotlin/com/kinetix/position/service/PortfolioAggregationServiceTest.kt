@@ -97,7 +97,7 @@ class PortfolioAggregationServiceTest : FunSpec({
         // BP: 300 * 6 = 1800 GBP * 1.25 = 2250 USD
         summary.totalNav shouldBe money("38050.00", USD)
         summary.baseCurrency shouldBe USD
-        summary.portfolioId shouldBe PORTFOLIO
+        summary.bookId shouldBe PORTFOLIO
     }
 
     test("should return per-currency breakdown") {

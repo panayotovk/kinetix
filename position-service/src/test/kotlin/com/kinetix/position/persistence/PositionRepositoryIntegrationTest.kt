@@ -19,14 +19,14 @@ private val MSFT = InstrumentId("MSFT")
 private fun usd(amount: String) = Money(BigDecimal(amount), USD)
 
 private fun position(
-    portfolioId: BookId = PORTFOLIO,
+    bookId: BookId = PORTFOLIO,
     instrumentId: InstrumentId = AAPL,
     assetClass: AssetClass = AssetClass.EQUITY,
     quantity: String = "100",
     averageCost: String = "150.00",
     marketPrice: String = "155.00",
 ) = Position(
-    bookId = portfolioId,
+    bookId = bookId,
     instrumentId = instrumentId,
     assetClass = assetClass,
     quantity = BigDecimal(quantity),
@@ -78,7 +78,7 @@ class PositionRepositoryIntegrationTest : FunSpec({
     test("findByBookId returns all positions for portfolio") {
         repository.save(position(instrumentId = AAPL))
         repository.save(position(instrumentId = MSFT, averageCost = "300.00", marketPrice = "310.00"))
-        repository.save(position(portfolioId = BookId("port-2"), instrumentId = AAPL))
+        repository.save(position(bookId = BookId("port-2"), instrumentId = AAPL))
 
         val results = repository.findByBookId(PORTFOLIO)
         results shouldHaveSize 2
@@ -108,9 +108,9 @@ class PositionRepositoryIntegrationTest : FunSpec({
     }
 
     test("findByInstrumentId returns all positions across portfolios") {
-        repository.save(position(portfolioId = BookId("port-1"), instrumentId = AAPL))
-        repository.save(position(portfolioId = BookId("port-2"), instrumentId = AAPL))
-        repository.save(position(portfolioId = BookId("port-1"), instrumentId = MSFT))
+        repository.save(position(bookId = BookId("port-1"), instrumentId = AAPL))
+        repository.save(position(bookId = BookId("port-2"), instrumentId = AAPL))
+        repository.save(position(bookId = BookId("port-1"), instrumentId = MSFT))
 
         val results = repository.findByInstrumentId(AAPL)
         results shouldHaveSize 2

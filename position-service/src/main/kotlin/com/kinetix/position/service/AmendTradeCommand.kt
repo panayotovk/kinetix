@@ -7,7 +7,7 @@ import java.time.Instant
 data class AmendTradeCommand(
     val originalTradeId: TradeId,
     val newTradeId: TradeId,
-    val portfolioId: BookId,
+    val bookId: BookId,
     val instrumentId: InstrumentId,
     val assetClass: AssetClass,
     val side: Side,

@@ -11,8 +11,8 @@ import java.math.RoundingMode
 class CounterpartyExposureService(
     private val tradeEventRepository: TradeEventRepository,
 ) {
-    suspend fun getExposures(portfolioId: BookId): List<CounterpartyExposure> {
-        val trades = tradeEventRepository.findByBookId(portfolioId)
+    suspend fun getExposures(bookId: BookId): List<CounterpartyExposure> {
+        val trades = tradeEventRepository.findByBookId(bookId)
 
         return trades
             .filter { it.counterpartyId != null }

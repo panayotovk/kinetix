@@ -28,7 +28,7 @@ class DevDataSeederTest : FunSpec({
             BookTradeResult(
                 trade = com.kinetix.common.model.Trade(
                     tradeId = cmd.tradeId,
-                    bookId = cmd.portfolioId,
+                    bookId = cmd.bookId,
                     instrumentId = cmd.instrumentId,
                     assetClass = cmd.assetClass,
                     side = cmd.side,
@@ -36,7 +36,7 @@ class DevDataSeederTest : FunSpec({
                     price = cmd.price,
                     tradedAt = cmd.tradedAt,
                 ),
-                position = Position.empty(cmd.portfolioId, cmd.instrumentId, cmd.assetClass, cmd.price.currency),
+                position = Position.empty(cmd.bookId, cmd.instrumentId, cmd.assetClass, cmd.price.currency),
             )
         }
         coEvery { positionRepository.findByKey(any(), any()) } returns null
@@ -64,7 +64,7 @@ class DevDataSeederTest : FunSpec({
             BookTradeResult(
                 trade = com.kinetix.common.model.Trade(
                     tradeId = cmd.tradeId,
-                    bookId = cmd.portfolioId,
+                    bookId = cmd.bookId,
                     instrumentId = cmd.instrumentId,
                     assetClass = cmd.assetClass,
                     side = cmd.side,
@@ -72,7 +72,7 @@ class DevDataSeederTest : FunSpec({
                     price = cmd.price,
                     tradedAt = cmd.tradedAt,
                 ),
-                position = Position.empty(cmd.portfolioId, cmd.instrumentId, cmd.assetClass, cmd.price.currency),
+                position = Position.empty(cmd.bookId, cmd.instrumentId, cmd.assetClass, cmd.price.currency),
             )
         }
         coEvery { positionRepository.findByKey(any(), any()) } returns null
@@ -84,7 +84,7 @@ class DevDataSeederTest : FunSpec({
     }
 
     test("trade data has correct number of trades per portfolio") {
-        val tradesByPortfolio = DevDataSeeder.TRADES.groupBy { it.portfolioId.value }
+        val tradesByPortfolio = DevDataSeeder.TRADES.groupBy { it.bookId.value }
         tradesByPortfolio["equity-growth"]!!.size shouldBe 5
         tradesByPortfolio["multi-asset"]!!.size shouldBe 6
         tradesByPortfolio["fixed-income"]!!.size shouldBe 3
@@ -101,7 +101,7 @@ class DevDataSeederTest : FunSpec({
     }
 
     test("market prices cover all positions") {
-        val positionKeys = DevDataSeeder.TRADES.map { Pair(it.portfolioId, it.instrumentId) }.toSet()
+        val positionKeys = DevDataSeeder.TRADES.map { Pair(it.bookId, it.instrumentId) }.toSet()
         val marketPriceKeys = DevDataSeeder.MARKET_PRICES.keys
         positionKeys shouldBe marketPriceKeys
     }

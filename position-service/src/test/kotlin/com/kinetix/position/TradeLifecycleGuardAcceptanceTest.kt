@@ -45,7 +45,7 @@ class TradeLifecycleGuardAcceptanceTest : FunSpec({
         booking.handle(
             BookTradeCommand(
                 tradeId = TradeId("t-cancel-twice"),
-                portfolioId = BookId("port-cancel-2"),
+                bookId = BookId("port-cancel-2"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -75,7 +75,7 @@ class TradeLifecycleGuardAcceptanceTest : FunSpec({
         booking.handle(
             BookTradeCommand(
                 tradeId = TradeId("t-amend-cancelled"),
-                portfolioId = BookId("port-amend-cancel-1"),
+                bookId = BookId("port-amend-cancel-1"),
                 instrumentId = InstrumentId("AAPL"),
                 assetClass = AssetClass.EQUITY,
                 side = Side.BUY,
@@ -93,7 +93,7 @@ class TradeLifecycleGuardAcceptanceTest : FunSpec({
                 AmendTradeCommand(
                     originalTradeId = TradeId("t-amend-cancelled"),
                     newTradeId = TradeId("t-amend-cancelled-new"),
-                    portfolioId = BookId("port-amend-cancel-1"),
+                    bookId = BookId("port-amend-cancel-1"),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     side = Side.BUY,

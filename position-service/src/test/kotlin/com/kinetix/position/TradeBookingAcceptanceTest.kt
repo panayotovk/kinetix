@@ -51,7 +51,7 @@ class TradeBookingAcceptanceTest : BehaviorSpec({
                 val result = service.handle(
                     BookTradeCommand(
                         tradeId = TradeId("t-book-1"),
-                        portfolioId = BookId("port-book-1"),
+                        bookId = BookId("port-book-1"),
                         instrumentId = InstrumentId("AAPL"),
                         assetClass = AssetClass.EQUITY,
                         side = Side.BUY,
@@ -91,7 +91,7 @@ class TradeBookingAcceptanceTest : BehaviorSpec({
                     service.handle(
                         BookTradeCommand(
                             tradeId = TradeId("t-hard-1"),
-                            portfolioId = BookId("port-hard-1"),
+                            bookId = BookId("port-hard-1"),
                             instrumentId = InstrumentId("AAPL"),
                             assetClass = AssetClass.EQUITY,
                             side = Side.BUY,
@@ -121,7 +121,7 @@ class TradeBookingAcceptanceTest : BehaviorSpec({
                 TradeBookingService(tradeRepo, positionRepo, transactional, publisher).handle(
                     BookTradeCommand(
                         tradeId = TradeId("t-soft-seed"),
-                        portfolioId = BookId("port-soft-1"),
+                        bookId = BookId("port-soft-1"),
                         instrumentId = InstrumentId("AAPL"),
                         assetClass = AssetClass.EQUITY,
                         side = Side.BUY,
@@ -138,7 +138,7 @@ class TradeBookingAcceptanceTest : BehaviorSpec({
                 val result = service.handle(
                     BookTradeCommand(
                         tradeId = TradeId("t-soft-1"),
-                        portfolioId = BookId("port-soft-1"),
+                        bookId = BookId("port-soft-1"),
                         instrumentId = InstrumentId("AAPL"),
                         assetClass = AssetClass.EQUITY,
                         side = Side.BUY,
@@ -167,7 +167,7 @@ class TradeBookingAcceptanceTest : BehaviorSpec({
 
                 val command = BookTradeCommand(
                     tradeId = TradeId("t-idem-1"),
-                    portfolioId = BookId("port-idem-1"),
+                    bookId = BookId("port-idem-1"),
                     instrumentId = InstrumentId("AAPL"),
                     assetClass = AssetClass.EQUITY,
                     side = Side.BUY,

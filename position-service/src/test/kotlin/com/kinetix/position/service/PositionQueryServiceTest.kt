@@ -18,14 +18,14 @@ private val PORTFOLIO = BookId("port-1")
 private fun usd(amount: String) = Money(BigDecimal(amount), USD)
 
 private fun position(
-    portfolioId: BookId = PORTFOLIO,
+    bookId: BookId = PORTFOLIO,
     instrumentId: String = "AAPL",
     assetClass: AssetClass = AssetClass.EQUITY,
     quantity: String = "100",
     averageCost: String = "150.00",
     marketPrice: String = "155.00",
 ) = Position(
-    bookId = portfolioId,
+    bookId = bookId,
     instrumentId = InstrumentId(instrumentId),
     assetClass = assetClass,
     quantity = BigDecimal(quantity),

@@ -18,7 +18,7 @@ private val USD = Currency.getInstance("USD")
 
 private fun trade(
     tradeId: String = "t-1",
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     instrumentId: String = "AAPL",
     assetClass: AssetClass = AssetClass.EQUITY,
     side: Side = Side.BUY,
@@ -27,7 +27,7 @@ private fun trade(
     counterpartyId: String? = null,
 ) = Trade(
     tradeId = TradeId(tradeId),
-    bookId = BookId(portfolioId),
+    bookId = BookId(bookId),
     instrumentId = InstrumentId(instrumentId),
     assetClass = assetClass,
     side = side,

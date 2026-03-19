@@ -28,7 +28,7 @@ class TradeEventImmutabilityIntegrationTest : FunSpec({
             exec(
                 """
                 INSERT INTO trade_events (
-                    trade_id, portfolio_id, instrument_id, asset_class, side,
+                    trade_id, book_id, instrument_id, asset_class, side,
                     quantity, price_amount, price_currency, traded_at, created_at,
                     event_type, status
                 ) VALUES (

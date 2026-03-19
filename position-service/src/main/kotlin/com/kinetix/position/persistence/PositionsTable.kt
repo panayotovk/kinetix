@@ -4,7 +4,7 @@ import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 
 object PositionsTable : Table("positions") {
-    val portfolioId = varchar("portfolio_id", 255)
+    val bookId = varchar("book_id", 255)
     val instrumentId = varchar("instrument_id", 255)
     val assetClass = varchar("asset_class", 50)
     val quantity = decimal("quantity", 28, 12)
@@ -15,5 +15,5 @@ object PositionsTable : Table("positions") {
     val realizedPnlAmount = decimal("realized_pnl_amount", 28, 12).default(java.math.BigDecimal.ZERO)
     val instrumentType = varchar("instrument_type", 50).default("UNKNOWN")
 
-    override val primaryKey = PrimaryKey(portfolioId, instrumentId)
+    override val primaryKey = PrimaryKey(bookId, instrumentId)
 }

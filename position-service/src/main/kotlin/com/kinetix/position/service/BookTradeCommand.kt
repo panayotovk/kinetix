@@ -11,7 +11,7 @@ import java.time.Instant
 
 data class BookTradeCommand(
     val tradeId: TradeId,
-    val portfolioId: BookId,
+    val bookId: BookId,
     val instrumentId: InstrumentId,
     val assetClass: AssetClass,
     val side: Side,
@@ -37,8 +37,8 @@ class TradeBookingService(
     private val logger = LoggerFactory.getLogger(TradeBookingService::class.java)
 
     suspend fun handle(command: BookTradeCommand): BookTradeResult {
-        logger.info("Booking trade: tradeId={}, portfolio={}, instrument={}, side={}, qty={}, price={}",
-            command.tradeId.value, command.portfolioId.value, command.instrumentId.value,
+        logger.info("Booking trade: tradeId={}, book={}, instrument={}, side={}, qty={}, price={}",
+            command.tradeId.value, command.bookId.value, command.instrumentId.value,
             command.side, command.quantity, command.price.amount)
         val limitResult = limitCheckService?.check(command)
         if (limitResult != null && limitResult.blocked) {
@@ -48,7 +48,7 @@ class TradeBookingService(
 
         val trade = Trade(
             tradeId = command.tradeId,
-            bookId = command.portfolioId,
+            bookId = command.bookId,
             instrumentId = command.instrumentId,
             assetClass = command.assetClass,
             side = command.side,
@@ -79,7 +79,7 @@ class TradeBookingService(
 
         if (isNewTrade) {
             tradeEventPublisher.publish(TradeEvent(trade = result.trade))
-            logger.info("Trade booked: tradeId={}, portfolio={}, newPosition={}",
+            logger.info("Trade booked: tradeId={}, book={}, newPosition={}",
                 result.trade.tradeId.value, result.trade.bookId.value, result.position.quantity)
         }
 

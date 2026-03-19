@@ -25,13 +25,13 @@ private val AAPL = InstrumentId("AAPL")
 private fun usd(amount: String) = Money(BigDecimal(amount), USD)
 
 private fun position(
-    portfolioId: String = "port-1",
+    bookId: String = "port-1",
     instrumentId: InstrumentId = AAPL,
     quantity: String = "100",
     averageCost: String = "150.00",
     marketPrice: String = "155.00",
 ) = Position(
-    bookId = BookId(portfolioId),
+    bookId = BookId(bookId),
     instrumentId = instrumentId,
     assetClass = AssetClass.EQUITY,
     quantity = BigDecimal(quantity),
@@ -53,7 +53,7 @@ class PriceConsumerIntegrationTest : FunSpec({
     }
 
     test("consumes price event and updates position market price") {
-        repository.save(position(portfolioId = "port-1", marketPrice = "155.00"))
+        repository.save(position(bookId = "port-1", marketPrice = "155.00"))
 
         val bootstrapServers = KafkaTestSetup.start()
         val topic = "price.updates.test-1"
@@ -92,8 +92,8 @@ class PriceConsumerIntegrationTest : FunSpec({
     }
 
     test("updates multiple positions across portfolios for same instrument") {
-        repository.save(position(portfolioId = "port-1", marketPrice = "155.00"))
-        repository.save(position(portfolioId = "port-2", marketPrice = "155.00"))
+        repository.save(position(bookId = "port-1", marketPrice = "155.00"))
+        repository.save(position(bookId = "port-2", marketPrice = "155.00"))
 
         val bootstrapServers = KafkaTestSetup.start()
         val topic = "price.updates.test-2"

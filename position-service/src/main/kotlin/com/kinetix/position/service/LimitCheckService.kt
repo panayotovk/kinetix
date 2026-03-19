@@ -22,7 +22,7 @@ class LimitCheckService(
     suspend fun check(command: BookTradeCommand): LimitBreachResult {
         val breaches = mutableListOf<LimitBreach>()
 
-        val currentPosition = positionRepository.findByKey(command.portfolioId, command.instrumentId)
+        val currentPosition = positionRepository.findByKey(command.bookId, command.instrumentId)
         val currentQuantity = currentPosition?.quantity ?: BigDecimal.ZERO
 
         val signedTradeQty = when (command.side) {
@@ -33,7 +33,7 @@ class LimitCheckService(
 
         checkPositionLimit(newQuantity, breaches)
 
-        val portfolioPositions = positionRepository.findByBookId(command.portfolioId)
+        val portfolioPositions = positionRepository.findByBookId(command.bookId)
         val currentPortfolioValue = portfolioPositions.fold(BigDecimal.ZERO) { acc, pos ->
             acc + pos.marketValue.amount.abs()
         }
@@ -50,16 +50,16 @@ class LimitCheckService(
 
         val result = LimitBreachResult(breaches)
         if (result.blocked) {
-            logger.warn("Limit check BLOCKED trade: portfolio={}, instrument={}, breaches={}",
-                command.portfolioId.value, command.instrumentId.value,
+            logger.warn("Limit check BLOCKED trade: book={}, instrument={}, breaches={}",
+                command.bookId.value, command.instrumentId.value,
                 breaches.map { "${it.limitType}:${it.severity}" })
         } else if (breaches.isNotEmpty()) {
-            logger.info("Limit check passed with warnings: portfolio={}, instrument={}, breaches={}",
-                command.portfolioId.value, command.instrumentId.value,
+            logger.info("Limit check passed with warnings: book={}, instrument={}, breaches={}",
+                command.bookId.value, command.instrumentId.value,
                 breaches.map { "${it.limitType}:${it.severity}" })
         } else {
-            logger.debug("Limit check passed: portfolio={}, instrument={}",
-                command.portfolioId.value, command.instrumentId.value)
+            logger.debug("Limit check passed: book={}, instrument={}",
+                command.bookId.value, command.instrumentId.value)
         }
         return result
     }
