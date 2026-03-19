@@ -270,7 +270,7 @@ services:
       SERVICE_NAME: audit-service
       DATABASE_URL: jdbc:postgresql://postgres:5432/kinetix_audit
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      SEED_DATA: "true"
+      SEED_DATA: "true"  # Local dev only — creates synthetic audit records that corrupt hash chain in prod
       OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"
       OTEL_SERVICE_NAME: audit-service
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
