@@ -13,7 +13,7 @@ export interface PositionFixture {
   unrealizedPnl: { amount: string; currency: string }
 }
 
-export const TEST_BOOKS = [{ bookId: 'port-1' }]
+export const TEST_BOOKS = [{ portfolioId: 'port-1' }]
 
 export const TEST_POSITIONS: PositionFixture[] = [
   {
@@ -1116,6 +1116,15 @@ export async function mockRiskTabRoutes(
         })
       }
     }
+  })
+
+  // 12. Cross-book VaR — registered AFTER the generic var/* handler so it takes
+  //     priority for /api/v1/risk/var/cross-book and /api/v1/risk/var/cross-book/*
+  await page.route('**/api/v1/risk/var/cross-book', (route: Route) => {
+    route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
+  })
+  await page.route('**/api/v1/risk/var/cross-book/*', (route: Route) => {
+    route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
   })
 }
 
