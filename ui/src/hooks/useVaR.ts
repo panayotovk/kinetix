@@ -3,6 +3,7 @@ import { fetchVaR, triggerVaRCalculation } from '../api/risk'
 import { fetchChartData } from '../api/jobHistory'
 import type { VaRResultDto, GreeksResultDto, TimeRange } from '../types'
 import { resolveTimeRange } from '../utils/resolveTimeRange'
+import { classifyFetchError } from '../utils/errorClassifier'
 
 export interface VaRHistoryEntry {
   varValue: number
@@ -24,6 +25,7 @@ export interface UseVaRResult {
   historyLoading: boolean
   refreshing: boolean
   error: string | null
+  errorTransient: boolean
   refresh: () => Promise<void>
   timeRange: TimeRange
   setTimeRange: (range: TimeRange) => void
@@ -65,6 +67,7 @@ export function useVaR(bookId: string | null, valuationDate: string | null = nul
   const [historyLoading, setHistoryLoading] = useState(!!bookId)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [errorTransient, setErrorTransient] = useState(false)
   const [timeRange, setTimeRangeInternal] = useState<TimeRange>(defaultTimeRange)
   const [zoomStack, setZoomStack] = useState<TimeRange[]>([])
   const [fetchVersion, setFetchVersion] = useState(0)
@@ -199,6 +202,7 @@ export function useVaR(bookId: string | null, valuationDate: string | null = nul
 
     setRefreshing(true)
     setError(null)
+    setErrorTransient(false)
 
     try {
       const result = await triggerVaRCalculation(bookId, { confidenceLevel: selectedConfidenceLevel })
@@ -221,11 +225,15 @@ export function useVaR(bookId: string | null, valuationDate: string | null = nul
         })
       }
     } catch (err: unknown) {
-      if (err instanceof Error && (err as Error & { status: number }).status === 503) {
+      const status = (err as { status?: number }).status
+      const classified = classifyFetchError(err, status)
+      setErrorTransient(classified.retryable)
+      if (classified.retryable) {
         await new Promise(resolve => setTimeout(resolve, 5000))
         try {
           const retryResult = await triggerVaRCalculation(bookId, { confidenceLevel: selectedConfidenceLevel })
           setVarResult(retryResult)
+          setErrorTransient(false)
 
           if (retryResult) {
             setHistory((prev) => {
@@ -245,10 +253,13 @@ export function useVaR(bookId: string | null, valuationDate: string | null = nul
           }
           return
         } catch (retryErr: unknown) {
-          setError(retryErr instanceof Error ? retryErr.message : 'VaR calculation failed')
+          const retryStatus = (retryErr as { status?: number }).status
+          const retryClassified = classifyFetchError(retryErr, retryStatus)
+          setErrorTransient(retryClassified.retryable)
+          setError(retryClassified.message)
         }
       } else {
-        setError(err instanceof Error ? err.message : String(err))
+        setError(classified.message)
       }
     } finally {
       setRefreshing(false)
@@ -292,5 +303,5 @@ export function useVaR(bookId: string | null, valuationDate: string | null = nul
 
   const greeksResult = varResult?.greeks ?? null
 
-  return { varResult, greeksResult, history, filteredHistory, loading, historyLoading, refreshing, error, refresh, timeRange, setTimeRange, selectedConfidenceLevel, setSelectedConfidenceLevel, zoomIn, resetZoom, zoomDepth: zoomStack.length, isLive }
+  return { varResult, greeksResult, history, filteredHistory, loading, historyLoading, refreshing, error, errorTransient, refresh, timeRange, setTimeRange, selectedConfidenceLevel, setSelectedConfidenceLevel, zoomIn, resetZoom, zoomDepth: zoomStack.length, isLive }
 }
