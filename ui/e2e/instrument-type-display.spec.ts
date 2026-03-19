@@ -100,7 +100,7 @@ test.describe('Position grid instrument type columns', () => {
     await expect(firstRow).toBeVisible()
 
     // Verify instrument type is shown
-    await expect(firstRow).toContainText('CASH EQUITY')
+    await expect(firstRow).toContainText('Cash Equity')
     await expect(firstRow).toContainText('Apple Inc.')
   })
 
@@ -110,7 +110,7 @@ test.describe('Position grid instrument type columns', () => {
 
     const optionRow = page.getByTestId('position-row-AAPL-C-200-20260620')
     await expect(optionRow).toBeVisible()
-    await expect(optionRow).toContainText('EQUITY OPTION')
+    await expect(optionRow).toContainText('Equity Option')
     await expect(optionRow).toContainText('AAPL Call 200 Jun2026')
   })
 
@@ -120,7 +120,7 @@ test.describe('Position grid instrument type columns', () => {
 
     const bondRow = page.getByTestId('position-row-US10Y')
     await expect(bondRow).toBeVisible()
-    await expect(bondRow).toContainText('GOVERNMENT BOND')
+    await expect(bondRow).toContainText('Government Bond')
     await expect(bondRow).toContainText('US 10Y Treasury')
   })
 
@@ -141,7 +141,7 @@ test.describe('Position grid instrument type columns', () => {
 
     // Verify Type column is hidden
     const aapl = page.getByTestId('position-row-AAPL')
-    await expect(aapl).not.toContainText('CASH EQUITY')
+    await expect(aapl).not.toContainText('Cash Equity')
     // But Name column should still be visible
     await expect(aapl).toContainText('Apple Inc.')
   })
@@ -159,7 +159,7 @@ test.describe('Trade blotter instrument type column', () => {
     // Wait for trades to load
     const firstTrade = page.getByTestId('trade-row-trade-1')
     await expect(firstTrade).toBeVisible()
-    await expect(firstTrade).toContainText('CASH EQUITY')
+    await expect(firstTrade).toContainText('Cash Equity')
   })
 
   test('shows option type for option trades', async ({ page }) => {
@@ -171,6 +171,6 @@ test.describe('Trade blotter instrument type column', () => {
 
     const optionTrade = page.getByTestId('trade-row-trade-2')
     await expect(optionTrade).toBeVisible()
-    await expect(optionTrade).toContainText('EQUITY OPTION')
+    await expect(optionTrade).toContainText('Equity Option')
   })
 })

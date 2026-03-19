@@ -26,7 +26,7 @@ test.describe('Position Data Rendering', () => {
     await expect(aaplRow.locator('td').nth(0)).toHaveText('port-1')
     await expect(aaplRow.locator('td').nth(1)).toHaveText('AAPL')
     await expect(aaplRow.locator('td').nth(2)).toHaveText('Apple Inc')
-    await expect(aaplRow.locator('td').nth(3)).toHaveText('STOCK')
+    await expect(aaplRow.locator('td').nth(3)).toHaveText('Stock')
     await expect(aaplRow.locator('td').nth(4)).toHaveText('EQUITY')
 
     const googlRow = page.getByTestId('position-row-GOOGL')
