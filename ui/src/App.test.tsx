@@ -64,10 +64,11 @@ function setupDefaults() {
     bookId: 'book-1',
     books: ['book-1', 'book-2', 'book-3'],
     selectBook,
+    refreshPositions: vi.fn(),
     loading: false,
     error: null,
   })
-  mockUsePriceStream.mockReturnValue({ positions: [position], connected: true, reconnecting: false })
+  mockUsePriceStream.mockReturnValue({ positions: [position], connected: true, reconnecting: false, lastConnectedAt: null, disconnectedSince: null })
   mockUseNotifications.mockReturnValue({
     rules: [],
     alerts: [],
@@ -159,6 +160,7 @@ describe('App', () => {
       bookId: null,
       books: [],
       selectBook,
+      refreshPositions: vi.fn(),
       loading: true,
       error: null,
     })
@@ -174,6 +176,7 @@ describe('App', () => {
       bookId: null,
       books: [],
       selectBook,
+      refreshPositions: vi.fn(),
       loading: false,
       error: 'Network error',
     })
@@ -324,6 +327,7 @@ describe('App', () => {
       bookId: null,
       books: [],
       selectBook,
+      refreshPositions: vi.fn(),
       loading: true,
       error: null,
     })
@@ -342,6 +346,7 @@ describe('App', () => {
       bookId: null,
       books: [],
       selectBook,
+      refreshPositions: vi.fn(),
       loading: false,
       error: 'Network error',
     })
