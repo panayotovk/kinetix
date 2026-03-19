@@ -137,6 +137,97 @@ class TestCrossBookVaR:
                 time_horizon_days=1,
             )
 
+    def test_cl_975_var_is_between_cl_95_and_cl_99(self):
+        from kinetix_risk.portfolio_risk import calculate_portfolio_var
+
+        positions = [
+            make_position("AAPL", AssetClass.EQUITY, 100_000.0),
+            make_position("UST10Y", AssetClass.FIXED_INCOME, 200_000.0),
+        ]
+
+        var_95 = calculate_portfolio_var(
+            positions,
+            calculation_type=CalculationType.PARAMETRIC,
+            confidence_level=ConfidenceLevel.CL_95,
+            time_horizon_days=1,
+        )
+        var_975 = calculate_portfolio_var(
+            positions,
+            calculation_type=CalculationType.PARAMETRIC,
+            confidence_level=ConfidenceLevel.CL_975,
+            time_horizon_days=1,
+        )
+        var_99 = calculate_portfolio_var(
+            positions,
+            calculation_type=CalculationType.PARAMETRIC,
+            confidence_level=ConfidenceLevel.CL_99,
+            time_horizon_days=1,
+        )
+
+        assert var_975.var_value > 0
+        assert var_95.var_value < var_975.var_value
+        assert var_975.var_value < var_99.var_value
+
+    def test_cross_book_var_with_cl_975(self):
+        books = {
+            "book-A": [make_position("AAPL", AssetClass.EQUITY, 100_000.0)],
+            "book-B": [make_position("UST10Y", AssetClass.FIXED_INCOME, 100_000.0)],
+        }
+
+        result_95 = calculate_cross_book_var(
+            books,
+            calculation_type=CalculationType.PARAMETRIC,
+            confidence_level=ConfidenceLevel.CL_95,
+            time_horizon_days=1,
+        )
+        result_975 = calculate_cross_book_var(
+            books,
+            calculation_type=CalculationType.PARAMETRIC,
+            confidence_level=ConfidenceLevel.CL_975,
+            time_horizon_days=1,
+        )
+        result_99 = calculate_cross_book_var(
+            books,
+            calculation_type=CalculationType.PARAMETRIC,
+            confidence_level=ConfidenceLevel.CL_99,
+            time_horizon_days=1,
+        )
+
+        assert isinstance(result_975, CrossBookVaRResult)
+        assert result_975.var_result.var_value > 0
+        assert result_95.var_result.var_value < result_975.var_result.var_value
+        assert result_975.var_result.var_value < result_99.var_result.var_value
+
+    def test_marginal_var_is_positive_for_non_empty_books(self):
+        books = {
+            "book-A": [make_position("AAPL", AssetClass.EQUITY, 100_000.0)],
+            "book-B": [make_position("UST10Y", AssetClass.FIXED_INCOME, 200_000.0)],
+        }
+        result = calculate_cross_book_var(
+            books,
+            calculation_type=CalculationType.PARAMETRIC,
+            confidence_level=ConfidenceLevel.CL_95,
+            time_horizon_days=1,
+        )
+        for c in result.book_contributions:
+            if c.var_contribution > 0:
+                assert c.marginal_var > 0, f"Book {c.book_id} has positive contribution but zero marginal VaR"
+
+    def test_marginal_var_is_zero_for_empty_books(self):
+        books = {
+            "book-A": [make_position("AAPL", AssetClass.EQUITY, 100_000.0)],
+            "book-B": [],
+        }
+        result = calculate_cross_book_var(
+            books,
+            calculation_type=CalculationType.PARAMETRIC,
+            confidence_level=ConfidenceLevel.CL_95,
+            time_horizon_days=1,
+        )
+        book_b = [c for c in result.book_contributions if c.book_id == "book-B"]
+        if book_b:
+            assert book_b[0].marginal_var == pytest.approx(0.0, abs=1e-10)
+
     def test_percentage_of_total_sums_to_100(self):
         books = {
             "book-A": [make_position("AAPL", AssetClass.EQUITY, 100_000.0)],

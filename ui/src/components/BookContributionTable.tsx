@@ -21,6 +21,7 @@ export function BookContributionTable({ contributions, onBookClick }: BookContri
               <th scope="col" className="text-right py-1.5 px-2 text-xs font-medium text-slate-500">% of Total</th>
               <th scope="col" className="text-right py-1.5 px-2 text-xs font-medium text-slate-500">Standalone VaR</th>
               <th scope="col" className="text-right py-1.5 px-2 text-xs font-medium text-slate-500">Diversification</th>
+              <th scope="col" className="text-right py-1.5 px-2 text-xs font-medium text-slate-500">Marginal VaR</th>
             </tr>
           </thead>
           <tbody>
@@ -37,6 +38,9 @@ export function BookContributionTable({ contributions, onBookClick }: BookContri
                 <td className="py-1.5 px-2 text-right tabular-nums text-slate-500">{formatMoney(c.standaloneVar, 'USD')}</td>
                 <td className="py-1.5 px-2 text-right tabular-nums text-green-600">
                   -{formatMoney(c.diversificationBenefit, 'USD')}
+                </td>
+                <td className="py-1.5 px-2 text-right tabular-nums text-slate-500">
+                  {Number(c.marginalVar).toFixed(4)}
                 </td>
               </tr>
             ))}

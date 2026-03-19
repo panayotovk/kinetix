@@ -42,6 +42,7 @@ class CalculationType(Enum):
 
 class ConfidenceLevel(Enum):
     CL_95 = 0.95
+    CL_975 = 0.975
     CL_99 = 0.99
 
 
@@ -255,6 +256,7 @@ class BookVaRContribution:
     percentage_of_total: float
     standalone_var: float
     diversification_benefit: float
+    marginal_var: float = 0.0  # VaR per unit of book exposure (dVaR/dw_i)
 
 
 @dataclass(frozen=True)

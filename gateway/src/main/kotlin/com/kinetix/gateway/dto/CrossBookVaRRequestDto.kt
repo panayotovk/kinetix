@@ -22,7 +22,7 @@ data class CrossBookVaRCalculationParams(
 )
 
 private val validCalculationTypes = setOf("HISTORICAL", "PARAMETRIC", "MONTE_CARLO")
-private val validConfidenceLevels = setOf("CL_95", "CL_99")
+private val validConfidenceLevels = setOf("CL_95", "CL_975", "CL_99")
 
 fun CrossBookVaRRequestDto.toParams(): CrossBookVaRCalculationParams {
     require(bookIds.isNotEmpty()) { "bookIds must not be empty" }

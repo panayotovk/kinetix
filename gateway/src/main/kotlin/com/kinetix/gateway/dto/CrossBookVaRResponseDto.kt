@@ -33,6 +33,7 @@ fun CrossBookVaRResultSummary.toResponse(): CrossBookVaRResponseDto = CrossBookV
             percentageOfTotal = "%.2f".format(it.percentageOfTotal),
             standaloneVar = "%.2f".format(it.standaloneVar),
             diversificationBenefit = "%.2f".format(it.diversificationBenefit),
+            marginalVar = "%.6f".format(it.marginalVar),
         )
     },
     totalStandaloneVar = "%.2f".format(totalStandaloneVar),

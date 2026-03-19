@@ -233,7 +233,7 @@ data class ValuationResultResponse(
 // --- VaR mappers ---
 
 private val validCalculationTypes = setOf("HISTORICAL", "PARAMETRIC", "MONTE_CARLO")
-private val validConfidenceLevels = setOf("CL_95", "CL_99")
+private val validConfidenceLevels = setOf("CL_95", "CL_975", "CL_99")
 
 fun VaRCalculationRequest.toParams(portfolioId: String): VaRCalculationParams {
     val calcType = calculationType ?: "PARAMETRIC"

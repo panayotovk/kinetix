@@ -24,6 +24,7 @@ _DOMAIN_ASSET_CLASS_TO_PROTO = {v: k for k, v in _PROTO_ASSET_CLASS_TO_DOMAIN.it
 
 _PROTO_CONFIDENCE_TO_DOMAIN = {
     risk_calculation_pb2.CL_95: ConfidenceLevel.CL_95,
+    risk_calculation_pb2.CL_975: ConfidenceLevel.CL_975,
     risk_calculation_pb2.CL_99: ConfidenceLevel.CL_99,
 }
 
@@ -325,6 +326,7 @@ def cross_book_var_result_to_proto_response(
             percentage_of_total=bc.percentage_of_total,
             standalone_var=bc.standalone_var,
             diversification_benefit=bc.diversification_benefit,
+            marginal_var=bc.marginal_var,
         ))
 
     return risk_calculation_pb2.CrossBookVaRResponse(

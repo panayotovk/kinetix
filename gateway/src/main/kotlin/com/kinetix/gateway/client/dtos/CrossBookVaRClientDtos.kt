@@ -23,6 +23,7 @@ data class BookVaRContributionClientDto(
     val percentageOfTotal: String,
     val standaloneVar: String,
     val diversificationBenefit: String,
+    val marginalVar: String = "0.0",
 )
 
 @Serializable
@@ -68,6 +69,7 @@ fun CrossBookVaRResultClientDto.toDomain() = CrossBookVaRResultSummary(
             percentageOfTotal = it.percentageOfTotal.toDouble(),
             standaloneVar = it.standaloneVar.toDouble(),
             diversificationBenefit = it.diversificationBenefit.toDouble(),
+            marginalVar = it.marginalVar.toDoubleOrNull() ?: 0.0,
         )
     },
     totalStandaloneVar = totalStandaloneVar.toDouble(),

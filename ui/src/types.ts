@@ -685,6 +685,7 @@ export interface BookVaRContributionDto {
   percentageOfTotal: string
   standaloneVar: string
   diversificationBenefit: string
+  marginalVar: string
 }
 
 export interface CrossBookVaRRequestDto {

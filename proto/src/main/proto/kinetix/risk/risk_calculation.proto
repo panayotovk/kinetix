@@ -167,6 +167,7 @@ message BookVaRContribution {
   double percentage_of_total = 3;
   double standalone_var = 4;
   double diversification_benefit = 5;
+  double marginal_var = 6;  // VaR per unit of book exposure (dVaR/dw_i)
 }
 
 message CrossBookVaRResponse {

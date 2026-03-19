@@ -13,4 +13,5 @@ data class BookVaRContributionEvent(
     val percentageOfTotal: String,
     val standaloneVar: String,
     val diversificationBenefit: String,
+    val marginalVar: String = "0.0",
 )

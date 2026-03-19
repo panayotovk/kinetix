@@ -8,4 +8,5 @@ data class BookVaRContribution(
     val percentageOfTotal: Double,
     val standaloneVar: Double,
     val diversificationBenefit: Double,
+    val marginalVar: Double = 0.0,
 )

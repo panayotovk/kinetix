@@ -115,6 +115,11 @@ def decompose_book_contributions(
             share = book_mv / total_mv
             book_var_contribution[book_id] += component.var_contribution * share
 
+    # Compute total absolute market value per book for marginal VaR
+    book_total_abs_mv: dict[str, float] = {}
+    for book_id, ac_mv in book_ac_mv.items():
+        book_total_abs_mv[book_id] = sum(ac_mv.values())
+
     # Build contribution objects
     contributions = []
     for book_id in sorted(books.keys()):
@@ -122,6 +127,8 @@ def decompose_book_contributions(
         pct = (var_contrib / aggregate_var * 100.0) if aggregate_var > 0 else 0.0
         sa_var = standalone_vars.get(book_id, 0.0)
         div_benefit = sa_var - var_contrib
+        book_mv = book_total_abs_mv.get(book_id, 0.0)
+        marginal = (var_contrib / book_mv) if book_mv > 0 else 0.0
 
         contributions.append(BookVaRContribution(
             book_id=book_id,
@@ -129,6 +136,7 @@ def decompose_book_contributions(
             percentage_of_total=pct,
             standalone_var=sa_var,
             diversification_benefit=div_benefit,
+            marginal_var=marginal,
         ))
 
     return contributions
