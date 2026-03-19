@@ -151,7 +151,7 @@ class TradeBookingEnd2EndTest : BehaviorSpec({
                 val auditEvents = auditRepository.findByBookId("port-accept-1")
                 auditEvents.size shouldBe 1
                 auditEvents[0].tradeId shouldBe "t-accept-1"
-                auditEvents[0].portfolioId shouldBe "port-accept-1"
+                auditEvents[0].bookId shouldBe "port-accept-1"
                 auditEvents[0].instrumentId shouldBe "AAPL"
                 auditEvents[0].assetClass shouldBe "EQUITY"
                 auditEvents[0].side shouldBe "BUY"
