@@ -1,6 +1,7 @@
 package com.kinetix.regulatory.persistence
 
 import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.kotlin.datetime.date
 import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 
 object BacktestResultsTable : Table("backtest_results") {
@@ -19,6 +20,10 @@ object BacktestResultsTable : Table("backtest_results") {
     val christoffersenPass = bool("christoffersen_pass")
     val trafficLightZone = varchar("traffic_light_zone", 10)
     val calculatedAt = timestampWithTimeZone("calculated_at")
+    val inputDigest = char("input_digest", 64).nullable()
+    val windowStart = date("window_start").nullable()
+    val windowEnd = date("window_end").nullable()
+    val modelVersion = varchar("model_version", 100).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

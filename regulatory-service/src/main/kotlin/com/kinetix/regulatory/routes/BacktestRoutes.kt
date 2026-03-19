@@ -15,7 +15,9 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.slf4j.LoggerFactory
+import java.security.MessageDigest
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.ln
@@ -48,6 +50,8 @@ fun Route.backtestRoutes(
             }
 
             val result = runBacktest(request)
+            val digest = digestBacktestInputs(request)
+            val today = LocalDate.now()
 
             val record = BacktestResultRecord(
                 id = UUID.randomUUID().toString(),
@@ -65,6 +69,9 @@ fun Route.backtestRoutes(
                 christoffersenPass = result.christoffersenPass,
                 trafficLightZone = result.trafficLightZone,
                 calculatedAt = Instant.now(),
+                inputDigest = digest,
+                windowStart = today.minusDays(result.totalDays.toLong()),
+                windowEnd = today,
             )
 
             repository.save(record)
@@ -141,6 +148,25 @@ fun Route.backtestRoutes(
             )
         }
     }
+}
+
+private fun digestBacktestInputs(request: BacktestRequest): String {
+    val canonical = buildString {
+        append("calc=${request.calculationType}")
+        append("|conf=${"%.15g".format(request.confidenceLevel)}")
+        append("|days=${request.dailyVarPredictions.size}")
+        append("|var=")
+        request.dailyVarPredictions.joinTo(this, ",") { "%.15g".format(it) }
+        append("|pnl=")
+        request.dailyPnl.joinTo(this, ",") { "%.15g".format(it) }
+    }
+    return sha256(canonical)
+}
+
+private fun sha256(input: String): String {
+    val digest = MessageDigest.getInstance("SHA-256")
+    val hash = digest.digest(input.toByteArray(Charsets.UTF_8))
+    return hash.joinToString("") { "%02x".format(it) }
 }
 
 private data class BacktestComputation(

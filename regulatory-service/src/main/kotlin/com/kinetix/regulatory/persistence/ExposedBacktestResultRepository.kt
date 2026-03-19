@@ -27,6 +27,10 @@ class ExposedBacktestResultRepository(private val db: Database? = null) : Backte
             it[christoffersenPass] = record.christoffersenPass
             it[trafficLightZone] = record.trafficLightZone
             it[calculatedAt] = OffsetDateTime.ofInstant(record.calculatedAt, ZoneOffset.UTC)
+            it[inputDigest] = record.inputDigest
+            it[windowStart] = record.windowStart?.toKotlinxDate()
+            it[windowEnd] = record.windowEnd?.toKotlinxDate()
+            it[modelVersion] = record.modelVersion
         }
     }
 
@@ -86,5 +90,9 @@ class ExposedBacktestResultRepository(private val db: Database? = null) : Backte
         christoffersenPass = this[BacktestResultsTable.christoffersenPass],
         trafficLightZone = this[BacktestResultsTable.trafficLightZone],
         calculatedAt = this[BacktestResultsTable.calculatedAt].toInstant(),
+        inputDigest = this[BacktestResultsTable.inputDigest],
+        windowStart = this[BacktestResultsTable.windowStart]?.toJavaDate(),
+        windowEnd = this[BacktestResultsTable.windowEnd]?.toJavaDate(),
+        modelVersion = this[BacktestResultsTable.modelVersion],
     )
 }

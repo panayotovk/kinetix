@@ -1,6 +1,7 @@
 package com.kinetix.regulatory.model
 
 import java.time.Instant
+import java.time.LocalDate
 
 data class BacktestResultRecord(
     val id: String,
@@ -18,4 +19,8 @@ data class BacktestResultRecord(
     val christoffersenPass: Boolean,
     val trafficLightZone: String,
     val calculatedAt: Instant,
+    val inputDigest: String? = null,
+    val windowStart: LocalDate? = null,
+    val windowEnd: LocalDate? = null,
+    val modelVersion: String? = null,
 )
