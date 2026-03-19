@@ -5,6 +5,8 @@ import { formatMoney, formatNum, formatQuantity, pnlColorClass } from '../utils/
 import { formatCompactCurrency } from '../utils/formatCompactCurrency'
 import { exportToCsv } from '../utils/exportCsv'
 import { Card, EmptyState } from './ui'
+import { InstrumentTypeBadge } from './InstrumentTypeBadge'
+import { INSTRUMENT_TYPE_COLORS } from '../utils/instrumentTypes'
 
 type SortField = 'delta' | 'gamma' | 'vega' | 'var-pct'
 type SortDirection = 'asc' | 'desc'
@@ -58,12 +60,15 @@ function loadColumnVisibility(): Record<string, boolean> {
   return {}
 }
 
+const INSTRUMENT_TYPE_OPTIONS = Object.keys(INSTRUMENT_TYPE_COLORS)
+
 export function PositionGrid({ positions, connected, reconnecting, lastConnectedAt, positionRisk, showBookColumn = false }: PositionGridProps) {
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
   const [currentPage, setCurrentPage] = useState(1)
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(loadColumnVisibility)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [instrumentTypeFilter, setInstrumentTypeFilter] = useState('')
   const settingsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -91,16 +96,21 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
     return new Map(positionRisk.map((r) => [r.instrumentId, r]))
   }, [positionRisk])
 
+  const filteredPositions = useMemo(() => {
+    if (!instrumentTypeFilter) return positions
+    return positions.filter((p) => p.instrumentType === instrumentTypeFilter)
+  }, [positions, instrumentTypeFilter])
+
   const sortedPositions = useMemo(() => {
-    if (!sortField || !hasRisk) return positions
-    return [...positions].sort((a, b) => {
+    if (!sortField || !hasRisk) return filteredPositions
+    return [...filteredPositions].sort((a, b) => {
       const riskA = riskByInstrument.get(a.instrumentId)
       const riskB = riskByInstrument.get(b.instrumentId)
       const valA = riskValue(riskA, sortField)
       const valB = riskValue(riskB, sortField)
       return sortDir === 'desc' ? valB - valA : valA - valB
     })
-  }, [positions, sortField, sortDir, hasRisk, riskByInstrument])
+  }, [filteredPositions, sortField, sortDir, hasRisk, riskByInstrument])
 
   const totalPages = Math.ceil(sortedPositions.length / PAGE_SIZE)
   const showPagination = totalPages > 1
@@ -108,6 +118,11 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
     const start = (currentPage - 1) * PAGE_SIZE
     return sortedPositions.slice(start, start + PAGE_SIZE)
   }, [sortedPositions, currentPage])
+
+  const handleInstrumentTypeFilter = (value: string) => {
+    setInstrumentTypeFilter(value)
+    setCurrentPage(1)
+  }
 
   if (positions.length === 0) {
     return (
@@ -262,6 +277,20 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
         )}
       </div>
 
+      <div className="flex items-center gap-3 mb-3">
+        <select
+          data-testid="filter-instrument-type"
+          value={instrumentTypeFilter}
+          onChange={(e) => handleInstrumentTypeFilter(e.target.value)}
+          className="border border-slate-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        >
+          <option value="">All Types</option>
+          {INSTRUMENT_TYPE_OPTIONS.map((type) => (
+            <option key={type} value={type}>{type.replace(/_/g, ' ')}</option>
+          ))}
+        </select>
+      </div>
+
       <div className="flex justify-end gap-2 mb-2">
         <button
           data-testid="csv-export-button"
@@ -368,13 +397,20 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-surface-700">
+              {sortedPositions.length === 0 && instrumentTypeFilter && (
+                <tr>
+                  <td colSpan={positionColCount + (hasRisk ? riskColCount : 0)} className="px-4 py-8 text-center text-sm text-slate-500">
+                    No positions match the selected type.
+                  </td>
+                </tr>
+              )}
               {paginatedPositions.map((pos) => {
                 const risk = riskByInstrument.get(pos.instrumentId)
                 const cellMap: Record<string, React.ReactNode> = {
                   book: <td key="book" data-testid={`book-${pos.instrumentId}`} className="px-4 py-2 text-sm text-slate-600 dark:text-slate-400">{pos.bookId}</td>,
                   instrument: <td key="instrument" className="px-4 py-2 text-sm font-medium">{pos.instrumentId}</td>,
                   displayName: <td key="displayName" className="px-4 py-2 text-sm text-slate-600 dark:text-slate-400">{pos.displayName || '—'}</td>,
-                  instrumentType: <td key="instrumentType" className="px-4 py-2 text-sm text-slate-600 dark:text-slate-400">{pos.instrumentType?.replace(/_/g, ' ') || '—'}</td>,
+                  instrumentType: <td key="instrumentType" className="px-4 py-2 text-sm">{pos.instrumentType ? <InstrumentTypeBadge instrumentType={pos.instrumentType} /> : '—'}</td>,
                   assetClass: <td key="assetClass" className="px-4 py-2 text-sm text-slate-600">{pos.assetClass}</td>,
                   quantity: <td key="quantity" className="px-4 py-2 text-sm text-right">{formatQuantity(pos.quantity)}</td>,
                   avgCost: <td key="avgCost" className="px-4 py-2 text-sm text-right">{formatMoney(pos.averageCost.amount, pos.averageCost.currency)}</td>,

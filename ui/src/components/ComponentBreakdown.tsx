@@ -1,11 +1,13 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { ComponentBreakdownDto } from '../types'
 import { formatAssetClassLabel } from '../utils/formatAssetClass'
 import { formatMoney } from '../utils/format'
+import { formatInstrumentTypeLabel, INSTRUMENT_TYPE_SVG_COLORS } from '../utils/instrumentTypes'
 
 interface ComponentBreakdownProps {
   breakdown: ComponentBreakdownDto[]
   portfolioVaR?: string
+  instrumentTypeBreakdown?: ComponentBreakdownDto[]
 }
 
 const ASSET_CLASS_COLORS: Record<string, string> = {
@@ -17,8 +19,18 @@ const ASSET_CLASS_COLORS: Record<string, string> = {
 
 const DEFAULT_COLOR = '#9ca3af'
 
-export function ComponentBreakdown({ breakdown, portfolioVaR }: ComponentBreakdownProps) {
-  const sorted = [...breakdown].sort(
+type BreakdownMode = 'asset-class' | 'instrument-type'
+
+export function ComponentBreakdown({ breakdown, portfolioVaR, instrumentTypeBreakdown }: ComponentBreakdownProps) {
+  const [mode, setMode] = useState<BreakdownMode>('asset-class')
+
+  const hasInstrumentTypeData = instrumentTypeBreakdown != null && instrumentTypeBreakdown.length > 0
+
+  const activeBreakdown = mode === 'instrument-type' && hasInstrumentTypeData
+    ? instrumentTypeBreakdown
+    : breakdown
+
+  const sorted = [...activeBreakdown].sort(
     (a, b) => Number(b.percentageOfTotal) - Number(a.percentageOfTotal),
   )
 
@@ -44,9 +56,43 @@ export function ComponentBreakdown({ breakdown, portfolioVaR }: ComponentBreakdo
     return { benefit, pct }
   }, [breakdown, portfolioVaR])
 
+  const getColor = (key: string): string => {
+    if (mode === 'instrument-type') {
+      return INSTRUMENT_TYPE_SVG_COLORS[key] ?? DEFAULT_COLOR
+    }
+    return ASSET_CLASS_COLORS[key] ?? DEFAULT_COLOR
+  }
+
+  const getLabel = (key: string): string => {
+    if (mode === 'instrument-type') {
+      return formatInstrumentTypeLabel(key)
+    }
+    return formatAssetClassLabel(key)
+  }
+
   return (
     <div>
-      <h3 className="text-sm font-semibold text-slate-700 mb-3">Component Breakdown</h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-slate-700">Component Breakdown</h3>
+        {instrumentTypeBreakdown != null && (
+          <div className="flex rounded-md border border-slate-200 overflow-hidden text-xs">
+            <button
+              data-testid="breakdown-toggle-asset-class"
+              onClick={() => setMode('asset-class')}
+              className={`px-2 py-1 transition-colors ${mode === 'asset-class' ? 'bg-slate-100 font-semibold text-slate-800' : 'text-slate-500 hover:bg-slate-50'}`}
+            >
+              Asset Class
+            </button>
+            <button
+              data-testid="breakdown-toggle-instrument-type"
+              onClick={() => setMode('instrument-type')}
+              className={`px-2 py-1 transition-colors ${mode === 'instrument-type' ? 'bg-slate-100 font-semibold text-slate-800' : 'text-slate-500 hover:bg-slate-50'}`}
+            >
+              Instrument Type
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="flex items-center gap-8">
         <div className="space-y-2.5">
@@ -58,11 +104,11 @@ export function ComponentBreakdown({ breakdown, portfolioVaR }: ComponentBreakdo
             >
               <span
                 className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: ASSET_CLASS_COLORS[comp.assetClass] || DEFAULT_COLOR }}
+                style={{ backgroundColor: getColor(comp.assetClass) }}
               />
               <div className="flex flex-col">
                 <span className="text-xs text-slate-500 leading-tight">
-                  {formatAssetClassLabel(comp.assetClass)}
+                  {getLabel(comp.assetClass)}
                 </span>
                 <div className="flex items-baseline gap-2">
                   <span className="text-sm font-semibold text-slate-800 tabular-nums leading-tight">
@@ -91,7 +137,7 @@ export function ComponentBreakdown({ breakdown, portfolioVaR }: ComponentBreakdo
                   cy={center}
                   r={radius}
                   fill="none"
-                  stroke={ASSET_CLASS_COLORS[comp.assetClass] || DEFAULT_COLOR}
+                  stroke={getColor(comp.assetClass)}
                   strokeWidth={strokeWidth}
                   strokeDasharray={`${dashLength} ${circumference - dashLength}`}
                   strokeDashoffset={-offset * circumference}

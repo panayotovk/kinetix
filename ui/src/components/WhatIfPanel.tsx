@@ -5,6 +5,9 @@ import type { TradeFormEntry, ValidationErrors } from '../hooks/useWhatIf'
 import { formatNum } from '../utils/format'
 import { changeColorClass } from '../utils/changeIndicators'
 import { Button, Card, Input } from './ui'
+import { INSTRUMENT_TYPE_COLORS, INSTRUMENT_TYPE_TO_ASSET_CLASS, formatInstrumentTypeLabel } from '../utils/instrumentTypes'
+
+const INSTRUMENT_TYPE_OPTIONS = Object.keys(INSTRUMENT_TYPE_COLORS)
 
 interface WhatIfPanelProps {
   open: boolean
@@ -184,18 +187,19 @@ export function WhatIfPanel({
               </div>
 
               <div>
-                <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Asset Class</label>
+                <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Instrument Type</label>
                 <select
-                  data-testid={`whatif-asset-class-${index}`}
-                  value={trade.assetClass}
-                  onChange={(e) => onUpdateTrade(index, 'assetClass', e.target.value)}
+                  data-testid={`whatif-instrument-type-${index}`}
+                  defaultValue="CASH_EQUITY"
+                  onChange={(e) => {
+                    const mapped = INSTRUMENT_TYPE_TO_ASSET_CLASS[e.target.value] ?? 'EQUITY'
+                    onUpdateTrade(index, 'assetClass', mapped)
+                  }}
                   className="w-full border border-slate-300 dark:border-surface-600 rounded-md px-3 py-1.5 text-sm bg-white dark:bg-surface-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
-                  <option value="EQUITY">Equity</option>
-                  <option value="DERIVATIVE">Derivative</option>
-                  <option value="FIXED_INCOME">Fixed Income</option>
-                  <option value="COMMODITY">Commodity</option>
-                  <option value="FX">FX</option>
+                  {INSTRUMENT_TYPE_OPTIONS.map((type) => (
+                    <option key={type} value={type}>{formatInstrumentTypeLabel(type)}</option>
+                  ))}
                 </select>
               </div>
 

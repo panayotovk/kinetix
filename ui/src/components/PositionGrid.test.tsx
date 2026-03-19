@@ -485,4 +485,82 @@ describe('PositionGrid', () => {
       await user.click(exportButton)
     })
   })
+
+  describe('instrument type filter', () => {
+    const positions = [
+      makePosition({ instrumentId: 'AAPL', instrumentType: 'CASH_EQUITY' }),
+      makePosition({ instrumentId: 'AAPL-OPT', instrumentType: 'EQUITY_OPTION' }),
+      makePosition({ instrumentId: 'US10Y', instrumentType: 'GOVERNMENT_BOND' }),
+    ]
+
+    it('renders an instrument type filter dropdown', () => {
+      render(<PositionGrid positions={positions} />)
+
+      expect(screen.getByTestId('filter-instrument-type')).toBeInTheDocument()
+    })
+
+    it('defaults to showing all instrument types', () => {
+      render(<PositionGrid positions={positions} />)
+
+      const rows = screen.getAllByTestId(/^position-row-/)
+      expect(rows).toHaveLength(3)
+    })
+
+    it('filters positions to the selected instrument type', async () => {
+      const user = userEvent.setup()
+      render(<PositionGrid positions={positions} />)
+
+      await user.selectOptions(screen.getByTestId('filter-instrument-type'), 'EQUITY_OPTION')
+
+      expect(screen.getByTestId('position-row-AAPL-OPT')).toBeInTheDocument()
+      expect(screen.queryByTestId('position-row-AAPL')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('position-row-US10Y')).not.toBeInTheDocument()
+    })
+
+    it('restores all positions when filter is reset to All', async () => {
+      const user = userEvent.setup()
+      render(<PositionGrid positions={positions} />)
+
+      await user.selectOptions(screen.getByTestId('filter-instrument-type'), 'EQUITY_OPTION')
+      await user.selectOptions(screen.getByTestId('filter-instrument-type'), '')
+
+      const rows = screen.getAllByTestId(/^position-row-/)
+      expect(rows).toHaveLength(3)
+    })
+
+    it('shows empty state when filter matches no positions', async () => {
+      const user = userEvent.setup()
+      render(<PositionGrid positions={positions} />)
+
+      await user.selectOptions(screen.getByTestId('filter-instrument-type'), 'FUTURES')
+
+      expect(screen.getByText('No positions match the selected type.')).toBeInTheDocument()
+    })
+
+    it('resets to page 1 when filter changes', async () => {
+      const user = userEvent.setup()
+      const manyPositions = [
+        ...Array.from({ length: 55 }, (_, i) =>
+          makePosition({ instrumentId: `STOCK-${i}`, instrumentType: 'CASH_EQUITY' }),
+        ),
+        makePosition({ instrumentId: 'BOND-1', instrumentType: 'GOVERNMENT_BOND' }),
+      ]
+      render(<PositionGrid positions={manyPositions} />)
+
+      // Navigate to page 2
+      await user.click(screen.getByTestId('pagination-next'))
+      expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 2')
+
+      // Apply filter — should reset to page 1
+      await user.selectOptions(screen.getByTestId('filter-instrument-type'), 'GOVERNMENT_BOND')
+      expect(screen.queryByTestId('pagination-controls')).not.toBeInTheDocument()
+    })
+
+    it('renders instrument type badges in the type column', () => {
+      render(<PositionGrid positions={[makePosition({ instrumentId: 'AAPL', instrumentType: 'CASH_EQUITY' })]} />)
+
+      const row = screen.getByTestId('position-row-AAPL')
+      expect(within(row).getByText('Cash Equity')).toBeInTheDocument()
+    })
+  })
 })

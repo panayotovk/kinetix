@@ -4,6 +4,8 @@ import { useTradeHistory } from '../hooks/useTradeHistory'
 import { formatMoney, formatQuantity, formatTimestamp } from '../utils/format'
 import { Card, EmptyState } from './ui'
 import type { TradeHistoryDto } from '../types'
+import { InstrumentTypeBadge } from './InstrumentTypeBadge'
+import { INSTRUMENT_TYPE_COLORS } from '../utils/instrumentTypes'
 
 interface TradeBlotterProps {
   bookId: string | null
@@ -29,10 +31,13 @@ function exportToCsv(trades: TradeHistoryDto[]) {
   URL.revokeObjectURL(url)
 }
 
+const INSTRUMENT_TYPE_OPTIONS = Object.keys(INSTRUMENT_TYPE_COLORS)
+
 export function TradeBlotter({ bookId }: TradeBlotterProps) {
   const { trades, loading, error } = useTradeHistory(bookId)
   const [instrumentFilter, setInstrumentFilter] = useState('')
   const [sideFilter, setSideFilter] = useState<'' | 'BUY' | 'SELL'>('')
+  const [instrumentTypeFilter, setInstrumentTypeFilter] = useState('')
   const [page, setPage] = useState(0)
   const PAGE_SIZE = 50
 
@@ -48,10 +53,14 @@ export function TradeBlotter({ bookId }: TradeBlotterProps) {
       result = result.filter((t) => t.side === sideFilter)
     }
 
+    if (instrumentTypeFilter) {
+      result = result.filter((t) => t.instrumentType === instrumentTypeFilter)
+    }
+
     result.sort((a, b) => new Date(b.tradedAt).getTime() - new Date(a.tradedAt).getTime())
 
     return result
-  }, [trades, instrumentFilter, sideFilter])
+  }, [trades, instrumentFilter, sideFilter, instrumentTypeFilter])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages - 1)
@@ -64,6 +73,11 @@ export function TradeBlotter({ bookId }: TradeBlotterProps) {
 
   const handleSideFilter = (value: '' | 'BUY' | 'SELL') => {
     setSideFilter(value)
+    setPage(0)
+  }
+
+  const handleInstrumentTypeFilter = (value: string) => {
+    setInstrumentTypeFilter(value)
     setPage(0)
   }
 
@@ -106,6 +120,17 @@ export function TradeBlotter({ bookId }: TradeBlotterProps) {
           <option value="">All Sides</option>
           <option value="BUY">BUY</option>
           <option value="SELL">SELL</option>
+        </select>
+        <select
+          data-testid="filter-instrument-type"
+          value={instrumentTypeFilter}
+          onChange={(e) => handleInstrumentTypeFilter(e.target.value)}
+          className="border border-slate-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        >
+          <option value="">All Types</option>
+          {INSTRUMENT_TYPE_OPTIONS.map((type) => (
+            <option key={type} value={type}>{type.replace(/_/g, ' ')}</option>
+          ))}
         </select>
         <div className="flex-1" />
         <button
@@ -151,7 +176,7 @@ export function TradeBlotter({ bookId }: TradeBlotterProps) {
                       {formatTimestamp(trade.tradedAt)}
                     </td>
                     <td className="px-4 py-2 text-sm font-medium">{trade.instrumentId}</td>
-                    <td className="px-4 py-2 text-sm text-slate-600">{trade.instrumentType?.replace(/_/g, ' ') || '—'}</td>
+                    <td className="px-4 py-2 text-sm">{trade.instrumentType ? <InstrumentTypeBadge instrumentType={trade.instrumentType} /> : '—'}</td>
                     <td
                       data-testid={`trade-side-${trade.tradeId}`}
                       className={`px-4 py-2 text-sm font-medium ${

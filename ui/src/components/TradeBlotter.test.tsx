@@ -163,4 +163,109 @@ describe('TradeBlotter', () => {
     // 100 * 150.00 = 15000.00
     expect(notional.textContent).toContain('15,000')
   })
+
+  describe('instrument type filter', () => {
+    const tradesWithTypes: TradeHistoryDto[] = [
+      {
+        tradeId: 'tx-1',
+        bookId: 'book-1',
+        instrumentId: 'AAPL',
+        assetClass: 'EQUITY',
+        side: 'BUY',
+        quantity: '100',
+        price: { amount: '150.00', currency: 'USD' },
+        tradedAt: '2025-01-15T10:00:00Z',
+        instrumentType: 'CASH_EQUITY',
+      },
+      {
+        tradeId: 'tx-2',
+        bookId: 'book-1',
+        instrumentId: 'AAPL-OPT',
+        assetClass: 'EQUITY',
+        side: 'BUY',
+        quantity: '10',
+        price: { amount: '5.00', currency: 'USD' },
+        tradedAt: '2025-01-15T11:00:00Z',
+        instrumentType: 'EQUITY_OPTION',
+      },
+      {
+        tradeId: 'tx-3',
+        bookId: 'book-1',
+        instrumentId: 'US10Y',
+        assetClass: 'FIXED_INCOME',
+        side: 'SELL',
+        quantity: '500',
+        price: { amount: '980.00', currency: 'USD' },
+        tradedAt: '2025-01-15T12:00:00Z',
+        instrumentType: 'GOVERNMENT_BOND',
+      },
+    ]
+
+    function setupWithTypes() {
+      mockUseTradeHistory.mockReturnValue({
+        trades: tradesWithTypes,
+        loading: false,
+        error: null,
+        refetch: vi.fn(),
+      })
+    }
+
+    it('renders an instrument type filter dropdown', () => {
+      setupWithTypes()
+      render(<TradeBlotter bookId="book-1" />)
+
+      expect(screen.getByTestId('filter-instrument-type')).toBeInTheDocument()
+    })
+
+    it('defaults to showing all trades', () => {
+      setupWithTypes()
+      render(<TradeBlotter bookId="book-1" />)
+
+      const rows = screen.getAllByTestId(/^trade-row-/)
+      expect(rows).toHaveLength(3)
+    })
+
+    it('filters trades to the selected instrument type', () => {
+      setupWithTypes()
+      render(<TradeBlotter bookId="book-1" />)
+
+      fireEvent.change(screen.getByTestId('filter-instrument-type'), { target: { value: 'EQUITY_OPTION' } })
+
+      expect(screen.getByTestId('trade-row-tx-2')).toBeInTheDocument()
+      expect(screen.queryByTestId('trade-row-tx-1')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('trade-row-tx-3')).not.toBeInTheDocument()
+    })
+
+    it('restores all trades when filter is reset to All', () => {
+      setupWithTypes()
+      render(<TradeBlotter bookId="book-1" />)
+
+      fireEvent.change(screen.getByTestId('filter-instrument-type'), { target: { value: 'EQUITY_OPTION' } })
+      fireEvent.change(screen.getByTestId('filter-instrument-type'), { target: { value: '' } })
+
+      const rows = screen.getAllByTestId(/^trade-row-/)
+      expect(rows).toHaveLength(3)
+    })
+
+    it('works in combination with instrument text and side filters', () => {
+      setupWithTypes()
+      render(<TradeBlotter bookId="book-1" />)
+
+      fireEvent.change(screen.getByTestId('filter-instrument-type'), { target: { value: 'CASH_EQUITY' } })
+      fireEvent.change(screen.getByTestId('filter-side'), { target: { value: 'BUY' } })
+
+      expect(screen.getByTestId('trade-row-tx-1')).toBeInTheDocument()
+      expect(screen.queryByTestId('trade-row-tx-2')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('trade-row-tx-3')).not.toBeInTheDocument()
+    })
+
+    it('renders instrument type badges in the type column', () => {
+      setupWithTypes()
+      render(<TradeBlotter bookId="book-1" />)
+
+      expect(screen.getByText('Cash Equity')).toBeInTheDocument()
+      expect(screen.getByText('Equity Option')).toBeInTheDocument()
+      expect(screen.getByText('Government Bond')).toBeInTheDocument()
+    })
+  })
 })

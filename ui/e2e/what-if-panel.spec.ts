@@ -82,8 +82,8 @@ test.describe('What-If Panel', () => {
     // Instrument input is empty
     await expect(page.getByTestId('whatif-instrument-0')).toHaveValue('')
 
-    // Asset class defaults to EQUITY
-    await expect(page.getByTestId('whatif-asset-class-0')).toHaveValue('EQUITY')
+    // Instrument type defaults to CASH_EQUITY (maps to EQUITY asset class)
+    await expect(page.getByTestId('whatif-instrument-type-0')).toHaveValue('CASH_EQUITY')
 
     // BUY is selected
     await expect(page.getByTestId('whatif-side-buy-0')).toHaveAttribute('aria-pressed', 'true')

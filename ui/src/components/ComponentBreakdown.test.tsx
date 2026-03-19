@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { ComponentBreakdown } from './ComponentBreakdown'
 
@@ -81,6 +82,78 @@ describe('ComponentBreakdown', () => {
     const svg = document.querySelector('svg')!
     expect(svg).toHaveAttribute('width', '130')
     expect(svg).toHaveAttribute('height', '130')
+  })
+
+  describe('instrument type breakdown toggle', () => {
+    const instrumentTypeBreakdown = [
+      { assetClass: 'CASH_EQUITY', varContribution: '500000.00', percentageOfTotal: '50.00' },
+      { assetClass: 'EQUITY_OPTION', varContribution: '300000.00', percentageOfTotal: '30.00' },
+      { assetClass: 'GOVERNMENT_BOND', varContribution: '200000.00', percentageOfTotal: '20.00' },
+    ]
+
+    it('renders Asset Class toggle button when instrumentTypeBreakdown is provided', () => {
+      render(<ComponentBreakdown breakdown={breakdown} instrumentTypeBreakdown={instrumentTypeBreakdown} />)
+
+      expect(screen.getByTestId('breakdown-toggle-asset-class')).toBeInTheDocument()
+      expect(screen.getByTestId('breakdown-toggle-instrument-type')).toBeInTheDocument()
+    })
+
+    it('defaults to Asset Class view', () => {
+      render(<ComponentBreakdown breakdown={breakdown} instrumentTypeBreakdown={instrumentTypeBreakdown} />)
+
+      const assetClassBtn = screen.getByTestId('breakdown-toggle-asset-class')
+      expect(assetClassBtn.className).toContain('font-semibold')
+    })
+
+    it('switches to Instrument Type view when toggle is clicked', async () => {
+      const user = userEvent.setup()
+      render(<ComponentBreakdown breakdown={breakdown} instrumentTypeBreakdown={instrumentTypeBreakdown} />)
+
+      await user.click(screen.getByTestId('breakdown-toggle-instrument-type'))
+
+      expect(screen.getByTestId('breakdown-CASH_EQUITY')).toBeInTheDocument()
+      expect(screen.getByTestId('breakdown-EQUITY_OPTION')).toBeInTheDocument()
+      expect(screen.getByTestId('breakdown-GOVERNMENT_BOND')).toBeInTheDocument()
+    })
+
+    it('shows instrument type donut segments in instrument type view', async () => {
+      const user = userEvent.setup()
+      render(<ComponentBreakdown breakdown={breakdown} instrumentTypeBreakdown={instrumentTypeBreakdown} />)
+
+      await user.click(screen.getByTestId('breakdown-toggle-instrument-type'))
+
+      expect(screen.getByTestId('breakdown-segment-CASH_EQUITY')).toBeInTheDocument()
+      expect(screen.getByTestId('breakdown-segment-EQUITY_OPTION')).toBeInTheDocument()
+      expect(screen.getByTestId('breakdown-segment-GOVERNMENT_BOND')).toBeInTheDocument()
+    })
+
+    it('switches back to Asset Class view on second toggle click', async () => {
+      const user = userEvent.setup()
+      render(<ComponentBreakdown breakdown={breakdown} instrumentTypeBreakdown={instrumentTypeBreakdown} />)
+
+      await user.click(screen.getByTestId('breakdown-toggle-instrument-type'))
+      await user.click(screen.getByTestId('breakdown-toggle-asset-class'))
+
+      expect(screen.getByTestId('breakdown-EQUITY')).toBeInTheDocument()
+      expect(screen.queryByTestId('breakdown-CASH_EQUITY')).not.toBeInTheDocument()
+    })
+
+    it('renders instrument type legend rows with formatted labels', async () => {
+      const user = userEvent.setup()
+      render(<ComponentBreakdown breakdown={breakdown} instrumentTypeBreakdown={instrumentTypeBreakdown} />)
+
+      await user.click(screen.getByTestId('breakdown-toggle-instrument-type'))
+
+      expect(screen.getByTestId('breakdown-CASH_EQUITY')).toHaveTextContent('Cash Equity')
+      expect(screen.getByTestId('breakdown-EQUITY_OPTION')).toHaveTextContent('Equity Option')
+    })
+
+    it('hides toggle when instrumentTypeBreakdown is not provided', () => {
+      render(<ComponentBreakdown breakdown={breakdown} />)
+
+      expect(screen.queryByTestId('breakdown-toggle-instrument-type')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('breakdown-toggle-asset-class')).not.toBeInTheDocument()
+    })
   })
 
   describe('diversification benefit', () => {

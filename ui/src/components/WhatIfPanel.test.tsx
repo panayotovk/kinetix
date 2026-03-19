@@ -408,4 +408,72 @@ describe('WhatIfPanel', () => {
 
     expect(screen.getByTestId('whatif-add-trade')).toHaveAttribute('aria-label', 'Add another hypothetical trade')
   })
+
+  describe('instrument type selector', () => {
+    it('renders instrument type dropdown instead of asset class dropdown', () => {
+      render(<WhatIfPanel {...defaultProps} />)
+
+      expect(screen.getByTestId('whatif-instrument-type-0')).toBeInTheDocument()
+      expect(screen.queryByTestId('whatif-asset-class-0')).not.toBeInTheDocument()
+    })
+
+    it('has exactly 11 instrument type options', () => {
+      render(<WhatIfPanel {...defaultProps} />)
+
+      const select = screen.getByTestId('whatif-instrument-type-0') as HTMLSelectElement
+      expect(select.options.length).toBe(11)
+    })
+
+    it('defaults to CASH_EQUITY selection', () => {
+      render(<WhatIfPanel {...defaultProps} />)
+
+      const select = screen.getByTestId('whatif-instrument-type-0') as HTMLSelectElement
+      expect(select.value).toBe('CASH_EQUITY')
+    })
+
+    it('calls onUpdateTrade with mapped assetClass when instrument type changes', () => {
+      const onUpdateTrade = vi.fn()
+      render(<WhatIfPanel {...defaultProps} onUpdateTrade={onUpdateTrade} />)
+
+      fireEvent.change(screen.getByTestId('whatif-instrument-type-0'), {
+        target: { value: 'GOVERNMENT_BOND' },
+      })
+
+      // Should call with assetClass = FIXED_INCOME (the mapped value)
+      expect(onUpdateTrade).toHaveBeenCalledWith(0, 'assetClass', 'FIXED_INCOME')
+    })
+
+    it('maps CASH_EQUITY to EQUITY asset class', () => {
+      const onUpdateTrade = vi.fn()
+      render(<WhatIfPanel {...defaultProps} onUpdateTrade={onUpdateTrade} />)
+
+      fireEvent.change(screen.getByTestId('whatif-instrument-type-0'), {
+        target: { value: 'CASH_EQUITY' },
+      })
+
+      expect(onUpdateTrade).toHaveBeenCalledWith(0, 'assetClass', 'EQUITY')
+    })
+
+    it('maps FUTURES to COMMODITY asset class', () => {
+      const onUpdateTrade = vi.fn()
+      render(<WhatIfPanel {...defaultProps} onUpdateTrade={onUpdateTrade} />)
+
+      fireEvent.change(screen.getByTestId('whatif-instrument-type-0'), {
+        target: { value: 'FUTURES' },
+      })
+
+      expect(onUpdateTrade).toHaveBeenCalledWith(0, 'assetClass', 'COMMODITY')
+    })
+
+    it('maps FX_SPOT to FX asset class', () => {
+      const onUpdateTrade = vi.fn()
+      render(<WhatIfPanel {...defaultProps} onUpdateTrade={onUpdateTrade} />)
+
+      fireEvent.change(screen.getByTestId('whatif-instrument-type-0'), {
+        target: { value: 'FX_SPOT' },
+      })
+
+      expect(onUpdateTrade).toHaveBeenCalledWith(0, 'assetClass', 'FX')
+    })
+  })
 })
