@@ -11,6 +11,7 @@ service:
 env:
   PORT: "8083"
   DATABASE_URL: "jdbc:postgresql://kinetix-postgresql:5432/kinetix_risk"
+  KAFKA_BOOTSTRAP_SERVERS: "kinetix-kafka:9092"
   RISK_ENGINE_HOST: "kinetix-risk-engine"
   RISK_ENGINE_PORT: "50051"
   OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED: "true"

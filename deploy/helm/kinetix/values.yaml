@@ -139,6 +139,7 @@ position-service:
     port: 8081
   env:
     PORT: "8081"
+    KAFKA_BOOTSTRAP_SERVERS: "kinetix-kafka:9092"
     SEED_DATA: "true"
 
 price-service:
@@ -149,6 +150,7 @@ price-service:
     port: 8082
   env:
     PORT: "8082"
+    KAFKA_BOOTSTRAP_SERVERS: "kinetix-kafka:9092"
     SEED_DATA: "true"
 
 risk-orchestrator:
@@ -159,6 +161,7 @@ risk-orchestrator:
     port: 8083
   env:
     PORT: "8083"
+    KAFKA_BOOTSTRAP_SERVERS: "kinetix-kafka:9092"
 
 audit-service:
   replicaCount: 1
@@ -168,6 +171,7 @@ audit-service:
     port: 8084
   env:
     PORT: "8084"
+    KAFKA_BOOTSTRAP_SERVERS: "kinetix-kafka:9092"
     SEED_DATA: "true"
 
 regulatory-service:
@@ -187,6 +191,7 @@ notification-service:
     port: 8086
   env:
     PORT: "8086"
+    KAFKA_BOOTSTRAP_SERVERS: "kinetix-kafka:9092"
     SEED_DATA: "true"
 
 risk-engine:
