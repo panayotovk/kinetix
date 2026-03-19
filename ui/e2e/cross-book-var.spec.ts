@@ -23,8 +23,8 @@ const TEST_CROSS_BOOK_VAR_RESULT = {
     { assetClass: 'FIXED_INCOME', varContribution: '80000.00', percentageOfTotal: '40.00' },
   ],
   bookContributions: [
-    { bookId: 'port-1', varContribution: '130000.00', percentageOfTotal: '65.00', standaloneVar: '150000.00', diversificationBenefit: '20000.00' },
-    { bookId: 'port-2', varContribution: '70000.00', percentageOfTotal: '35.00', standaloneVar: '100000.00', diversificationBenefit: '30000.00' },
+    { bookId: 'port-1', varContribution: '130000.00', percentageOfTotal: '65.00', standaloneVar: '150000.00', diversificationBenefit: '20000.00', marginalVar: '0.866667', incrementalVar: '140000.00' },
+    { bookId: 'port-2', varContribution: '70000.00', percentageOfTotal: '35.00', standaloneVar: '100000.00', diversificationBenefit: '30000.00', marginalVar: '0.700000', incrementalVar: '80000.00' },
   ],
   totalStandaloneVar: '250000.00',
   diversificationBenefit: '50000.00',

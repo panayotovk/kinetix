@@ -337,6 +337,16 @@ data class BookVaRContributionSummary(
     val incrementalVar: Double = 0.0,
 )
 
+data class StressedCrossBookVaRResultSummary(
+    val baseVaR: String,
+    val stressedVaR: String,
+    val baseDiversificationBenefit: String,
+    val stressedDiversificationBenefit: String,
+    val benefitErosion: String,
+    val benefitErosionPct: String,
+    val stressCorrelation: String,
+)
+
 data class CrossBookVaRResultSummary(
     val portfolioGroupId: String,
     val bookIds: List<String>,
@@ -396,4 +406,5 @@ interface RiskServiceClient {
     suspend fun getChartData(portfolioId: String, from: Instant, to: Instant): ChartDataSummary
     suspend fun calculateCrossBookVaR(params: com.kinetix.gateway.dto.CrossBookVaRCalculationParams): CrossBookVaRResultSummary?
     suspend fun getCrossBookVaR(groupId: String): CrossBookVaRResultSummary?
+    suspend fun calculateStressedCrossBookVaR(params: com.kinetix.gateway.dto.StressedCrossBookVaRParams): StressedCrossBookVaRResultSummary?
 }
