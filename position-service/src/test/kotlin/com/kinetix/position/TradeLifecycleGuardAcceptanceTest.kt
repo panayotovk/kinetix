@@ -5,8 +5,6 @@ import com.kinetix.position.kafka.TradeEventPublisher
 import com.kinetix.position.persistence.DatabaseTestSetup
 import com.kinetix.position.persistence.ExposedPositionRepository
 import com.kinetix.position.persistence.ExposedTradeEventRepository
-import com.kinetix.position.persistence.PositionsTable
-import com.kinetix.position.persistence.TradeEventsTable
 import com.kinetix.position.service.AmendTradeCommand
 import com.kinetix.position.service.BookTradeCommand
 import com.kinetix.position.service.CancelTradeCommand
@@ -18,7 +16,7 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.mockk
-import org.jetbrains.exposed.sql.deleteAll
+
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
 import java.time.Instant
@@ -35,8 +33,7 @@ class TradeLifecycleGuardAcceptanceTest : FunSpec({
 
     beforeEach {
         newSuspendedTransaction(db = db) {
-            TradeEventsTable.deleteAll()
-            PositionsTable.deleteAll()
+            exec("TRUNCATE TABLE trade_events, positions RESTART IDENTITY CASCADE")
         }
     }
 

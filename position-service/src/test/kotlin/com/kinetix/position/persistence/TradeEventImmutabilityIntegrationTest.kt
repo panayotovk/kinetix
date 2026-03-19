@@ -19,7 +19,7 @@ class TradeEventImmutabilityIntegrationTest : FunSpec({
 
     beforeEach {
         newSuspendedTransaction(db = db) {
-            exec("DELETE FROM trade_events WHERE trade_id LIKE 'immut-%'")
+            exec("TRUNCATE TABLE trade_events RESTART IDENTITY CASCADE")
         }
     }
 

@@ -7,7 +7,7 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
-import org.jetbrains.exposed.sql.deleteAll
+
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
 import java.time.Instant
@@ -41,7 +41,7 @@ class TradeEventRepositoryIntegrationTest : FunSpec({
     val repository: TradeEventRepository = ExposedTradeEventRepository()
 
     beforeEach {
-        newSuspendedTransaction { TradeEventsTable.deleteAll() }
+        newSuspendedTransaction { exec("TRUNCATE TABLE trade_events RESTART IDENTITY CASCADE") }
     }
 
     test("save and retrieve trade event by tradeId") {

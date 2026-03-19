@@ -6,8 +6,6 @@ import com.kinetix.position.model.TradeLimits
 import com.kinetix.position.persistence.DatabaseTestSetup
 import com.kinetix.position.persistence.ExposedPositionRepository
 import com.kinetix.position.persistence.ExposedTradeEventRepository
-import com.kinetix.position.persistence.PositionsTable
-import com.kinetix.position.persistence.TradeEventsTable
 import com.kinetix.position.service.BookTradeCommand
 import com.kinetix.position.service.ExposedTransactionalRunner
 import com.kinetix.position.service.LimitBreachException
@@ -16,7 +14,7 @@ import com.kinetix.position.service.TradeBookingService
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.mockk
-import org.jetbrains.exposed.sql.deleteAll
+
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
 import java.time.Instant
@@ -34,8 +32,7 @@ class LimitEnforcementAcceptanceTest : BehaviorSpec({
 
     beforeEach {
         newSuspendedTransaction(db = db) {
-            TradeEventsTable.deleteAll()
-            PositionsTable.deleteAll()
+            exec("TRUNCATE TABLE trade_events, positions RESTART IDENTITY CASCADE")
         }
     }
 

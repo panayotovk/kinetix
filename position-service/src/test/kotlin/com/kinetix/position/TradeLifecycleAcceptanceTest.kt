@@ -15,10 +15,7 @@ import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.mockk.mockk
-import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import com.kinetix.position.persistence.PositionsTable
-import com.kinetix.position.persistence.TradeEventsTable
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.Currency
@@ -35,8 +32,7 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
 
     beforeEach {
         newSuspendedTransaction(db = db) {
-            TradeEventsTable.deleteAll()
-            PositionsTable.deleteAll()
+            exec("TRUNCATE TABLE trade_events, positions RESTART IDENTITY CASCADE")
         }
     }
 
