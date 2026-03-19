@@ -11,6 +11,8 @@ import com.kinetix.position.persistence.ExposedPositionRepository
 import com.kinetix.position.persistence.ExposedTradeEventRepository
 import com.kinetix.position.persistence.ExposedLimitDefinitionRepository
 import com.kinetix.position.persistence.ExposedTemporaryLimitIncreaseRepository
+import com.kinetix.position.reconciliation.ExposedReconciliationRepository
+import com.kinetix.position.reconciliation.PositionReconciliationJob
 import com.kinetix.position.routes.counterpartyRoutes
 import com.kinetix.position.routes.limitRoutes
 import com.kinetix.position.routes.positionRoutes
@@ -157,6 +159,9 @@ fun Application.moduleWithRoutes() {
     val counterpartyExposureService = CounterpartyExposureService(tradeEventRepository)
     val portfolioAggregationService = PortfolioAggregationService(positionRepository, liveFxRateProvider)
 
+    val reconciliationRepository = ExposedReconciliationRepository(db)
+    val reconciliationJob = PositionReconciliationJob(reconciliationRepository)
+
     val priceUpdateService = PriceUpdateService(positionRepository)
     val consumerProps = Properties().apply {
         put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
@@ -238,6 +243,10 @@ fun Application.moduleWithRoutes() {
 
     launch {
         priceConsumer.start()
+    }
+
+    launch {
+        reconciliationJob.start()
     }
 
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
