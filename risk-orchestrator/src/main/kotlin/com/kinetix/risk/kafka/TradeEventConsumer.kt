@@ -71,7 +71,6 @@ class TradeEventConsumer(
                         )
                     }
                 }
-            }
                 if (!records.isEmpty) {
                     withContext(Dispatchers.IO) { consumer.commitSync() }
                 }
