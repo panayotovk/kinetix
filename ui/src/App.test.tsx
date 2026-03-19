@@ -65,6 +65,7 @@ function setupDefaults() {
     books: ['book-1', 'book-2', 'book-3'],
     selectBook,
     refreshPositions: vi.fn(),
+    retryInitialLoad: vi.fn(),
     loading: false,
     error: null,
   })
@@ -161,6 +162,7 @@ describe('App', () => {
       books: [],
       selectBook,
       refreshPositions: vi.fn(),
+      retryInitialLoad: vi.fn(),
       loading: true,
       error: null,
     })
@@ -170,20 +172,23 @@ describe('App', () => {
     expect(screen.getByText('Loading positions...')).toBeInTheDocument()
   })
 
-  it('shows error message on failure', () => {
+  it('shows error card with retry button on failure', () => {
     mockUsePositions.mockReturnValue({
       positions: [],
       bookId: null,
       books: [],
       selectBook,
       refreshPositions: vi.fn(),
+      retryInitialLoad: vi.fn(),
       loading: false,
       error: 'Network error',
     })
 
     render(<App />)
 
+    expect(screen.getByTestId('load-error-card')).toBeInTheDocument()
     expect(screen.getByText('Network error')).toBeInTheDocument()
+    expect(screen.getByTestId('retry-load-button')).toBeInTheDocument()
   })
 
   it('default tab shows positions', () => {
@@ -328,6 +333,7 @@ describe('App', () => {
       books: [],
       selectBook,
       refreshPositions: vi.fn(),
+      retryInitialLoad: vi.fn(),
       loading: true,
       error: null,
     })
@@ -347,6 +353,7 @@ describe('App', () => {
       books: [],
       selectBook,
       refreshPositions: vi.fn(),
+      retryInitialLoad: vi.fn(),
       loading: false,
       error: 'Network error',
     })

@@ -79,7 +79,7 @@ function App() {
     tabRefs.current.get(tabKeys[nextIndex])?.focus()
   }
 
-  const { positions: initialPositions, bookId: rawBookId, selectBook: rawSelectBook, refreshPositions, loading: rawLoading, error: rawError } = usePositions()
+  const { positions: initialPositions, bookId: rawBookId, selectBook: rawSelectBook, refreshPositions, retryInitialLoad, loading: rawLoading, error: rawError } = usePositions()
   const bookSelector = useBookSelector()
   const hierarchy = useHierarchySelector()
   const isAllSelected = bookSelector.isAllSelected
@@ -255,7 +255,25 @@ function App() {
         ) : (
           <>
             {loading && <p className="text-gray-500">Loading positions...</p>}
-            {error && <p className="text-red-600">{error}</p>}
+            {error && (
+              <div
+                data-testid="load-error-card"
+                className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start justify-between gap-4"
+                role="alert"
+              >
+                <div>
+                  <p className="text-red-700 font-medium text-sm">Failed to load positions</p>
+                  <p className="text-red-600 text-sm mt-1">{error}</p>
+                </div>
+                <button
+                  data-testid="retry-load-button"
+                  onClick={retryInitialLoad}
+                  className="flex-shrink-0 px-3 py-1.5 text-sm font-medium bg-red-100 hover:bg-red-200 text-red-800 rounded-md transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
 
             {!loading && !error && (
               <>
