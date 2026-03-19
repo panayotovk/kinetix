@@ -119,6 +119,27 @@ class AuditHashChainAcceptanceTest : BehaviorSpec({
         }
     }
 
+    given("a trade event whose tradedAt has nanosecond precision") {
+        `when`("the event is persisted and read back") {
+            then("hash chain verification still passes after the TIMESTAMPTZ round-trip") {
+                repository.save(
+                    tradeEvent(
+                        tradeId = "t-nano",
+                        tradedAt = "2026-03-19T12:00:00.123456789Z",
+                        receivedAt = BASE_TIME.plusNanos(123456789),
+                    )
+                )
+
+                val events = repository.findAll()
+                events.size shouldBe 1
+                events[0].tradedAt shouldBe "2026-03-19T12:00:00.123456Z"
+
+                val result = AuditHasher.verifyChain(events)
+                result.valid shouldBe true
+            }
+        }
+    }
+
     given("a trade event with userId and userRole") {
         `when`("the event is persisted") {
             then("userId and userRole are stored correctly, and modifying userId causes verifyChain to fail") {
