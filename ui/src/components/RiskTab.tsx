@@ -17,6 +17,7 @@ import { PnlSummaryCard } from './PnlSummaryCard'
 import { LastUpdatedIndicator } from './LastUpdatedIndicator'
 import { ValuationDatePicker } from './ValuationDatePicker'
 import { RunComparisonContainer } from './RunComparisonContainer'
+import { CorrelationHeatmap } from './CorrelationHeatmap'
 
 type RiskSubTab = 'dashboard' | 'run-compare'
 
@@ -180,12 +181,19 @@ export function RiskTab({
             diversificationBenefit={crossBookResult ? Number(crossBookResult.diversificationBenefit) : undefined}
           />
           {aggregatedView && crossBookResult && (
-            <div className="mt-4">
-              <BookContributionTable
-                contributions={crossBookResult.bookContributions}
-                onBookClick={onNavigateToBook}
-              />
-            </div>
+            <>
+              <div className="mt-4">
+                <BookContributionTable
+                  contributions={crossBookResult.bookContributions}
+                  onBookClick={onNavigateToBook}
+                />
+              </div>
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <CorrelationHeatmap
+                  assetClasses={[...new Set(crossBookResult.componentBreakdown.map((c) => c.assetClass))]}
+                />
+              </div>
+            </>
           )}
           <div className="mt-4">
             <PositionRiskTable data={positionRisk} loading={positionRiskLoading} error={positionRiskError} />

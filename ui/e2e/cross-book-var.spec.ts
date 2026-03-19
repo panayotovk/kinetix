@@ -157,6 +157,19 @@ test.describe('Cross-Book VaR', () => {
     await expect(port2Row).toContainText('$30,000.00')
   })
 
+  test('displays correlation heatmap in aggregated view', async ({ page }) => {
+    await mockRiskTabRoutes(page, {
+      varResult: TEST_VAR_RESULT,
+      jobHistory: TEST_JOB_HISTORY,
+    })
+    await mockCrossBookVaR(page, TEST_CROSS_BOOK_VAR_RESULT)
+
+    await goToRiskTab(page)
+    await page.waitForSelector('[data-testid="var-dashboard"]')
+
+    await expect(page.getByTestId('correlation-heatmap')).toBeVisible()
+  })
+
   test('hides warning banner when cross-book result is available', async ({ page }) => {
     await mockRiskTabRoutes(page, {
       varResult: TEST_VAR_RESULT,
