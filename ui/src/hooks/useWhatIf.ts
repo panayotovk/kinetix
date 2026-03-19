@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FetchError, runWhatIfAnalysis } from '../api/whatIf'
 import { classifyFetchError } from '../utils/errorClassifier'
 import type { HypotheticalTradeDto, WhatIfImpactDto, WhatIfResponseDto } from '../types'
@@ -74,14 +74,36 @@ export interface UseWhatIfResult {
   retry: () => void
 }
 
+const WHAT_IF_STORAGE_KEY = 'kinetix:whatif:trades'
+
+function loadTradesFromStorage(): TradeFormEntry[] {
+  try {
+    const raw = sessionStorage.getItem(WHAT_IF_STORAGE_KEY)
+    if (!raw) return [emptyTrade()]
+    const parsed = JSON.parse(raw) as TradeFormEntry[]
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed
+    return [emptyTrade()]
+  } catch {
+    return [emptyTrade()]
+  }
+}
+
 export function useWhatIf(bookId: string | null): UseWhatIfResult {
-  const [trades, setTrades] = useState<TradeFormEntry[]>([emptyTrade()])
+  const [trades, setTrades] = useState<TradeFormEntry[]>(loadTradesFromStorage)
   const [result, setResult] = useState<WhatIfResponseDto | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [errorTransient, setErrorTransient] = useState(false)
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(WHAT_IF_STORAGE_KEY, JSON.stringify(trades))
+    } catch {
+      // sessionStorage may be unavailable in some environments; fail silently
+    }
+  }, [trades])
 
   const addTrade = useCallback(() => {
     setTrades((prev) => [...prev, emptyTrade()])
@@ -161,6 +183,11 @@ export function useWhatIf(bookId: string | null): UseWhatIfResult {
   }, [doSubmit])
 
   const reset = useCallback(() => {
+    try {
+      sessionStorage.removeItem(WHAT_IF_STORAGE_KEY)
+    } catch {
+      // sessionStorage may be unavailable; fail silently
+    }
     setTrades([emptyTrade()])
     setResult(null)
     setError(null)
