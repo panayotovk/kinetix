@@ -49,6 +49,11 @@ class RiskCalculationServiceStub(object):
                 request_serializer=kinetix_dot_risk_dot_risk__calculation__pb2.ValuationRequest.SerializeToString,
                 response_deserializer=kinetix_dot_risk_dot_risk__calculation__pb2.ValuationResponse.FromString,
                 _registered_method=True)
+        self.CalculateCrossBookVaR = channel.unary_unary(
+                '/kinetix.risk.RiskCalculationService/CalculateCrossBookVaR',
+                request_serializer=kinetix_dot_risk_dot_risk__calculation__pb2.CrossBookVaRRequest.SerializeToString,
+                response_deserializer=kinetix_dot_risk_dot_risk__calculation__pb2.CrossBookVaRResponse.FromString,
+                _registered_method=True)
 
 
 class RiskCalculationServiceServicer(object):
@@ -73,6 +78,12 @@ class RiskCalculationServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def CalculateCrossBookVaR(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_RiskCalculationServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -90,6 +101,11 @@ def add_RiskCalculationServiceServicer_to_server(servicer, server):
                     servicer.Valuate,
                     request_deserializer=kinetix_dot_risk_dot_risk__calculation__pb2.ValuationRequest.FromString,
                     response_serializer=kinetix_dot_risk_dot_risk__calculation__pb2.ValuationResponse.SerializeToString,
+            ),
+            'CalculateCrossBookVaR': grpc.unary_unary_rpc_method_handler(
+                    servicer.CalculateCrossBookVaR,
+                    request_deserializer=kinetix_dot_risk_dot_risk__calculation__pb2.CrossBookVaRRequest.FromString,
+                    response_serializer=kinetix_dot_risk_dot_risk__calculation__pb2.CrossBookVaRResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -173,6 +189,33 @@ class RiskCalculationService(object):
             '/kinetix.risk.RiskCalculationService/Valuate',
             kinetix_dot_risk_dot_risk__calculation__pb2.ValuationRequest.SerializeToString,
             kinetix_dot_risk_dot_risk__calculation__pb2.ValuationResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CalculateCrossBookVaR(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/kinetix.risk.RiskCalculationService/CalculateCrossBookVaR',
+            kinetix_dot_risk_dot_risk__calculation__pb2.CrossBookVaRRequest.SerializeToString,
+            kinetix_dot_risk_dot_risk__calculation__pb2.CrossBookVaRResponse.FromString,
             options,
             channel_credentials,
             insecure,
