@@ -54,7 +54,7 @@ class ExposedAuditEventRepositoryIntegrationTest : FunSpec({
         found[0].instrumentId shouldBe "AAPL"
         found[0].side shouldBe "BUY"
         found[0].quantity shouldBe "100"
-        found[0].priceAmount shouldBe "150.00"
+        found[0].priceAmount shouldBe "150"
         found[0].priceCurrency shouldBe "USD"
     }
 

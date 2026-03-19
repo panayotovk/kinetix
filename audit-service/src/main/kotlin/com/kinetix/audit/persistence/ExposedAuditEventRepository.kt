@@ -27,7 +27,16 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
         // Without this, the hash computed from nanosecond-precision Instant.now() would
         // differ from one recomputed after a DB round-trip (which loses nanoseconds).
         val storedReceivedAt = event.receivedAt.truncatedTo(ChronoUnit.MICROS)
-        val eventForHash = event.copy(receivedAt = storedReceivedAt)
+        // Normalize numeric strings to canonical form so the hash matches after DB round-trip.
+        // NUMERIC(28,12) pads to 12 decimal places; stripTrailingZeros().toPlainString()
+        // produces a stable canonical representation that survives the round-trip.
+        val normalizedQuantity = event.quantity.toBigDecimal().stripTrailingZeros().toPlainString()
+        val normalizedPriceAmount = event.priceAmount.toBigDecimal().stripTrailingZeros().toPlainString()
+        val eventForHash = event.copy(
+            receivedAt = storedReceivedAt,
+            quantity = normalizedQuantity,
+            priceAmount = normalizedPriceAmount,
+        )
         val recordHash = AuditHasher.computeHash(eventForHash, latestHash)
 
         AuditEventsTable.insert {
@@ -85,7 +94,7 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
         assetClass = this[AuditEventsTable.assetClass],
         side = this[AuditEventsTable.side],
         quantity = this[AuditEventsTable.quantity].stripTrailingZeros().toPlainString(),
-        priceAmount = this[AuditEventsTable.priceAmount].setScale(2).toPlainString(),
+        priceAmount = this[AuditEventsTable.priceAmount].stripTrailingZeros().toPlainString(),
         priceCurrency = this[AuditEventsTable.priceCurrency],
         tradedAt = this[AuditEventsTable.tradedAt].toInstant().toString(),
         receivedAt = this[AuditEventsTable.receivedAt].toInstant(),

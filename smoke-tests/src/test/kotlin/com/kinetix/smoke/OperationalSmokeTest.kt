@@ -94,7 +94,8 @@ class OperationalSmokeTest : FunSpec({
         {
             "name": "smoke-test-scenario",
             "description": "Smoke test draft scenario",
-            "status": "DRAFT"
+            "shocks": "SPX -10%",
+            "createdBy": "smoke-test"
         }
         """.trimIndent()
 

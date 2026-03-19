@@ -56,7 +56,7 @@ class AuditEventConsumerIntegrationTest : FunSpec({
         events[0].assetClass shouldBe "EQUITY"
         events[0].side shouldBe "BUY"
         events[0].quantity shouldBe "100"
-        events[0].priceAmount shouldBe "150.00"
+        events[0].priceAmount shouldBe "150"
         events[0].priceCurrency shouldBe "USD"
         events[0].tradedAt shouldBe "2025-01-15T10:00:00Z"
 
