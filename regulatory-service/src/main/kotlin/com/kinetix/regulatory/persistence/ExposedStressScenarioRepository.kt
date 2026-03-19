@@ -3,6 +3,7 @@ package com.kinetix.regulatory.persistence
 import com.kinetix.regulatory.stress.ScenarioStatus
 import com.kinetix.regulatory.stress.StressScenario
 import com.kinetix.regulatory.stress.StressScenarioRepository
+import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -30,7 +31,7 @@ class ExposedStressScenarioRepository(private val db: Database? = null) : Stress
                 it[id] = scenario.id
                 it[name] = scenario.name
                 it[description] = scenario.description
-                it[shocks] = scenario.shocks
+                it[shocks] = Json.parseToJsonElement(scenario.shocks)
                 it[status] = scenario.status.name
                 it[createdBy] = scenario.createdBy
                 it[approvedBy] = scenario.approvedBy
@@ -70,7 +71,7 @@ class ExposedStressScenarioRepository(private val db: Database? = null) : Stress
         id = this[StressScenariosTable.id],
         name = this[StressScenariosTable.name],
         description = this[StressScenariosTable.description],
-        shocks = this[StressScenariosTable.shocks],
+        shocks = Json.encodeToString(this[StressScenariosTable.shocks]),
         status = ScenarioStatus.valueOf(this[StressScenariosTable.status]),
         createdBy = this[StressScenariosTable.createdBy],
         approvedBy = this[StressScenariosTable.approvedBy],
