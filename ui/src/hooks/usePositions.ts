@@ -8,6 +8,7 @@ export interface UsePositionsResult {
   books: string[]
   selectBook: (id: string) => void
   refreshPositions: () => void
+  retryInitialLoad: () => void
   loading: boolean
   error: string | null
 }
@@ -18,11 +19,14 @@ export function usePositions(): UsePositionsResult {
   const [books, setBooks] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
     let cancelled = false
 
     async function load() {
+      setLoading(true)
+      setError(null)
       try {
         const bookList = await fetchBooks()
         if (cancelled) return
@@ -57,6 +61,10 @@ export function usePositions(): UsePositionsResult {
     return () => {
       cancelled = true
     }
+  }, [retryCount])
+
+  const retryInitialLoad = useCallback(() => {
+    setRetryCount((c) => c + 1)
   }, [])
 
   const selectBook = useCallback(async (id: string) => {
@@ -83,5 +91,5 @@ export function usePositions(): UsePositionsResult {
     }
   }, [bookId])
 
-  return { positions, bookId, books, selectBook, refreshPositions, loading, error }
+  return { positions, bookId, books, selectBook, refreshPositions, retryInitialLoad, loading, error }
 }
