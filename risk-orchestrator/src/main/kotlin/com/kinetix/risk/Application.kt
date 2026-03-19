@@ -2,6 +2,7 @@ package com.kinetix.risk
 
 import com.kinetix.common.kafka.RetryableConsumer
 import com.kinetix.common.resilience.CircuitBreaker
+import com.kinetix.common.resilience.CircuitBreakerConfig
 import com.kinetix.common.resilience.CircuitBreakerOpenException
 import com.kinetix.proto.risk.MarketDataDependenciesServiceGrpcKt
 import com.kinetix.proto.risk.RiskCalculationServiceGrpcKt
@@ -173,7 +174,7 @@ fun Application.moduleWithRoutes() {
         RiskCalculationServiceGrpcKt.RiskCalculationServiceCoroutineStub(channel),
         dependenciesStub,
     )
-    val circuitBreaker = CircuitBreaker()
+    val circuitBreaker = CircuitBreaker(CircuitBreakerConfig(failureThreshold = 3, resetTimeoutMs = 15_000, halfOpenMaxCalls = 2, name = "risk-engine"))
     val riskEngineClient = ResilientRiskEngineClient(grpcRiskEngineClient, circuitBreaker)
 
     val priceServiceBaseUrl = environment.config
