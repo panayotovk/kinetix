@@ -19,7 +19,7 @@ from kinetix_risk.volatility import VolatilityProvider, get_sub_correlation_matr
 
 
 @risk_var_calculation_duration_seconds.time()
-def calculate_portfolio_var(
+def calculate_book_var(
     positions: list[PositionRisk],
     calculation_type: CalculationType,
     confidence_level: ConfidenceLevel,

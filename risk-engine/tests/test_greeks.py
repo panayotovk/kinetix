@@ -121,15 +121,15 @@ class TestGreeksCalculation:
         """Longer-dated positions have more rate sensitivity, so rho should
         increase (in absolute value) as the time horizon grows.
 
-        This also validates that calculate_portfolio_var accepts a risk_free_rate
+        This also validates that calculate_book_var accepts a risk_free_rate
         parameter, since proper rho computation requires discounting market
         values by the risk-free rate.
         """
         import inspect
-        from kinetix_risk.portfolio_risk import calculate_portfolio_var
-        sig = inspect.signature(calculate_portfolio_var)
+        from kinetix_risk.portfolio_risk import calculate_book_var
+        sig = inspect.signature(calculate_book_var)
         assert "risk_free_rate" in sig.parameters, (
-            "calculate_portfolio_var must accept a risk_free_rate parameter"
+            "calculate_book_var must accept a risk_free_rate parameter"
         )
 
         positions = _sample_positions()

@@ -69,7 +69,7 @@ def _make_valuation_request(portfolio_id="port-err"):
 class TestCalculateVaRErrorHandling:
     def test_returns_internal_on_unexpected_error(self, stub):
         with patch(
-            "kinetix_risk.server.calculate_portfolio_var",
+            "kinetix_risk.server.calculate_book_var",
             side_effect=RuntimeError("unexpected crash"),
         ):
             with pytest.raises(grpc.RpcError) as exc_info:
@@ -78,7 +78,7 @@ class TestCalculateVaRErrorHandling:
 
     def test_returns_invalid_argument_on_value_error(self, stub):
         with patch(
-            "kinetix_risk.server.calculate_portfolio_var",
+            "kinetix_risk.server.calculate_book_var",
             side_effect=ValueError("correlation matrix is not positive-definite"),
         ):
             with pytest.raises(grpc.RpcError) as exc_info:

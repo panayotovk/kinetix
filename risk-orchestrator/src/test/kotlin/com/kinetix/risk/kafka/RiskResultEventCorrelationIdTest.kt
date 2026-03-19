@@ -11,8 +11,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.Instant
 
-private fun valuationResult(portfolioId: String = "port-1") = ValuationResult(
-    portfolioId = BookId(portfolioId),
+private fun valuationResult(bookId: String = "port-1") = ValuationResult(
+    bookId = BookId(bookId),
     calculationType = CalculationType.PARAMETRIC,
     confidenceLevel = ConfidenceLevel.CL_95,
     varValue = 5000.0,
@@ -26,7 +26,7 @@ private fun valuationResult(portfolioId: String = "port-1") = ValuationResult(
 )
 
 private fun ValuationResult.toRiskResultEvent(correlationId: String? = null) = RiskResultEvent(
-    portfolioId = portfolioId.value,
+    bookId = bookId.value,
     calculationType = calculationType.name,
     confidenceLevel = confidenceLevel.name,
     varValue = (varValue ?: 0.0).toString(),
@@ -65,7 +65,7 @@ class RiskResultEventCorrelationIdTest : FunSpec({
     }
 
     test("backward-compatible deserialization without correlationId field") {
-        val json = """{"portfolioId":"port-1","calculationType":"PARAMETRIC","confidenceLevel":"CL_95","varValue":"5000.0","expectedShortfall":"6250.0","componentBreakdown":[],"calculatedAt":"2025-01-15T10:30:00Z"}"""
+        val json = """{"bookId":"port-1","calculationType":"PARAMETRIC","confidenceLevel":"CL_95","varValue":"5000.0","expectedShortfall":"6250.0","componentBreakdown":[],"calculatedAt":"2025-01-15T10:30:00Z"}"""
         val event = Json.decodeFromString<RiskResultEvent>(json)
 
         event.correlationId shouldBe null

@@ -11,7 +11,7 @@ from kinetix_risk.models import (
     ConfidenceLevel,
     PositionRisk,
 )
-from kinetix_risk.portfolio_risk import calculate_portfolio_var
+from kinetix_risk.portfolio_risk import calculate_book_var
 
 
 def make_equity_position(instrument_id: str, market_value: float) -> PositionRisk:
@@ -26,7 +26,7 @@ class TestMetrics:
             confidence_level="0.95",
         )._value.get()
 
-        calculate_portfolio_var(
+        calculate_book_var(
             positions, CalculationType.PARAMETRIC, ConfidenceLevel.CL_95, 1,
         )
 
@@ -38,7 +38,7 @@ class TestMetrics:
 
     def test_histogram_has_observations(self):
         positions = [make_equity_position("AAPL", 100_000.0)]
-        calculate_portfolio_var(
+        calculate_book_var(
             positions, CalculationType.PARAMETRIC, ConfidenceLevel.CL_95, 1,
         )
 
@@ -54,9 +54,9 @@ class TestMetrics:
 
     def test_gauge_is_set_to_var_value(self):
         positions = [make_equity_position("AAPL", 100_000.0)]
-        result = calculate_portfolio_var(
+        result = calculate_book_var(
             positions, CalculationType.PARAMETRIC, ConfidenceLevel.CL_95, 1,
         )
 
-        risk_var_value.labels(portfolio_id="test-port").set(result.var_value)
-        assert risk_var_value.labels(portfolio_id="test-port")._value.get() == result.var_value
+        risk_var_value.labels(book_id="test-port").set(result.var_value)
+        assert risk_var_value.labels(book_id="test-port")._value.get() == result.var_value

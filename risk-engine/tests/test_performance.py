@@ -11,7 +11,7 @@ from kinetix.risk import risk_calculation_pb2, risk_calculation_pb2_grpc
 from kinetix_risk.models import (
     AssetClass, CalculationType, ConfidenceLevel, PositionRisk,
 )
-from kinetix_risk.portfolio_risk import calculate_portfolio_var
+from kinetix_risk.portfolio_risk import calculate_book_var
 from kinetix_risk.server import RiskCalculationServicer
 from kinetix_risk.var_monte_carlo import calculate_monte_carlo_var
 from kinetix_risk.volatility import get_sub_correlation_matrix, get_volatility
@@ -78,7 +78,7 @@ class TestMonteCarloPerformance:
     def test_10k_positions_10k_sims_under_60s(self):
         positions = make_positions(10_000)
         start = time.time()
-        result = calculate_portfolio_var(
+        result = calculate_book_var(
             positions, CalculationType.MONTE_CARLO, ConfidenceLevel.CL_95,
             time_horizon_days=1, num_simulations=10_000,
         )

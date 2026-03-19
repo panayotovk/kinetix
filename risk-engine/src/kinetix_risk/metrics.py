@@ -14,19 +14,19 @@ risk_var_calculation_total = Counter(
 risk_var_value = Gauge(
     "risk_var_value",
     "Current VaR value for a portfolio",
-    ["portfolio_id"],
+    ["book_id"],
 )
 
 risk_var_expected_shortfall = Gauge(
     "risk_var_expected_shortfall",
     "Current Expected Shortfall (CVaR) value for a portfolio",
-    ["portfolio_id"],
+    ["book_id"],
 )
 
 risk_var_component_contribution = Gauge(
     "risk_var_component_contribution",
     "VaR contribution by asset class for a portfolio",
-    ["portfolio_id", "asset_class"],
+    ["book_id", "asset_class"],
 )
 
 ml_prediction_duration_seconds = Histogram(

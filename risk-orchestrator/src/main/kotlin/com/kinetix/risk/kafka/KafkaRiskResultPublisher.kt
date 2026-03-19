@@ -21,7 +21,7 @@ class KafkaRiskResultPublisher(
 
     override suspend fun publish(result: ValuationResult, correlationId: String?) {
         val event = RiskResultEvent(
-            portfolioId = result.portfolioId.value,
+            bookId = result.bookId.value,
             calculationType = result.calculationType.name,
             confidenceLevel = result.confidenceLevel.name,
             varValue = (result.varValue ?: 0.0).toString(),
@@ -49,7 +49,7 @@ class KafkaRiskResultPublisher(
             }.ifEmpty { null },
         )
         val json = Json.encodeToString(event)
-        val record = ProducerRecord(topic, result.portfolioId.value, json)
+        val record = ProducerRecord(topic, result.bookId.value, json)
 
         try {
             withContext(Dispatchers.IO) {
@@ -57,8 +57,8 @@ class KafkaRiskResultPublisher(
             }
         } catch (e: Exception) {
             logger.error(
-                "Failed to publish risk result to Kafka: portfolioId={}, topic={}",
-                result.portfolioId.value, topic, e,
+                "Failed to publish risk result to Kafka: bookId={}, topic={}",
+                result.bookId.value, topic, e,
             )
         }
     }

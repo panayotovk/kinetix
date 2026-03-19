@@ -4,7 +4,7 @@ import pytest
 from kinetix_risk.models import (
     AssetClass, CalculationType, ConfidenceLevel, PositionRisk, VaRResult,
 )
-from kinetix_risk.portfolio_risk import calculate_portfolio_var
+from kinetix_risk.portfolio_risk import calculate_book_var
 
 
 def make_equity_position(instrument_id: str, market_value: float) -> PositionRisk:
@@ -14,7 +14,7 @@ def make_equity_position(instrument_id: str, market_value: float) -> PositionRis
 class TestPortfolioRiskOrchestrator:
     def test_single_equity_position_parametric(self):
         positions = [make_equity_position("AAPL", 100_000.0)]
-        result = calculate_portfolio_var(
+        result = calculate_book_var(
             positions, CalculationType.PARAMETRIC, ConfidenceLevel.CL_95, 1,
         )
         assert isinstance(result, VaRResult)
@@ -26,10 +26,10 @@ class TestPortfolioRiskOrchestrator:
             make_equity_position("AAPL", 60_000.0),
             make_equity_position("MSFT", 40_000.0),
         ]
-        result = calculate_portfolio_var(
+        result = calculate_book_var(
             positions, CalculationType.PARAMETRIC, ConfidenceLevel.CL_95, 1,
         )
-        single = calculate_portfolio_var(
+        single = calculate_book_var(
             [make_equity_position("COMBINED", 100_000.0)],
             CalculationType.PARAMETRIC, ConfidenceLevel.CL_95, 1,
         )
@@ -41,21 +41,21 @@ class TestPortfolioRiskOrchestrator:
             PositionRisk("UST10Y", AssetClass.FIXED_INCOME, 200_000.0, "USD"),
             PositionRisk("EURUSD", AssetClass.FX, 50_000.0, "USD"),
         ]
-        result = calculate_portfolio_var(
+        result = calculate_book_var(
             positions, CalculationType.PARAMETRIC, ConfidenceLevel.CL_95, 1,
         )
         assert len(result.component_breakdown) == 3
 
     def test_historical_method_dispatched(self):
         positions = [make_equity_position("AAPL", 100_000.0)]
-        result = calculate_portfolio_var(
+        result = calculate_book_var(
             positions, CalculationType.HISTORICAL, ConfidenceLevel.CL_95, 1,
         )
         assert result.var_value > 0
 
     def test_monte_carlo_method_dispatched(self):
         positions = [make_equity_position("AAPL", 100_000.0)]
-        result = calculate_portfolio_var(
+        result = calculate_book_var(
             positions, CalculationType.MONTE_CARLO, ConfidenceLevel.CL_95, 1,
             num_simulations=5_000,
         )
@@ -63,7 +63,7 @@ class TestPortfolioRiskOrchestrator:
 
     def test_empty_positions_raises(self):
         with pytest.raises(ValueError):
-            calculate_portfolio_var(
+            calculate_book_var(
                 [], CalculationType.PARAMETRIC, ConfidenceLevel.CL_95, 1,
             )
 
@@ -72,7 +72,7 @@ class TestPortfolioRiskOrchestrator:
         rng = np.random.default_rng(55)
         returns = rng.normal(0, 0.01, size=(250, 1))
 
-        result = calculate_portfolio_var(
+        result = calculate_book_var(
             positions,
             CalculationType.HISTORICAL,
             ConfidenceLevel.CL_95,

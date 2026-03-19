@@ -41,7 +41,7 @@ class TestCrossBookVaR:
         assert result.var_result.var_value < result.total_standalone_var
 
     def test_single_book_matches_individual_var(self):
-        from kinetix_risk.portfolio_risk import calculate_portfolio_var
+        from kinetix_risk.portfolio_risk import calculate_book_var
 
         positions = [
             make_position("AAPL", AssetClass.EQUITY, 100_000.0),
@@ -55,7 +55,7 @@ class TestCrossBookVaR:
             confidence_level=ConfidenceLevel.CL_95,
             time_horizon_days=1,
         )
-        standalone_result = calculate_portfolio_var(
+        standalone_result = calculate_book_var(
             positions,
             calculation_type=CalculationType.PARAMETRIC,
             confidence_level=ConfidenceLevel.CL_95,
@@ -143,26 +143,26 @@ class TestCrossBookVaR:
             )
 
     def test_cl_975_var_is_between_cl_95_and_cl_99(self):
-        from kinetix_risk.portfolio_risk import calculate_portfolio_var
+        from kinetix_risk.portfolio_risk import calculate_book_var
 
         positions = [
             make_position("AAPL", AssetClass.EQUITY, 100_000.0),
             make_position("UST10Y", AssetClass.FIXED_INCOME, 200_000.0),
         ]
 
-        var_95 = calculate_portfolio_var(
+        var_95 = calculate_book_var(
             positions,
             calculation_type=CalculationType.PARAMETRIC,
             confidence_level=ConfidenceLevel.CL_95,
             time_horizon_days=1,
         )
-        var_975 = calculate_portfolio_var(
+        var_975 = calculate_book_var(
             positions,
             calculation_type=CalculationType.PARAMETRIC,
             confidence_level=ConfidenceLevel.CL_975,
             time_horizon_days=1,
         )
-        var_99 = calculate_portfolio_var(
+        var_99 = calculate_book_var(
             positions,
             calculation_type=CalculationType.PARAMETRIC,
             confidence_level=ConfidenceLevel.CL_99,

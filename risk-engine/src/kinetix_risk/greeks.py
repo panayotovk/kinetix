@@ -3,7 +3,7 @@ from collections import defaultdict
 from kinetix_risk.models import (
     AssetClass, CalculationType, ConfidenceLevel, GreeksResult, PositionRisk,
 )
-from kinetix_risk.portfolio_risk import calculate_portfolio_var
+from kinetix_risk.portfolio_risk import calculate_book_var
 from kinetix_risk.volatility import DEFAULT_VOLATILITIES, VolatilityProvider
 
 PRICE_BUMP = 0.01       # 1% price bump for delta/gamma
@@ -30,7 +30,7 @@ def _bump_positions(positions: list[PositionRisk], asset_class: AssetClass, bump
 
 def _var_value(positions, calculation_type, confidence_level, time_horizon_days,
                volatility_provider=None, risk_free_rate: float = 0.0) -> float:
-    return calculate_portfolio_var(
+    return calculate_book_var(
         positions, calculation_type, confidence_level, time_horizon_days,
         volatility_provider=volatility_provider,
         risk_free_rate=risk_free_rate,

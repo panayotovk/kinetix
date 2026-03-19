@@ -10,7 +10,7 @@ from kinetix_risk.models import (
     PositionRisk,
     ValuationResult,
 )
-from kinetix_risk.portfolio_risk import calculate_portfolio_var
+from kinetix_risk.portfolio_risk import calculate_book_var
 from kinetix_risk.position_resolver import resolve_positions
 from kinetix_risk.volatility import VolatilityProvider
 
@@ -52,7 +52,7 @@ def calculate_valuation(
     computed = []
 
     if need_var:
-        var_result = calculate_portfolio_var(
+        var_result = calculate_book_var(
             positions=resolved,
             calculation_type=calculation_type,
             confidence_level=confidence_level,

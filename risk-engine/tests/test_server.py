@@ -29,7 +29,7 @@ def stub(grpc_channel):
 
 
 def make_var_request(
-    portfolio_id="port-1",
+    book_id="port-1",
     calc_type=risk_calculation_pb2.PARAMETRIC,
     confidence=risk_calculation_pb2.CL_95,
     horizon=1,
@@ -39,7 +39,7 @@ def make_var_request(
     if positions is None:
         positions = [
             types_pb2.Position(
-                book_id=types_pb2.BookId(value=portfolio_id),
+                book_id=types_pb2.BookId(value=book_id),
                 instrument_id=types_pb2.InstrumentId(value="AAPL"),
                 asset_class=types_pb2.EQUITY,
                 quantity=100.0,
@@ -47,7 +47,7 @@ def make_var_request(
             ),
         ]
     return risk_calculation_pb2.VaRRequest(
-        book_id=types_pb2.BookId(value=portfolio_id),
+        book_id=types_pb2.BookId(value=book_id),
         calculation_type=calc_type,
         confidence_level=confidence,
         time_horizon_days=horizon,
@@ -116,8 +116,8 @@ class TestCalculateVaRUnary:
 class TestCalculateVaRStream:
     def test_streaming_returns_responses_for_each_request(self, stub):
         requests = [
-            make_var_request(portfolio_id="port-1"),
-            make_var_request(portfolio_id="port-2"),
+            make_var_request(book_id="port-1"),
+            make_var_request(book_id="port-2"),
         ]
         responses = list(stub.CalculateVaRStream(iter(requests)))
         assert len(responses) == 2

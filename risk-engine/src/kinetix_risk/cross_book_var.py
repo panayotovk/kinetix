@@ -12,7 +12,7 @@ from kinetix_risk.models import (
     StressedDiversificationResult,
     VaRResult,
 )
-from kinetix_risk.portfolio_risk import calculate_portfolio_var
+from kinetix_risk.portfolio_risk import calculate_book_var
 from kinetix_risk.volatility import VolatilityProvider
 
 
@@ -51,12 +51,12 @@ def calculate_cross_book_var(
     )
 
     # Aggregate VaR across all books
-    aggregate_result = calculate_portfolio_var(positions=all_positions, **common_kwargs)
+    aggregate_result = calculate_book_var(positions=all_positions, **common_kwargs)
 
     # Standalone VaR per non-empty book
     standalone_vars: dict[str, float] = {}
     for book_id, positions in non_empty_books.items():
-        standalone = calculate_portfolio_var(positions=positions, **common_kwargs)
+        standalone = calculate_book_var(positions=positions, **common_kwargs)
         standalone_vars[book_id] = standalone.var_value
 
     total_standalone_var = sum(standalone_vars.values())
@@ -69,7 +69,7 @@ def calculate_cross_book_var(
         remaining_books = {bid: pos for bid, pos in non_empty_books.items() if bid != book_id}
         remaining_positions = [p for positions in remaining_books.values() for p in positions]
         if remaining_positions:
-            subset_result = calculate_portfolio_var(positions=remaining_positions, **common_kwargs)
+            subset_result = calculate_book_var(positions=remaining_positions, **common_kwargs)
             incremental_vars[book_id] = aggregate_result.var_value - subset_result.var_value
         else:
             # Only one non-empty book — removing it removes everything
@@ -238,7 +238,7 @@ def calculate_stressed_cross_book_var(
     # Aggregate stressed VaR — matrix sized to the number of distinct asset classes
     n_agg = len({p.asset_class for p in all_positions})
     stressed_agg_corr = _build_stressed_correlation_matrix(n_agg, stress_correlation)
-    stressed_agg_result = calculate_portfolio_var(
+    stressed_agg_result = calculate_book_var(
         positions=all_positions,
         correlation_matrix=stressed_agg_corr,
         **var_kwargs,
@@ -249,7 +249,7 @@ def calculate_stressed_cross_book_var(
     for book_id, positions in non_empty_books.items():
         n_book = len({p.asset_class for p in positions})
         stressed_book_corr = _build_stressed_correlation_matrix(n_book, stress_correlation)
-        standalone = calculate_portfolio_var(
+        standalone = calculate_book_var(
             positions=positions,
             correlation_matrix=stressed_book_corr,
             **var_kwargs,

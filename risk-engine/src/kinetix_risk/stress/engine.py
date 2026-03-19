@@ -2,7 +2,7 @@ from kinetix_risk.models import (
     AssetClass, AssetClassImpact, CalculationType, ConfidenceLevel,
     PositionRisk, PositionStressImpact, StressScenario, StressTestResult,
 )
-from kinetix_risk.portfolio_risk import calculate_portfolio_var
+from kinetix_risk.portfolio_risk import calculate_book_var
 from kinetix_risk.volatility import DEFAULT_VOLATILITIES, VolatilityProvider, get_sub_correlation_matrix
 
 
@@ -17,7 +17,7 @@ def run_stress_test(
         raise ValueError("Cannot run stress test on empty positions list")
 
     # Compute base VaR with default vols/correlations
-    base_result = calculate_portfolio_var(
+    base_result = calculate_book_var(
         positions, calculation_type, confidence_level, time_horizon_days,
     )
 
@@ -57,7 +57,7 @@ def run_stress_test(
         corr = get_sub_correlation_matrix(asset_classes)
 
     # Compute stressed VaR
-    stressed_result = calculate_portfolio_var(
+    stressed_result = calculate_book_var(
         stressed_positions, calculation_type, confidence_level, time_horizon_days,
         volatility_provider=vol_provider, correlation_matrix=corr,
     )

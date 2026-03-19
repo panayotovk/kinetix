@@ -26,7 +26,7 @@ from kinetix_risk.metrics import risk_var_component_contribution, risk_var_expec
 from kinetix_risk.ml.model_store import ModelStore
 from kinetix_risk.ml_server import MLPredictionServicer
 from kinetix_risk.cross_book_var import calculate_cross_book_var
-from kinetix_risk.portfolio_risk import calculate_portfolio_var
+from kinetix_risk.portfolio_risk import calculate_book_var
 from kinetix_risk.valuation import calculate_valuation
 from kinetix_risk.volatility import VolatilityProvider
 from kinetix_risk.dependencies_server import MarketDataDependenciesServicer
@@ -45,7 +45,7 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
             market_data_dicts = proto_market_data_to_domain(request.market_data)
             bundle = consume_market_data(market_data_dicts)
 
-            result = calculate_portfolio_var(
+            result = calculate_book_var(
                 positions=positions,
                 calculation_type=calc_type,
                 confidence_level=confidence,
@@ -56,11 +56,11 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
             )
 
             book_id = request.book_id.value
-            risk_var_value.labels(portfolio_id=book_id).set(result.var_value)
-            risk_var_expected_shortfall.labels(portfolio_id=book_id).set(result.expected_shortfall)
+            risk_var_value.labels(book_id=book_id).set(result.var_value)
+            risk_var_expected_shortfall.labels(book_id=book_id).set(result.expected_shortfall)
             for component in result.component_breakdown:
                 risk_var_component_contribution.labels(
-                    portfolio_id=book_id,
+                    book_id=book_id,
                     asset_class=component.asset_class.value,
                 ).set(component.var_contribution)
 
@@ -106,11 +106,11 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
 
             if result.var_result is not None:
                 book_id = request.book_id.value
-                risk_var_value.labels(portfolio_id=book_id).set(result.var_result.var_value)
-                risk_var_expected_shortfall.labels(portfolio_id=book_id).set(result.var_result.expected_shortfall)
+                risk_var_value.labels(book_id=book_id).set(result.var_result.var_value)
+                risk_var_expected_shortfall.labels(book_id=book_id).set(result.var_result.expected_shortfall)
                 for component in result.var_result.component_breakdown:
                     risk_var_component_contribution.labels(
-                        portfolio_id=book_id,
+                        book_id=book_id,
                         asset_class=component.asset_class.value,
                     ).set(component.var_contribution)
 
