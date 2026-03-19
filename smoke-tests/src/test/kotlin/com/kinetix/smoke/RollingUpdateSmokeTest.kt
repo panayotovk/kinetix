@@ -85,8 +85,8 @@ class RollingUpdateSmokeTest : FunSpec({
 
     test("health endpoints remain accessible") {
         val services = listOf(
-            "/api/v1/positions/health" to "position-service",
-            "/api/v1/risk/health" to "risk-orchestrator",
+            "/health" to "gateway",
+            "/api/v1/system/health" to "system",
         )
 
         for ((path, name) in services) {
