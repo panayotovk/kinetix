@@ -42,6 +42,7 @@ const whatIfResponse: WhatIfResponseDto = {
 describe('useWhatIf', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    sessionStorage.clear()
   })
 
   it('initialises with one empty trade in the form', () => {

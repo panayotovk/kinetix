@@ -501,7 +501,7 @@ describe('useVaR', () => {
         await result.current.refresh()
       })
 
-      expect(result.current.error).toBe('Internal server error')
+      expect(result.current.error).toBe('An unexpected error occurred.')
       expect(mockTriggerVaR).toHaveBeenCalledTimes(1)
     })
 
@@ -542,7 +542,7 @@ describe('useVaR', () => {
 
       expect(result.current.refreshing).toBe(false)
       expect(mockTriggerVaR).toHaveBeenCalledTimes(2)
-      expect(result.current.error).toBe('Risk engine temporarily unavailable')
+      expect(result.current.error).toBe('Service temporarily unavailable. Retrying...')
     })
   })
 
