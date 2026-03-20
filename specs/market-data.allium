@@ -1,0 +1,226 @@
+-- allium: 2
+-- Market data ingestion, storage, and distribution: prices, rates, volatility, correlations.
+
+use "./core.allium" as core
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity PricePoint {
+    instrument_id: String
+    price: core/Money
+    timestamp: Timestamp
+    source: core/PriceSource
+}
+
+entity YieldCurve {
+    curve_id: String
+    currency: String
+    as_of: Timestamp
+    tenors: List<core/Tenor>
+    source: core/RateSource
+
+    -- Derived
+    short_rate: tenors.first.rate
+    long_rate: tenors.last.rate
+
+    @guidance
+        -- Tenors must be sorted by maturity days ascending.
+        -- rateAt(days) performs linear interpolation between surrounding tenors.
+        -- shift(bps) produces a parallel shift of all rates.
+}
+
+entity RiskFreeRate {
+    currency: String
+    tenor: String
+    rate: Decimal
+    as_of_date: Timestamp
+    source: core/RateSource
+}
+
+entity ForwardCurve {
+    instrument_id: String
+    asset_class: String
+    points: List<core/CurvePoint>
+    as_of_date: Timestamp
+    source: core/RateSource
+}
+
+entity VolSurface {
+    instrument_id: String
+    as_of: Timestamp
+    points: List<core/VolPoint>
+    source: core/VolatilitySource
+
+    -- Derived
+    strikes: List<Decimal>
+    maturities: List<Integer>
+
+    @guidance
+        -- volAt(strike, maturityDays) performs bilinear interpolation.
+        -- Clamps to nearest available strike and maturity if outside grid.
+        -- scaleAll(factor) multiplies all implied vols by factor.
+}
+
+entity CorrelationMatrix {
+    labels: List<String>
+    values: List<Decimal>
+    window_days: Integer
+    as_of_date: Timestamp
+    method: String
+
+    -- Derived
+    dimension: labels.count
+
+    @guidance
+        -- values.count must equal labels.count squared (n x n matrix).
+        -- Labels are sorted consistently for lookup.
+        -- Lookup key is (md5(labels), window_days).
+}
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    price_retention: core/Duration = 730.days
+    price_compression_after: core/Duration = 30.days
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- Price ingestion
+
+rule IngestPrice {
+    when: IngestPriceRequested(instrument_id, price_amount, price_currency, source)
+    requires: price_amount >= 0
+    ensures: PricePoint.created(
+        instrument_id: instrument_id,
+        price: core/Money{amount: price_amount, currency: price_currency},
+        timestamp: now,
+        source: source
+    )
+    ensures: PricePublished(instrument_id: instrument_id, price_amount: price_amount, price_currency: price_currency)
+
+    @guidance
+        -- After persisting, cache the latest price and publish to Kafka price.updates topic.
+        -- Update staleness tracker for data quality monitoring.
+}
+
+-- Yield curve ingestion
+
+rule IngestYieldCurve {
+    when: IngestYieldCurveRequested(curve_id, currency, tenors, source)
+    requires: tenors.count >= 1
+    ensures: YieldCurve.created(
+        curve_id: curve_id,
+        currency: currency,
+        as_of: now,
+        tenors: tenors,
+        source: source
+    )
+    ensures: YieldCurvePublished(curve_id: curve_id)
+
+    @guidance
+        -- Tenors are validated to be monotonically increasing in maturity.
+        -- Published to Kafka rates.yield-curves topic with key=curveId.
+}
+
+-- Risk-free rate ingestion
+
+rule IngestRiskFreeRate {
+    when: IngestRiskFreeRateRequested(currency, tenor, rate, source)
+    requires: tenor != ""
+    ensures: RiskFreeRate.created(
+        currency: currency,
+        tenor: tenor,
+        rate: rate,
+        as_of_date: now,
+        source: source
+    )
+    ensures: RiskFreeRatePublished(currency: currency, tenor: tenor)
+
+    @guidance
+        -- Published to Kafka rates.risk-free topic with key=currency:tenor.
+}
+
+-- Forward curve ingestion
+
+rule IngestForwardCurve {
+    when: IngestForwardCurveRequested(instrument_id, asset_class, points, source)
+    requires: points.count >= 1
+    ensures: ForwardCurve.created(
+        instrument_id: instrument_id,
+        asset_class: asset_class,
+        points: points,
+        as_of_date: now,
+        source: source
+    )
+    ensures: ForwardCurvePublished(instrument_id: instrument_id)
+}
+
+-- Volatility surface ingestion
+
+rule IngestVolSurface {
+    when: IngestVolSurfaceRequested(instrument_id, points, source)
+    requires: points.count >= 1
+    ensures: VolSurface.created(
+        instrument_id: instrument_id,
+        as_of: now,
+        points: points,
+        source: source
+    )
+    ensures: VolSurfacePublished(instrument_id: instrument_id)
+
+    @guidance
+        -- All implied vols must be positive.
+        -- Strikes and maturity_days must be positive.
+        -- Published to Kafka volatility.surfaces topic.
+}
+
+-- Correlation matrix ingestion
+
+rule IngestCorrelationMatrix {
+    when: IngestCorrelationMatrixRequested(labels, values, window_days, method)
+    requires: values.count = labels.count * labels.count
+    requires: labels.count >= 1
+    ensures: CorrelationMatrix.created(
+        labels: labels,
+        values: values,
+        window_days: window_days,
+        as_of_date: now,
+        method: method
+    )
+    ensures: CorrelationMatrixPublished(labels: labels)
+
+    @guidance
+        -- Matrix must be square (n x n where n = labels.count).
+        -- Published to Kafka correlation.matrices topic with key=sorted comma-joined labels.
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant NonNegativePrices {
+    for p in PricePoints:
+        p.price.amount >= 0
+}
+
+invariant YieldCurveTenorOrder {
+    for curve in YieldCurves:
+        curve.tenors.count >= 1
+}
+
+invariant SquareCorrelationMatrix {
+    for m in CorrelationMatrices:
+        m.values.count = m.labels.count * m.labels.count
+}
+
+invariant VolSurfacePositiveVols {
+    for surface in VolSurfaces:
+        surface.points.count >= 1
+}

@@ -1,0 +1,429 @@
+-- allium: 2
+-- Quantitative risk models: VaR methods, Black-Scholes pricing, Greeks,
+-- bond/swap pricing, stress testing, and FRTB regulatory capital.
+
+use "./core.allium" as core
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value VaRResult {
+    var_value: Decimal
+    expected_shortfall: Decimal
+    component_breakdown: List<VaRComponentBreakdown>
+}
+
+value VaRComponentBreakdown {
+    asset_class: core/AssetClass
+    var_contribution: Decimal
+    percentage_of_total: Decimal
+}
+
+value OptionGreeks {
+    delta: Decimal
+    gamma: Decimal
+    vega: Decimal
+    theta: Decimal
+    rho: Decimal
+}
+
+value CrossGreeks {
+    vanna: Decimal
+    volga: Decimal
+    charm: Decimal
+}
+
+value BondAnalytics {
+    present_value: Decimal
+    dv01: Decimal
+    modified_duration: Decimal
+}
+
+value SwapAnalytics {
+    present_value: Decimal
+    dv01: Decimal
+}
+
+value StressTestResult {
+    scenario_name: String
+    base_var: Decimal
+    stressed_var: Decimal
+    pnl_impact: Decimal
+    asset_class_impacts: List<AssetClassImpact>
+    position_impacts: List<PositionImpact>
+}
+
+value AssetClassImpact {
+    asset_class: core/AssetClass
+    base_exposure: Decimal
+    stressed_exposure: Decimal
+    pnl_impact: Decimal
+}
+
+value PositionImpact {
+    instrument_id: String
+    asset_class: core/AssetClass
+    base_market_value: Decimal
+    stressed_market_value: Decimal
+    pnl_impact: Decimal
+}
+
+value SbmResult {
+    risk_class_charges: List<RiskClassCharge>
+    total_sbm_charge: Decimal
+}
+
+value RiskClassCharge {
+    risk_class: core/FrtbRiskClass
+    delta_charge: Decimal
+    vega_charge: Decimal
+    curvature_charge: Decimal
+    total_charge: Decimal
+}
+
+value DrcResult {
+    gross_jtd: Decimal
+    hedge_benefit: Decimal
+    net_drc: Decimal
+}
+
+value RraoResult {
+    exotic_notional: Decimal
+    other_notional: Decimal
+    total_rrao: Decimal
+}
+
+value FrtbCapitalCharge {
+    sbm: SbmResult
+    drc: DrcResult
+    rrao: RraoResult
+    total_capital_charge: Decimal
+}
+
+value BacktestResult {
+    total_days: Integer
+    violation_count: Integer
+    violation_rate: Decimal
+    kupiec_statistic: Decimal
+    kupiec_p_value: Decimal
+    kupiec_pass: Boolean
+    christoffersen_statistic: Decimal
+    christoffersen_p_value: Decimal
+    christoffersen_pass: Boolean
+    traffic_light_zone: core/TrafficLightZone
+}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity StressScenario {
+    name: String
+    description: String?
+    vol_shocks: List<Decimal>
+    price_shocks: List<Decimal>
+    correlation_override: List<Decimal>?
+
+    @guidance
+        -- vol_shocks: multipliers by asset class (e.g., 3.0 = 3x vol).
+        -- price_shocks: multipliers by asset class (e.g., 0.60 = 60% of base).
+        -- Pre-defined scenarios:
+        --   GFC_2008: vol 3.0x (derivatives), prices 0.55-0.95x, crisis correlations
+        --   COVID_2020: vol 2.5x, prices 0.60-0.97x, pandemic correlations
+        --   TAPER_TANTRUM_2013: vol 1.5-2.0x, prices 0.90-0.97x
+        --   EURO_CRISIS_2011: vol 1.5-2.0x, prices 0.75-0.92x
+}
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    -- VaR parameters
+    trading_days_per_year: Integer = 252
+    default_time_horizon_days: Integer = 10
+    default_num_simulations: Integer = 10000
+
+    -- Greeks bump sizes
+    price_bump: Decimal = 0.01
+    vol_bump: Decimal = 0.01
+    rate_bump: Decimal = 0.0001
+    time_bump_days: Integer = 1
+
+    -- EWMA
+    ewma_decay_factor: Decimal = 0.94
+
+    -- Stress testing
+    default_stress_correlation: Decimal = 0.90
+
+    -- Default volatilities by asset class
+    default_vol_equity: Decimal = 0.20
+    default_vol_fixed_income: Decimal = 0.06
+    default_vol_fx: Decimal = 0.10
+    default_vol_commodity: Decimal = 0.25
+    default_vol_derivative: Decimal = 0.30
+
+    -- DRC parameters
+    default_lgd: Decimal = 0.60
+    hedge_benefit_factor: Decimal = 0.50
+
+    -- RRAO parameters
+    exotic_rrao_rate: Decimal = 0.01
+    other_rrao_rate: Decimal = 0.001
+
+    -- Backtesting
+    backtest_significance_level: Decimal = 0.05
+    traffic_light_yellow_threshold: Integer = 5
+    traffic_light_red_threshold: Integer = 10
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- VaR calculation methods
+
+rule CalculateParametricVaR {
+    when: ParametricVaRRequested(exposures, daily_vols, correlation_matrix, time_horizon_days, confidence_level)
+
+    @guidance
+        -- 1. daily_vol = annual_vol / sqrt(252)
+        -- 2. dollar_weighted_vols = daily_vol * market_value per asset class
+        -- 3. covariance_matrix = outer(dollar_vols, dollar_vols) * correlation_matrix
+        -- 4. portfolio_std = sqrt(1^T * Sigma * 1)
+        -- 5. VaR = z(alpha) * portfolio_std * sqrt(T)
+        -- 6. ES = sigma * phi(z) / (1-alpha) * sqrt(T) (analytical normal)
+        -- 7. Component VaR via Euler allocation: (Sigma @ 1)_i * z / sigma * sqrt(T)
+}
+
+rule CalculateHistoricalVaR {
+    when: HistoricalVaRRequested(market_values, historical_returns, correlation_matrix, time_horizon_days, confidence_level)
+
+    @guidance
+        -- If historical_returns provided: use actual return observations (true historical VaR).
+        -- Else: simulate correlated returns via Cholesky decomposition (fallback).
+        -- portfolio_losses = -(returns @ market_values)
+        -- VaR_1d = percentile(losses, alpha * 100)
+        -- VaR = VaR_1d * sqrt(T)
+        -- ES = mean(losses >= VaR_1d) * sqrt(T)
+        -- Component breakdown per asset class at VaR scenario.
+        -- Uses nearest_positive_definite if Cholesky fails.
+}
+
+rule CalculateMonteCarloVaR {
+    when: MonteCarloVaRRequested(market_values, daily_vols, correlation_matrix, num_simulations, seed, time_horizon_days, confidence_level)
+
+    @guidance
+        -- 1. Generate (num_simulations, n_assets) standard normal Z.
+        -- 2. Cholesky: L = chol(correlation_matrix).
+        -- 3. Correlated returns = Z @ L^T * daily_vols.
+        -- 4. Portfolio losses = -(returns @ market_values).
+        -- 5. VaR = percentile(losses, alpha*100) * sqrt(T).
+        -- 6. ES = mean(tail_losses) * sqrt(T).
+        -- 7. Seed=0 is non-deterministic; seed>0 is deterministic.
+}
+
+-- Black-Scholes option pricing
+
+rule PriceOption {
+    when: OptionPriceRequested(spot, strike, rate, vol, time_years, option_type, dividend_yield)
+
+    @guidance
+        -- d1 = (log(S/K) + (r - q + sigma^2/2) * T) / (sigma * sqrt(T))
+        -- d2 = d1 - sigma * sqrt(T)
+        --
+        -- Call price = S * exp(-qT) * N(d1) - K * exp(-rT) * N(d2)
+        -- Put price  = K * exp(-rT) * N(-d2) - S * exp(-qT) * N(-d1)
+        --
+        -- Greeks:
+        --   Delta: exp(-qT) * N(d1) [call], exp(-qT) * (N(d1) - 1) [put]
+        --   Gamma: exp(-qT) * pdf(d1) / (S * sigma * sqrt(T))
+        --   Vega:  S * exp(-qT) * pdf(d1) * sqrt(T)
+        --   Theta: complex expression involving div yield
+        --   Rho:   K * T * exp(-rT) * N(d2) [call], -K * T * exp(-rT) * N(-d2) [put]
+        --
+        -- Cross-Greeks (analytical):
+        --   Vanna: -pdf(d1) * d2 / sigma
+        --   Volga: vega * d1 * d2 / sigma
+        --   Charm: -d(delta)/dT (rate of delta decay)
+        --
+        -- If expiry_days <= 0: return intrinsic value, Greeks = 0.
+}
+
+-- Position resolution (delta-adjusted exposure)
+
+rule ResolveOptionPositions {
+    when: ResolvePositionsRequested(positions, market_data)
+    for position in positions:
+
+        @guidance
+            -- For option positions: effective_market_value = delta * quantity * spot * contract_multiplier.
+            -- For other positions: pass through (linear exposure).
+            -- Enriches option positions with spot_price and implied_vol from market data.
+            -- Fallback implied_vol = 0.25 if missing.
+}
+
+-- Portfolio-level Greeks
+
+rule CalculatePortfolioGreeks {
+    when: PortfolioGreeksRequested(positions, market_data, correlation_matrix)
+
+    @guidance
+        -- Greeks computed via finite differences on portfolio VaR:
+        --   Delta = dVaR/dPrice (via +1% price bump)
+        --   Gamma = d(delta)/dPrice (via +/-1% bumps)
+        --   Vega  = dVaR/dVol (via +1pp vol bump)
+        --   Theta = dVaR/dTime (time horizon change by 1 day)
+        --   Rho   = dVaR/dRate (1bp interest rate bump)
+        --
+        -- Vanna/Volga/Charm computed by bumping both price and vol/time.
+        -- Per-position Black-Scholes Greeks for enriched option positions.
+}
+
+-- Bond pricing
+
+rule PriceBond {
+    when: BondPriceRequested(face_value, coupon_rate, coupon_frequency, maturity_years, yield_rate)
+
+    @guidance
+        -- DCF: PV = sum(coupon / (1+r)^t) + FV / (1+r)^T
+        -- Expired bonds return face_value.
+        -- DV01 = |PV(yield+0.0001) - PV(yield-0.0001)| / 2
+        -- Modified Duration = DV01 * 10000 / PV
+}
+
+-- Swap pricing
+
+rule PriceSwap {
+    when: SwapPriceRequested(notional, fixed_rate, yield_curve, pay_receive)
+
+    @guidance
+        -- Fixed leg: DCF of coupon payments + notional at market rate.
+        -- Floating leg: par (notional) at inception.
+        -- PAY_FIXED: PV(float) - PV(fixed)
+        -- RECEIVE_FIXED: PV(fixed) - PV(float)
+        -- DV01: absolute PV change for 1bp parallel yield curve shift.
+}
+
+-- Stress testing
+
+rule RunStressTest {
+    when: RunStressTestRequested(book_id, scenario, positions, market_data)
+
+    @guidance
+        -- 1. Calculate base VaR with current market data.
+        -- 2. Apply price shocks to positions (multiply by shock factor).
+        -- 3. Build stressed vols (multiply by vol shock factor).
+        -- 4. Replace correlation matrix if override provided.
+        -- 5. Calculate stressed VaR.
+        -- 6. pnl_impact = sum of per-position (stressed - base) market values.
+        -- 7. Per-asset-class and per-position impact breakdowns.
+}
+
+-- EWMA volatility estimation
+
+rule EstimateEwmaVolatility {
+    when: EwmaVolatilityRequested(returns, decay_factor)
+
+    @guidance
+        -- vol_t^2 = lambda * vol_{t-1}^2 + (1 - lambda) * r_t^2
+        -- Returns sqrt(vol_t^2).
+        -- Default decay_factor (lambda) = 0.94 (RiskMetrics standard).
+}
+
+-- Correlation estimation
+
+rule EstimateCorrelation {
+    when: CorrelationEstimationRequested(returns, method)
+
+    @guidance
+        -- Ledoit-Wolf shrinkage:
+        --   Produces well-conditioned, positive-definite correlation matrix.
+        --   Handles case where observations < number of assets.
+        --   Converts covariance estimate to correlation by dividing by std devs.
+        --   Ensures exact unit diagonal (numerical cleanup).
+}
+
+-- FRTB regulatory capital
+
+rule CalculateFrtb {
+    when: FrtbCalculationRequested(book_id, positions)
+
+    @guidance
+        -- SBM (Sensitivities-Based Method):
+        --   1. Derive delta/vega/curvature sensitivities per risk class.
+        --   2. Intra-bucket correlation for diversification.
+        --   3. Cross-risk-class aggregation across multiple correlation scenarios.
+        --   4. Total SBM = max across scenarios.
+        --
+        -- DRC (Default Risk Charge):
+        --   JTD = |market_value| * default_probability * LGD (60%).
+        --   Credit-sensitive classes: FIXED_INCOME, DERIVATIVE.
+        --   Hedge benefit = 50% * min(long_JTD, short_JTD).
+        --   Net DRC = gross_JTD - hedge_benefit.
+        --
+        -- Enhanced DRC:
+        --   21 credit ratings (AAA-D, UNRATED) with BCBS calibrated PDs.
+        --   Seniority LGD: SENIOR_SECURED 25%, UNSECURED 45%, SUBORDINATED 75%, EQUITY 100%.
+        --   Maturity weight: max(0.25, min(maturity_years/5, 1.0)).
+        --   Sector concentration: 5% surcharge if sector > 50% of gross JTD.
+        --
+        -- RRAO (Residual Risk Add-On):
+        --   Exotic derivatives: 1% of notional.
+        --   Other instruments: 0.1% of notional.
+        --
+        -- Total = SBM + DRC + RRAO.
+}
+
+-- Backtesting
+
+rule RunBacktest {
+    when: BacktestRequested(daily_var_predictions, daily_pnl, confidence_level)
+    requires: daily_var_predictions.count = daily_pnl.count
+    requires: daily_var_predictions.count >= 1
+
+    @guidance
+        -- Violation: day i where |-daily_pnl[i]| > daily_var_predictions[i].
+        --
+        -- Kupiec POF (Proportion of Failures) test:
+        --   H0: violation_rate = expected_rate (1 - confidence_level).
+        --   LR = -2 * (n*ln(p) + (t-n)*ln(1-p) - n*ln(obs_rate) - (t-n)*ln(1-obs_rate))
+        --   p-value = 1 - chi2CDF(LR, df=1).
+        --   Pass if p-value > 0.05.
+        --
+        -- Christoffersen Independence test:
+        --   H0: violations are independent (not clustered).
+        --   Transition matrix of violation sequences.
+        --   LR = -2 * (ll_independent - ll_dependent).
+        --   Pass if p-value > 0.05.
+        --
+        -- Traffic light zone:
+        --   GREEN: 0-4 violations.
+        --   YELLOW: 5-9 violations.
+        --   RED: >= 10 violations.
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant VaRDeterministicWithSeed {
+    @guidance
+        -- Monte Carlo VaR with seed > 0 produces identical results
+        -- across repeated calculations with the same inputs.
+        -- Seed = 0 means non-deterministic.
+}
+
+invariant CorrelationMatrixPositiveDefinite {
+    @guidance
+        -- Correlation matrices must be positive semi-definite.
+        -- If Cholesky decomposition fails, nearest_positive_definite repair is applied.
+}
+
+invariant BacktestTrafficLightZones {
+    @guidance
+        -- GREEN: violation_count <= 4
+        -- YELLOW: 5 <= violation_count <= 9
+        -- RED: violation_count >= 10
+}

@@ -1,0 +1,105 @@
+-- allium: 2
+-- Core domain types shared across the Kinetix platform.
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value Money {
+    amount: Decimal
+    currency: String
+}
+
+value TimeRange {
+    start: Timestamp
+    end: Timestamp
+    duration: end - start
+}
+
+value CurvePoint {
+    tenor: String
+    days: Integer
+    rate: Decimal
+}
+
+value VolPoint {
+    strike: Decimal
+    maturity_days: Integer
+    implied_vol: Decimal
+}
+
+value Tenor {
+    label: String
+    days: Integer
+    rate: Decimal
+}
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum AssetClass { equity | fixed_income | fx | commodity | derivative }
+
+enum Side { buy | sell }
+
+enum TradeEventType { new | amend | cancel }
+
+enum TradeStatus { live | amended | cancelled }
+
+enum PriceSource { system | bloomberg | reuters | manual }
+
+enum RateSource { system | bloomberg | reuters | manual }
+
+enum VolatilitySource { system | bloomberg | reuters | manual }
+
+enum ReferenceDataSource { system | bloomberg | reuters | manual }
+
+enum CalculationType { historical | parametric | monte_carlo }
+
+enum ConfidenceLevel { cl_95 | cl_975 | cl_99 }
+
+enum ValuationOutput { var | expected_shortfall | greeks | pv }
+
+enum LimitLevel { firm | division | desk | book | trader | counterparty }
+
+enum LimitType { position | notional | var | concentration }
+
+enum LimitStatus { ok | warning | breached }
+
+enum RunStatus { running | completed | failed }
+
+enum TriggerType { on_demand | trade_event | price_event | scheduled }
+
+enum RunLabel { official_eod | sod }
+
+enum ManifestStatus { inputs_frozen | partial | outputs_finalized }
+
+enum AlertType { var_breach | pnl_threshold | risk_limit | delta_breach | vega_breach | concentration | margin_breach | data_staleness }
+
+enum AlertStatus { triggered | acknowledged | resolved }
+
+enum Severity { info | warning | critical }
+
+enum ComparisonOperator { greater_than | less_than | equals }
+
+enum DeliveryChannel { in_app | email | webhook }
+
+enum ModelStatus { draft | validated | approved | retired }
+
+enum ScenarioStatus { draft | pending_approval | approved | retired }
+
+enum SubmissionStatus { draft | pending_review | approved | submitted | acknowledged }
+
+enum TrafficLightZone { green | yellow | red }
+
+enum FrtbRiskClass { girr | csr_non_sec | csr_sec_ctp | csr_sec_non_ctp | frtb_equity | frtb_commodity | frtb_fx }
+
+enum OptionType { call | put }
+
+enum ExerciseStyle { american | european }
+
+enum BondSeniority { senior_secured | unsecured | subordinated | equity_seniority }
+
+enum SwapDirection { pay_fixed | receive_fixed }
+
+enum SnapshotType { auto | manual }

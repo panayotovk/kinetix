@@ -1,0 +1,200 @@
+-- allium: 2
+-- Trade booking, lifecycle management (amend, cancel), and event publishing.
+
+use "./core.allium" as core
+use "./reference-data.allium" as ref
+use "./positions.allium" as pos
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity Trade {
+    trade_id: String
+    book_id: String
+    instrument_id: String
+    asset_class: core/AssetClass
+    side: core/Side
+    quantity: Decimal
+    price: core/Money
+    traded_at: Timestamp
+    event_type: core/TradeEventType
+    status: core/TradeStatus
+    original_trade_id: String?
+    counterparty_id: String?
+    instrument_type: String?
+
+    -- Derived
+    notional: price.amount * quantity
+    signed_quantity: quantity * side_sign
+
+    @guidance
+        -- side_sign: buy = +1, sell = -1.
+        -- quantity must always be positive; sign comes from the side.
+        -- Trade records are immutable except for the status field.
+        -- status transitions: live -> amended, live -> cancelled.
+}
+
+entity TradeEvent {
+    trade: Trade
+    correlation_id: String
+    user_id: String?
+    user_role: String?
+
+    -- Derived
+    audit_event_type: String
+
+    @guidance
+        -- audit_event_type derived from trade.event_type:
+        --   new -> TRADE_BOOKED
+        --   amend -> TRADE_AMENDED
+        --   cancel -> TRADE_CANCELLED
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- Trade booking
+
+rule BookTrade {
+    when: BookTradeRequested(trade_id, book_id, instrument_id, asset_class, side, quantity, price, traded_at, counterparty_id, instrument_type, correlation_id)
+    requires: quantity > 0
+    requires: price.amount >= 0
+    requires: not exists Trade{trade_id: trade_id}
+
+    let trade = Trade.created(
+        trade_id: trade_id,
+        book_id: book_id,
+        instrument_id: instrument_id,
+        asset_class: asset_class,
+        side: side,
+        quantity: quantity,
+        price: price,
+        traded_at: traded_at,
+        event_type: new,
+        status: live,
+        counterparty_id: counterparty_id,
+        instrument_type: instrument_type
+    )
+
+    ensures: trade
+    ensures: TradeBooked(trade: trade, book_id: book_id, correlation_id: correlation_id)
+
+    @guidance
+        -- If a trade with the same trade_id already exists, return it idempotently.
+        -- Limit checks (position, notional, concentration) are evaluated before booking.
+        -- Hard limit breaches block the trade; soft warnings are returned alongside.
+        -- After persisting, publish TradeEvent to Kafka trades.lifecycle topic.
+}
+
+rule BookTradeIdempotent {
+    when: BookTradeRequested(trade_id, book_id, instrument_id, asset_class, side, quantity, price, traded_at, counterparty_id, instrument_type, correlation_id)
+    requires: exists Trade{trade_id: trade_id}
+
+    @guidance
+        -- Return the existing trade and position without re-processing.
+        -- No Kafka event published on idempotent replay.
+}
+
+-- Trade amendment
+
+rule AmendTrade {
+    when: AmendTradeRequested(original_trade_id, new_trade_id, book_id, instrument_id, asset_class, side, quantity, price, traded_at, correlation_id)
+    let original = Trade{trade_id: original_trade_id}
+    requires: original.status = live
+    requires: quantity > 0
+    requires: price.amount >= 0
+
+    ensures: original.status = amended
+    let new_trade = Trade.created(
+        trade_id: new_trade_id,
+        book_id: book_id,
+        instrument_id: instrument_id,
+        asset_class: asset_class,
+        side: side,
+        quantity: quantity,
+        price: price,
+        traded_at: traded_at,
+        event_type: amend,
+        status: live,
+        original_trade_id: original_trade_id
+    )
+    ensures: new_trade
+    ensures: TradeAmended(trade: new_trade, original_trade_id: original_trade_id, book_id: book_id, correlation_id: correlation_id)
+
+    @guidance
+        -- Within a single transaction:
+        --   1. Mark original trade status = amended
+        --   2. Create reverse trade to unwind original position
+        --   3. Apply reverse to position (computes realized P&L)
+        --   4. Create new trade with event_type=amend
+        --   5. Apply new trade to position
+        -- Publish the new trade event to Kafka.
+}
+
+rule AmendTradeRejectedNotLive {
+    when: AmendTradeRequested(original_trade_id, new_trade_id, book_id, instrument_id, asset_class, side, quantity, price, traded_at, correlation_id)
+    let original = Trade{trade_id: original_trade_id}
+    requires: original.status != live
+
+    @guidance
+        -- Reject with InvalidTradeStateException (HTTP 409 Conflict).
+}
+
+-- Trade cancellation
+
+rule CancelTrade {
+    when: CancelTradeRequested(trade_id, book_id, correlation_id)
+    let trade = Trade{trade_id: trade_id}
+    requires: trade.status = live
+
+    ensures: trade.status = cancelled
+    ensures: TradeCancelled(trade: trade, book_id: book_id, correlation_id: correlation_id)
+
+    @guidance
+        -- Within a single transaction:
+        --   1. Update trade status to cancelled
+        --   2. Create reverse trade to unwind position
+        --   3. Apply reverse to position (computes realized P&L)
+        -- Original trade record remains with status=cancelled (never deleted).
+        -- Publish cancelled trade event to Kafka.
+}
+
+rule CancelTradeRejectedNotLive {
+    when: CancelTradeRequested(trade_id, book_id, correlation_id)
+    let trade = Trade{trade_id: trade_id}
+    requires: trade.status != live
+
+    @guidance
+        -- Reject with InvalidTradeStateException (HTTP 409 Conflict).
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant TradeQuantityPositive {
+    for t in Trades:
+        t.quantity > 0
+}
+
+invariant TradeImmutabilityExceptStatus {
+    @guidance
+        -- Enforced by database trigger: only the status field can be updated.
+        -- trade_id, book_id, instrument_id, asset_class, side, quantity,
+        -- price, traded_at, event_type are all immutable after insertion.
+}
+
+invariant TradeNeverDeleted {
+    @guidance
+        -- Enforced by database trigger: DELETE on trade_events is blocked.
+        -- Trades are soft-transitioned via status, never physically removed.
+}
+
+invariant TradeStatusTransitions {
+    @guidance
+        -- Valid transitions: live -> amended, live -> cancelled.
+        -- No other transitions are permitted.
+        -- Amended and cancelled are terminal states.
+}

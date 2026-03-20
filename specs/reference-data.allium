@@ -1,0 +1,224 @@
+-- allium: 2
+-- Instruments, organizational hierarchy, and reference data.
+
+use "./core.allium" as core
+
+------------------------------------------------------------
+-- External Entities
+------------------------------------------------------------
+
+external entity User {}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity Division {
+    name: String
+    description: String?
+
+    -- Relationships
+    desks: Desk with division = this
+}
+
+entity Desk {
+    name: String
+    division: Division
+    desk_head: String?
+    description: String?
+}
+
+entity Instrument {
+    instrument_id: String
+    instrument_type: CashEquity | EquityOption | EquityFuture | GovernmentBond | CorporateBond | InterestRateSwap | FxSpot | FxForward | FxOption | CommodityFuture | CommodityOption
+    display_name: String
+    currency: String
+
+    -- Derived
+    asset_class: core/AssetClass
+}
+
+variant CashEquity : Instrument {}
+
+variant EquityOption : Instrument {
+    underlying_id: String
+    option_type: core/OptionType
+    strike: Decimal
+    expiry_date: String
+    exercise_style: core/ExerciseStyle
+    contract_multiplier: Decimal
+    dividend_yield: Decimal?
+}
+
+variant EquityFuture : Instrument {
+    underlying_id: String
+    expiry_date: String
+    contract_size: Decimal
+}
+
+variant GovernmentBond : Instrument {
+    face_value: Decimal
+    coupon_rate: Decimal
+    coupon_frequency: Integer
+    maturity_date: String
+    day_count_convention: String?
+}
+
+variant CorporateBond : Instrument {
+    face_value: Decimal
+    coupon_rate: Decimal
+    coupon_frequency: Integer
+    maturity_date: String
+    issuer: String?
+    credit_rating: String?
+    seniority: core/BondSeniority?
+    day_count_convention: String?
+}
+
+variant InterestRateSwap : Instrument {
+    notional: Decimal
+    fixed_rate: Decimal
+    float_index: String
+    float_spread: Decimal?
+    effective_date: String
+    maturity_date: String
+    pay_receive: core/SwapDirection
+    fixed_frequency: String?
+    float_frequency: String?
+    day_count_convention: String?
+}
+
+variant FxSpot : Instrument {
+    base_currency: String
+    quote_currency: String
+}
+
+variant FxForward : Instrument {
+    base_currency: String
+    quote_currency: String
+    delivery_date: String
+    forward_rate: Decimal?
+}
+
+variant FxOption : Instrument {
+    base_currency: String
+    quote_currency: String
+    option_type: core/OptionType
+    strike: Decimal
+    expiry_date: String
+}
+
+variant CommodityFuture : Instrument {
+    underlying_id: String
+    expiry_date: String
+    contract_size: Decimal
+}
+
+variant CommodityOption : Instrument {
+    underlying_id: String
+    option_type: core/OptionType
+    strike: Decimal
+    expiry_date: String
+    contract_multiplier: Decimal?
+}
+
+entity DividendYield {
+    instrument_id: String
+    yield_value: Decimal
+    ex_date: String?
+    as_of_date: Timestamp
+    source: core/ReferenceDataSource
+}
+
+entity CreditSpread {
+    instrument_id: String
+    spread: Decimal
+    rating: String?
+    as_of_date: Timestamp
+    source: core/ReferenceDataSource
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+rule CreateDivision {
+    when: CreateDivisionRequested(name, description)
+    requires: not exists Division{name: name}
+    ensures: Division.created(name: name, description: description)
+}
+
+rule CreateDesk {
+    when: CreateDeskRequested(name, division, desk_head, description)
+    requires: division != null
+    ensures: Desk.created(
+        name: name,
+        division: division,
+        desk_head: desk_head,
+        description: description
+    )
+
+    @guidance
+        -- Desk names must be unique within a division.
+}
+
+rule RegisterInstrument {
+    when: RegisterInstrumentRequested(instrument_id, instrument_type, display_name, currency, attributes)
+    ensures: Instrument.created(
+        instrument_id: instrument_id,
+        instrument_type: instrument_type,
+        display_name: display_name,
+        currency: currency
+    )
+
+    @guidance
+        -- The instrument_type discriminator must match the attributes provided.
+        -- Asset class is derived from the instrument type.
+}
+
+rule IngestDividendYield {
+    when: IngestDividendYieldRequested(instrument_id, yield_value, ex_date, source)
+    ensures: DividendYield.created(
+        instrument_id: instrument_id,
+        yield_value: yield_value,
+        ex_date: ex_date,
+        as_of_date: now,
+        source: source
+    )
+    ensures: DividendYieldPublished(instrument_id: instrument_id)
+}
+
+rule IngestCreditSpread {
+    when: IngestCreditSpreadRequested(instrument_id, spread, rating, source)
+    ensures: CreditSpread.created(
+        instrument_id: instrument_id,
+        spread: spread,
+        rating: rating,
+        as_of_date: now,
+        source: source
+    )
+    ensures: CreditSpreadPublished(instrument_id: instrument_id)
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant UniqueDivisionNames {
+    for d1 in Divisions:
+        for d2 in Divisions:
+            d1 = d2 or d1.name != d2.name
+}
+
+invariant UniqueDeskNamesWithinDivision {
+    for division in Divisions:
+        for d1 in division.desks:
+            for d2 in division.desks:
+                d1 = d2 or d1.name != d2.name
+}
+
+invariant UniqueInstrumentIds {
+    for i1 in Instruments:
+        for i2 in Instruments:
+            i1 = i2 or i1.instrument_id != i2.instrument_id
+}

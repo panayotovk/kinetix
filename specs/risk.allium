@@ -1,0 +1,457 @@
+-- allium: 2
+-- Risk calculation: VaR, Greeks, cross-book aggregation, stress testing,
+-- P&L attribution, EOD promotion, and calculation job lifecycle.
+
+use "./core.allium" as core
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value ComponentBreakdown {
+    asset_class: core/AssetClass
+    var_contribution: Decimal
+    percentage_of_total: Decimal
+}
+
+value GreekValues {
+    asset_class: core/AssetClass
+    delta: Decimal
+    gamma: Decimal
+    vega: Decimal
+}
+
+value PositionRisk {
+    instrument_id: String
+    asset_class: core/AssetClass
+    market_value: Decimal
+    delta: Decimal?
+    gamma: Decimal?
+    vega: Decimal?
+    theta: Decimal?
+    rho: Decimal?
+    var_contribution: Decimal?
+    es_contribution: Decimal?
+}
+
+value BookVaRContribution {
+    book_id: String
+    var_contribution: Decimal
+    percentage_of_total: Decimal
+    standalone_var: Decimal
+    diversification_benefit: Decimal
+    marginal_var: Decimal
+    incremental_var: Decimal
+}
+
+value JobPhase {
+    name: String
+    status: core/RunStatus
+    started_at: Timestamp
+    completed_at: Timestamp?
+    duration_ms: Integer?
+    details: String?
+}
+
+value PositionPnlAttribution {
+    instrument_id: String
+    total_pnl: Decimal
+    delta_pnl: Decimal
+    gamma_pnl: Decimal
+    vega_pnl: Decimal
+    theta_pnl: Decimal
+    rho_pnl: Decimal
+}
+
+value StressScenarioShock {
+    vol_shocks: List<Decimal>
+    price_shocks: List<Decimal>
+    correlation_override: List<Decimal>?
+}
+
+value StressTestImpact {
+    scenario_name: String
+    base_var: Decimal
+    stressed_var: Decimal
+    pnl_impact: Decimal
+}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity ValuationJob {
+    job_id: String
+    book_id: String
+    trigger_type: core/TriggerType
+    status: core/RunStatus
+    started_at: Timestamp
+    completed_at: Timestamp?
+    valuation_date: String
+    calculation_type: String
+    confidence_level: String
+
+    -- Outputs
+    var_value: Decimal?
+    expected_shortfall: Decimal?
+    pv_value: Decimal?
+    delta: Decimal?
+    gamma: Decimal?
+    vega: Decimal?
+    theta: Decimal?
+    rho: Decimal?
+    position_risk_snapshot: List<PositionRisk>?
+    component_breakdown_snapshot: List<ComponentBreakdown>?
+    asset_class_greeks_snapshot: List<GreekValues>?
+    computed_outputs_snapshot: Set<core/ValuationOutput>?
+    phases: List<JobPhase>
+
+    -- Lifecycle
+    error: String?
+    run_label: core/RunLabel?
+    promoted_at: Timestamp?
+    promoted_by: String?
+    manifest_id: String?
+
+    -- Derived
+    is_promoted: promoted_at != null
+    duration_ms: Integer?
+}
+
+entity RunManifest {
+    manifest_id: String
+    job_id: String
+    book_id: String
+    valuation_date: String
+    captured_at: Timestamp
+    model_version: String
+    calculation_type: String
+    confidence_level: String
+    time_horizon_days: Integer
+    num_simulations: Integer?
+    monte_carlo_seed: Integer?
+    position_count: Integer
+    position_digest: String
+    market_data_digest: String
+    input_digest: String
+    status: core/ManifestStatus
+    var_value: Decimal?
+    expected_shortfall: Decimal?
+    output_digest: String?
+}
+
+entity DailyRiskSnapshot {
+    book_id: String
+    snapshot_date: Timestamp
+    instrument_id: String
+    asset_class: core/AssetClass
+    quantity: Decimal
+    market_price: Decimal
+    delta: Decimal?
+    gamma: Decimal?
+    vega: Decimal?
+    theta: Decimal?
+    rho: Decimal?
+}
+
+entity SodBaseline {
+    book_id: String
+    baseline_date: String
+    snapshot_type: core/SnapshotType
+    source_job_id: String
+    calculation_type: String?
+    var_value: Decimal?
+    expected_shortfall: Decimal?
+}
+
+entity PnlAttribution {
+    book_id: String
+    date: String
+    total_pnl: Decimal
+    delta_attribution: Decimal
+    gamma_attribution: Decimal
+    vega_attribution: Decimal
+    theta_attribution: Decimal
+    rho_attribution: Decimal
+    position_pnl_attributions: List<PositionPnlAttribution>
+    currency: String
+}
+
+entity CrossBookValuationResult {
+    portfolio_group_id: String
+    book_ids: List<String>
+    var_value: Decimal
+    expected_shortfall: Decimal
+    component_breakdown: List<ComponentBreakdown>
+    book_contributions: List<BookVaRContribution>
+    total_standalone_var: Decimal
+    diversification_benefit: Decimal
+}
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    scheduled_var_interval: core/Duration = 60.seconds
+    scheduled_cross_book_interval: core/Duration = 120.seconds
+    sod_snapshot_hour: Integer = 6
+    cache_max_staleness: core/Duration = 120.minutes
+    grpc_deadline: core/Duration = 60.seconds
+    manifest_retention: core/Duration = 365.days
+    var_cache_ttl: core/Duration = 5.minutes
+    daily_risk_snapshot_retention: core/Duration = 730.days
+    valuation_job_retention: core/Duration = 2555.days
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- VaR calculation workflow
+
+rule CalculateVaR {
+    when: CalculateVaRRequested(book_id, calculation_type, confidence_level, time_horizon_days, num_simulations, requested_outputs, correlation_id, trigger_type)
+
+    let job = ValuationJob.created(
+        job_id: new_id,
+        book_id: book_id,
+        trigger_type: trigger_type,
+        status: running,
+        started_at: now,
+        valuation_date: today,
+        calculation_type: calculation_type,
+        confidence_level: confidence_level,
+        phases: []
+    )
+
+    ensures: job
+
+    @guidance
+        -- Phase 1 (FETCH_POSITIONS): Call position-service for book positions.
+        --   If empty, mark job as completed with no outputs.
+        -- Phase 2 (DISCOVER_DEPENDENCIES): Call risk-engine gRPC to discover market data needs.
+        -- Phase 3 (FETCH_MARKET_DATA): Route to price/rates/vol/correlation services.
+        --   Gracefully degrade on missing data (log warning, proceed).
+        -- Phase 4 (CALCULATE_VAR): Call risk-engine gRPC Valuate RPC.
+        --   Returns VaR, ES, component breakdown, Greeks, PV, position Greeks.
+        -- Phase 5 (RECORD): Persist job with all outputs; update cache.
+        -- Finally: Publish RiskResultEvent to Kafka risk.results topic.
+        --
+        -- On failure at any phase: job.status = failed, error message recorded.
+        -- Every calculation produces a job record, even failures.
+}
+
+-- Scheduled VaR recalculation
+
+rule ScheduledVaRRecalculation {
+    when: ScheduledVaRTick()
+    for book_id in all_book_ids:
+        ensures: CalculateVaRRequested(
+            book_id: book_id,
+            calculation_type: "PARAMETRIC",
+            confidence_level: "CL_95",
+            trigger_type: scheduled
+        )
+
+    @guidance
+        -- Runs every 60 seconds.
+        -- Fetches all distinct book IDs from position-service.
+        -- Errors on individual books are logged and skipped.
+}
+
+-- Event-driven recalculation
+
+rule RecalculateOnTradeEvent {
+    when: TradeEventReceived(book_id, correlation_id)
+    ensures: CalculateVaRRequested(
+        book_id: book_id,
+        trigger_type: trade_event,
+        correlation_id: correlation_id
+    )
+
+    @guidance
+        -- Triggered by Kafka consumer on trades.lifecycle topic.
+        -- Recalculates VaR for the affected book.
+}
+
+rule RecalculateOnPriceEvent {
+    when: PriceEventReceived(instrument_id)
+    for book_id in all_book_ids:
+        ensures: CalculateVaRRequested(
+            book_id: book_id,
+            trigger_type: price_event
+        )
+
+    @guidance
+        -- Triggered by Kafka consumer on price.updates topic.
+        -- Recalculates VaR for ALL books (price may affect multiple).
+}
+
+-- Cross-book VaR
+
+rule CalculateCrossBookVaR {
+    when: CalculateCrossBookVaRRequested(book_ids, portfolio_group_id, calculation_type, confidence_level, num_simulations)
+
+    @guidance
+        -- 1. Fetch positions for all books in parallel.
+        -- 2. Merge into flat position list.
+        -- 3. Discover dependencies on merged list.
+        -- 4. Fetch market data.
+        -- 5. Call risk-engine Valuate on merged positions.
+        -- 6. Compute book contributions via asset-class market value weighting:
+        --      standalone_var per book
+        --      diversification_benefit = sum(standalone) - aggregate_var
+        --      marginal_var, incremental_var per book
+        -- 7. Publish to cross-book-risk.results Kafka topic.
+        -- 8. Cache result with portfolio_group_id key.
+}
+
+rule CalculateStressedCrossBookVaR {
+    when: StressedCrossBookVaRRequested(book_ids, portfolio_group_id, stress_correlation)
+
+    @guidance
+        -- Takes base cross-book result.
+        -- Replaces correlation matrix with stressed version (all off-diagonals = stress_correlation).
+        -- stressed_benefit = base_benefit * (1 - stress_correlation)
+        -- stressed_var = base_var + (base_benefit - stressed_benefit)
+        -- Tracks diversification erosion percentage.
+}
+
+-- SOD snapshot and baseline
+
+rule CreateSodSnapshot {
+    when: CreateSodSnapshotRequested(book_id, job_id)
+
+    @guidance
+        -- If job_id provided: recreate snapshot from that historical job.
+        -- Otherwise:
+        --   1. Get cached VaR result (must be fresher than 120 minutes).
+        --   2. Fetch current positions from position-service.
+        --   3. For each position with matching PositionRisk:
+        --        Create DailyRiskSnapshot entry (quantity, price, Greeks).
+        --   4. Create SodBaseline record linking to source job.
+        --   5. One baseline per (book_id, date) — creating resets previous.
+}
+
+rule ScheduledSodSnapshot {
+    when: ScheduledSodSnapshotTick()
+    for book_id in all_book_ids:
+
+        @guidance
+            -- Runs daily after 06:00 UTC.
+            -- For each book: if no baseline exists for today, create one.
+            -- One-shot per day.
+}
+
+-- P&L attribution
+
+rule ComputePnlAttribution {
+    when: ComputePnlAttributionRequested(book_id, date)
+
+    @guidance
+        -- 1. Verify SodBaseline exists for date (else throw NoSodBaselineException).
+        -- 2. Fetch SOD snapshots (daily_risk_snapshots).
+        -- 3. Fetch current positions from position-service.
+        -- 4. For each instrument:
+        --      price_change = current_price - sod_price
+        --      total_pnl = price_change * quantity
+        -- 5. Attribute per position:
+        --      delta_pnl = delta * price_change
+        --      gamma_pnl = 0.5 * gamma * price_change^2
+        --      vega_pnl = vega * vol_change
+        --      theta_pnl = theta * days_elapsed
+        --      rho_pnl = residual
+        -- 6. Persist PnlAttribution.
+}
+
+-- EOD promotion (four-eyes approval)
+
+rule PromoteToOfficialEod {
+    when: PromoteToEodRequested(job_id, promoted_by, force)
+    let job = ValuationJob{job_id: job_id}
+    requires: job.status = completed
+    requires: job.promoted_at = null
+    requires: promoted_by != job.triggered_by
+
+    ensures: job.run_label = official_eod
+    ensures: job.promoted_at = now
+    ensures: job.promoted_by = promoted_by
+    ensures: OfficialEodPromoted(job_id: job_id, book_id: job.book_id)
+
+    @guidance
+        -- Market data completeness gate (unless force=true):
+        --   Load manifest market data refs; if any status=MISSING, throw.
+        -- Supersession: find existing Official EOD for same (book_id, valuation_date).
+        --   If exists and different job_id, call supersedeOfficialEod().
+        -- Post-promotion: refresh daily_official_eod_summary materialized view.
+        -- Promoted jobs are immutable; subsequent updates throw.
+}
+
+rule PromoteToEodRejectedNotCompleted {
+    when: PromoteToEodRequested(job_id, promoted_by, force)
+    let job = ValuationJob{job_id: job_id}
+    requires: job.status != completed
+
+    @guidance
+        -- Reject with JobNotCompleted (HTTP 409).
+}
+
+rule PromoteToEodRejectedAlreadyPromoted {
+    when: PromoteToEodRequested(job_id, promoted_by, force)
+    let job = ValuationJob{job_id: job_id}
+    requires: job.promoted_at != null
+
+    @guidance
+        -- Reject with AlreadyPromoted (HTTP 409).
+}
+
+rule PromoteToEodRejectedSelfPromotion {
+    when: PromoteToEodRequested(job_id, promoted_by, force)
+    let job = ValuationJob{job_id: job_id}
+    requires: promoted_by = job.triggered_by
+
+    @guidance
+        -- Reject with SelfPromotion (HTTP 409).
+        -- Four-eyes principle: promoter must differ from calculator.
+}
+
+-- Trade audit reconciliation
+
+rule ReconcileTradeAudit {
+    when: TradeAuditReconciliationTick()
+
+    @guidance
+        -- Runs daily at 04:00 UTC.
+        -- 1. Count trade events in past 24 hours from position-service.
+        -- 2. Count audit events in past 24 hours from audit-service.
+        -- 3. If counts match: INFO log.
+        -- 4. If mismatch: WARN log with delta.
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant PromotedJobsImmutable {
+    @guidance
+        -- Once promoted_at is set, no further updates to the job are permitted.
+        -- job.update() checks promoted_at != null and throws.
+}
+
+invariant PnlAttributionRequiresBaseline {
+    @guidance
+        -- P&L attribution can only be computed for dates
+        -- that have a SodBaseline record.
+}
+
+invariant DiversificationBenefitNonNegative {
+    for result in CrossBookValuationResults:
+        result.diversification_benefit >= 0
+}
+
+invariant OneSodBaselinePerBookPerDate {
+    @guidance
+        -- Only one SodBaseline can exist for a given (book_id, baseline_date).
+        -- Creating a new one for the same date replaces the previous.
+}

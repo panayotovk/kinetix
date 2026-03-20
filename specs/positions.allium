@@ -1,0 +1,167 @@
+-- allium: 2
+-- Position management, mark-to-market, realized P&L, and portfolio aggregation.
+
+use "./core.allium" as core
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value CurrencyExposure {
+    currency: String
+    local_value: Decimal
+    base_value: Decimal
+    fx_rate: Decimal
+}
+
+value PortfolioSummary {
+    book_id: String
+    base_currency: String
+    total_nav: core/Money
+    total_unrealized_pnl: core/Money
+    currency_breakdown: List<CurrencyExposure>
+}
+
+value CounterpartyExposure {
+    counterparty_id: String
+    net_exposure: Decimal
+    gross_exposure: Decimal
+    position_count: Integer
+}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity Position {
+    book_id: String
+    instrument_id: String
+    asset_class: core/AssetClass
+    quantity: Decimal
+    average_cost: core/Money
+    market_price: core/Money
+    realized_pnl: core/Money
+    instrument_type: String?
+
+    -- Derived
+    market_value: market_price.amount * quantity
+    unrealized_pnl: (market_price.amount - average_cost.amount) * quantity
+
+    @guidance
+        -- Primary key is (book_id, instrument_id).
+        -- All Money fields must have matching currency.
+        -- An empty position has quantity=0 and all costs/prices at zero.
+}
+
+entity FxRate {
+    from_currency: String
+    to_currency: String
+    rate: Decimal
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- Position updates from trade events
+
+rule ApplyTradeToPosition {
+    when: TradeBooked(trade, book_id, correlation_id)
+    let position = Position{book_id: trade.book_id, instrument_id: trade.instrument_id}
+
+    @guidance
+        -- Load or create empty position for (book_id, instrument_id).
+        -- Apply trade using signed quantity (buy=+, sell=-):
+        --
+        -- New quantity = current_quantity + signed_quantity
+        --
+        -- Realized P&L calculation:
+        --   If position is empty: realized = 0
+        --   If trade increases position (same direction): realized = 0
+        --   If trade reduces/flips position:
+        --     closed_qty = min(trade.quantity, abs(current_quantity))
+        --     realized = (trade.price - average_cost) * closed_qty * position_signum
+        --
+        -- Average cost update:
+        --   If position was empty: new cost = trade price
+        --   If same direction: weighted average of existing + new
+        --   If opposite direction but no flip: keep existing cost
+        --   If position flips: use trade price as new cost
+        --
+        -- Accumulated: position.realized_pnl += trade_realized_pnl
+}
+
+-- Mark-to-market from price events
+
+rule MarkToMarket {
+    when: PricePublished(instrument_id, price_amount, price_currency)
+    for position in Positions where instrument_id = instrument_id:
+        requires: position.market_price.currency = price_currency
+        ensures: position.market_price = core/Money{amount: price_amount, currency: price_currency}
+
+    @guidance
+        -- Triggered by Kafka consumer on price.updates topic.
+        -- Filters out positions with currency mismatch.
+        -- Updates market_price; unrealized_pnl and market_value recompute automatically.
+        -- Also updates FX rate cache for 6-char instrument IDs (e.g., EURUSD).
+}
+
+-- FX rate extraction from price events
+
+rule ExtractFxRate {
+    when: PricePublished(instrument_id, price_amount, price_currency)
+    requires: length(instrument_id) = 6
+
+    @guidance
+        -- Extract base (first 3 chars) and quote (last 3 chars) currencies.
+        -- Update FxRate cache entry for (base, quote) pair.
+        -- Used by portfolio aggregation for cross-currency conversion.
+}
+
+-- Portfolio aggregation
+
+rule AggregatePortfolio {
+    when: AggregatePortfolioRequested(book_id, base_currency)
+
+    @guidance
+        -- Load all positions for book_id.
+        -- Group by currency.
+        -- For each currency group:
+        --   Sum market values in local currency
+        --   Sum unrealized P&L in local currency
+        --   Fetch FX rate to base_currency
+        --   Convert to base currency
+        -- Sum all base-currency values for totalNav and totalPnl.
+        -- FX rate lookup: check cache, try inverse, fall back to static rates.
+        -- Throws if no FX rate available for a currency.
+}
+
+-- Counterparty exposure
+
+rule CalculateCounterpartyExposure {
+    when: CounterpartyExposureRequested(book_id)
+
+    @guidance
+        -- Load all trades for book where counterparty_id is not null.
+        -- Group by counterparty_id.
+        -- For each group:
+        --   net_exposure = sum of (notional * side_sign)
+        --   gross_exposure = sum of all notional values
+        --   position_count = number of trades
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant PositionCurrencyConsistency {
+    for p in Positions:
+        p.average_cost.currency = p.market_price.currency
+        and p.average_cost.currency = p.realized_pnl.currency
+}
+
+invariant RealizedPnlCumulative {
+    @guidance
+        -- realized_pnl is strictly cumulative: only increases or decreases
+        -- through trade applications, never reset to zero.
+}

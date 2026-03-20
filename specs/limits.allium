@@ -1,0 +1,176 @@
+-- allium: 2
+-- Limit management hierarchy, pre-trade checks, and temporary increases.
+
+use "./core.allium" as core
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value LimitCheckResult {
+    limit_type: core/LimitType
+    status: core/LimitStatus
+    current_value: Decimal
+    limit_value: Decimal
+    level: core/LimitLevel
+    entity_id: String
+}
+
+value LimitBreach {
+    limit_type: core/LimitType
+    status: core/LimitStatus
+    current_value: Decimal
+    limit_value: Decimal
+}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity LimitDefinition {
+    level: core/LimitLevel
+    entity_id: String
+    limit_type: core/LimitType
+    limit_value: Decimal
+    intraday_limit: Decimal?
+    overnight_limit: Decimal?
+    active: Boolean
+
+    -- Relationships
+    temporary_increases: TemporaryIncrease with limit = this
+
+    -- Derived
+    active_increase: temporary_increases where expires_at > now
+    effective_value(is_intraday): Decimal
+
+    @guidance
+        -- effective_value logic:
+        --   If active temporary increase exists, use its new_value.
+        --   Else if is_intraday and intraday_limit exists, use intraday_limit.
+        --   Else if overnight_limit exists, use overnight_limit.
+        --   Else use limit_value.
+}
+
+entity TemporaryIncrease {
+    limit: LimitDefinition
+    new_value: Decimal
+    approved_by: String
+    expires_at: Timestamp
+    reason: String
+}
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    warning_threshold_pct: Decimal = 0.80
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- Limit CRUD
+
+rule CreateLimit {
+    when: CreateLimitRequested(level, entity_id, limit_type, limit_value, intraday_limit, overnight_limit)
+    ensures: LimitDefinition.created(
+        level: level,
+        entity_id: entity_id,
+        limit_type: limit_type,
+        limit_value: limit_value,
+        intraday_limit: intraday_limit,
+        overnight_limit: overnight_limit,
+        active: true
+    )
+}
+
+rule UpdateLimit {
+    when: UpdateLimitRequested(limit_id, limit_value, intraday_limit, overnight_limit, active)
+    let limit = LimitDefinition{id: limit_id}
+    ensures: limit.limit_value = limit_value
+    ensures: limit.intraday_limit = intraday_limit
+    ensures: limit.overnight_limit = overnight_limit
+    ensures: limit.active = active
+}
+
+rule RequestTemporaryIncrease {
+    when: TemporaryIncreaseRequested(limit_id, new_value, approved_by, expires_at, reason)
+    let limit = LimitDefinition{id: limit_id}
+    ensures: TemporaryIncrease.created(
+        limit: limit,
+        new_value: new_value,
+        approved_by: approved_by,
+        expires_at: expires_at,
+        reason: reason
+    )
+}
+
+-- Pre-trade limit checks
+
+rule CheckPositionLimit {
+    when: PreTradeLimitCheck(book_id, instrument_id, new_quantity, limit_type)
+    requires: limit_type = position
+    let limit = LimitDefinition{entity_id: book_id, limit_type: position, active: true}
+    let effective = limit.effective_value(true)
+
+    @guidance
+        -- Check: abs(new_quantity) > effective_limit
+        -- If abs(new_quantity) > effective: BREACHED (blocks trade)
+        -- If abs(new_quantity) > effective * 0.80: WARNING (soft, trade proceeds)
+        -- Otherwise: OK
+}
+
+rule CheckNotionalLimit {
+    when: PreTradeLimitCheck(book_id, instrument_id, new_quantity, limit_type)
+    requires: limit_type = notional
+    let limit = LimitDefinition{entity_id: book_id, limit_type: notional, active: true}
+
+    @guidance
+        -- Sum market_price * quantity across all positions in the book.
+        -- Check: portfolio_notional > effective_limit
+        -- BREACHED blocks the trade.
+}
+
+rule CheckConcentrationLimit {
+    when: PreTradeLimitCheck(book_id, instrument_id, new_quantity, limit_type)
+    requires: limit_type = concentration
+
+    @guidance
+        -- Check: (instrument_notional / portfolio_notional) > concentration_limit_pct
+        -- Only applies when portfolio_notional > 0.
+        -- BREACHED blocks the trade.
+}
+
+-- Limit hierarchy check
+
+rule CheckLimitHierarchy {
+    when: HierarchyLimitCheck(entity_id, level, limit_type, exposure, is_intraday)
+
+    @guidance
+        -- Hierarchy: BOOK -> DESK -> DIVISION -> FIRM
+        -- Alternate: TRADER -> DESK -> DIVISION -> FIRM
+        -- Alternate: COUNTERPARTY -> FIRM
+        --
+        -- 1. Check entity's own limit at specified level
+        -- 2. If breached, return breach immediately
+        -- 3. Resolve parent entity IDs (desk -> division via reference-data)
+        -- 4. Check each parent in hierarchy order
+        -- 5. Return parent breach if any parent breached
+        --
+        -- Three statuses:
+        --   OK: exposure < warning_threshold (80% of limit)
+        --   WARNING: 80% <= exposure <= limit
+        --   BREACHED: exposure > limit
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant UniqueLimitDefinition {
+    for l1 in LimitDefinitions:
+        for l2 in LimitDefinitions:
+            l1 = l2 or not (l1.level = l2.level and l1.entity_id = l2.entity_id and l1.limit_type = l2.limit_type)
+}

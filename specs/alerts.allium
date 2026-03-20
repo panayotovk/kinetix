@@ -1,0 +1,232 @@
+-- allium: 2
+-- Alert rules engine: rule evaluation, deduplication, auto-resolution,
+-- suggested actions, delivery routing, and alert acknowledgement.
+
+use "./core.allium" as core
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+value PositionBreakdownItem {
+    instrument_id: String
+    asset_class: core/AssetClass
+    var_contribution: Decimal
+    percentage_of_total: Decimal
+    gamma: Decimal?
+    vega: Decimal?
+}
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity AlertRule {
+    name: String
+    type: core/AlertType
+    threshold: Decimal
+    operator: core/ComparisonOperator
+    severity: core/Severity
+    channels: List<core/DeliveryChannel>
+    enabled: Boolean
+}
+
+entity AlertEvent {
+    rule_id: String
+    rule_name: String
+    type: core/AlertType
+    severity: core/Severity
+    message: String
+    current_value: Decimal
+    threshold: Decimal
+    book_id: String
+    triggered_at: Timestamp
+    status: core/AlertStatus
+    resolved_at: Timestamp?
+    resolved_reason: String?
+    correlation_id: String?
+    contributors: List<PositionBreakdownItem>?
+    suggested_action: String?
+}
+
+entity AlertAcknowledgement {
+    alert_event: AlertEvent
+    alert_triggered_at: Timestamp
+    acknowledged_by: String
+    acknowledged_at: Timestamp
+    notes: String?
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- Alert rule management
+
+rule CreateAlertRule {
+    when: CreateAlertRuleRequested(name, type, threshold, operator, severity, channels)
+    requires: name != ""
+    requires: channels.count >= 1
+    ensures: AlertRule.created(
+        name: name,
+        type: type,
+        threshold: threshold,
+        operator: operator,
+        severity: severity,
+        channels: channels,
+        enabled: true
+    )
+}
+
+rule DeleteAlertRule {
+    when: DeleteAlertRuleRequested(rule_id)
+    let rule = AlertRule{id: rule_id}
+    ensures: not exists rule
+
+    @guidance
+        -- Existing TRIGGERED alerts for this rule remain.
+        -- They cannot be auto-resolved since the rule no longer exists.
+}
+
+-- Alert evaluation (on risk result events)
+
+rule EvaluateAlertRules {
+    when: RiskResultReceived(event)
+    for rule in AlertRules where enabled = true:
+        let metric = extract_metric(rule.type, event)
+        requires: metric != null
+        requires: compare(metric, rule.operator, rule.threshold)
+        requires: not exists AlertEvent{rule_id: rule.id, book_id: event.book_id, status: triggered}
+
+        ensures: AlertEvent.created(
+            rule_id: rule.id,
+            rule_name: rule.name,
+            type: rule.type,
+            severity: rule.severity,
+            message: format_alert_message(rule, metric),
+            current_value: metric,
+            threshold: rule.threshold,
+            book_id: event.book_id,
+            triggered_at: now,
+            status: triggered,
+            correlation_id: event.correlation_id,
+            contributors: extract_contributors(event),
+            suggested_action: generate_suggested_action(rule, event)
+        )
+        ensures: AlertTriggered(alert_rule: rule, book_id: event.book_id)
+
+    @guidance
+        -- Metric extraction by alert type:
+        --   VAR_BREACH -> event.varValue
+        --   PNL_THRESHOLD -> event.dailyPnl
+        --   RISK_LIMIT -> event.limitBreachAmount
+        --   DELTA_BREACH -> event.greeks.delta
+        --   VEGA_BREACH -> event.greeks.vega
+        --
+        -- Comparison: metric {operator} threshold.
+        -- Deduplication: only one TRIGGERED alert per (rule, book).
+        -- Contributors: top 10 positions sorted by |varContribution|.
+}
+
+-- Auto-resolution
+
+rule AutoResolveAlerts {
+    when: RiskResultReceived(event)
+    for alert in AlertEvents where book_id = event.book_id and status = triggered:
+        let rule = AlertRule{id: alert.rule_id}
+        let metric = extract_metric(rule.type, event)
+        requires: not compare(metric, rule.operator, rule.threshold)
+
+        ensures: alert.status = resolved
+        ensures: alert.resolved_at = now
+        ensures: alert.resolved_reason = "AUTO_CLEARED"
+
+    @guidance
+        -- After evaluating all rules, check active alerts.
+        -- If the rule's condition no longer fires, auto-resolve.
+        -- Only applies when the rule still exists.
+        -- Deleted rules cannot trigger auto-resolution.
+}
+
+-- Suggested action generation
+
+rule GenerateSuggestedAction {
+    when: AlertTriggered(alert_rule, book_id)
+
+    @guidance
+        -- Only generates for VAR_BREACH and RISK_LIMIT types.
+        -- If no contributors: no suggestion.
+        -- If top contributor has significant nonlinearity (|gamma| > 0.01 or |vega| > 1.0):
+        --   "Non-linear position — use What-If for accurate sizing."
+        -- Otherwise (linear approximation):
+        --   reduction_needed = (var_excess / top_var_contribution * 100).round()
+        --   "Reducing {instrument_id} by ~{reduction_needed}% would bring estimated VaR within limit."
+}
+
+-- Alert acknowledgement
+
+rule AcknowledgeAlert {
+    when: AcknowledgeAlertRequested(alert_id, acknowledged_by, notes)
+    let alert = AlertEvent{id: alert_id}
+    requires: alert.status = triggered
+
+    ensures: alert.status = acknowledged
+    ensures: AlertAcknowledgement.created(
+        alert_event: alert,
+        alert_triggered_at: alert.triggered_at,
+        acknowledged_by: acknowledged_by,
+        acknowledged_at: now,
+        notes: notes
+    )
+}
+
+rule AcknowledgeAlertRejectedAlreadyResolved {
+    when: AcknowledgeAlertRequested(alert_id, acknowledged_by, notes)
+    let alert = AlertEvent{id: alert_id}
+    requires: alert.status = resolved
+
+    @guidance
+        -- Reject with HTTP 409 Conflict.
+        -- Cannot acknowledge an already-resolved alert.
+}
+
+rule AcknowledgeAlertRejectedAlreadyAcknowledged {
+    when: AcknowledgeAlertRequested(alert_id, acknowledged_by, notes)
+    let alert = AlertEvent{id: alert_id}
+    requires: alert.status = acknowledged
+
+    @guidance
+        -- Reject with HTTP 409 Conflict.
+        -- Cannot acknowledge an already-acknowledged alert.
+}
+
+-- Delivery routing
+
+rule RouteAlertDelivery {
+    when: AlertTriggered(alert_rule, book_id)
+
+    @guidance
+        -- For each channel in alert_rule.channels:
+        --   IN_APP: persist alert to database for UI retrieval.
+        --   EMAIL: send notification email.
+        --   WEBHOOK: POST to configured webhook endpoint.
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant AlertDeduplication {
+    @guidance
+        -- At most one TRIGGERED alert per (rule_id, book_id) at any time.
+        -- New evaluations that match an already-triggered alert are suppressed.
+}
+
+invariant AlertStatusTransitions {
+    @guidance
+        -- Valid transitions:
+        --   triggered -> acknowledged (manual)
+        --   triggered -> resolved (auto-clear or manual)
+        -- acknowledged is a terminal state (no further transitions).
+        -- resolved is a terminal state.
+}

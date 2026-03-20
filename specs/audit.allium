@@ -1,0 +1,132 @@
+-- allium: 2
+-- Hash-chained, immutable audit trail for trade lifecycle events.
+
+use "./core.allium" as core
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+entity AuditEvent {
+    trade_id: String
+    book_id: String
+    instrument_id: String
+    asset_class: core/AssetClass
+    side: core/Side
+    quantity: Decimal
+    price_amount: Decimal
+    price_currency: String
+    traded_at: Timestamp
+    received_at: Timestamp
+    user_id: String?
+    user_role: String?
+    event_type: String
+    previous_hash: String
+    record_hash: String
+
+    @guidance
+        -- quantity and price_amount stored as NUMERIC(28,12) for precision.
+        -- traded_at stored as TIMESTAMPTZ, truncated to microsecond precision.
+        -- Hash chain: each event's previous_hash = previous event's record_hash.
+        -- The first event in the chain has previous_hash = empty string.
+}
+
+entity VerificationCheckpoint {
+    last_verified_id: Integer
+    last_verified_hash: String
+    verified_at: Timestamp
+}
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    audit_retention: core/Duration = 2555.days
+    verification_batch_size: Integer = 10000
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- Audit event recording (from Kafka trade events)
+
+rule RecordAuditEvent {
+    when: TradeLifecycleEventReceived(trade_id, book_id, instrument_id, asset_class, side, quantity, price_amount, price_currency, traded_at, user_id, user_role, event_type, correlation_id)
+
+    let latest_hash = latest_audit_event_hash
+    let normalized_quantity = normalize_decimal(quantity)
+    let normalized_price = normalize_decimal(price_amount)
+    let normalized_traded_at = truncate_to_microseconds(traded_at)
+
+    ensures: AuditEvent.created(
+        trade_id: trade_id,
+        book_id: book_id,
+        instrument_id: instrument_id,
+        asset_class: asset_class,
+        side: side,
+        quantity: normalized_quantity,
+        price_amount: normalized_price,
+        price_currency: price_currency,
+        traded_at: normalized_traded_at,
+        received_at: now,
+        user_id: user_id,
+        user_role: user_role,
+        event_type: event_type,
+        previous_hash: latest_hash,
+        record_hash: compute_hash(trade_id, book_id, instrument_id, asset_class, side, normalized_quantity, normalized_price, price_currency, normalized_traded_at, user_id, user_role, event_type, latest_hash)
+    )
+
+    @guidance
+        -- Triggered by Kafka consumer on trades.lifecycle topic.
+        -- Uses RetryableConsumer with DLQ for resilience.
+        -- Hash computation (SHA-256) includes all fields plus previous_hash.
+        -- Numeric values and timestamps are normalized before hashing
+        -- to match PostgreSQL storage precision (avoids hash drift).
+}
+
+-- Hash chain verification
+
+rule VerifyAuditChain {
+    when: VerifyAuditChainRequested()
+
+    @guidance
+        -- Streams all audit events in batches of 10,000.
+        -- For each batch, verifies incrementally:
+        --   1. First event's previous_hash matches starting_previous_hash.
+        --   2. Each subsequent event's previous_hash = previous event's record_hash.
+        --   3. Each event's record_hash matches recomputed hash from fields.
+        -- Returns ChainVerificationResult(valid: Boolean, event_count: Integer).
+        -- If any event fails: returns invalid with the first broken event ID.
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant AuditImmutability {
+    @guidance
+        -- No UPDATE or DELETE is permitted on audit events.
+        -- Enforced by database triggers:
+        --   prevent_audit_event_mutation: blocks UPDATE
+        --   prevent_audit_event_deletion: blocks DELETE
+        -- Violation of these triggers raises a database error.
+}
+
+invariant HashChainIntegrity {
+    @guidance
+        -- For all consecutive audit events (ordered by id):
+        --   event[n].previous_hash = event[n-1].record_hash
+        -- The first event has previous_hash = "" (empty string).
+        -- Each record_hash = SHA-256(serialized fields + previous_hash).
+        -- Breaking the chain indicates tampering.
+}
+
+invariant AuditCompleteness {
+    @guidance
+        -- Every trade lifecycle event (TRADE_BOOKED, TRADE_AMENDED, TRADE_CANCELLED)
+        -- must produce exactly one audit event.
+        -- Verified daily by TradeAuditReconciliationJob:
+        --   trade_event_count(24h) = audit_event_count(24h)
+}

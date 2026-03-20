@@ -1,0 +1,355 @@
+-- allium: 2
+-- Model governance, backtesting records, stress testing governance,
+-- regulatory submissions with four-eyes approval, and FRTB storage.
+
+use "./core.allium" as core
+
+------------------------------------------------------------
+-- Entities and Variants
+------------------------------------------------------------
+
+-- Model governance
+
+entity ModelVersion {
+    model_name: String
+    version: String
+    status: core/ModelStatus
+    parameters: String?
+    approved_by: String?
+    approved_at: Timestamp?
+}
+
+-- Backtest records
+
+entity BacktestResultRecord {
+    book_id: String
+    calculation_type: String
+    confidence_level: Decimal
+    total_days: Integer
+    violation_count: Integer
+    violation_rate: Decimal
+    kupiec_statistic: Decimal
+    kupiec_p_value: Decimal
+    kupiec_pass: Boolean
+    christoffersen_statistic: Decimal
+    christoffersen_p_value: Decimal
+    christoffersen_pass: Boolean
+    traffic_light_zone: core/TrafficLightZone
+    calculated_at: Timestamp
+    input_digest: String
+    window_start: String
+    window_end: String
+    model_version: String?
+}
+
+-- Backtest comparison
+
+value BacktestComparison {
+    base: BacktestResultRecord
+    target: BacktestResultRecord
+    violation_count_diff: Integer
+    violation_rate_diff: Decimal
+    traffic_light_changed: Boolean
+}
+
+-- Stress testing governance
+
+entity GovernedStressScenario {
+    name: String
+    description: String?
+    shocks: String
+    status: core/ScenarioStatus
+    created_by: String
+    approved_by: String?
+    approved_at: Timestamp?
+}
+
+entity StressTestResultRecord {
+    scenario_id: String
+    book_id: String
+    calculated_at: Timestamp
+    base_pv: Decimal?
+    stressed_pv: Decimal?
+    pnl_impact: Decimal
+    var_impact: Decimal?
+    position_impacts: String?
+    model_version: String?
+}
+
+-- Regulatory submissions
+
+entity RegulatorySubmission {
+    report_type: String
+    deadline: Timestamp
+    status: core/SubmissionStatus
+    preparer_id: String
+    approver_id: String?
+    submitted_at: Timestamp?
+    acknowledged_at: Timestamp?
+}
+
+-- FRTB calculation records
+
+entity FrtbCalculationRecord {
+    book_id: String
+    total_sbm_charge: Decimal
+    gross_jtd: Decimal
+    hedge_benefit: Decimal
+    net_drc: Decimal
+    exotic_notional: Decimal
+    other_notional: Decimal
+    total_rrao: Decimal
+    total_capital_charge: Decimal
+    sbm_charges: String
+    calculated_at: Timestamp
+    stored_at: Timestamp
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- Model governance lifecycle
+
+rule RegisterModel {
+    when: RegisterModelRequested(model_name, version, parameters)
+    ensures: ModelVersion.created(
+        model_name: model_name,
+        version: version,
+        status: draft,
+        parameters: parameters
+    )
+}
+
+rule ValidateModel {
+    when: ValidateModelRequested(model_id)
+    let model = ModelVersion{id: model_id}
+    requires: model.status = draft
+    ensures: model.status = validated
+}
+
+rule ApproveModel {
+    when: ApproveModelRequested(model_id, approved_by)
+    let model = ModelVersion{id: model_id}
+    requires: model.status = validated
+    ensures: model.status = approved
+    ensures: model.approved_by = approved_by
+    ensures: model.approved_at = now
+}
+
+rule RetireModel {
+    when: RetireModelRequested(model_id)
+    let model = ModelVersion{id: model_id}
+    requires: model.status = approved
+    ensures: model.status = retired
+}
+
+rule RejectInvalidModelTransition {
+    when: TransitionModelRequested(model_id, target_status)
+    let model = ModelVersion{id: model_id}
+    requires: model.status = retired
+
+    @guidance
+        -- Retired models cannot transition further.
+        -- Throws IllegalStateException.
+}
+
+-- Stress testing governance
+
+rule CreateStressScenario {
+    when: CreateStressScenarioRequested(name, description, shocks, created_by)
+    ensures: GovernedStressScenario.created(
+        name: name,
+        description: description,
+        shocks: shocks,
+        status: draft,
+        created_by: created_by
+    )
+}
+
+rule SubmitScenarioForApproval {
+    when: SubmitScenarioForApprovalRequested(scenario_id)
+    let scenario = GovernedStressScenario{id: scenario_id}
+    requires: scenario.status = draft
+    ensures: scenario.status = pending_approval
+}
+
+rule ApproveScenario {
+    when: ApproveScenarioRequested(scenario_id, approved_by)
+    let scenario = GovernedStressScenario{id: scenario_id}
+    requires: scenario.status = pending_approval
+    ensures: scenario.status = approved
+    ensures: scenario.approved_by = approved_by
+    ensures: scenario.approved_at = now
+}
+
+rule RetireScenario {
+    when: RetireScenarioRequested(scenario_id)
+    let scenario = GovernedStressScenario{id: scenario_id}
+    requires: scenario.status = approved
+    ensures: scenario.status = retired
+}
+
+rule RunGovernedStressTest {
+    when: RunGovernedStressTestRequested(scenario_id, book_id, model_version)
+    let scenario = GovernedStressScenario{id: scenario_id}
+    requires: scenario.status = approved
+
+    @guidance
+        -- Only APPROVED scenarios can be executed.
+        -- Parses shocks JSON; computes pnl_impact from shock values.
+        -- Creates StressTestResultRecord with results.
+}
+
+-- Backtest recording and comparison
+
+rule RecordBacktest {
+    when: RecordBacktestRequested(book_id, request, result)
+
+    ensures: BacktestResultRecord.created(
+        book_id: book_id,
+        calculation_type: request.calculation_type,
+        confidence_level: request.confidence_level,
+        total_days: result.total_days,
+        violation_count: result.violation_count,
+        violation_rate: result.violation_rate,
+        kupiec_statistic: result.kupiec_statistic,
+        kupiec_p_value: result.kupiec_p_value,
+        kupiec_pass: result.kupiec_pass,
+        christoffersen_statistic: result.christoffersen_statistic,
+        christoffersen_p_value: result.christoffersen_p_value,
+        christoffersen_pass: result.christoffersen_pass,
+        traffic_light_zone: result.traffic_light_zone,
+        calculated_at: now,
+        input_digest: digest_inputs(request),
+        window_start: request.window_start,
+        window_end: request.window_end,
+        model_version: request.model_version
+    )
+
+    @guidance
+        -- input_digest is SHA-256 of canonical request representation.
+        -- Enables reproducibility verification.
+}
+
+rule CompareBacktests {
+    when: CompareBacktestsRequested(base_id, target_id)
+    let base = BacktestResultRecord{id: base_id}
+    let target = BacktestResultRecord{id: target_id}
+
+    @guidance
+        -- Computes:
+        --   violation_count_diff = target.violation_count - base.violation_count
+        --   violation_rate_diff = target.violation_rate - base.violation_rate
+        --   traffic_light_changed = (base.traffic_light_zone != target.traffic_light_zone)
+}
+
+-- Regulatory submissions (four-eyes principle)
+
+rule CreateSubmission {
+    when: CreateSubmissionRequested(report_type, preparer_id, deadline)
+    ensures: RegulatorySubmission.created(
+        report_type: report_type,
+        deadline: deadline,
+        status: draft,
+        preparer_id: preparer_id
+    )
+}
+
+rule SubmitForReview {
+    when: SubmitForReviewRequested(submission_id)
+    let submission = RegulatorySubmission{id: submission_id}
+    requires: submission.status = draft
+    ensures: submission.status = pending_review
+}
+
+rule ApproveSubmission {
+    when: ApproveSubmissionRequested(submission_id, approver_id)
+    let submission = RegulatorySubmission{id: submission_id}
+    requires: submission.status = pending_review
+    requires: approver_id != submission.preparer_id
+    ensures: submission.status = approved
+    ensures: submission.approver_id = approver_id
+}
+
+rule ApproveSubmissionRejectedSelfApproval {
+    when: ApproveSubmissionRequested(submission_id, approver_id)
+    let submission = RegulatorySubmission{id: submission_id}
+    requires: submission.status = pending_review
+    requires: approver_id = submission.preparer_id
+
+    @guidance
+        -- Four-eyes principle violation.
+        -- Reject: approver cannot be the same person as preparer.
+}
+
+rule SubmitSubmission {
+    when: SubmitSubmissionRequested(submission_id)
+    let submission = RegulatorySubmission{id: submission_id}
+    requires: submission.status = approved
+    ensures: submission.status = submitted
+    ensures: submission.submitted_at = now
+}
+
+-- FRTB calculation storage
+
+rule StoreFrtbCalculation {
+    when: StoreFrtbRequested(book_id, frtb_result)
+    ensures: FrtbCalculationRecord.created(
+        book_id: book_id,
+        total_sbm_charge: frtb_result.sbm.total_sbm_charge,
+        gross_jtd: frtb_result.drc.gross_jtd,
+        hedge_benefit: frtb_result.drc.hedge_benefit,
+        net_drc: frtb_result.drc.net_drc,
+        exotic_notional: frtb_result.rrao.exotic_notional,
+        other_notional: frtb_result.rrao.other_notional,
+        total_rrao: frtb_result.rrao.total_rrao,
+        total_capital_charge: frtb_result.total_capital_charge,
+        sbm_charges: frtb_result.sbm.risk_class_charges,
+        calculated_at: frtb_result.calculated_at,
+        stored_at: now
+    )
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant ModelStatusTransitions {
+    @guidance
+        -- Valid transitions:
+        --   draft -> validated
+        --   validated -> approved
+        --   approved -> retired
+        -- No other transitions permitted.
+        -- Retired is a terminal state.
+}
+
+invariant ScenarioStatusTransitions {
+    @guidance
+        -- Valid transitions:
+        --   draft -> pending_approval
+        --   pending_approval -> approved
+        --   approved -> retired
+        -- Only approved scenarios can be executed.
+}
+
+invariant SubmissionFourEyes {
+    for s in RegulatorySubmissions:
+        s.approver_id = null or s.approver_id != s.preparer_id
+}
+
+invariant SubmissionStatusTransitions {
+    @guidance
+        -- Valid transitions:
+        --   draft -> pending_review
+        --   pending_review -> approved
+        --   approved -> submitted
+        --   submitted -> acknowledged (external)
+}
+
+invariant BacktestInputReproducibility {
+    @guidance
+        -- Two backtest runs with the same input_digest (SHA-256)
+        -- must produce identical statistical results.
+}
