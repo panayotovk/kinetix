@@ -16,10 +16,10 @@ import java.util.Currency
 class LimitCheckService(
     private val positionRepository: PositionRepository,
     private val defaultLimits: TradeLimits,
-) {
+) : PreTradeCheckService {
     private val logger = LoggerFactory.getLogger(LimitCheckService::class.java)
 
-    suspend fun check(command: BookTradeCommand): LimitBreachResult {
+    override suspend fun check(command: BookTradeCommand): LimitBreachResult {
         val breaches = mutableListOf<LimitBreach>()
 
         val currentPosition = positionRepository.findByKey(command.bookId, command.instrumentId)

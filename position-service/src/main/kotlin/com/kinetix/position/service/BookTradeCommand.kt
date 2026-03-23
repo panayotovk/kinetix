@@ -32,7 +32,7 @@ class TradeBookingService(
     private val positionRepository: PositionRepository,
     private val transactional: TransactionalRunner,
     private val tradeEventPublisher: TradeEventPublisher,
-    private val limitCheckService: LimitCheckService? = null,
+    private val limitCheckService: PreTradeCheckService? = null,
 ) {
     private val logger = LoggerFactory.getLogger(TradeBookingService::class.java)
 
