@@ -45,7 +45,7 @@ entity AlertEvent {
     resolved_at: Timestamp?
     resolved_reason: String?
     correlation_id: String?
-    contributors: List<PositionBreakdownItem>?
+    contributors: String?
     suggested_action: String?
 }
 
@@ -118,7 +118,7 @@ rule EvaluateAlertRules {
     @guidance
         -- Metric extraction by alert type:
         --   VAR_BREACH -> event.varValue
-        --   PNL_THRESHOLD -> event.dailyPnl
+        --   PNL_THRESHOLD -> event.expectedShortfall
         --   RISK_LIMIT -> event.limitBreachAmount
         --   DELTA_BREACH -> event.greeks.delta
         --   VEGA_BREACH -> event.greeks.vega

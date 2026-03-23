@@ -83,8 +83,8 @@ variant InterestRateSwap : Instrument {
     effective_date: String
     maturity_date: String
     pay_receive: core/SwapDirection
-    fixed_frequency: String?
-    float_frequency: String?
+    fixed_frequency: Integer = 2
+    float_frequency: Integer = 4
     day_count_convention: String?
 }
 
@@ -109,7 +109,7 @@ variant FxOption : Instrument {
 }
 
 variant CommodityFuture : Instrument {
-    underlying_id: String
+    commodity: String
     expiry_date: String
     contract_size: Decimal
 }

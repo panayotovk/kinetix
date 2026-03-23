@@ -37,8 +37,8 @@ entity BacktestResultRecord {
     traffic_light_zone: core/TrafficLightZone
     calculated_at: Timestamp
     input_digest: String
-    window_start: String
-    window_end: String
+    window_start: Date?
+    window_end: Date?
     model_version: String?
 }
 

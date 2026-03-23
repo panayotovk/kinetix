@@ -9,7 +9,7 @@ use "./core.allium" as core
 
 value LimitCheckResult {
     limit_type: core/LimitType
-    status: core/LimitStatus
+    status: core/LimitCheckStatus
     current_value: Decimal
     limit_value: Decimal
     level: core/LimitLevel
@@ -18,7 +18,7 @@ value LimitCheckResult {
 
 value LimitBreach {
     limit_type: core/LimitType
-    status: core/LimitStatus
+    status: core/LimitCheckStatus
     current_value: Decimal
     limit_value: Decimal
 }

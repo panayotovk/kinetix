@@ -75,7 +75,7 @@ rule RecordAuditEvent {
         user_role: user_role,
         event_type: event_type,
         previous_hash: latest_hash,
-        record_hash: compute_hash(trade_id, book_id, instrument_id, asset_class, side, normalized_quantity, normalized_price, price_currency, normalized_traded_at, user_id, user_role, event_type, latest_hash)
+        record_hash: compute_hash(received_at, trade_id, book_id, instrument_id, asset_class, side, normalized_quantity, normalized_price, price_currency, normalized_traded_at, user_id, user_role, event_type, latest_hash)
     )
 
     @guidance

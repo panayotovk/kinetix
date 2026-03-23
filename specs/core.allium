@@ -46,13 +46,13 @@ enum TradeEventType { new | amend | cancel }
 
 enum TradeStatus { live | amended | cancelled }
 
-enum PriceSource { system | bloomberg | reuters | manual }
+enum PriceSource { bloomberg | reuters | exchange | internal | manual }
 
-enum RateSource { system | bloomberg | reuters | manual }
+enum RateSource { bloomberg | reuters | central_bank | internal | manual }
 
-enum VolatilitySource { system | bloomberg | reuters | manual }
+enum VolatilitySource { bloomberg | reuters | exchange | internal | manual }
 
-enum ReferenceDataSource { system | bloomberg | reuters | manual }
+enum ReferenceDataSource { bloomberg | reuters | rating_agency | internal | manual }
 
 enum CalculationType { historical | parametric | monte_carlo }
 
@@ -64,15 +64,15 @@ enum LimitLevel { firm | division | desk | book | trader | counterparty }
 
 enum LimitType { position | notional | var | concentration }
 
-enum LimitStatus { ok | warning | breached }
+enum LimitCheckStatus { ok | warning | breached }
 
 enum RunStatus { running | completed | failed }
 
-enum TriggerType { on_demand | trade_event | price_event | scheduled }
+enum TriggerType { on_demand | trade_event | price_event | scheduled | model_comparison }
 
-enum RunLabel { official_eod | sod }
+enum RunLabel { adhoc | sod | intraday | overnight | pre_close | official_eod | superseded_eod }
 
-enum ManifestStatus { inputs_frozen | partial | outputs_finalized }
+enum ManifestStatus { inputs_frozen | complete | partial | failed }
 
 enum AlertType { var_breach | pnl_threshold | risk_limit | delta_breach | vega_breach | concentration | margin_breach | data_staleness }
 
@@ -95,11 +95,20 @@ enum TrafficLightZone { green | yellow | red }
 enum FrtbRiskClass { girr | csr_non_sec | csr_sec_ctp | csr_sec_non_ctp | frtb_equity | frtb_commodity | frtb_fx }
 
 enum OptionType { call | put }
+    @guidance
+        -- Currently implemented in Python risk-engine only (models.py).
+        -- No corresponding Kotlin enum in common module.
 
 enum ExerciseStyle { american | european }
+    @guidance
+        -- Currently implemented as plain String in Kotlin, Python, and Proto.
 
 enum BondSeniority { senior_secured | unsecured | subordinated | equity_seniority }
+    @guidance
+        -- Currently implemented as plain String in Kotlin, Python, and Proto.
 
 enum SwapDirection { pay_fixed | receive_fixed }
+    @guidance
+        -- Currently implemented as plain String in Kotlin, Python, and Proto.
 
 enum SnapshotType { auto | manual }

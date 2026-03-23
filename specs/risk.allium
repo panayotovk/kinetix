@@ -55,12 +55,14 @@ value JobPhase {
 
 value PositionPnlAttribution {
     instrument_id: String
+    asset_class: core/AssetClass
     total_pnl: Decimal
     delta_pnl: Decimal
     gamma_pnl: Decimal
     vega_pnl: Decimal
     theta_pnl: Decimal
     rho_pnl: Decimal
+    unexplained_pnl: Decimal
 }
 
 value StressScenarioShock {
@@ -128,7 +130,7 @@ entity RunManifest {
     calculation_type: String
     confidence_level: String
     time_horizon_days: Integer
-    num_simulations: Integer?
+    num_simulations: Integer
     monte_carlo_seed: Integer?
     position_count: Integer
     position_digest: String
@@ -167,14 +169,16 @@ entity SodBaseline {
 entity PnlAttribution {
     book_id: String
     date: String
-    total_pnl: Decimal
-    delta_attribution: Decimal
-    gamma_attribution: Decimal
-    vega_attribution: Decimal
-    theta_attribution: Decimal
-    rho_attribution: Decimal
-    position_pnl_attributions: List<PositionPnlAttribution>
     currency: String
+    total_pnl: Decimal
+    delta_pnl: Decimal
+    gamma_pnl: Decimal
+    vega_pnl: Decimal
+    theta_pnl: Decimal
+    rho_pnl: Decimal
+    unexplained_pnl: Decimal
+    position_attributions: List<PositionPnlAttribution>
+    calculated_at: Timestamp
 }
 
 entity CrossBookValuationResult {
@@ -198,7 +202,7 @@ config {
     sod_snapshot_hour: Integer = 6
     cache_max_staleness: core/Duration = 120.minutes
     grpc_deadline: core/Duration = 60.seconds
-    manifest_retention: core/Duration = 365.days
+    manifest_retention: core/Duration = 2555.days
     var_cache_ttl: core/Duration = 5.minutes
     daily_risk_snapshot_retention: core/Duration = 730.days
     valuation_job_retention: core/Duration = 2555.days
@@ -233,9 +237,9 @@ rule CalculateVaR {
         -- Phase 2 (DISCOVER_DEPENDENCIES): Call risk-engine gRPC to discover market data needs.
         -- Phase 3 (FETCH_MARKET_DATA): Route to price/rates/vol/correlation services.
         --   Gracefully degrade on missing data (log warning, proceed).
-        -- Phase 4 (CALCULATE_VAR): Call risk-engine gRPC Valuate RPC.
+        -- Phase 4 (VALUATION): Call risk-engine gRPC Valuate RPC.
         --   Returns VaR, ES, component breakdown, Greeks, PV, position Greeks.
-        -- Phase 5 (RECORD): Persist job with all outputs; update cache.
+        -- Phase 5 (PUBLISH_RESULT): Persist job with all outputs; update cache.
         -- Finally: Publish RiskResultEvent to Kafka risk.results topic.
         --
         -- On failure at any phase: job.status = failed, error message recorded.
