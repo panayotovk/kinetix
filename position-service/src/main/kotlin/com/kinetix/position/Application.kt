@@ -13,6 +13,7 @@ import com.kinetix.position.persistence.ExposedLimitDefinitionRepository
 import com.kinetix.position.persistence.ExposedTemporaryLimitIncreaseRepository
 import com.kinetix.position.reconciliation.ExposedReconciliationRepository
 import com.kinetix.position.reconciliation.PositionReconciliationJob
+import com.kinetix.position.routes.bookHierarchyRoutes
 import com.kinetix.position.routes.counterpartyRoutes
 import com.kinetix.position.routes.internalRoutes
 import com.kinetix.position.routes.limitRoutes
@@ -111,6 +112,7 @@ fun Application.moduleWithRoutes() {
     val positionRepository = ExposedPositionRepository(db)
     val tradeEventRepository = ExposedTradeEventRepository(db)
     val transactionalRunner = ExposedTransactionalRunner(db)
+    val bookHierarchyRepository = com.kinetix.position.persistence.ExposedBookHierarchyRepository(db)
 
     val kafkaConfig = environment.config.config("kafka")
     val bootstrapServers = kafkaConfig.property("bootstrapServers").getString()
@@ -239,6 +241,7 @@ fun Application.moduleWithRoutes() {
         limitRoutes(limitDefinitionRepo, temporaryLimitIncreaseRepo)
         counterpartyRoutes(counterpartyExposureService)
         internalRoutes(tradeEventRepository)
+        bookHierarchyRoutes(bookHierarchyRepository)
     }
 
     launch {

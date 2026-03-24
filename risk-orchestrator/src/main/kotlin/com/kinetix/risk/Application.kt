@@ -19,6 +19,7 @@ import com.kinetix.risk.mapper.toValuationResult
 import com.kinetix.risk.client.GrpcLiquidityClient
 import com.kinetix.risk.client.GrpcRiskEngineClient
 import com.kinetix.risk.client.HttpAuditServiceClient
+import com.kinetix.risk.client.HttpHierarchyDataClient
 import com.kinetix.risk.client.HttpLimitServiceClient
 import com.kinetix.risk.client.HttpPositionServiceClient
 import com.kinetix.risk.client.HttpPositionServiceInternalClient
@@ -36,6 +37,7 @@ import com.kinetix.risk.kafka.PriceEventConsumer
 import com.kinetix.risk.kafka.TradeEventConsumer
 import com.kinetix.risk.persistence.ExposedDailyRiskSnapshotRepository
 import com.kinetix.risk.persistence.ExposedLiquidityRiskSnapshotRepository
+import com.kinetix.risk.persistence.ExposedRiskHierarchySnapshotRepository
 import com.kinetix.risk.persistence.ExposedRunManifestRepository
 import com.kinetix.risk.persistence.ExposedSodBaselineRepository
 import com.kinetix.risk.persistence.ExposedValuationJobRecorder
@@ -46,6 +48,7 @@ import com.kinetix.common.health.CheckResult
 import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.common.kafka.ConsumerLivenessTracker
 import com.kinetix.risk.routes.crossBookVaRRoutes
+import com.kinetix.risk.routes.hierarchyRiskRoutes
 import com.kinetix.risk.routes.intradayPnlRoutes
 import com.kinetix.risk.routes.liquidityRiskRoutes
 import com.kinetix.risk.routes.riskRoutes
@@ -75,6 +78,7 @@ import com.kinetix.risk.service.PnlAttributionService
 import com.kinetix.risk.service.PnlComputationService
 import com.kinetix.risk.service.SodSnapshotService
 import com.kinetix.risk.service.VaRCalculationService
+import com.kinetix.risk.service.HierarchyRiskService
 import com.kinetix.risk.service.LiquidityRiskService
 import com.kinetix.risk.service.StressLimitCheckService
 import com.kinetix.risk.service.WhatIfAnalysisService
@@ -275,6 +279,7 @@ fun Application.moduleWithRoutes() {
     val dailyRiskSnapshotRepository = ExposedDailyRiskSnapshotRepository(riskDb)
     val sodBaselineRepository = ExposedSodBaselineRepository(riskDb)
     val liquidityRiskSnapshotRepository = ExposedLiquidityRiskSnapshotRepository(riskDb)
+    val hierarchySnapshotRepository = ExposedRiskHierarchySnapshotRepository(riskDb)
 
     val liquidityRiskServiceCoroutineStub = LiquidityRiskServiceGrpcKt.LiquidityRiskServiceCoroutineStub(channel)
     val grpcLiquidityClient = GrpcLiquidityClient(liquidityRiskServiceCoroutineStub)
@@ -345,6 +350,18 @@ fun Application.moduleWithRoutes() {
         varCache = varCache,
         dependenciesDiscoverer = dependenciesDiscoverer,
         marketDataFetcher = marketDataFetcher,
+    )
+
+    val hierarchyDataClient = HttpHierarchyDataClient(
+        httpClient = priceHttpClient,
+        referenceDataBaseUrl = referenceDataServiceBaseUrl,
+        positionServiceBaseUrl = positionServiceBaseUrl,
+    )
+    val hierarchyRiskService = HierarchyRiskService(
+        hierarchyDataClient = hierarchyDataClient,
+        crossBookVaRService = crossBookVaRService,
+        snapshotRepository = hierarchySnapshotRepository,
+        varCache = varCache,
     )
 
     val quantDiffCache: QuantDiffCache = if (redisConnection != null) {
@@ -521,6 +538,7 @@ fun Application.moduleWithRoutes() {
         val whatIfAnalysisService = WhatIfAnalysisService(effectivePositionProvider, effectiveRiskEngineClient)
         riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService, stressLimitCheckService = stressLimitCheckService, jobRecorder = jobRecorder)
         crossBookVaRRoutes(crossBookVaRService, crossBookVaRCache)
+        hierarchyRiskRoutes(hierarchyRiskService)
         intradayPnlRoutes(intradayPnlRepository)
         liquidityRiskRoutes(liquidityRiskService, liquidityRiskSnapshotRepository)
         jobHistoryRoutes(jobRecorder)

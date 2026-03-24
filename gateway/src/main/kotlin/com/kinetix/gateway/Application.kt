@@ -36,6 +36,7 @@ import com.kinetix.gateway.routes.whatIfRoutes
 import com.kinetix.gateway.routes.positionRiskRoutes
 import com.kinetix.gateway.routes.requirePathParam
 import com.kinetix.gateway.routes.crossBookVaRRoutes
+import com.kinetix.gateway.routes.hierarchyRiskRoutes
 import com.kinetix.gateway.routes.liquidityRiskRoutes
 import com.kinetix.gateway.routes.varRoutes
 import com.kinetix.gateway.kafka.KafkaIntradayPnlConsumer
@@ -190,6 +191,7 @@ fun Application.module(riskClient: RiskServiceClient) {
     routing {
         varRoutes(riskClient)
         crossBookVaRRoutes(riskClient)
+        hierarchyRiskRoutes(riskClient)
         liquidityRiskRoutes(riskClient)
         stressTestRoutes(riskClient)
         whatIfRoutes(riskClient)
@@ -229,6 +231,7 @@ fun Application.module(
         priceWebSocket(broadcaster)
         varRoutes(riskClient)
         crossBookVaRRoutes(riskClient)
+        hierarchyRiskRoutes(riskClient)
         liquidityRiskRoutes(riskClient)
         stressTestRoutes(riskClient)
         whatIfRoutes(riskClient)

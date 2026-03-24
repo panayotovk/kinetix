@@ -521,4 +521,11 @@ class HttpRiskServiceClient(
         val dto: ReverseStressResultClientDto = response.body()
         return dto.toDomain()
     }
+
+    override suspend fun getHierarchyRisk(level: String, entityId: String): kotlinx.serialization.json.JsonObject? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/hierarchy/$level/$entityId")
+        if (response.status == io.ktor.http.HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
 }
