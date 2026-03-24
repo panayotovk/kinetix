@@ -1,0 +1,53 @@
+package com.kinetix.risk.kafka
+
+import com.kinetix.common.kafka.events.IntradayPnlEvent
+import com.kinetix.risk.model.IntradayPnlSnapshot
+import com.kinetix.risk.service.IntradayPnlPublisher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerRecord
+import org.slf4j.LoggerFactory
+
+class KafkaIntradayPnlPublisher(
+    private val producer: KafkaProducer<String, String>,
+    private val topic: String = "risk.pnl.intraday",
+) : IntradayPnlPublisher {
+
+    private val logger = LoggerFactory.getLogger(KafkaIntradayPnlPublisher::class.java)
+
+    override suspend fun publish(snapshot: IntradayPnlSnapshot) {
+        val event = IntradayPnlEvent(
+            bookId = snapshot.bookId.value,
+            snapshotAt = snapshot.snapshotAt.toString(),
+            baseCurrency = snapshot.baseCurrency,
+            trigger = snapshot.trigger.name.lowercase(),
+            totalPnl = snapshot.totalPnl.toPlainString(),
+            realisedPnl = snapshot.realisedPnl.toPlainString(),
+            unrealisedPnl = snapshot.unrealisedPnl.toPlainString(),
+            deltaPnl = snapshot.deltaPnl.toPlainString(),
+            gammaPnl = snapshot.gammaPnl.toPlainString(),
+            vegaPnl = snapshot.vegaPnl.toPlainString(),
+            thetaPnl = snapshot.thetaPnl.toPlainString(),
+            rhoPnl = snapshot.rhoPnl.toPlainString(),
+            unexplainedPnl = snapshot.unexplainedPnl.toPlainString(),
+            highWaterMark = snapshot.highWaterMark.toPlainString(),
+            correlationId = snapshot.correlationId,
+        )
+        val json = Json.encodeToString(event)
+        val record = ProducerRecord(topic, snapshot.bookId.value, json)
+
+        try {
+            withContext(Dispatchers.IO) {
+                producer.send(record).get()
+            }
+        } catch (e: Exception) {
+            logger.error(
+                "Failed to publish intraday P&L event to Kafka: bookId={}, topic={}",
+                snapshot.bookId.value, topic, e,
+            )
+        }
+    }
+}
