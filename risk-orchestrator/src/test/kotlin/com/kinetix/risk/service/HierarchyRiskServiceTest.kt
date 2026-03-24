@@ -9,6 +9,8 @@ import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.client.HierarchyDataClient
 import com.kinetix.risk.model.BookHierarchyEntry
 import com.kinetix.risk.model.BookVaRContribution
+import com.kinetix.risk.model.BreachStatus
+import com.kinetix.risk.model.BudgetUtilisation
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
 import com.kinetix.risk.model.CrossBookValuationResult
@@ -25,6 +27,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
 
@@ -34,18 +37,22 @@ class HierarchyRiskServiceTest : FunSpec({
     val crossBookVaRService = mockk<CrossBookVaRCalculationService>()
     val snapshotRepository = mockk<RiskHierarchySnapshotRepository>(relaxed = true)
     val varCache = mockk<VaRCache>()
+    val budgetUtilisationService = mockk<BudgetUtilisationService>()
 
     val service = HierarchyRiskService(
         hierarchyDataClient = hierarchyDataClient,
         crossBookVaRService = crossBookVaRService,
         snapshotRepository = snapshotRepository,
         varCache = varCache,
+        budgetUtilisationService = budgetUtilisationService,
     )
 
     beforeEach {
-        clearMocks(hierarchyDataClient, crossBookVaRService, varCache, snapshotRepository)
+        clearMocks(hierarchyDataClient, crossBookVaRService, varCache, snapshotRepository, budgetUtilisationService)
         // default: all books have no VaR cached
         every { varCache.get(any()) } returns null
+        // default: no budget configured
+        coEvery { budgetUtilisationService.computeUtilisation(any(), any(), any()) } returns null
     }
 
     // ── FIRM level ────────────────────────────────────────────────────────────
@@ -219,6 +226,67 @@ class HierarchyRiskServiceTest : FunSpec({
         result.varValue shouldBe 0.0
         result.childCount shouldBe 0
         result.isPartial shouldBe false
+    }
+
+    // ── Budget utilisation ────────────────────────────────────────────────────
+
+    test("populates limitUtilisation when a budget is configured for the entity") {
+        val divA = Division(DivisionId("div-a"), "Rates")
+        val desk = Desk(DeskId("d1"), "D1", DivisionId("div-a"))
+
+        coEvery { hierarchyDataClient.getAllDivisions() } returns listOf(divA)
+        coEvery { hierarchyDataClient.getAllDesks() } returns listOf(desk)
+        coEvery { hierarchyDataClient.getAllBookMappings() } returns
+            listOf(BookHierarchyEntry("book-r1", "d1", null, null))
+        every { varCache.get("book-r1") } returns stubResult(BookId("book-r1"), 2_000_000.0)
+
+        coEvery { crossBookVaRService.calculate(any(), any()) } returns
+            stubCrossBookResult(
+                listOf(BookId("book-r1")),
+                2_000_000.0,
+                listOf(stubContribution("book-r1", 2_000_000.0)),
+            )
+
+        val utilisation = BudgetUtilisation(
+            entityLevel = HierarchyLevel.FIRM,
+            entityId = "FIRM",
+            budgetType = "VAR_BUDGET",
+            budgetAmount = BigDecimal("5000000.00"),
+            currentVar = BigDecimal("2000000.00"),
+            utilisationPct = BigDecimal("40.00"),
+            breachStatus = BreachStatus.WITHIN_BUDGET,
+            updatedAt = Instant.now(),
+        )
+        coEvery {
+            budgetUtilisationService.computeUtilisation(HierarchyLevel.FIRM, "FIRM", any())
+        } returns utilisation
+
+        val result = service.aggregateHierarchy(HierarchyLevel.FIRM, "FIRM")!!
+
+        result.limitUtilisation shouldBe 40.0
+    }
+
+    test("leaves limitUtilisation null when no budget is configured") {
+        val divA = Division(DivisionId("div-a"), "Rates")
+        val desk = Desk(DeskId("d1"), "D1", DivisionId("div-a"))
+
+        coEvery { hierarchyDataClient.getAllDivisions() } returns listOf(divA)
+        coEvery { hierarchyDataClient.getAllDesks() } returns listOf(desk)
+        coEvery { hierarchyDataClient.getAllBookMappings() } returns
+            listOf(BookHierarchyEntry("book-r1", "d1", null, null))
+        every { varCache.get("book-r1") } returns stubResult(BookId("book-r1"), 1_000_000.0)
+
+        coEvery { crossBookVaRService.calculate(any(), any()) } returns
+            stubCrossBookResult(
+                listOf(BookId("book-r1")),
+                1_000_000.0,
+                listOf(stubContribution("book-r1", 1_000_000.0)),
+            )
+        // budgetUtilisationService returns null (default stub)
+
+        val result = service.aggregateHierarchy(HierarchyLevel.FIRM, "FIRM")!!
+
+        result.limitUtilisation shouldBe null
     }
 
     // ── Snapshot persistence ──────────────────────────────────────────────────

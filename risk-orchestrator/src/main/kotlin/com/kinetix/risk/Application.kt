@@ -359,11 +359,15 @@ fun Application.moduleWithRoutes() {
         referenceDataBaseUrl = referenceDataServiceBaseUrl,
         positionServiceBaseUrl = positionServiceBaseUrl,
     )
+    val budgetUtilisationService = com.kinetix.risk.service.BudgetUtilisationService(
+        budgetRepository = riskBudgetAllocationRepository,
+    )
     val hierarchyRiskService = HierarchyRiskService(
         hierarchyDataClient = hierarchyDataClient,
         crossBookVaRService = crossBookVaRService,
         snapshotRepository = hierarchySnapshotRepository,
         varCache = varCache,
+        budgetUtilisationService = budgetUtilisationService,
     )
 
     val quantDiffCache: QuantDiffCache = if (redisConnection != null) {

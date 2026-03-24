@@ -13,6 +13,7 @@ import com.kinetix.risk.model.HierarchyRiskSnapshot
 import com.kinetix.risk.model.RiskContributor
 import com.kinetix.risk.persistence.RiskHierarchySnapshotRepository
 import org.slf4j.LoggerFactory
+import java.math.BigDecimal
 import java.time.Instant
 
 /**
@@ -27,6 +28,7 @@ class HierarchyRiskService(
     private val crossBookVaRService: CrossBookVaRCalculationService,
     private val snapshotRepository: RiskHierarchySnapshotRepository,
     private val varCache: VaRCache,
+    private val budgetUtilisationService: BudgetUtilisationService? = null,
     private val topContributorsLimit: Int = 5,
 ) {
     private val logger = LoggerFactory.getLogger(HierarchyRiskService::class.java)
@@ -131,6 +133,15 @@ class HierarchyRiskService(
         val aggregateVar = crossBookResult?.varValue ?: 0.0
         val aggregateEs = crossBookResult?.expectedShortfall
 
+        val limitUtilisation = budgetUtilisationService?.let { svc ->
+            try {
+                svc.computeUtilisation(level, entityId, BigDecimal(aggregateVar))?.utilisationPct?.toDouble()
+            } catch (e: Exception) {
+                logger.warn("Budget utilisation check failed for {} {}: {}", level, entityId, e.message)
+                null
+            }
+        }
+
         // Build top contributors: per-book VaR contributions sorted by |contribution| desc
         val contributors = crossBookResult?.bookContributions
             ?.sortedByDescending { Math.abs(it.varContribution) }
@@ -160,7 +171,7 @@ class HierarchyRiskService(
             varValue = aggregateVar,
             expectedShortfall = aggregateEs,
             pnlToday = null,
-            limitUtilisation = null,
+            limitUtilisation = limitUtilisation,
             marginalVar = null,
             incrementalVar = null,
             topContributors = contributors,
