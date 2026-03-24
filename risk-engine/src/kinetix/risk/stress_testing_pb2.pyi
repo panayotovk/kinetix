@@ -142,3 +142,89 @@ class GreeksResponse(_message.Message):
     rho: float
     calculated_at: _timestamp_pb2.Timestamp
     def __init__(self, book_id: _Optional[str] = ..., asset_class_greeks: _Optional[_Iterable[_Union[StressGreekValues, _Mapping]]] = ..., theta: _Optional[float] = ..., rho: _Optional[float] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+
+class InstrumentDailyReturns(_message.Message):
+    __slots__ = ("instrument_id", "daily_returns")
+    INSTRUMENT_ID_FIELD_NUMBER: _ClassVar[int]
+    DAILY_RETURNS_FIELD_NUMBER: _ClassVar[int]
+    instrument_id: str
+    daily_returns: _containers.RepeatedScalarFieldContainer[float]
+    def __init__(self, instrument_id: _Optional[str] = ..., daily_returns: _Optional[_Iterable[float]] = ...) -> None: ...
+
+class HistoricalReplayRequest(_message.Message):
+    __slots__ = ("scenario_name", "positions", "instrument_returns", "window_start", "window_end")
+    SCENARIO_NAME_FIELD_NUMBER: _ClassVar[int]
+    POSITIONS_FIELD_NUMBER: _ClassVar[int]
+    INSTRUMENT_RETURNS_FIELD_NUMBER: _ClassVar[int]
+    WINDOW_START_FIELD_NUMBER: _ClassVar[int]
+    WINDOW_END_FIELD_NUMBER: _ClassVar[int]
+    scenario_name: str
+    positions: _containers.RepeatedCompositeFieldContainer[_types_pb2.Position]
+    instrument_returns: _containers.RepeatedCompositeFieldContainer[InstrumentDailyReturns]
+    window_start: str
+    window_end: str
+    def __init__(self, scenario_name: _Optional[str] = ..., positions: _Optional[_Iterable[_Union[_types_pb2.Position, _Mapping]]] = ..., instrument_returns: _Optional[_Iterable[_Union[InstrumentDailyReturns, _Mapping]]] = ..., window_start: _Optional[str] = ..., window_end: _Optional[str] = ...) -> None: ...
+
+class PositionReplayImpact(_message.Message):
+    __slots__ = ("instrument_id", "asset_class", "market_value", "pnl_impact", "daily_pnl", "proxy_used")
+    INSTRUMENT_ID_FIELD_NUMBER: _ClassVar[int]
+    ASSET_CLASS_FIELD_NUMBER: _ClassVar[int]
+    MARKET_VALUE_FIELD_NUMBER: _ClassVar[int]
+    PNL_IMPACT_FIELD_NUMBER: _ClassVar[int]
+    DAILY_PNL_FIELD_NUMBER: _ClassVar[int]
+    PROXY_USED_FIELD_NUMBER: _ClassVar[int]
+    instrument_id: str
+    asset_class: _types_pb2.AssetClass
+    market_value: float
+    pnl_impact: float
+    daily_pnl: _containers.RepeatedScalarFieldContainer[float]
+    proxy_used: bool
+    def __init__(self, instrument_id: _Optional[str] = ..., asset_class: _Optional[_Union[_types_pb2.AssetClass, str]] = ..., market_value: _Optional[float] = ..., pnl_impact: _Optional[float] = ..., daily_pnl: _Optional[_Iterable[float]] = ..., proxy_used: bool = ...) -> None: ...
+
+class HistoricalReplayResponse(_message.Message):
+    __slots__ = ("scenario_name", "total_pnl_impact", "position_impacts", "window_start", "window_end", "calculated_at")
+    SCENARIO_NAME_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_PNL_IMPACT_FIELD_NUMBER: _ClassVar[int]
+    POSITION_IMPACTS_FIELD_NUMBER: _ClassVar[int]
+    WINDOW_START_FIELD_NUMBER: _ClassVar[int]
+    WINDOW_END_FIELD_NUMBER: _ClassVar[int]
+    CALCULATED_AT_FIELD_NUMBER: _ClassVar[int]
+    scenario_name: str
+    total_pnl_impact: float
+    position_impacts: _containers.RepeatedCompositeFieldContainer[PositionReplayImpact]
+    window_start: str
+    window_end: str
+    calculated_at: _timestamp_pb2.Timestamp
+    def __init__(self, scenario_name: _Optional[str] = ..., total_pnl_impact: _Optional[float] = ..., position_impacts: _Optional[_Iterable[_Union[PositionReplayImpact, _Mapping]]] = ..., window_start: _Optional[str] = ..., window_end: _Optional[str] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+
+class ReverseStressRequest(_message.Message):
+    __slots__ = ("positions", "target_loss", "max_shock")
+    POSITIONS_FIELD_NUMBER: _ClassVar[int]
+    TARGET_LOSS_FIELD_NUMBER: _ClassVar[int]
+    MAX_SHOCK_FIELD_NUMBER: _ClassVar[int]
+    positions: _containers.RepeatedCompositeFieldContainer[_types_pb2.Position]
+    target_loss: float
+    max_shock: float
+    def __init__(self, positions: _Optional[_Iterable[_Union[_types_pb2.Position, _Mapping]]] = ..., target_loss: _Optional[float] = ..., max_shock: _Optional[float] = ...) -> None: ...
+
+class InstrumentShock(_message.Message):
+    __slots__ = ("instrument_id", "shock")
+    INSTRUMENT_ID_FIELD_NUMBER: _ClassVar[int]
+    SHOCK_FIELD_NUMBER: _ClassVar[int]
+    instrument_id: str
+    shock: float
+    def __init__(self, instrument_id: _Optional[str] = ..., shock: _Optional[float] = ...) -> None: ...
+
+class ReverseStressResponse(_message.Message):
+    __slots__ = ("shocks", "achieved_loss", "target_loss", "converged", "calculated_at")
+    SHOCKS_FIELD_NUMBER: _ClassVar[int]
+    ACHIEVED_LOSS_FIELD_NUMBER: _ClassVar[int]
+    TARGET_LOSS_FIELD_NUMBER: _ClassVar[int]
+    CONVERGED_FIELD_NUMBER: _ClassVar[int]
+    CALCULATED_AT_FIELD_NUMBER: _ClassVar[int]
+    shocks: _containers.RepeatedCompositeFieldContainer[InstrumentShock]
+    achieved_loss: float
+    target_loss: float
+    converged: bool
+    calculated_at: _timestamp_pb2.Timestamp
+    def __init__(self, shocks: _Optional[_Iterable[_Union[InstrumentShock, _Mapping]]] = ..., achieved_loss: _Optional[float] = ..., target_loss: _Optional[float] = ..., converged: bool = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...

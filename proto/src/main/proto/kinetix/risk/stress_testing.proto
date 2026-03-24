@@ -79,9 +79,69 @@ message GreeksResponse {
   google.protobuf.Timestamp calculated_at = 5;
 }
 
+// ---------------------------------------------------------------------------
+// Historical Scenario Replay
+// ---------------------------------------------------------------------------
+
+message InstrumentDailyReturns {
+  string instrument_id = 1;
+  repeated double daily_returns = 2;
+}
+
+message HistoricalReplayRequest {
+  string scenario_name = 1;
+  repeated kinetix.common.Position positions = 2;
+  repeated InstrumentDailyReturns instrument_returns = 3;
+  string window_start = 4;  // ISO-8601 date, e.g. "2008-09-15"
+  string window_end = 5;
+}
+
+message PositionReplayImpact {
+  string instrument_id = 1;
+  kinetix.common.AssetClass asset_class = 2;
+  double market_value = 3;
+  double pnl_impact = 4;
+  repeated double daily_pnl = 5;
+  bool proxy_used = 6;
+}
+
+message HistoricalReplayResponse {
+  string scenario_name = 1;
+  double total_pnl_impact = 2;
+  repeated PositionReplayImpact position_impacts = 3;
+  string window_start = 4;
+  string window_end = 5;
+  google.protobuf.Timestamp calculated_at = 6;
+}
+
+// ---------------------------------------------------------------------------
+// Reverse Stress Testing
+// ---------------------------------------------------------------------------
+
+message ReverseStressRequest {
+  repeated kinetix.common.Position positions = 1;
+  double target_loss = 2;
+  double max_shock = 3;  // Most negative shock allowed (default -1.0 = -100%)
+}
+
+message InstrumentShock {
+  string instrument_id = 1;
+  double shock = 2;
+}
+
+message ReverseStressResponse {
+  repeated InstrumentShock shocks = 1;
+  double achieved_loss = 2;
+  double target_loss = 3;
+  bool converged = 4;
+  google.protobuf.Timestamp calculated_at = 5;
+}
+
 service StressTestService {
   rpc RunStressTest(StressTestRequest) returns (StressTestResponse);
   rpc ListScenarios(ListScenariosRequest) returns (ListScenariosResponse);
+  rpc RunHistoricalReplay(HistoricalReplayRequest) returns (HistoricalReplayResponse);
+  rpc RunReverseStress(ReverseStressRequest) returns (ReverseStressResponse);
   // Deprecated: use RiskCalculationService.Valuate with GREEKS output instead
   rpc CalculateGreeks(GreeksRequest) returns (GreeksResponse);
 }
