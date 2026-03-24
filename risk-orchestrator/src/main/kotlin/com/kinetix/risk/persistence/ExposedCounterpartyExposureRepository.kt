@@ -2,6 +2,9 @@ package com.kinetix.risk.persistence
 
 import com.kinetix.risk.model.CounterpartyExposureSnapshot
 import com.kinetix.risk.model.ExposureAtTenor
+import com.kinetix.risk.model.NettingSetExposure
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -19,6 +22,16 @@ import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransacti
 import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+
+private val repoJson = Json { ignoreUnknownKeys = true }
+
+@Serializable
+private data class NettingSetExposureRecord(
+    val nettingSetId: String,
+    val agreementType: String,
+    val netExposure: Double,
+    val peakPfe: Double,
+)
 
 class ExposedCounterpartyExposureRepository(
     private val db: Database? = null,
@@ -39,17 +52,32 @@ class ExposedCounterpartyExposureRepository(
                 }
             }.toString()
 
+            val nettingSetJson = repoJson.encodeToString(
+                (snapshot.nettingSetExposures ?: emptyList()).map {
+                    NettingSetExposureRecord(
+                        nettingSetId = it.nettingSetId,
+                        agreementType = it.agreementType,
+                        netExposure = it.netExposure,
+                        peakPfe = it.peakPfe,
+                    )
+                }
+            )
+            val wwrFlagsJson = repoJson.encodeToString(snapshot.wrongWayRiskFlags ?: emptyList<String>())
+
             val result = CounterpartyExposureHistoryTable.insert {
                 it[counterpartyId] = snapshot.counterpartyId
                 it[calculatedAt] = now
                 it[pfeProfileJson] = pfeJson
-                it[nettingSetExposuresJson] = "[]"
-                it[wrongWayRiskFlagsJson] = "[]"
+                it[nettingSetExposuresJson] = nettingSetJson
+                it[wrongWayRiskFlagsJson] = wwrFlagsJson
                 it[currentNetExposure] = BigDecimal.valueOf(snapshot.currentNetExposure)
                 it[peakPfe] = BigDecimal.valueOf(snapshot.peakPfe)
                 it[cva] = snapshot.cva?.let { v -> BigDecimal.valueOf(v) }
                 it[cvaEstimated] = snapshot.cvaEstimated
                 it[currency] = snapshot.currency
+                it[collateralHeld] = BigDecimal.valueOf(snapshot.collateralHeld)
+                it[collateralPosted] = BigDecimal.valueOf(snapshot.collateralPosted)
+                it[netNetExposure] = snapshot.netNetExposure?.let { v -> BigDecimal.valueOf(v) }
             }
             snapshot.copy(
                 id = result[CounterpartyExposureHistoryTable.id],
@@ -101,6 +129,19 @@ class ExposedCounterpartyExposureRepository(
                 pfe99 = obj["pfe99"]!!.jsonPrimitive.double,
             )
         }
+
+        val nettingSetExposures = try {
+            repoJson.decodeFromString<List<NettingSetExposureRecord>>(
+                this[CounterpartyExposureHistoryTable.nettingSetExposuresJson]
+            ).map { NettingSetExposure(it.nettingSetId, it.agreementType, it.netExposure, it.peakPfe) }
+        } catch (_: Exception) { emptyList() }
+
+        val wrongWayRiskFlags = try {
+            repoJson.decodeFromString<List<String>>(
+                this[CounterpartyExposureHistoryTable.wrongWayRiskFlagsJson]
+            )
+        } catch (_: Exception) { emptyList() }
+
         return CounterpartyExposureSnapshot(
             id = this[CounterpartyExposureHistoryTable.id],
             counterpartyId = this[CounterpartyExposureHistoryTable.counterpartyId],
@@ -111,6 +152,11 @@ class ExposedCounterpartyExposureRepository(
             cva = this[CounterpartyExposureHistoryTable.cva]?.toDouble(),
             cvaEstimated = this[CounterpartyExposureHistoryTable.cvaEstimated],
             currency = this[CounterpartyExposureHistoryTable.currency],
+            nettingSetExposures = nettingSetExposures,
+            collateralHeld = this[CounterpartyExposureHistoryTable.collateralHeld].toDouble(),
+            collateralPosted = this[CounterpartyExposureHistoryTable.collateralPosted].toDouble(),
+            netNetExposure = this[CounterpartyExposureHistoryTable.netNetExposure]?.toDouble(),
+            wrongWayRiskFlags = wrongWayRiskFlags,
         )
     }
 }

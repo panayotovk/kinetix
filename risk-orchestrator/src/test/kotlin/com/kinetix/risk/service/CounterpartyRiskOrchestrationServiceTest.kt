@@ -84,6 +84,9 @@ class CounterpartyRiskOrchestrationServiceTest : FunSpec({
                     seed = 0,
                 )
             } returns pfeResult()
+            coEvery {
+                counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any())
+            } returns cvaResult()
             coEvery { repository.save(any()) } answers { args[0] as CounterpartyExposureSnapshot }
 
             val positions = listOf(
@@ -111,6 +114,9 @@ class CounterpartyRiskOrchestrationServiceTest : FunSpec({
             coEvery {
                 counterpartyRiskClient.calculatePFE(any(), any(), any(), any(), any(), any())
             } returns PFEResult("CP-GS", "NS-GS-001", 3_000_000.0, 2_000_000.0, tenors)
+            coEvery {
+                counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any())
+            } returns cvaResult()
             coEvery { repository.save(any()) } answers { args[0] as CounterpartyExposureSnapshot }
 
             val result = service.computeAndPersistPFE("CP-GS", emptyList())
@@ -118,17 +124,20 @@ class CounterpartyRiskOrchestrationServiceTest : FunSpec({
             result.peakPfe shouldBe 1_500_000.0
         }
 
-        test("CVA is null when no CVA was computed with PFE") {
+        test("CVA is always computed and included in the snapshot") {
             coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(COUNTERPARTY)
             coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns ClientResponse.Success(listOf(NETTING_AGREEMENT))
             coEvery {
                 counterpartyRiskClient.calculatePFE(any(), any(), any(), any(), any(), any())
             } returns pfeResult()
+            coEvery {
+                counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any())
+            } returns cvaResult(cva = 12_500.0, estimated = false)
             coEvery { repository.save(any()) } answers { args[0] as CounterpartyExposureSnapshot }
 
             val result = service.computeAndPersistPFE("CP-GS", emptyList())
 
-            result.cva shouldBe null
+            result.cva shouldBe 12_500.0
         }
 
         test("when counterparty not found, throws IllegalArgumentException") {
@@ -177,6 +186,108 @@ class CounterpartyRiskOrchestrationServiceTest : FunSpec({
             val result = service.computeCVA("CP-GS", TENORS)
 
             result.isEstimated shouldBe true
+        }
+    }
+
+    context("snapshot completeness") {
+
+        test("netNetExposure equals netExposure minus collateralHeld plus collateralPosted") {
+            coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(
+                COUNTERPARTY.copy(isFinancial = false)
+            )
+            coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns ClientResponse.Success(listOf(
+                NETTING_AGREEMENT.copy(csaThreshold = 500_000.0)
+            ))
+            coEvery {
+                counterpartyRiskClient.calculatePFE(any(), any(), any(), any(), any(), any())
+            } returns pfeResult(netExposure = 2_000_000.0)
+            coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(
+                COUNTERPARTY.copy(isFinancial = false)
+            )
+            coEvery {
+                counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any())
+            } returns cvaResult()
+            coEvery { repository.save(any()) } answers { args[0] as CounterpartyExposureSnapshot }
+
+            val result = service.computeAndPersistPFE("CP-GS", emptyList())
+
+            // netNetExposure = netExposure(2_000_000) - collateralHeld(>=0) + collateralPosted(>=0)
+            // with csaThreshold=500_000, collateralHeld <= netExposure and netNet <= netExposure
+            result.netNetExposure shouldNotBe null
+            (result.netNetExposure!! <= result.currentNetExposure) shouldBe true
+        }
+
+        test("CVA is persisted in snapshot after computeAndPersistPFE") {
+            coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(COUNTERPARTY)
+            coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns ClientResponse.Success(listOf(NETTING_AGREEMENT))
+            coEvery {
+                counterpartyRiskClient.calculatePFE(any(), any(), any(), any(), any(), any())
+            } returns pfeResult()
+            coEvery {
+                counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any())
+            } returns cvaResult(cva = 15_000.0, estimated = false)
+            coEvery { repository.save(any()) } answers { args[0] as CounterpartyExposureSnapshot }
+
+            val result = service.computeAndPersistPFE("CP-GS", emptyList())
+
+            result.cva shouldBe 15_000.0
+            result.cvaEstimated shouldBe false
+        }
+
+        test("wrong-way risk flag is set for financial-sector counterparties") {
+            coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(
+                COUNTERPARTY.copy(isFinancial = true)
+            )
+            coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns ClientResponse.Success(listOf(NETTING_AGREEMENT))
+            coEvery {
+                counterpartyRiskClient.calculatePFE(any(), any(), any(), any(), any(), any())
+            } returns pfeResult()
+            coEvery {
+                counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any())
+            } returns cvaResult()
+            coEvery { repository.save(any()) } answers { args[0] as CounterpartyExposureSnapshot }
+
+            val result = service.computeAndPersistPFE("CP-GS", emptyList())
+
+            result.wrongWayRiskFlags shouldNotBe null
+            result.wrongWayRiskFlags!!.any { it.contains("FINANCIAL", ignoreCase = true) } shouldBe true
+        }
+
+        test("wrong-way risk flags are empty for non-financial counterparties") {
+            coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(
+                COUNTERPARTY.copy(isFinancial = false, sector = "TECHNOLOGY")
+            )
+            coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns ClientResponse.Success(listOf(NETTING_AGREEMENT))
+            coEvery {
+                counterpartyRiskClient.calculatePFE(any(), any(), any(), any(), any(), any())
+            } returns pfeResult()
+            coEvery {
+                counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any())
+            } returns cvaResult()
+            coEvery { repository.save(any()) } answers { args[0] as CounterpartyExposureSnapshot }
+
+            val result = service.computeAndPersistPFE("CP-GS", emptyList())
+
+            result.wrongWayRiskFlags shouldNotBe null
+            result.wrongWayRiskFlags!!.isEmpty() shouldBe true
+        }
+
+        test("netting set exposures contains one entry per netting agreement") {
+            coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(COUNTERPARTY)
+            coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns ClientResponse.Success(listOf(NETTING_AGREEMENT))
+            coEvery {
+                counterpartyRiskClient.calculatePFE(any(), any(), any(), any(), any(), any())
+            } returns pfeResult()
+            coEvery {
+                counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any())
+            } returns cvaResult()
+            coEvery { repository.save(any()) } answers { args[0] as CounterpartyExposureSnapshot }
+
+            val result = service.computeAndPersistPFE("CP-GS", emptyList())
+
+            result.nettingSetExposures shouldNotBe null
+            result.nettingSetExposures!!.size shouldBe 1
+            result.nettingSetExposures!![0].nettingSetId shouldBe "NS-GS-001"
         }
     }
 

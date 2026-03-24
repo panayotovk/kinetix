@@ -10,6 +10,13 @@ data class ExposureAtTenor(
     val pfe99: Double,
 )
 
+data class NettingSetExposure(
+    val nettingSetId: String,
+    val agreementType: String,
+    val netExposure: Double,
+    val peakPfe: Double,
+)
+
 data class CounterpartyExposureSnapshot(
     val id: Long? = null,
     val counterpartyId: String,
@@ -20,4 +27,17 @@ data class CounterpartyExposureSnapshot(
     val cva: Double?,
     val cvaEstimated: Boolean,
     val currency: String = "USD",
+
+    // Per-netting-set breakdown
+    val nettingSetExposures: List<NettingSetExposure>? = null,
+
+    // Collateral values
+    val collateralHeld: Double = 0.0,
+    val collateralPosted: Double = 0.0,
+
+    // Net-net exposure: netExposure - collateralHeld + collateralPosted
+    val netNetExposure: Double? = null,
+
+    // Wrong-way risk flags; null when not computed, empty when clean
+    val wrongWayRiskFlags: List<String>? = null,
 )
