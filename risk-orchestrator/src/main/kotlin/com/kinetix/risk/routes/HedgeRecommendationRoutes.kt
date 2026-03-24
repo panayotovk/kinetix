@@ -84,6 +84,7 @@ private fun HedgeRecommendation.toResponse() = HedgeRecommendationResponse(
     targetReductionPct = targetReductionPct,
     requestedAt = requestedAt.toString(),
     status = status.name,
+    message = message,
     expiresAt = expiresAt.toString(),
     acceptedBy = acceptedBy,
     acceptedAt = acceptedAt?.toString(),

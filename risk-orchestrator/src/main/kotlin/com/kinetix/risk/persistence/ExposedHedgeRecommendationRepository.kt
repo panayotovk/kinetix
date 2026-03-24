@@ -42,6 +42,7 @@ class ExposedHedgeRecommendationRepository(
             it[targetReductionPct] = BigDecimal.valueOf(recommendation.targetReductionPct)
             it[requestedAt] = recommendation.requestedAt.atOffset(ZoneOffset.UTC)
             it[status] = recommendation.status.name
+            it[message] = recommendation.message
             it[expiresAt] = recommendation.expiresAt.atOffset(ZoneOffset.UTC)
             it[acceptedBy] = recommendation.acceptedBy
             it[acceptedAt] = recommendation.acceptedAt?.atOffset(ZoneOffset.UTC)
@@ -109,6 +110,7 @@ class ExposedHedgeRecommendationRepository(
             targetReductionPct = row[HedgeRecommendationsTable.targetReductionPct].toDouble(),
             requestedAt = row[HedgeRecommendationsTable.requestedAt].toInstant(),
             status = HedgeStatus.valueOf(row[HedgeRecommendationsTable.status]),
+            message = row[HedgeRecommendationsTable.message],
             expiresAt = row[HedgeRecommendationsTable.expiresAt].toInstant(),
             acceptedBy = row[HedgeRecommendationsTable.acceptedBy],
             acceptedAt = row[HedgeRecommendationsTable.acceptedAt]?.toInstant(),

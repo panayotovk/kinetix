@@ -10,6 +10,7 @@ data class HedgeRecommendation(
     val targetReductionPct: Double,
     val requestedAt: Instant,
     val status: HedgeStatus,
+    val message: String? = null,
     val constraints: HedgeConstraints,
     val suggestions: List<HedgeSuggestion>,
     val preHedgeGreeks: GreekImpact,
