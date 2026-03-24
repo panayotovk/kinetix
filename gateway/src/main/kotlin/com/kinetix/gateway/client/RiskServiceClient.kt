@@ -463,4 +463,6 @@ interface RiskServiceClient {
     suspend fun getLiquidityRiskHistory(bookId: String, limit: Int = 100): kotlinx.serialization.json.JsonArray
     suspend fun runHistoricalReplay(params: HistoricalReplayParams): HistoricalReplayResultSummary
     suspend fun runReverseStress(params: ReverseStressParams): ReverseStressResultSummary
+    suspend fun getCurrentRegime(): kotlinx.serialization.json.JsonObject
+    suspend fun getRegimeHistory(limit: Int = 50): kotlinx.serialization.json.JsonObject
 }

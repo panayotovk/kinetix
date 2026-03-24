@@ -521,4 +521,18 @@ class HttpRiskServiceClient(
         val dto: ReverseStressResultClientDto = response.body()
         return dto.toDomain()
     }
+
+    override suspend fun getCurrentRegime(): kotlinx.serialization.json.JsonObject {
+        val response = httpClient.get("$baseUrl/api/v1/risk/regime/current")
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun getRegimeHistory(limit: Int): kotlinx.serialization.json.JsonObject {
+        val response = httpClient.get("$baseUrl/api/v1/risk/regime/history") {
+            url { parameters.append("limit", limit.toString()) }
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
 }
