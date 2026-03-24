@@ -136,18 +136,19 @@ export function ScenariosTab({
   )
 
   const handleRunReplay = useCallback(async () => {
-    if (!bookId || !replayScenario) return
+    const effectiveScenario = replayScenario || historicalScenarioNames[0]
+    if (!bookId || !effectiveScenario) return
     setReplayLoading(true)
     setReplayError(null)
     try {
-      const result = await runHistoricalReplay(bookId, { instrumentReturns: [], scenarioName: replayScenario })
+      const result = await runHistoricalReplay(bookId, { instrumentReturns: [], scenarioName: effectiveScenario })
       setReplayResult(result)
     } catch (err) {
       setReplayError(err instanceof Error ? err.message : 'Historical replay failed')
     } finally {
       setReplayLoading(false)
     }
-  }, [bookId, replayScenario])
+  }, [bookId, replayScenario, historicalScenarioNames])
 
   const handleRunReverseStress = useCallback(async (request: ReverseStressRequestDto) => {
     if (!bookId) return
