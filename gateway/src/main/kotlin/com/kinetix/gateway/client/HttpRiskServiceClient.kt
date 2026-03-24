@@ -540,6 +540,10 @@ class HttpRiskServiceClient(
     override suspend fun getHierarchyRisk(level: String, entityId: String): kotlinx.serialization.json.JsonObject? {
         val response = httpClient.get("$baseUrl/api/v1/risk/hierarchy/$level/$entityId")
         if (response.status == io.ktor.http.HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
     override suspend fun getCurrentRegime(): kotlinx.serialization.json.JsonObject {
         val response = httpClient.get("$baseUrl/api/v1/risk/regime/current")
         if (!response.status.isSuccess()) handleErrorResponse(response)
@@ -552,6 +556,11 @@ class HttpRiskServiceClient(
                 if (level != null) parameters.append("level", level)
                 if (entityId != null) parameters.append("entityId", entityId)
             }
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
     override suspend fun getRegimeHistory(limit: Int): kotlinx.serialization.json.JsonObject {
         val response = httpClient.get("$baseUrl/api/v1/risk/regime/history") {
             url { parameters.append("limit", limit.toString()) }
@@ -586,6 +595,30 @@ class HttpRiskServiceClient(
     override suspend fun triggerCroReport(): kotlinx.serialization.json.JsonObject? {
         val response = httpClient.post("$baseUrl/api/v1/risk/reports/cro")
         if (!response.status.isSuccess()) return null
+        return response.body()
+    }
+
+    override suspend fun suggestHedge(bookId: String, body: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject {
+        val response = httpClient.post("$baseUrl/api/v1/risk/hedge-suggest/$bookId") {
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun getLatestHedgeRecommendations(bookId: String, limit: Int): kotlinx.serialization.json.JsonArray {
+        val response = httpClient.get("$baseUrl/api/v1/risk/hedge-suggest/$bookId") {
+            url { parameters.append("limit", limit.toString()) }
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun getHedgeRecommendation(bookId: String, id: String): kotlinx.serialization.json.JsonObject? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/hedge-suggest/$bookId/$id")
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
         return response.body()
     }
 }

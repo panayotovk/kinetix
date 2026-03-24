@@ -473,4 +473,7 @@ interface RiskServiceClient {
     suspend fun triggerCroReport(): kotlinx.serialization.json.JsonObject?
     suspend fun getCurrentRegime(): kotlinx.serialization.json.JsonObject
     suspend fun getRegimeHistory(limit: Int = 50): kotlinx.serialization.json.JsonObject
+    suspend fun suggestHedge(bookId: String, body: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject
+    suspend fun getLatestHedgeRecommendations(bookId: String, limit: Int = 10): kotlinx.serialization.json.JsonArray
+    suspend fun getHedgeRecommendation(bookId: String, id: String): kotlinx.serialization.json.JsonObject?
 }
