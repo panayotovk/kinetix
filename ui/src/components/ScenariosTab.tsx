@@ -13,6 +13,7 @@ import { ScenarioDetailPanel } from './ScenarioDetailPanel'
 import { ScenarioComparisonView } from './ScenarioComparisonView'
 import { ScenarioGovernancePanel } from './ScenarioGovernancePanel'
 import { CustomScenarioBuilder } from './CustomScenarioBuilder'
+import { ScenarioLibraryGrid } from './ScenarioLibraryGrid'
 
 export interface ScenariosTabProps {
   bookId: string | null
@@ -165,14 +166,21 @@ export function ScenariosTab({
         )}
 
         {showGovernance && (
-          <ScenarioGovernancePanel
-            scenarios={governance.scenarios}
-            onSubmit={governance.submit}
-            onApprove={governance.approve}
-            onRetire={governance.retire}
-            loading={governance.loading}
-            error={governance.error}
-          />
+          <>
+            <ScenarioLibraryGrid
+              scenarios={governance.scenarios}
+              loading={governance.loading}
+              error={governance.error}
+            />
+            <ScenarioGovernancePanel
+              scenarios={governance.scenarios}
+              onSubmit={governance.submit}
+              onApprove={governance.approve}
+              onRetire={governance.retire}
+              loading={governance.loading}
+              error={governance.error}
+            />
+          </>
         )}
 
         <ScenarioDetailPanel
