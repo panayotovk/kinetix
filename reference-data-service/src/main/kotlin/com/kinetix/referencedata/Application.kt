@@ -10,17 +10,21 @@ import com.kinetix.referencedata.persistence.DatabaseFactory
 import com.kinetix.referencedata.persistence.DeskRepository
 import com.kinetix.referencedata.persistence.DivisionRepository
 import com.kinetix.referencedata.persistence.DividendYieldRepository
+import com.kinetix.referencedata.persistence.ExposedCounterpartyRepository
 import com.kinetix.referencedata.persistence.ExposedCreditSpreadRepository
 import com.kinetix.referencedata.persistence.ExposedDeskRepository
 import com.kinetix.referencedata.persistence.ExposedDivisionRepository
 import com.kinetix.referencedata.persistence.ExposedDividendYieldRepository
 import com.kinetix.referencedata.persistence.ExposedInstrumentRepository
 import com.kinetix.referencedata.persistence.ExposedInstrumentLiquidityRepository
+import com.kinetix.referencedata.persistence.ExposedNettingAgreementRepository
+import com.kinetix.referencedata.routes.counterpartyRoutes
 import com.kinetix.referencedata.routes.deskRoutes
 import com.kinetix.referencedata.routes.divisionRoutes
 import com.kinetix.referencedata.routes.instrumentRoutes
 import com.kinetix.referencedata.routes.liquidityRoutes
 import com.kinetix.referencedata.routes.referenceDataRoutes
+import com.kinetix.referencedata.service.CounterpartyService
 import com.kinetix.referencedata.service.DeskService
 import com.kinetix.referencedata.service.DivisionService
 import com.kinetix.referencedata.service.InstrumentLiquidityService
@@ -102,6 +106,7 @@ fun Application.module(
     divisionService: DivisionService? = null,
     deskService: DeskService? = null,
     liquidityService: InstrumentLiquidityService? = null,
+    counterpartyService: CounterpartyService? = null,
 ) {
     module()
     install(StatusPages) {
@@ -130,6 +135,9 @@ fun Application.module(
         }
         if (liquidityService != null) {
             liquidityRoutes(liquidityService)
+        }
+        if (counterpartyService != null) {
+            counterpartyRoutes(counterpartyService)
         }
     }
 }
@@ -179,6 +187,10 @@ fun Application.moduleWithRoutes() {
     val liquidityRepository = ExposedInstrumentLiquidityRepository(db)
     val liquidityService = InstrumentLiquidityService(liquidityRepository)
 
+    val counterpartyRepository = ExposedCounterpartyRepository(db)
+    val nettingAgreementRepository = ExposedNettingAgreementRepository(db)
+    val counterpartyService = CounterpartyService(counterpartyRepository, nettingAgreementRepository)
+
     val seedDone = AtomicBoolean(false)
     val readinessChecker = ReadinessChecker(
         dataSource = DatabaseFactory.dataSource,
@@ -186,7 +198,7 @@ fun Application.moduleWithRoutes() {
         seedComplete = { seedDone.get() },
     )
 
-    module(dividendYieldRepository, creditSpreadRepository, ingestionService, instrumentService, divisionService, deskService, liquidityService)
+    module(dividendYieldRepository, creditSpreadRepository, ingestionService, instrumentService, divisionService, deskService, liquidityService, counterpartyService)
 
     routing {
         get("/health/ready") {
@@ -203,7 +215,7 @@ fun Application.moduleWithRoutes() {
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {
         launch {
-            DevDataSeeder(dividendYieldRepository, creditSpreadRepository, instrumentRepository, divisionRepository, deskRepository, liquidityRepository).seed()
+            DevDataSeeder(dividendYieldRepository, creditSpreadRepository, instrumentRepository, divisionRepository, deskRepository, liquidityRepository, counterpartyRepository, nettingAgreementRepository).seed()
             seedDone.set(true)
         }
     } else {

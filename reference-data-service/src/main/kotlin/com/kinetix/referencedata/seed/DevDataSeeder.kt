@@ -9,15 +9,20 @@ import com.kinetix.common.model.DividendYield
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.ReferenceDataSource
 import com.kinetix.common.model.instrument.*
+import com.kinetix.referencedata.model.Counterparty
 import com.kinetix.referencedata.model.Instrument
 import com.kinetix.referencedata.model.InstrumentLiquidity
+import com.kinetix.referencedata.model.NettingAgreement
+import com.kinetix.referencedata.persistence.CounterpartyRepository
 import com.kinetix.referencedata.persistence.CreditSpreadRepository
 import com.kinetix.referencedata.persistence.DeskRepository
 import com.kinetix.referencedata.persistence.DivisionRepository
 import com.kinetix.referencedata.persistence.DividendYieldRepository
 import com.kinetix.referencedata.persistence.InstrumentLiquidityRepository
 import com.kinetix.referencedata.persistence.InstrumentRepository
+import com.kinetix.referencedata.persistence.NettingAgreementRepository
 import org.slf4j.LoggerFactory
+import java.math.BigDecimal
 import java.time.Instant
 
 class DevDataSeeder(
@@ -27,6 +32,8 @@ class DevDataSeeder(
     private val divisionRepository: DivisionRepository? = null,
     private val deskRepository: DeskRepository? = null,
     private val liquidityRepository: InstrumentLiquidityRepository? = null,
+    private val counterpartyRepository: CounterpartyRepository? = null,
+    private val nettingAgreementRepository: NettingAgreementRepository? = null,
 ) {
     private val log = LoggerFactory.getLogger(DevDataSeeder::class.java)
 
@@ -45,6 +52,8 @@ class DevDataSeeder(
         seedDivisions()
         seedDesks()
         seedLiquidityData()
+        seedCounterparties()
+        seedNettingAgreements()
 
         log.info("Reference data seeding complete")
     }
@@ -125,6 +134,22 @@ class DevDataSeeder(
             )
         }
         log.info("Seeded {} instrument liquidity records", LIQUIDITY_DATA.size)
+    }
+
+    private suspend fun seedCounterparties() {
+        val repo = counterpartyRepository ?: return
+        for (cp in COUNTERPARTIES) {
+            repo.upsert(cp)
+        }
+        log.info("Seeded {} counterparties", COUNTERPARTIES.size)
+    }
+
+    private suspend fun seedNettingAgreements() {
+        val repo = nettingAgreementRepository ?: return
+        for (na in NETTING_AGREEMENTS) {
+            repo.upsert(na)
+        }
+        log.info("Seeded {} netting agreements", NETTING_AGREEMENTS.size)
     }
 
     private data class InstrumentConfig(
@@ -275,6 +300,177 @@ class DevDataSeeder(
             "macro-hedge" to DeskConfig(name = "Macro Hedge", divisionId = "multi-asset"),
             "balanced-income" to DeskConfig(name = "Balanced Income", divisionId = "multi-asset"),
             "derivatives-trading" to DeskConfig(name = "Derivatives Trading", divisionId = "multi-asset"),
+        )
+
+        // Counterparties covering the major banking counterparties referenced in seed trades.
+        // These IDs match what will be set on position-service seed trades.
+        val COUNTERPARTIES: List<Counterparty> = listOf(
+            Counterparty(
+                counterpartyId = "CP-GS",
+                legalName = "Goldman Sachs Bank USA",
+                shortName = "Goldman Sachs",
+                lei = "784F5XWPLTWKTBV3E584",
+                ratingSp = "A+",
+                ratingMoodys = "A1",
+                ratingFitch = "A+",
+                sector = "FINANCIALS",
+                country = "US",
+                isFinancial = true,
+                pd1y = BigDecimal("0.00050"),
+                lgd = BigDecimal("0.400000"),
+                cdsSpreadssBps = BigDecimal("65.00"),
+                createdAt = AS_OF,
+                updatedAt = AS_OF,
+            ),
+            Counterparty(
+                counterpartyId = "CP-JPM",
+                legalName = "JPMorgan Chase Bank, N.A.",
+                shortName = "JPMorgan",
+                lei = "7H6GLXDRUGQFU57RNE97",
+                ratingSp = "A+",
+                ratingMoodys = "Aa2",
+                ratingFitch = "AA-",
+                sector = "FINANCIALS",
+                country = "US",
+                isFinancial = true,
+                pd1y = BigDecimal("0.00040"),
+                lgd = BigDecimal("0.400000"),
+                cdsSpreadssBps = BigDecimal("55.00"),
+                createdAt = AS_OF,
+                updatedAt = AS_OF,
+            ),
+            Counterparty(
+                counterpartyId = "CP-BARC",
+                legalName = "Barclays Bank PLC",
+                shortName = "Barclays",
+                lei = "G5GSEF7VJP5I7OUK5573",
+                ratingSp = "A",
+                ratingMoodys = "A1",
+                ratingFitch = "A+",
+                sector = "FINANCIALS",
+                country = "GB",
+                isFinancial = true,
+                pd1y = BigDecimal("0.00080"),
+                lgd = BigDecimal("0.400000"),
+                cdsSpreadssBps = BigDecimal("80.00"),
+                createdAt = AS_OF,
+                updatedAt = AS_OF,
+            ),
+            Counterparty(
+                counterpartyId = "CP-DB",
+                legalName = "Deutsche Bank AG",
+                shortName = "Deutsche Bank",
+                lei = "7LTWFZYICNSX8D621K86",
+                ratingSp = "BBB+",
+                ratingMoodys = "A2",
+                ratingFitch = "BBB+",
+                sector = "FINANCIALS",
+                country = "DE",
+                isFinancial = true,
+                pd1y = BigDecimal("0.00150"),
+                lgd = BigDecimal("0.400000"),
+                cdsSpreadssBps = BigDecimal("110.00"),
+                createdAt = AS_OF,
+                updatedAt = AS_OF,
+            ),
+            Counterparty(
+                counterpartyId = "CP-UBS",
+                legalName = "UBS AG",
+                shortName = "UBS",
+                lei = "BFM8T61CT2L1QCEMIK50",
+                ratingSp = "A+",
+                ratingMoodys = "Aa3",
+                ratingFitch = "A+",
+                sector = "FINANCIALS",
+                country = "CH",
+                isFinancial = true,
+                pd1y = BigDecimal("0.00050"),
+                lgd = BigDecimal("0.400000"),
+                cdsSpreadssBps = BigDecimal("60.00"),
+                createdAt = AS_OF,
+                updatedAt = AS_OF,
+            ),
+            Counterparty(
+                counterpartyId = "CP-CITI",
+                legalName = "Citibank N.A.",
+                shortName = "Citibank",
+                lei = "E57ODZWZ7FF32TWEFA76",
+                ratingSp = "A+",
+                ratingMoodys = "Aa3",
+                ratingFitch = "A+",
+                sector = "FINANCIALS",
+                country = "US",
+                isFinancial = true,
+                pd1y = BigDecimal("0.00050"),
+                lgd = BigDecimal("0.400000"),
+                cdsSpreadssBps = BigDecimal("62.00"),
+                createdAt = AS_OF,
+                updatedAt = AS_OF,
+            ),
+        )
+
+        // Netting agreements: one per counterparty, ISDA 2002 close-out netting
+        val NETTING_AGREEMENTS: List<NettingAgreement> = listOf(
+            NettingAgreement(
+                nettingSetId = "NS-GS-001",
+                counterpartyId = "CP-GS",
+                agreementType = "ISDA_2002",
+                closeOutNetting = true,
+                csaThreshold = BigDecimal("5000000.000000"),
+                currency = "USD",
+                createdAt = AS_OF,
+                updatedAt = AS_OF,
+            ),
+            NettingAgreement(
+                nettingSetId = "NS-JPM-001",
+                counterpartyId = "CP-JPM",
+                agreementType = "ISDA_2002",
+                closeOutNetting = true,
+                csaThreshold = BigDecimal("5000000.000000"),
+                currency = "USD",
+                createdAt = AS_OF,
+                updatedAt = AS_OF,
+            ),
+            NettingAgreement(
+                nettingSetId = "NS-BARC-001",
+                counterpartyId = "CP-BARC",
+                agreementType = "ISDA_2002",
+                closeOutNetting = true,
+                csaThreshold = BigDecimal("3000000.000000"),
+                currency = "USD",
+                createdAt = AS_OF,
+                updatedAt = AS_OF,
+            ),
+            NettingAgreement(
+                nettingSetId = "NS-DB-001",
+                counterpartyId = "CP-DB",
+                agreementType = "ISDA_2002",
+                closeOutNetting = true,
+                csaThreshold = BigDecimal("2000000.000000"),
+                currency = "EUR",
+                createdAt = AS_OF,
+                updatedAt = AS_OF,
+            ),
+            NettingAgreement(
+                nettingSetId = "NS-UBS-001",
+                counterpartyId = "CP-UBS",
+                agreementType = "ISDA_2002",
+                closeOutNetting = true,
+                csaThreshold = BigDecimal("4000000.000000"),
+                currency = "USD",
+                createdAt = AS_OF,
+                updatedAt = AS_OF,
+            ),
+            NettingAgreement(
+                nettingSetId = "NS-CITI-001",
+                counterpartyId = "CP-CITI",
+                agreementType = "ISDA_2002",
+                closeOutNetting = true,
+                csaThreshold = BigDecimal("5000000.000000"),
+                currency = "USD",
+                createdAt = AS_OF,
+                updatedAt = AS_OF,
+            ),
         )
     }
 }
