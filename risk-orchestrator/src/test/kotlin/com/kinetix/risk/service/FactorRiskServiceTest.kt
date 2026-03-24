@@ -14,6 +14,11 @@ import io.kotest.matchers.doubles.shouldBeWithinPercentageOf
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import com.kinetix.common.model.PricePoint
+import com.kinetix.common.model.PriceSource
+import com.kinetix.risk.client.ClientResponse
+import com.kinetix.risk.client.PositionProvider
+import com.kinetix.risk.client.PriceServiceClient
 import io.mockk.clearMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -143,5 +148,64 @@ class FactorRiskServiceTest : FunSpec({
 
         result.shouldNotBeNull()
         coVerify { repository.save(any()) }
+    }
+
+    context("decomposeForBook") {
+        val positionProvider = mockk<PositionProvider>()
+        val priceServiceClient = mockk<PriceServiceClient>()
+
+        val serviceWithDeps = FactorRiskService(
+            riskEngineClient = riskEngineClient,
+            repository = repository,
+            positionProvider = positionProvider,
+            priceServiceClient = priceServiceClient,
+        )
+
+        beforeEach {
+            clearMocks(positionProvider, priceServiceClient)
+        }
+
+        fun priceHistory(instrumentId: String) = ClientResponse.Success(
+            List(301) { i ->
+                PricePoint(
+                    instrumentId = InstrumentId(instrumentId),
+                    price = Money(BigDecimal("${100 + i}.00"), USD),
+                    timestamp = Instant.parse("2025-05-29T00:00:00Z").plusSeconds(i * 86_400L),
+                    source = PriceSource.EXCHANGE,
+                )
+            }
+        )
+
+        test("fetches positions and price history, then runs decomposition") {
+            coEvery { positionProvider.getPositions(bookId) } returns positions
+            coEvery { priceServiceClient.getPriceHistory(any(), any(), any(), any()) } returns priceHistory("AAPL")
+            val snapshot = sampleDecompositionSnapshot()
+            coEvery { riskEngineClient.decomposeFactorRisk(any(), any(), any(), any()) } returns snapshot
+
+            val result = serviceWithDeps.decomposeForBook(bookId, totalVar = 50_000.0)
+
+            result shouldBe snapshot
+            coVerify { repository.save(snapshot) }
+        }
+
+        test("returns null without calling gRPC when book has no positions") {
+            coEvery { positionProvider.getPositions(bookId) } returns emptyList()
+
+            val result = serviceWithDeps.decomposeForBook(bookId, totalVar = 50_000.0)
+
+            result.shouldBeNull()
+            coVerify(exactly = 0) { riskEngineClient.decomposeFactorRisk(any(), any(), any(), any()) }
+        }
+
+        test("returns null when no positionProvider is configured") {
+            val serviceWithoutDeps = FactorRiskService(
+                riskEngineClient = riskEngineClient,
+                repository = repository,
+            )
+
+            val result = serviceWithoutDeps.decomposeForBook(bookId, totalVar = 50_000.0)
+
+            result.shouldBeNull()
+        }
     }
 })

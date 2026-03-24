@@ -280,6 +280,8 @@ fun Application.moduleWithRoutes() {
     val factorRiskService = com.kinetix.risk.service.FactorRiskService(
         riskEngineClient = effectiveRiskEngineClient,
         repository = factorDecompositionRepository,
+        positionProvider = effectivePositionProvider,
+        priceServiceClient = effectivePriceServiceClient,
     )
 
     val liquidityRiskServiceCoroutineStub = LiquidityRiskServiceGrpcKt.LiquidityRiskServiceCoroutineStub(channel)
@@ -550,6 +552,7 @@ fun Application.moduleWithRoutes() {
                 is com.kinetix.risk.client.ClientResponse.Success -> r.value
                 is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
             } },
+            factorRiskService = factorRiskService,
         ).start()
     }
     launch {

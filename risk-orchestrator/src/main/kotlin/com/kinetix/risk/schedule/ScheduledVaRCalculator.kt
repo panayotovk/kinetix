@@ -6,6 +6,7 @@ import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
 import com.kinetix.risk.model.TriggerType
 import com.kinetix.risk.model.VaRCalculationRequest
+import com.kinetix.risk.service.FactorRiskService
 import com.kinetix.risk.service.VaRCalculationService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -17,6 +18,7 @@ class ScheduledVaRCalculator(
     private val varCache: VaRCache,
     private val bookIds: suspend () -> List<BookId>,
     private val intervalMillis: Long = 60_000,
+    private val factorRiskService: FactorRiskService? = null,
 ) {
     private val logger = LoggerFactory.getLogger(ScheduledVaRCalculator::class.java)
 
@@ -37,6 +39,9 @@ class ScheduledVaRCalculator(
                         )
                         if (result != null) {
                             varCache.put(bookId.value, result)
+
+                            val totalVar = result.varValue ?: 0.0
+                            factorRiskService?.decomposeForBook(bookId, totalVar)
                         }
                     } catch (e: Exception) {
                         logger.error("Scheduled VaR calculation failed for portfolio {}", bookId.value, e)
