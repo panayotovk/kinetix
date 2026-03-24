@@ -484,4 +484,41 @@ class HttpRiskServiceClient(
         if (!response.status.isSuccess()) handleErrorResponse(response)
         return response.body()
     }
+
+    override suspend fun runHistoricalReplay(params: HistoricalReplayParams): HistoricalReplayResultSummary {
+        val response = httpClient.post("$baseUrl/api/v1/risk/stress/${params.bookId}/historical-replay") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                HistoricalReplayRequestClientDto(
+                    instrumentReturns = params.instrumentReturns.map {
+                        InstrumentDailyReturnsClientDto(
+                            instrumentId = it.instrumentId,
+                            dailyReturns = it.dailyReturns,
+                        )
+                    },
+                    scenarioName = params.scenarioName,
+                    windowStart = params.windowStart,
+                    windowEnd = params.windowEnd,
+                )
+            )
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        val dto: HistoricalReplayResultClientDto = response.body()
+        return dto.toDomain()
+    }
+
+    override suspend fun runReverseStress(params: ReverseStressParams): ReverseStressResultSummary {
+        val response = httpClient.post("$baseUrl/api/v1/risk/stress/${params.bookId}/reverse") {
+            contentType(ContentType.Application.Json)
+            setBody(
+                ReverseStressRequestClientDto(
+                    targetLoss = params.targetLoss,
+                    maxShock = params.maxShock,
+                )
+            )
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        val dto: ReverseStressResultClientDto = response.body()
+        return dto.toDomain()
+    }
 }

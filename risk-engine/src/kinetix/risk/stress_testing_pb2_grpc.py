@@ -44,6 +44,16 @@ class StressTestServiceStub(object):
                 request_serializer=kinetix_dot_risk_dot_stress__testing__pb2.ListScenariosRequest.SerializeToString,
                 response_deserializer=kinetix_dot_risk_dot_stress__testing__pb2.ListScenariosResponse.FromString,
                 _registered_method=True)
+        self.RunHistoricalReplay = channel.unary_unary(
+                '/kinetix.risk.StressTestService/RunHistoricalReplay',
+                request_serializer=kinetix_dot_risk_dot_stress__testing__pb2.HistoricalReplayRequest.SerializeToString,
+                response_deserializer=kinetix_dot_risk_dot_stress__testing__pb2.HistoricalReplayResponse.FromString,
+                _registered_method=True)
+        self.RunReverseStress = channel.unary_unary(
+                '/kinetix.risk.StressTestService/RunReverseStress',
+                request_serializer=kinetix_dot_risk_dot_stress__testing__pb2.ReverseStressRequest.SerializeToString,
+                response_deserializer=kinetix_dot_risk_dot_stress__testing__pb2.ReverseStressResponse.FromString,
+                _registered_method=True)
         self.CalculateGreeks = channel.unary_unary(
                 '/kinetix.risk.StressTestService/CalculateGreeks',
                 request_serializer=kinetix_dot_risk_dot_stress__testing__pb2.GreeksRequest.SerializeToString,
@@ -61,6 +71,18 @@ class StressTestServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def ListScenarios(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RunHistoricalReplay(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RunReverseStress(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -85,6 +107,16 @@ def add_StressTestServiceServicer_to_server(servicer, server):
                     servicer.ListScenarios,
                     request_deserializer=kinetix_dot_risk_dot_stress__testing__pb2.ListScenariosRequest.FromString,
                     response_serializer=kinetix_dot_risk_dot_stress__testing__pb2.ListScenariosResponse.SerializeToString,
+            ),
+            'RunHistoricalReplay': grpc.unary_unary_rpc_method_handler(
+                    servicer.RunHistoricalReplay,
+                    request_deserializer=kinetix_dot_risk_dot_stress__testing__pb2.HistoricalReplayRequest.FromString,
+                    response_serializer=kinetix_dot_risk_dot_stress__testing__pb2.HistoricalReplayResponse.SerializeToString,
+            ),
+            'RunReverseStress': grpc.unary_unary_rpc_method_handler(
+                    servicer.RunReverseStress,
+                    request_deserializer=kinetix_dot_risk_dot_stress__testing__pb2.ReverseStressRequest.FromString,
+                    response_serializer=kinetix_dot_risk_dot_stress__testing__pb2.ReverseStressResponse.SerializeToString,
             ),
             'CalculateGreeks': grpc.unary_unary_rpc_method_handler(
                     servicer.CalculateGreeks,
@@ -146,6 +178,60 @@ class StressTestService(object):
             '/kinetix.risk.StressTestService/ListScenarios',
             kinetix_dot_risk_dot_stress__testing__pb2.ListScenariosRequest.SerializeToString,
             kinetix_dot_risk_dot_stress__testing__pb2.ListScenariosResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RunHistoricalReplay(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/kinetix.risk.StressTestService/RunHistoricalReplay',
+            kinetix_dot_risk_dot_stress__testing__pb2.HistoricalReplayRequest.SerializeToString,
+            kinetix_dot_risk_dot_stress__testing__pb2.HistoricalReplayResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RunReverseStress(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/kinetix.risk.StressTestService/RunReverseStress',
+            kinetix_dot_risk_dot_stress__testing__pb2.ReverseStressRequest.SerializeToString,
+            kinetix_dot_risk_dot_stress__testing__pb2.ReverseStressResponse.FromString,
             options,
             channel_credentials,
             insecure,

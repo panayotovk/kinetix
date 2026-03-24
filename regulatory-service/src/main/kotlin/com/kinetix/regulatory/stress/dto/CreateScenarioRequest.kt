@@ -8,4 +8,5 @@ data class CreateScenarioRequest(
     val description: String,
     val shocks: String,
     val createdBy: String,
+    val scenarioType: String = "PARAMETRIC",
 )

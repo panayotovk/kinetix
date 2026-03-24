@@ -16,6 +16,7 @@ object StressScenariosTable : Table("stress_scenarios") {
     val approvedBy = varchar("approved_by", 255).nullable()
     val approvedAt = timestampWithTimeZone("approved_at").nullable()
     val createdAt = timestampWithTimeZone("created_at")
+    val scenarioType = varchar("scenario_type", 30).default("PARAMETRIC")
 
     override val primaryKey = PrimaryKey(id)
 }

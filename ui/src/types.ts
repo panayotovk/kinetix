@@ -492,6 +492,7 @@ export interface StressScenarioDto {
   approvedBy: string | null
   approvedAt: string | null
   createdAt: string
+  scenarioType?: string
 }
 
 export interface CreateScenarioRequestDto {
@@ -504,6 +505,58 @@ export interface CreateScenarioRequestDto {
 export interface ScenarioShocksDto {
   volShocks: Record<string, number>
   priceShocks: Record<string, number>
+}
+
+// --- Historical Replay Types ---
+
+export interface InstrumentDailyReturnsDto {
+  instrumentId: string
+  dailyReturns: number[]
+}
+
+export interface HistoricalReplayRequestDto {
+  instrumentReturns: InstrumentDailyReturnsDto[]
+  scenarioName?: string
+  windowStart?: string
+  windowEnd?: string
+}
+
+export interface PositionReplayImpactDto {
+  instrumentId: string
+  assetClass: string
+  marketValue: string
+  pnlImpact: string
+  dailyPnl: string[]
+  proxyUsed: boolean
+}
+
+export interface HistoricalReplayResultDto {
+  scenarioName: string
+  totalPnlImpact: string
+  positionImpacts: PositionReplayImpactDto[]
+  windowStart: string | null
+  windowEnd: string | null
+  calculatedAt: string
+}
+
+// --- Reverse Stress Types ---
+
+export interface ReverseStressRequestDto {
+  targetLoss: number
+  maxShock?: number
+}
+
+export interface InstrumentShockDto {
+  instrumentId: string
+  shock: string
+}
+
+export interface ReverseStressResultDto {
+  shocks: InstrumentShockDto[]
+  achievedLoss: string
+  targetLoss: string
+  converged: boolean
+  calculatedAt: string
 }
 
 // --- Run Comparison Types ---

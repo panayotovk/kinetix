@@ -45,6 +45,8 @@ fun Route.stressScenarioRoutes(service: StressScenarioService) {
                 description = request.description,
                 shocks = request.shocks,
                 createdBy = request.createdBy,
+                scenarioType = runCatching { ScenarioType.valueOf(request.scenarioType) }
+                    .getOrDefault(ScenarioType.PARAMETRIC),
             )
             logger.info("Stress scenario created: id={}, name={}", scenario.id, scenario.name)
             call.respond(HttpStatusCode.Created, scenario.toResponse())
@@ -124,6 +126,7 @@ private fun StressScenario.toResponse() = StressScenarioResponse(
     approvedBy = approvedBy,
     approvedAt = approvedAt?.toString(),
     createdAt = createdAt.toString(),
+    scenarioType = scenarioType.name,
 )
 
 private fun StressTestResult.toResponse() = StressTestResultResponse(

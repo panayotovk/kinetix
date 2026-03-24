@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { ScenariosTab } from './ScenariosTab'
 import { ALL_STRESS_RESULTS } from '../test-utils/stressMocks'
@@ -53,5 +54,12 @@ describe('ScenariosTab', () => {
     render(<ScenariosTab {...defaultProps} error="Something went wrong" />)
 
     expect(screen.getByTestId('stress-error')).toHaveTextContent('Something went wrong')
+  })
+
+  it('shows scenario library grid when Manage Scenarios is clicked', async () => {
+    render(<ScenariosTab {...defaultProps} />)
+
+    await userEvent.click(screen.getByTestId('manage-scenarios-btn'))
+    expect(screen.getByTestId('scenario-library-grid')).toBeInTheDocument()
   })
 })

@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { Zap } from 'lucide-react'
-import type { StressTestResultDto } from '../types'
+import type { StressTestResultDto, HistoricalReplayResultDto, ReverseStressResultDto, ReverseStressRequestDto } from '../types'
 import { runStressTest } from '../api/stress'
 import { createScenario, submitScenario } from '../api/scenarios'
+import { runHistoricalReplay, runReverseStress } from '../api/historicalReplay'
 import { exportStressResultsToCsv } from '../utils/exportStressResults'
 import type { ScenarioSavePayload, ScenarioRunPayload } from '../hooks/useCustomScenario'
 import { useScenarioGovernance } from '../hooks/useScenarioGovernance'
@@ -13,6 +14,9 @@ import { ScenarioDetailPanel } from './ScenarioDetailPanel'
 import { ScenarioComparisonView } from './ScenarioComparisonView'
 import { ScenarioGovernancePanel } from './ScenarioGovernancePanel'
 import { CustomScenarioBuilder } from './CustomScenarioBuilder'
+import { ScenarioLibraryGrid } from './ScenarioLibraryGrid'
+import { HistoricalReplayPanel } from './HistoricalReplayPanel'
+import { ReverseStressDialog } from './ReverseStressDialog'
 
 export interface ScenariosTabProps {
   bookId: string | null
@@ -50,6 +54,26 @@ export function ScenariosTab({
   const [showComparison, setShowComparison] = useState(false)
   const [showGovernance, setShowGovernance] = useState(false)
   const governance = useScenarioGovernance()
+
+  // Historical Replay state
+  const [replayScenario, setReplayScenario] = useState<string>('')
+  const [replayResult, setReplayResult] = useState<HistoricalReplayResultDto | null>(null)
+  const [replayLoading, setReplayLoading] = useState(false)
+  const [replayError, setReplayError] = useState<string | null>(null)
+
+  // Reverse Stress state
+  const [reverseStressOpen, setReverseStressOpen] = useState(false)
+  const [reverseStressResult, setReverseStressResult] = useState<ReverseStressResultDto | null>(null)
+  const [reverseStressLoading, setReverseStressLoading] = useState(false)
+  const [reverseStressError, setReverseStressError] = useState<string | null>(null)
+
+  const historicalScenarioNames = useMemo(
+    () =>
+      governance.scenarios
+        .filter((s) => s.scenarioType === 'HISTORICAL_REPLAY' && s.status === 'APPROVED')
+        .map((s) => s.name),
+    [governance.scenarios],
+  )
 
   const handleToggleCheck = useCallback((scenario: string) => {
     setCheckedScenarios((prev) => {
@@ -111,6 +135,35 @@ export function ScenariosTab({
     [bookId, confidenceLevel, timeHorizonDays, onAppendResult],
   )
 
+  const handleRunReplay = useCallback(async () => {
+    const effectiveScenario = replayScenario || historicalScenarioNames[0]
+    if (!bookId || !effectiveScenario) return
+    setReplayLoading(true)
+    setReplayError(null)
+    try {
+      const result = await runHistoricalReplay(bookId, { instrumentReturns: [], scenarioName: effectiveScenario })
+      setReplayResult(result)
+    } catch (err) {
+      setReplayError(err instanceof Error ? err.message : 'Historical replay failed')
+    } finally {
+      setReplayLoading(false)
+    }
+  }, [bookId, replayScenario, historicalScenarioNames])
+
+  const handleRunReverseStress = useCallback(async (request: ReverseStressRequestDto) => {
+    if (!bookId) return
+    setReverseStressLoading(true)
+    setReverseStressError(null)
+    try {
+      const result = await runReverseStress(bookId, request)
+      setReverseStressResult(result)
+    } catch (err) {
+      setReverseStressError(err instanceof Error ? err.message : 'Reverse stress failed')
+    } finally {
+      setReverseStressLoading(false)
+    }
+  }, [bookId])
+
   const comparedScenarios = results.filter((r) => checkedScenarios.has(r.scenarioName))
 
   return (
@@ -165,14 +218,21 @@ export function ScenariosTab({
         )}
 
         {showGovernance && (
-          <ScenarioGovernancePanel
-            scenarios={governance.scenarios}
-            onSubmit={governance.submit}
-            onApprove={governance.approve}
-            onRetire={governance.retire}
-            loading={governance.loading}
-            error={governance.error}
-          />
+          <>
+            <ScenarioLibraryGrid
+              scenarios={governance.scenarios}
+              loading={governance.loading}
+              error={governance.error}
+            />
+            <ScenarioGovernancePanel
+              scenarios={governance.scenarios}
+              onSubmit={governance.submit}
+              onApprove={governance.approve}
+              onRetire={governance.retire}
+              loading={governance.loading}
+              error={governance.error}
+            />
+          </>
         )}
 
         <ScenarioDetailPanel
@@ -187,6 +247,28 @@ export function ScenariosTab({
         onRunAdHoc={handleRunAdHoc}
         saving={saving}
         running={running}
+      />
+
+      {historicalScenarioNames.length > 0 && (
+        <HistoricalReplayPanel
+          scenarios={historicalScenarioNames}
+          result={replayResult}
+          loading={replayLoading}
+          error={replayError}
+          selectedScenario={replayScenario || historicalScenarioNames[0]}
+          onScenarioChange={setReplayScenario}
+          onRun={handleRunReplay}
+          bookId={bookId}
+        />
+      )}
+
+      <ReverseStressDialog
+        open={reverseStressOpen}
+        onClose={() => setReverseStressOpen(false)}
+        onRun={handleRunReverseStress}
+        result={reverseStressResult}
+        loading={reverseStressLoading}
+        error={reverseStressError}
       />
     </>
   )
