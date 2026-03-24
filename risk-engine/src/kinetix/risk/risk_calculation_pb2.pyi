@@ -45,6 +45,22 @@ class ValuationOutput(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     EXPECTED_SHORTFALL: _ClassVar[ValuationOutput]
     GREEKS: _ClassVar[ValuationOutput]
     PV: _ClassVar[ValuationOutput]
+
+class FactorType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    FACTOR_TYPE_UNSPECIFIED: _ClassVar[FactorType]
+    FACTOR_EQUITY_BETA: _ClassVar[FactorType]
+    FACTOR_RATES_DURATION: _ClassVar[FactorType]
+    FACTOR_CREDIT_SPREAD: _ClassVar[FactorType]
+    FACTOR_FX_DELTA: _ClassVar[FactorType]
+    FACTOR_VOL_EXPOSURE: _ClassVar[FactorType]
+
+class LoadingMethod(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    LOADING_METHOD_UNSPECIFIED: _ClassVar[LoadingMethod]
+    LOADING_OLS_REGRESSION: _ClassVar[LoadingMethod]
+    LOADING_ANALYTICAL: _ClassVar[LoadingMethod]
+    LOADING_MANUAL: _ClassVar[LoadingMethod]
 RISK_CALCULATION_TYPE_UNSPECIFIED: RiskCalculationType
 HISTORICAL: RiskCalculationType
 PARAMETRIC: RiskCalculationType
@@ -68,6 +84,16 @@ VAR: ValuationOutput
 EXPECTED_SHORTFALL: ValuationOutput
 GREEKS: ValuationOutput
 PV: ValuationOutput
+FACTOR_TYPE_UNSPECIFIED: FactorType
+FACTOR_EQUITY_BETA: FactorType
+FACTOR_RATES_DURATION: FactorType
+FACTOR_CREDIT_SPREAD: FactorType
+FACTOR_FX_DELTA: FactorType
+FACTOR_VOL_EXPOSURE: FactorType
+LOADING_METHOD_UNSPECIFIED: LoadingMethod
+LOADING_OLS_REGRESSION: LoadingMethod
+LOADING_ANALYTICAL: LoadingMethod
+LOADING_MANUAL: LoadingMethod
 
 class TimeSeriesPoint(_message.Message):
     __slots__ = ("timestamp", "value")
@@ -316,3 +342,91 @@ class CrossBookVaRResponse(_message.Message):
     model_version: str
     monte_carlo_seed: int
     def __init__(self, portfolio_group_id: _Optional[str] = ..., book_ids: _Optional[_Iterable[_Union[_types_pb2.BookId, _Mapping]]] = ..., calculation_type: _Optional[_Union[RiskCalculationType, str]] = ..., confidence_level: _Optional[_Union[ConfidenceLevel, str]] = ..., var_value: _Optional[float] = ..., expected_shortfall: _Optional[float] = ..., component_breakdown: _Optional[_Iterable[_Union[VaRComponentBreakdown, _Mapping]]] = ..., book_contributions: _Optional[_Iterable[_Union[BookVaRContribution, _Mapping]]] = ..., total_standalone_var: _Optional[float] = ..., diversification_benefit: _Optional[float] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., model_version: _Optional[str] = ..., monte_carlo_seed: _Optional[int] = ...) -> None: ...
+
+class PositionLoadingInput(_message.Message):
+    __slots__ = ("instrument_id", "asset_class", "market_value", "instrument_returns")
+    INSTRUMENT_ID_FIELD_NUMBER: _ClassVar[int]
+    ASSET_CLASS_FIELD_NUMBER: _ClassVar[int]
+    MARKET_VALUE_FIELD_NUMBER: _ClassVar[int]
+    INSTRUMENT_RETURNS_FIELD_NUMBER: _ClassVar[int]
+    instrument_id: str
+    asset_class: str
+    market_value: float
+    instrument_returns: _containers.RepeatedScalarFieldContainer[float]
+    def __init__(self, instrument_id: _Optional[str] = ..., asset_class: _Optional[str] = ..., market_value: _Optional[float] = ..., instrument_returns: _Optional[_Iterable[float]] = ...) -> None: ...
+
+class FactorReturnSeries(_message.Message):
+    __slots__ = ("factor", "returns")
+    FACTOR_FIELD_NUMBER: _ClassVar[int]
+    RETURNS_FIELD_NUMBER: _ClassVar[int]
+    factor: FactorType
+    returns: _containers.RepeatedScalarFieldContainer[float]
+    def __init__(self, factor: _Optional[_Union[FactorType, str]] = ..., returns: _Optional[_Iterable[float]] = ...) -> None: ...
+
+class FactorDecompositionRequest(_message.Message):
+    __slots__ = ("book_id", "positions", "factor_returns", "total_var", "decomposition_date", "job_id")
+    BOOK_ID_FIELD_NUMBER: _ClassVar[int]
+    POSITIONS_FIELD_NUMBER: _ClassVar[int]
+    FACTOR_RETURNS_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_VAR_FIELD_NUMBER: _ClassVar[int]
+    DECOMPOSITION_DATE_FIELD_NUMBER: _ClassVar[int]
+    JOB_ID_FIELD_NUMBER: _ClassVar[int]
+    book_id: str
+    positions: _containers.RepeatedCompositeFieldContainer[PositionLoadingInput]
+    factor_returns: _containers.RepeatedCompositeFieldContainer[FactorReturnSeries]
+    total_var: float
+    decomposition_date: str
+    job_id: str
+    def __init__(self, book_id: _Optional[str] = ..., positions: _Optional[_Iterable[_Union[PositionLoadingInput, _Mapping]]] = ..., factor_returns: _Optional[_Iterable[_Union[FactorReturnSeries, _Mapping]]] = ..., total_var: _Optional[float] = ..., decomposition_date: _Optional[str] = ..., job_id: _Optional[str] = ...) -> None: ...
+
+class FactorContribution(_message.Message):
+    __slots__ = ("factor", "factor_exposure", "factor_var", "pnl_attribution", "pct_of_total_var")
+    FACTOR_FIELD_NUMBER: _ClassVar[int]
+    FACTOR_EXPOSURE_FIELD_NUMBER: _ClassVar[int]
+    FACTOR_VAR_FIELD_NUMBER: _ClassVar[int]
+    PNL_ATTRIBUTION_FIELD_NUMBER: _ClassVar[int]
+    PCT_OF_TOTAL_VAR_FIELD_NUMBER: _ClassVar[int]
+    factor: FactorType
+    factor_exposure: float
+    factor_var: float
+    pnl_attribution: float
+    pct_of_total_var: float
+    def __init__(self, factor: _Optional[_Union[FactorType, str]] = ..., factor_exposure: _Optional[float] = ..., factor_var: _Optional[float] = ..., pnl_attribution: _Optional[float] = ..., pct_of_total_var: _Optional[float] = ...) -> None: ...
+
+class InstrumentLoadingResult(_message.Message):
+    __slots__ = ("instrument_id", "factor", "loading", "r_squared", "has_r_squared", "method")
+    INSTRUMENT_ID_FIELD_NUMBER: _ClassVar[int]
+    FACTOR_FIELD_NUMBER: _ClassVar[int]
+    LOADING_FIELD_NUMBER: _ClassVar[int]
+    R_SQUARED_FIELD_NUMBER: _ClassVar[int]
+    HAS_R_SQUARED_FIELD_NUMBER: _ClassVar[int]
+    METHOD_FIELD_NUMBER: _ClassVar[int]
+    instrument_id: str
+    factor: FactorType
+    loading: float
+    r_squared: float
+    has_r_squared: bool
+    method: LoadingMethod
+    def __init__(self, instrument_id: _Optional[str] = ..., factor: _Optional[_Union[FactorType, str]] = ..., loading: _Optional[float] = ..., r_squared: _Optional[float] = ..., has_r_squared: bool = ..., method: _Optional[_Union[LoadingMethod, str]] = ...) -> None: ...
+
+class FactorDecompositionResponse(_message.Message):
+    __slots__ = ("book_id", "decomposition_date", "total_var", "systematic_var", "idiosyncratic_var", "r_squared", "factor_contributions", "loadings", "job_id")
+    BOOK_ID_FIELD_NUMBER: _ClassVar[int]
+    DECOMPOSITION_DATE_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_VAR_FIELD_NUMBER: _ClassVar[int]
+    SYSTEMATIC_VAR_FIELD_NUMBER: _ClassVar[int]
+    IDIOSYNCRATIC_VAR_FIELD_NUMBER: _ClassVar[int]
+    R_SQUARED_FIELD_NUMBER: _ClassVar[int]
+    FACTOR_CONTRIBUTIONS_FIELD_NUMBER: _ClassVar[int]
+    LOADINGS_FIELD_NUMBER: _ClassVar[int]
+    JOB_ID_FIELD_NUMBER: _ClassVar[int]
+    book_id: str
+    decomposition_date: str
+    total_var: float
+    systematic_var: float
+    idiosyncratic_var: float
+    r_squared: float
+    factor_contributions: _containers.RepeatedCompositeFieldContainer[FactorContribution]
+    loadings: _containers.RepeatedCompositeFieldContainer[InstrumentLoadingResult]
+    job_id: str
+    def __init__(self, book_id: _Optional[str] = ..., decomposition_date: _Optional[str] = ..., total_var: _Optional[float] = ..., systematic_var: _Optional[float] = ..., idiosyncratic_var: _Optional[float] = ..., r_squared: _Optional[float] = ..., factor_contributions: _Optional[_Iterable[_Union[FactorContribution, _Mapping]]] = ..., loadings: _Optional[_Iterable[_Union[InstrumentLoadingResult, _Mapping]]] = ..., job_id: _Optional[str] = ...) -> None: ...
