@@ -329,7 +329,7 @@ fun Application.devModule() {
         instrumentRoutes(httpClient, referenceDataUrl)
         auditProxyRoutes(httpClient, auditUrl)
         executionProxyRoutes(httpClient, positionUrl)
-        dataQualityRoutes()
+        dataQualityRoutes(httpClient, positionUrl)
         get("/api/v1/system/health") {
             val serviceUrls = mapOf(
                 "position-service" to positionUrl,
