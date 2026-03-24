@@ -1049,6 +1049,7 @@ data class StressScenarioResponse(
     val approvedBy: String?,
     val approvedAt: String?,
     val createdAt: String,
+    val scenarioType: String = "PARAMETRIC",
 )
 
 @Serializable
@@ -1076,6 +1077,7 @@ fun StressScenarioItem.toResponse(): StressScenarioResponse = StressScenarioResp
     approvedBy = approvedBy,
     approvedAt = approvedAt,
     createdAt = createdAt,
+    scenarioType = scenarioType,
 )
 
 // --- Historical Replay DTOs ---

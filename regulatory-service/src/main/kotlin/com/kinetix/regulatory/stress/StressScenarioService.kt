@@ -18,6 +18,7 @@ class StressScenarioService(
         description: String,
         shocks: String,
         createdBy: String,
+        scenarioType: ScenarioType = ScenarioType.PARAMETRIC,
     ): StressScenario {
         val scenario = StressScenario(
             id = UUID.randomUUID().toString(),
@@ -29,6 +30,7 @@ class StressScenarioService(
             approvedBy = null,
             approvedAt = null,
             createdAt = Instant.now(),
+            scenarioType = scenarioType,
         )
         repository.save(scenario)
         return scenario

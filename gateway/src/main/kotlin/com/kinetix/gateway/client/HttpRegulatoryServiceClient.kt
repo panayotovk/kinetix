@@ -18,6 +18,7 @@ data class StressScenarioDto(
     val approvedBy: String? = null,
     val approvedAt: String? = null,
     val createdAt: String,
+    val scenarioType: String = "PARAMETRIC",
 )
 
 @Serializable
@@ -43,6 +44,7 @@ fun StressScenarioDto.toDomain() = StressScenarioItem(
     approvedBy = approvedBy,
     approvedAt = approvedAt,
     createdAt = createdAt,
+    scenarioType = scenarioType,
 )
 
 class HttpRegulatoryServiceClient(

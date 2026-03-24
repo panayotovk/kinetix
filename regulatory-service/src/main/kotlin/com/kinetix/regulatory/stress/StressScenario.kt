@@ -12,4 +12,5 @@ data class StressScenario(
     val approvedBy: String?,
     val approvedAt: Instant?,
     val createdAt: Instant,
+    val scenarioType: ScenarioType = ScenarioType.PARAMETRIC,
 )

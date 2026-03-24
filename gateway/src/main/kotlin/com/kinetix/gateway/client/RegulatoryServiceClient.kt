@@ -10,6 +10,7 @@ data class StressScenarioItem(
     val approvedBy: String?,
     val approvedAt: String?,
     val createdAt: String,
+    val scenarioType: String = "PARAMETRIC",
 )
 
 data class CreateScenarioParams(

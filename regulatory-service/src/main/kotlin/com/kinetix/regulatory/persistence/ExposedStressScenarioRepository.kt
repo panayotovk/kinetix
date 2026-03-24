@@ -1,6 +1,7 @@
 package com.kinetix.regulatory.persistence
 
 import com.kinetix.regulatory.stress.ScenarioStatus
+import com.kinetix.regulatory.stress.ScenarioType
 import com.kinetix.regulatory.stress.StressScenario
 import com.kinetix.regulatory.stress.StressScenarioRepository
 import kotlinx.serialization.json.Json
@@ -39,6 +40,7 @@ class ExposedStressScenarioRepository(private val db: Database? = null) : Stress
                     OffsetDateTime.ofInstant(ts, ZoneOffset.UTC)
                 }
                 it[createdAt] = OffsetDateTime.ofInstant(scenario.createdAt, ZoneOffset.UTC)
+                it[scenarioType] = scenario.scenarioType.name
             }
         }
     }
@@ -77,5 +79,7 @@ class ExposedStressScenarioRepository(private val db: Database? = null) : Stress
         approvedBy = this[StressScenariosTable.approvedBy],
         approvedAt = this[StressScenariosTable.approvedAt]?.toInstant(),
         createdAt = this[StressScenariosTable.createdAt].toInstant(),
+        scenarioType = runCatching { ScenarioType.valueOf(this[StressScenariosTable.scenarioType]) }
+            .getOrDefault(ScenarioType.PARAMETRIC),
     )
 }
