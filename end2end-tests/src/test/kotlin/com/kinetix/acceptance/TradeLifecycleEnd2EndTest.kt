@@ -6,8 +6,12 @@ import com.kinetix.audit.persistence.ExposedAuditEventRepository
 import com.kinetix.common.model.*
 import com.kinetix.position.kafka.KafkaTradeEventPublisher
 import com.kinetix.position.model.LimitBreachSeverity
-import com.kinetix.position.model.TradeLimits
+import com.kinetix.position.model.LimitDefinition
+import com.kinetix.position.model.LimitLevel
+import com.kinetix.position.model.LimitType
+import com.kinetix.position.persistence.ExposedLimitDefinitionRepository
 import com.kinetix.position.persistence.ExposedPositionRepository
+import com.kinetix.position.persistence.ExposedTemporaryLimitIncreaseRepository
 import com.kinetix.position.persistence.ExposedTradeEventRepository
 import com.kinetix.position.service.*
 import io.kotest.assertions.throwables.shouldThrow
@@ -90,12 +94,34 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
         lifecycleService = TradeLifecycleService(tradeEventRepo, positionRepo, transactional, publisher)
         queryService = PositionQueryService(positionRepo)
 
-        val limitCheckService = LimitCheckService(
-            positionRepository = positionRepo,
-            defaultLimits = TradeLimits(positionLimit = BigDecimal("1000"), softLimitPct = 0.8),
+        val limitDefinitionRepo = ExposedLimitDefinitionRepository(positionDatabase)
+        val temporaryLimitIncreaseRepo = ExposedTemporaryLimitIncreaseRepository(positionDatabase)
+        val limitHierarchyService = LimitHierarchyService(
+            limitDefinitionRepo = limitDefinitionRepo,
+            temporaryLimitIncreaseRepo = temporaryLimitIncreaseRepo,
+            referenceDataClient = null,
+            warningThresholdPct = 0.8,
         )
+        val preTradeCheckService = HierarchyBasedPreTradeCheckService(positionRepo, limitHierarchyService)
+
+        // Seed a POSITION limit of 1000 shares at BOOK level for the limit-test books
+        for (bookId in listOf("port-lifecycle-6", "port-lifecycle-7")) {
+            limitDefinitionRepo.save(
+                LimitDefinition(
+                    id = "e2e-limit-position-$bookId",
+                    level = LimitLevel.BOOK,
+                    entityId = bookId,
+                    limitType = LimitType.POSITION,
+                    limitValue = BigDecimal("1000"),
+                    intradayLimit = null,
+                    overnightLimit = null,
+                    active = true,
+                )
+            )
+        }
+
         bookingServiceWithLimits = TradeBookingService(
-            tradeEventRepo, positionRepo, transactional, publisher, limitCheckService
+            tradeEventRepo, positionRepo, transactional, publisher, preTradeCheckService
         )
 
         // Wire audit-service

@@ -135,6 +135,13 @@ private class StubRiskEngineClient : RiskEngineClient {
         confidenceLevel: String,
         instrumentMap: Map<String, InstrumentDto>,
     ) = throw UnsupportedOperationException("Not used in VaR acceptance test")
+
+    override suspend fun decomposeFactorRisk(
+        bookId: BookId,
+        positions: List<Position>,
+        marketData: Map<String, TimeSeriesMarketData>,
+        totalVar: Double,
+    ): FactorDecompositionSnapshot = throw UnsupportedOperationException("Not used in VaR acceptance test")
 }
 
 class VaRCalculationEnd2EndTest : BehaviorSpec({
