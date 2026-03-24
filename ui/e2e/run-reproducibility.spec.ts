@@ -46,7 +46,7 @@ const JOB_WITHOUT_MANIFEST = {
 
 async function navigateToRiskTab(page: import('@playwright/test').Page) {
   await page.goto('/')
-  await page.getByRole('tab', { name: 'Risk' }).click()
+  await page.getByRole('tab', { name: 'Risk', exact: true }).click()
 }
 
 test.describe('Run Reproducibility', () => {
