@@ -3,6 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../hooks/usePnlAttribution')
 vi.mock('../hooks/useSodBaseline')
+vi.mock('../hooks/useIntradayPnlStream', () => ({
+  useIntradayPnlStream: () => ({ snapshots: [], latest: null, connected: false }),
+}))
+vi.mock('../hooks/useIntradayPnlSeries', () => ({
+  useIntradayPnlSeries: () => ({ snapshots: [], loading: false, error: null }),
+}))
 
 import { PnlTab } from './PnlTab'
 import { usePnlAttribution } from '../hooks/usePnlAttribution'

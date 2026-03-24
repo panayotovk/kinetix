@@ -67,6 +67,47 @@ export interface UnsubscribeMessage {
 
 export type ClientMessage = SubscribeMessage | UnsubscribeMessage
 
+export interface PnlUpdateMessage {
+  type: 'pnl'
+  bookId: string
+  snapshotAt: string
+  baseCurrency: string
+  trigger: string
+  totalPnl: string
+  realisedPnl: string
+  unrealisedPnl: string
+  deltaPnl: string
+  gammaPnl: string
+  vegaPnl: string
+  thetaPnl: string
+  rhoPnl: string
+  unexplainedPnl: string
+  highWaterMark: string
+  correlationId?: string | null
+}
+
+export interface IntradayPnlSnapshotDto {
+  snapshotAt: string
+  baseCurrency: string
+  trigger: string
+  totalPnl: string
+  realisedPnl: string
+  unrealisedPnl: string
+  deltaPnl: string
+  gammaPnl: string
+  vegaPnl: string
+  thetaPnl: string
+  rhoPnl: string
+  unexplainedPnl: string
+  highWaterMark: string
+  correlationId?: string | null
+}
+
+export interface IntradayPnlSeriesDto {
+  bookId: string
+  snapshots: IntradayPnlSnapshotDto[]
+}
+
 export interface ComponentBreakdownDto {
   assetClass: string
   varContribution: string

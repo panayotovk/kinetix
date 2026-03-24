@@ -18,4 +18,6 @@ dependencies {
     implementation(libs.kafka.clients)
 
     testImplementation(libs.ktor.client.mock)
+    testImplementation(libs.testcontainers.core)
+    testImplementation(libs.testcontainers.kafka)
 }
