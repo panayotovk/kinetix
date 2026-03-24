@@ -151,13 +151,6 @@ class ScheduledVaRCalculatorTest : FunSpec({
         val factorRiskService = mockk<FactorRiskService>()
 
         coEvery { varService.calculateVaR(any(), any()) } returns null
-    test("triggers FIRM-level hierarchy aggregation after each per-book VaR cycle") {
-        val varService = mockk<VaRCalculationService>()
-        val hierarchyRiskService = mockk<HierarchyRiskService>()
-        val varCache = InMemoryVaRCache()
-
-        coEvery { varService.calculateVaR(any(), any()) } returns null
-        coEvery { hierarchyRiskService.aggregateHierarchy(HierarchyLevel.FIRM, "FIRM") } returns null
 
         val calculator = ScheduledVaRCalculator(
             varCalculationService = varService,
@@ -173,6 +166,19 @@ class ScheduledVaRCalculatorTest : FunSpec({
         job.cancel()
 
         coVerify(exactly = 0) { factorRiskService.decomposeForBook(any(), any()) }
+    }
+
+    test("triggers FIRM-level hierarchy aggregation after each per-book VaR cycle") {
+        val varService = mockk<VaRCalculationService>()
+        val hierarchyRiskService = mockk<HierarchyRiskService>()
+        val varCache = InMemoryVaRCache()
+
+        coEvery { varService.calculateVaR(any(), any()) } returns null
+        coEvery { hierarchyRiskService.aggregateHierarchy(HierarchyLevel.FIRM, "FIRM") } returns null
+
+        val calculator = ScheduledVaRCalculator(
+            varCalculationService = varService,
+            varCache = varCache,
             bookIds = { listOf(BookId("book-1")) },
             intervalMillis = 200,
             hierarchyRiskService = hierarchyRiskService,
