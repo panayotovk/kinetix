@@ -10,6 +10,7 @@ data class HedgeRecommendationResponse(
     val targetReductionPct: Double,
     val requestedAt: String,
     val status: String,
+    val message: String? = null,
     val expiresAt: String,
     val acceptedBy: String?,
     val acceptedAt: String?,

@@ -57,6 +57,26 @@ class HedgeRecommendationService(
 
         if (candidates.isEmpty()) {
             logger.warn("No liquid candidates found for book {} target {}", bookId.value, target)
+            val now = Instant.now()
+            val recommendation = HedgeRecommendation(
+                id = UUID.randomUUID(),
+                bookId = bookId.value,
+                targetMetric = target,
+                targetReductionPct = targetReductionPct,
+                requestedAt = now,
+                status = HedgeStatus.REJECTED,
+                message = "No liquid instruments found matching your constraints. " +
+                    "Broaden the instrument universe or relax liquidity constraints and retry.",
+                constraints = constraints,
+                suggestions = emptyList(),
+                preHedgeGreeks = currentGreeks,
+                sourceJobId = cachedResult.jobId?.toString(),
+                acceptedBy = null,
+                acceptedAt = null,
+                expiresAt = now.plus(recommendationTtl),
+            )
+            repository.save(recommendation)
+            return recommendation
         }
 
         val suggestions = calculator.suggest(

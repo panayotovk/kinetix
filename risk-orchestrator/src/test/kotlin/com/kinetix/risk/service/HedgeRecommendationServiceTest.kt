@@ -22,6 +22,7 @@ import com.kinetix.risk.model.ValuationResult
 import com.kinetix.risk.persistence.HedgeRecommendationRepository
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.string.shouldContain
@@ -162,7 +163,10 @@ class HedgeRecommendationServiceTest : FunSpec({
     test("extracts aggregated greeks from the VaR cache result and passes them to the calculator") {
         val result = varResult(delta = 800.0, gamma = 150.0, vega = 400.0, theta = -20.0, rho = 8.0)
         coEvery { varCache.get("BOOK-1") } returns result
-        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns emptyMap()
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+            "AAPL" to liquidityDto("AAPL"),
+        )
+        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("AAPL"))
         coEvery { calculator.suggest(any(), any(), any(), any(), any()) } returns emptyList()
 
         service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
@@ -178,7 +182,10 @@ class HedgeRecommendationServiceTest : FunSpec({
 
     test("passes the target and targetReductionPct to the calculator") {
         coEvery { varCache.get("BOOK-1") } returns varResult()
-        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns emptyMap()
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+            "AAPL" to liquidityDto("AAPL"),
+        )
+        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("AAPL"))
 
         val targetSlot = slot<HedgeTarget>()
         val pctSlot = slot<Double>()
@@ -204,7 +211,10 @@ class HedgeRecommendationServiceTest : FunSpec({
         val jobId = UUID.randomUUID()
         val result = varResult(jobId = jobId)
         coEvery { varCache.get("BOOK-1") } returns result
-        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns emptyMap()
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+            "AAPL" to liquidityDto("AAPL"),
+        )
+        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("AAPL"))
         coEvery { calculator.suggest(any(), any(), any(), any(), any()) } returns emptyList()
 
         val rec = service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
@@ -241,10 +251,39 @@ class HedgeRecommendationServiceTest : FunSpec({
         (candidateIds.contains("ILLIQUID-STOCK")) shouldBe false
     }
 
+    test("returns REJECTED recommendation with message when no liquid candidates are found") {
+        coEvery { varCache.get("BOOK-1") } returns varResult()
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns emptyMap()
+
+        val rec = service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
+
+        rec.status shouldBe HedgeStatus.REJECTED
+        rec.message shouldNotBe null
+        rec.message!!.shouldContain("No liquid")
+        rec.suggestions shouldHaveSize 0
+    }
+
+    test("returns PENDING recommendation when at least one liquid candidate is found") {
+        coEvery { varCache.get("BOOK-1") } returns varResult()
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+            "TIER1-STOCK" to liquidityDto("TIER1-STOCK", adv = 100_000_000.0, bidAskSpreadBps = 3.0),
+        )
+        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("TIER1-STOCK"))
+        coEvery { calculator.suggest(any(), any(), any(), any(), any()) } returns emptyList()
+
+        val rec = service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
+
+        rec.status shouldBe HedgeStatus.PENDING
+        rec.message shouldBe null
+    }
+
     test("produces a staleness warning when source job is older than 30 minutes but younger than 2 hours") {
         val oldishResult = varResult(calculatedAt = Instant.now().minusSeconds(45 * 60))
         coEvery { varCache.get("BOOK-1") } returns oldishResult
-        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns emptyMap()
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+            "AAPL" to liquidityDto("AAPL"),
+        )
+        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("AAPL"))
         coEvery { calculator.suggest(any(), any(), any(), any(), any()) } returns emptyList()
 
         // Should not throw — only blocks after 2 hours

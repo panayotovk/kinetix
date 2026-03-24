@@ -17,6 +17,7 @@ object HedgeRecommendationsTable : Table("hedge_recommendations") {
     val acceptedBy = varchar("accepted_by", 255).nullable()
     val acceptedAt = timestampWithTimeZone("accepted_at").nullable()
     val sourceJobId = varchar("source_job_id", 255).nullable()
+    val message = text("message").nullable()
     val constraintsJson = jsonb<JsonElement>("constraints_json", Json)
     val suggestionsJson = jsonb<JsonElement>("suggestions_json", Json)
     val preHedgeGreeksJson = jsonb<JsonElement>("pre_hedge_greeks_json", Json)

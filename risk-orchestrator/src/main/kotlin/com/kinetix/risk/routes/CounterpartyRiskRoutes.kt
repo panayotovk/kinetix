@@ -7,6 +7,7 @@ import com.kinetix.risk.routes.dtos.CVAResponse
 import com.kinetix.risk.routes.dtos.ComputePFERequest
 import com.kinetix.risk.routes.dtos.CounterpartyExposureResponse
 import com.kinetix.risk.routes.dtos.ExposureAtTenorResponse
+import com.kinetix.risk.routes.dtos.NettingSetExposureResponse
 import com.kinetix.risk.service.CounterpartyRiskOrchestrationService
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
@@ -163,6 +164,18 @@ private fun CounterpartyExposureSnapshot.toResponse() = CounterpartyExposureResp
     cva = cva,
     cvaEstimated = cvaEstimated,
     currency = currency,
+    nettingSetExposures = (nettingSetExposures ?: emptyList()).map {
+        NettingSetExposureResponse(
+            nettingSetId = it.nettingSetId,
+            agreementType = it.agreementType,
+            netExposure = it.netExposure,
+            peakPfe = it.peakPfe,
+        )
+    },
+    collateralHeld = collateralHeld,
+    collateralPosted = collateralPosted,
+    netNetExposure = netNetExposure,
+    wrongWayRiskFlags = wrongWayRiskFlags ?: emptyList(),
 )
 
 private fun ExposureAtTenor.toResponse() = ExposureAtTenorResponse(

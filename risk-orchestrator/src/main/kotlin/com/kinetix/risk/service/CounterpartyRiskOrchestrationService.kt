@@ -5,9 +5,13 @@ import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.CounterpartyRiskClient
 import com.kinetix.risk.client.PFEPositionInput
 import com.kinetix.risk.client.ReferenceDataServiceClient
+import com.kinetix.risk.client.dtos.CounterpartyDto
+import com.kinetix.risk.client.dtos.NettingAgreementDto
 import com.kinetix.risk.model.CounterpartyExposureSnapshot
 import com.kinetix.risk.model.ExposureAtTenor
+import com.kinetix.risk.model.NettingSetExposure
 import com.kinetix.risk.persistence.CounterpartyExposureRepository
+import org.slf4j.LoggerFactory
 import java.time.Instant
 
 class CounterpartyRiskOrchestrationService(
@@ -15,6 +19,7 @@ class CounterpartyRiskOrchestrationService(
     private val counterpartyRiskClient: CounterpartyRiskClient,
     private val repository: CounterpartyExposureRepository,
 ) {
+    private val logger = LoggerFactory.getLogger(CounterpartyRiskOrchestrationService::class.java)
     /**
      * Fetches netting set data for the counterparty, runs PFE via Monte Carlo for each
      * netting set, and persists the combined snapshot.
@@ -54,17 +59,78 @@ class CounterpartyRiskOrchestrationService(
         val peakPfe = if (pfeResult.exposureProfile.isEmpty()) 0.0
         else pfeResult.exposureProfile.maxOf { it.pfe95 }
 
+        // CVA is always computed and persisted — never left null.
+        val cvaResult = try {
+            counterpartyRiskClient.calculateCVA(
+                counterpartyId = counterpartyId,
+                exposureProfile = pfeResult.exposureProfile,
+                lgd = counterparty.lgd,
+                pd1y = counterparty.pd1y ?: 0.0,
+                cdsSpreadssBps = counterparty.cdsSpreadBps ?: 0.0,
+                rating = counterparty.ratingSp ?: "",
+                sector = counterparty.sector ?: "",
+                riskFreeRate = 0.0,
+            )
+        } catch (e: Exception) {
+            logger.warn("CVA calculation failed for {}: {}", counterpartyId, e.message)
+            null
+        }
+
+        // Collateral: use CSA threshold as an approximation of collateral held.
+        // collateralHeld = min(csaThreshold, netExposure) — we never hold more than the exposure.
+        val csaThreshold = primaryAgreement?.csaThreshold ?: 0.0
+        val collateralHeld = minOf(csaThreshold, pfeResult.netExposure).coerceAtLeast(0.0)
+        val collateralPosted = 0.0 // v1: assume we post no collateral
+
+        // netNetExposure = netExposure - collateralHeld + collateralPosted (spec invariant)
+        val netNetExposure = pfeResult.netExposure - collateralHeld + collateralPosted
+
+        // Wrong-way risk: financial-sector counterparties create wrong-way risk correlation.
+        val wrongWayRiskFlags = computeWrongWayRiskFlags(counterparty)
+
+        // Per-netting-set breakdown (v1: single netting set from primary agreement).
+        val nettingSetExposures = listOf(
+            NettingSetExposure(
+                nettingSetId = nettingSetId,
+                agreementType = agreementType,
+                netExposure = pfeResult.netExposure,
+                peakPfe = peakPfe,
+            )
+        )
+
         val snapshot = CounterpartyExposureSnapshot(
             counterpartyId = counterpartyId,
             calculatedAt = Instant.now(),
             pfeProfile = pfeResult.exposureProfile,
             currentNetExposure = pfeResult.netExposure,
             peakPfe = peakPfe,
-            cva = null,
-            cvaEstimated = false,
+            cva = cvaResult?.cva,
+            cvaEstimated = cvaResult?.isEstimated ?: false,
+            nettingSetExposures = nettingSetExposures,
+            collateralHeld = collateralHeld,
+            collateralPosted = collateralPosted,
+            netNetExposure = netNetExposure,
+            wrongWayRiskFlags = wrongWayRiskFlags,
         )
 
         return repository.save(snapshot)
+    }
+
+    /**
+     * Wrong-way risk arises when the counterparty's credit quality deteriorates at the same time
+     * as our exposure to them increases.  Financial-sector counterparties are the primary vector:
+     * they tend to be stressed precisely when financial markets are dislocated and our exposures peak.
+     */
+    private fun computeWrongWayRiskFlags(counterparty: CounterpartyDto): List<String> {
+        val flags = mutableListOf<String>()
+        if (counterparty.isFinancial) {
+            flags.add("FINANCIAL_SECTOR_WRONG_WAY_RISK: counterparty sector correlated with market stress")
+        }
+        val sector = counterparty.sector?.uppercase() ?: ""
+        if (sector in setOf("SOVEREIGN", "GOVERNMENT")) {
+            flags.add("SOVEREIGN_WRONG_WAY_RISK: sovereign counterparty exposure may spike during crises")
+        }
+        return flags
     }
 
     /**

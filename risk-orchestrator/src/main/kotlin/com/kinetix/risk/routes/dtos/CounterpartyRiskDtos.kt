@@ -12,6 +12,14 @@ data class ExposureAtTenorResponse(
 )
 
 @Serializable
+data class NettingSetExposureResponse(
+    val nettingSetId: String,
+    val agreementType: String,
+    val netExposure: Double,
+    val peakPfe: Double,
+)
+
+@Serializable
 data class CounterpartyExposureResponse(
     val counterpartyId: String,
     val calculatedAt: String,
@@ -21,6 +29,11 @@ data class CounterpartyExposureResponse(
     val cva: Double?,
     val cvaEstimated: Boolean,
     val currency: String,
+    val nettingSetExposures: List<NettingSetExposureResponse> = emptyList(),
+    val collateralHeld: Double = 0.0,
+    val collateralPosted: Double = 0.0,
+    val netNetExposure: Double? = null,
+    val wrongWayRiskFlags: List<String> = emptyList(),
 )
 
 @Serializable
