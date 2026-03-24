@@ -35,6 +35,7 @@ from kinetix_risk.liquidity_server import LiquidityAdjustedVaRServicer
 from kinetix_risk.regulatory_server import RegulatoryReportingServicer
 from kinetix_risk.stress_server import StressTestServicer
 from kinetix_risk.factor_server import FactorDecompositionServicer
+from kinetix_risk.hedge_optimizer import HedgeOptimizerServicer
 
 
 class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceServicer):
@@ -188,6 +189,9 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
 
     def DecomposeFactorRisk(self, request, context):
         return FactorDecompositionServicer().DecomposeFactorRisk(request, context)
+
+    def SuggestHedge(self, request, context):
+        return HedgeOptimizerServicer().SuggestHedge(request, context)
 
 
 def serve(port: int = 50051, metrics_port: int = 9091, models_dir: str = "models"):

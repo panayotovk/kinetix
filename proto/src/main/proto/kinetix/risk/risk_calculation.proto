@@ -259,6 +259,69 @@ message FactorDecompositionResponse {
   string job_id = 9;
 }
 
+enum HedgeTargetMetric {
+  HEDGE_TARGET_UNSPECIFIED = 0;
+  HEDGE_TARGET_DELTA = 1;
+  HEDGE_TARGET_GAMMA = 2;
+  HEDGE_TARGET_VEGA = 3;
+  HEDGE_TARGET_VAR = 4;
+}
+
+message HedgeCandidateGreeks {
+  double delta_per_unit = 1;
+  double gamma_per_unit = 2;
+  double vega_per_unit = 3;
+  double theta_per_unit = 4;
+  double rho_per_unit = 5;
+}
+
+message HedgeCandidateInstrument {
+  string instrument_id = 1;
+  string instrument_type = 2;
+  double price_per_unit = 3;
+  double bid_ask_spread_bps = 4;
+  HedgeCandidateGreeks greeks = 5;
+  string liquidity_tier = 6;
+  int32 price_age_minutes = 7;
+}
+
+message HedgePortfolioGreeks {
+  double delta = 1;
+  double gamma = 2;
+  double vega = 3;
+  double theta = 4;
+  double rho = 5;
+}
+
+message SuggestHedgeRequest {
+  string book_id = 1;
+  HedgeTargetMetric target_metric = 2;
+  double target_reduction_pct = 3;
+  HedgePortfolioGreeks current_greeks = 4;
+  repeated HedgeCandidateInstrument candidates = 5;
+  int32 max_suggestions = 6;
+  double max_notional = 7;
+  repeated string allowed_sides = 8;
+}
+
+message HedgeSuggestionProto {
+  string instrument_id = 1;
+  string instrument_type = 2;
+  string side = 3;
+  double quantity = 4;
+  double estimated_cost = 5;
+  double crossing_cost = 6;
+  double target_reduction = 7;
+  double target_reduction_pct = 8;
+  double residual_metric = 9;
+  string liquidity_tier = 10;
+  string data_quality = 11;
+}
+
+message SuggestHedgeResponse {
+  repeated HedgeSuggestionProto suggestions = 1;
+}
+
 service RiskCalculationService {
   // Deprecated: use Valuate instead
   rpc CalculateVaR(VaRRequest) returns (VaRResponse);
@@ -266,4 +329,5 @@ service RiskCalculationService {
   rpc Valuate(ValuationRequest) returns (ValuationResponse);
   rpc CalculateCrossBookVaR(CrossBookVaRRequest) returns (CrossBookVaRResponse);
   rpc DecomposeFactorRisk(FactorDecompositionRequest) returns (FactorDecompositionResponse);
+  rpc SuggestHedge(SuggestHedgeRequest) returns (SuggestHedgeResponse);
 }
