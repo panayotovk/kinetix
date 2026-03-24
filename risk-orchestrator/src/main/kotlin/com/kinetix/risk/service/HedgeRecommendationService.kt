@@ -1,0 +1,222 @@
+package com.kinetix.risk.service
+
+import com.kinetix.common.model.BookId
+import com.kinetix.risk.cache.VaRCache
+import com.kinetix.risk.client.InstrumentServiceClient
+import com.kinetix.risk.client.ReferenceDataServiceClient
+import com.kinetix.risk.model.CandidateInstrument
+import com.kinetix.risk.model.GreekImpact
+import com.kinetix.risk.model.HedgeConstraints
+import com.kinetix.risk.model.HedgeRecommendation
+import com.kinetix.risk.model.HedgeStatus
+import com.kinetix.risk.model.HedgeTarget
+import com.kinetix.risk.model.ValuationResult
+import com.kinetix.risk.persistence.HedgeRecommendationRepository
+import org.slf4j.LoggerFactory
+import java.time.Duration
+import java.time.Instant
+import java.util.UUID
+
+private val LIQUID_TIERS = setOf("TIER_1", "TIER_2")
+private const val MAX_CANDIDATES = 50
+
+class HedgeRecommendationService(
+    private val varCache: VaRCache,
+    private val instrumentServiceClient: InstrumentServiceClient,
+    private val referenceDataClient: ReferenceDataServiceClient,
+    private val calculator: AnalyticalHedgeCalculator,
+    private val repository: HedgeRecommendationRepository,
+    private val maxGreekStaleness: Duration = Duration.ofHours(2),
+    private val recommendationTtl: Duration = Duration.ofMinutes(30),
+) {
+    private val logger = LoggerFactory.getLogger(HedgeRecommendationService::class.java)
+
+    suspend fun suggestHedge(
+        bookId: BookId,
+        target: HedgeTarget,
+        targetReductionPct: Double,
+        constraints: HedgeConstraints,
+    ): HedgeRecommendation {
+        require(targetReductionPct > 0.0 && targetReductionPct <= 1.0) {
+            "targetReductionPct must be between 0 (exclusive) and 1.0 (inclusive), got $targetReductionPct"
+        }
+
+        val cachedResult = varCache.get(bookId.value)
+            ?: throw IllegalStateException("No VaR result available for book ${bookId.value}. Run a VaR calculation first.")
+
+        val greekAge = Duration.between(cachedResult.calculatedAt, Instant.now())
+        if (greekAge > maxGreekStaleness) {
+            throw IllegalStateException(
+                "Greeks for book ${bookId.value} are stale (age: ${greekAge.toMinutes()} minutes, " +
+                    "max: ${maxGreekStaleness.toMinutes()} minutes). Rerun VaR calculation first."
+            )
+        }
+
+        val currentGreeks = extractGreeks(cachedResult)
+        val candidates = fetchCandidates(target, constraints)
+
+        if (candidates.isEmpty()) {
+            logger.warn("No liquid candidates found for book {} target {}", bookId.value, target)
+        }
+
+        val suggestions = calculator.suggest(
+            currentGreeks = currentGreeks,
+            target = target,
+            targetReductionPct = targetReductionPct,
+            candidates = candidates,
+            constraints = constraints,
+        )
+
+        val now = Instant.now()
+        val recommendation = HedgeRecommendation(
+            id = UUID.randomUUID(),
+            bookId = bookId.value,
+            targetMetric = target,
+            targetReductionPct = targetReductionPct,
+            requestedAt = now,
+            status = HedgeStatus.PENDING,
+            constraints = constraints,
+            suggestions = suggestions,
+            preHedgeGreeks = currentGreeks,
+            sourceJobId = cachedResult.jobId?.toString(),
+            acceptedBy = null,
+            acceptedAt = null,
+            expiresAt = now.plus(recommendationTtl),
+        )
+
+        repository.save(recommendation)
+
+        logger.info(
+            "Hedge recommendation created for book {} target {} with {} suggestions (job: {})",
+            bookId.value, target, suggestions.size, cachedResult.jobId,
+        )
+
+        return recommendation
+    }
+
+    suspend fun getLatestRecommendations(bookId: BookId, limit: Int = 10): List<HedgeRecommendation> =
+        repository.findLatestByBookId(bookId.value, limit)
+
+    suspend fun getRecommendation(id: UUID): HedgeRecommendation? =
+        repository.findById(id)
+
+    private fun extractGreeks(result: ValuationResult): GreekImpact {
+        val greeks = result.greeks
+        val totalDelta = greeks?.assetClassGreeks?.sumOf { it.delta } ?: 0.0
+        val totalGamma = greeks?.assetClassGreeks?.sumOf { it.gamma } ?: 0.0
+        val totalVega = greeks?.assetClassGreeks?.sumOf { it.vega } ?: 0.0
+        val theta = greeks?.theta ?: 0.0
+        val rho = greeks?.rho ?: 0.0
+        return GreekImpact(
+            deltaBefore = totalDelta,
+            deltaAfter = totalDelta,
+            gammaBefore = totalGamma,
+            gammaAfter = totalGamma,
+            vegaBefore = totalVega,
+            vegaAfter = totalVega,
+            thetaBefore = theta,
+            thetaAfter = theta,
+            rhoBefore = rho,
+            rhoAfter = rho,
+        )
+    }
+
+    private suspend fun fetchCandidates(
+        target: HedgeTarget,
+        constraints: HedgeConstraints,
+    ): List<CandidateInstrument> {
+        // Fetch liquidity data for all instruments with TIER_1/TIER_2 liquidity.
+        // In Phase 1 we use the batch endpoint filtering by universe if specified.
+        val liquidityByInstrument = try {
+            referenceDataClient.getLiquidityDataBatch(
+                if (constraints.instrumentUniverse != null)
+                    listOf(constraints.instrumentUniverse)
+                else
+                    emptyList()
+            )
+        } catch (e: Exception) {
+            logger.warn("Failed to fetch liquidity data for candidates: {}", e.message)
+            emptyMap()
+        }
+
+        return liquidityByInstrument.values
+            .filter { liq -> liq.assetClass !in setOf("ILLIQUID") }
+            .take(MAX_CANDIDATES)
+            .mapNotNull { liq ->
+                buildCandidate(liq, target)
+            }
+    }
+
+    private suspend fun buildCandidate(
+        liq: com.kinetix.risk.client.dtos.InstrumentLiquidityDto,
+        target: HedgeTarget,
+    ): CandidateInstrument? {
+        return try {
+            val instrumentResp = instrumentServiceClient.getInstrument(
+                com.kinetix.common.model.InstrumentId(liq.instrumentId)
+            )
+            val instrument = when (instrumentResp) {
+                is com.kinetix.risk.client.ClientResponse.Success -> instrumentResp.value
+                is com.kinetix.risk.client.ClientResponse.NotFound -> return null
+            }
+
+            val tier = classifyTier(liq.adv, liq.bidAskSpreadBps)
+            if (tier !in LIQUID_TIERS) return null
+
+            // Price age in minutes — use staleness flag from DTO
+            val priceAgeMinutes = if (liq.advStale) 20 else 5
+
+            CandidateInstrument(
+                instrumentId = liq.instrumentId,
+                instrumentType = instrument.instrumentType,
+                pricePerUnit = 100.0, // placeholder — real implementation would fetch current price
+                bidAskSpreadBps = liq.bidAskSpreadBps,
+                deltaPerUnit = greekPerUnitForInstrumentType(instrument.instrumentType, target, "delta"),
+                gammaPerUnit = greekPerUnitForInstrumentType(instrument.instrumentType, target, "gamma"),
+                vegaPerUnit = greekPerUnitForInstrumentType(instrument.instrumentType, target, "vega"),
+                thetaPerUnit = greekPerUnitForInstrumentType(instrument.instrumentType, target, "theta"),
+                rhoPerUnit = greekPerUnitForInstrumentType(instrument.instrumentType, target, "rho"),
+                liquidityTier = tier,
+                priceAgeMinutes = priceAgeMinutes,
+            )
+        } catch (e: Exception) {
+            logger.warn("Failed to build candidate for {}: {}", liq.instrumentId, e.message)
+            null
+        }
+    }
+
+    private fun classifyTier(advNotional: Double, bidAskSpreadBps: Double): String = when {
+        advNotional >= 50_000_000 && bidAskSpreadBps <= 5.0 -> "TIER_1"
+        advNotional >= 10_000_000 && bidAskSpreadBps <= 20.0 -> "TIER_2"
+        advNotional >= 1_000_000 -> "TIER_3"
+        else -> "ILLIQUID"
+    }
+
+    /** Approximate per-unit Greek sensitivity based on instrument type. */
+    private fun greekPerUnitForInstrumentType(
+        instrumentType: String,
+        target: HedgeTarget,
+        greek: String,
+    ): Double = when (instrumentType.uppercase()) {
+        "STOCK", "ETF" -> when (greek) {
+            "delta" -> -1.0 // buying/selling stock has delta = ±1 per share
+            else -> 0.0
+        }
+        "OPTION" -> when (greek) {
+            "delta" -> -0.5 // approximate ATM delta
+            "gamma" -> 0.02
+            "vega" -> 0.1
+            "theta" -> -0.01
+            "rho" -> 0.05
+            else -> 0.0
+        }
+        "FUTURE" -> when (greek) {
+            "delta" -> -1.0
+            else -> 0.0
+        }
+        else -> when (greek) {
+            "delta" -> -1.0
+            else -> 0.0
+        }
+    }
+}
