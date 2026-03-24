@@ -23,12 +23,14 @@ use "./risk.allium" as risk
 external entity Position {
     book_id: String,
     instrument_id: String,
+    asset_class: core/AssetClass,
     quantity: Decimal,
-    market_price: core/Money,
     average_cost: core/Money,
+    market_price: core/Money,
     realized_pnl: core/Money,
-    unrealized_pnl: Decimal,
-    market_value: Decimal
+    instrument_type: String?,
+    market_value: Decimal,
+    unrealized_pnl: Decimal
 }
 
 external entity DailyRiskSnapshot {
@@ -48,7 +50,11 @@ external entity DailyRiskSnapshot {
 external entity SodBaseline {
     book_id: String,
     baseline_date: String,
-    source_job_id: String
+    snapshot_type: core/SnapshotType,
+    source_job_id: String,
+    calculation_type: String?,
+    var_value: Decimal?,
+    expected_shortfall: Decimal?
 }
 
 external entity FxRate {

@@ -16,7 +16,6 @@
 
 use "./core.allium" as core
 use "./positions.allium" as positions
-use "./risk-models.allium" as risk_models
 use "./limits.allium" as limits
 
 ------------------------------------------------------------
@@ -84,11 +83,17 @@ external entity Position {
     instrument_id: String,
     asset_class: core/AssetClass,
     quantity: Decimal,
-    market_value: Decimal
+    average_cost: core/Money,
+    market_price: core/Money,
+    realized_pnl: core/Money,
+    instrument_type: String?,
+    market_value: Decimal,
+    unrealized_pnl: Decimal
 }
 
 external entity StressScenario {
     name: String,
+    description: String?,
     vol_shocks: List<Decimal>,
     price_shocks: List<Decimal>,
     correlation_override: List<Decimal>?

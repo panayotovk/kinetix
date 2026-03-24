@@ -243,10 +243,17 @@ rule CalculateVaR {
         -- Phase 4 (VALUATION): Call risk-engine gRPC Valuate RPC.
         --   Returns VaR, ES, component breakdown, Greeks, PV, position Greeks.
         -- Phase 5 (PUBLISH_RESULT): Persist job with all outputs; update cache.
-        -- Finally: Publish RiskResultEvent to Kafka risk.results topic.
         --
         -- On failure at any phase: job.status = failed, error message recorded.
         -- Every calculation produces a job record, even failures.
+
+    ensures: RiskResultPublished(job: job)
+
+    @guidance
+        -- RiskResultPublished is emitted after Phase 5 and publishes a
+        -- RiskResultEvent to the Kafka risk.results topic.
+        -- Consumed by alerts.allium (EvaluateAlertRules, AutoResolveAlerts)
+        -- and notification-service for WebSocket push.
 }
 
 -- Scheduled VaR recalculation

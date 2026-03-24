@@ -135,7 +135,7 @@ entity FactorPnlAttribution {
 
 config {
     ols_window: Integer = 252
-    loading_staleness: Duration = 5.days
+    loading_staleness_threshold: Duration = 5.days
     min_history_for_ols: Integer = 63
     concentration_warning_pct: Decimal = 0.60
     factor_return_retention: Duration = 3650.days
@@ -310,7 +310,7 @@ invariant RSquaredRange {
 
 invariant LoadingStalenessFlag {
     @guidance
-        -- Loadings older than config.loading_staleness (5 business days)
+        -- Loadings older than config.loading_staleness_threshold (5 business days)
         -- are flagged as stale. The decomposition result carries a
         -- staleness warning if any position uses stale loadings.
 }

@@ -112,17 +112,27 @@ entity SavedScenario {
     target_loss: Decimal?
     created_by: String
     created_at: Timestamp
+    status: core/ScenarioStatus
 
     -- Derived
     is_historical: scenario_type = historical_replay
     is_reverse: scenario_type = reverse_stress
+    is_approved: status = approved
 
     @guidance
-        -- Extends the existing GovernedStressScenario concept from
-        -- regulatory.allium with scenario_type and versioning.
+        -- SavedScenario supersedes GovernedStressScenario from regulatory.allium.
+        -- GovernedStressScenario handled only custom parametric shocks with
+        -- governance. SavedScenario extends this to cover three scenario types
+        -- (historical_replay, custom_parametric, reverse_stress) with versioning.
+        --
+        -- The governance workflow (draft → pending_approval → approved → retired)
+        -- is the same as regulatory.allium's GovernedStressScenario — the status
+        -- field and approval rules from regulatory.allium apply here.
+        -- GovernedStressScenario should be considered deprecated in favour of
+        -- SavedScenario for all new scenarios.
+        --
         -- version increments on each update; previous versions retained.
         -- parent_scenario_id links variants ("GFC with extra credit stress").
-        -- Governance (approval workflow) is handled by regulatory.allium.
 }
 
 ------------------------------------------------------------

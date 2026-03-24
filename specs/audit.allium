@@ -2,6 +2,7 @@
 -- Hash-chained, immutable audit trail for trade lifecycle events.
 
 use "./core.allium" as core
+use "./trading.allium" as trading
 
 ------------------------------------------------------------
 -- Entities and Variants
@@ -42,7 +43,7 @@ entity VerificationCheckpoint {
 ------------------------------------------------------------
 
 config {
-    audit_retention: core/Duration = 2555.days
+    audit_retention: Duration = 2555.days
     verification_batch_size: Integer = 10000
 }
 
@@ -50,40 +51,88 @@ config {
 -- Rules
 ------------------------------------------------------------
 
--- Audit event recording (from Kafka trade events)
+-- Audit event recording
+-- The Kafka consumer on trades.lifecycle receives TradeEventMessage for all
+-- three event types (NEW, AMEND, CANCEL). These correspond to the triggers
+-- emitted by trading.allium: TradeBooked, TradeAmended, TradeCancelled.
+-- We subscribe to all three; the recording logic is identical.
 
-rule RecordAuditEvent {
-    when: TradeLifecycleEventReceived(trade_id, book_id, instrument_id, asset_class, side, quantity, price_amount, price_currency, traded_at, user_id, user_role, event_type, correlation_id)
-
+rule RecordAuditEventOnBook {
+    when: trading/TradeBooked(trade, book_id, correlation_id)
     let latest_hash = latest_audit_event_hash
-    let normalized_quantity = normalize_decimal(quantity)
-    let normalized_price = normalize_decimal(price_amount)
-    let normalized_traded_at = truncate_to_microseconds(traded_at)
+    let normalized_quantity = normalize_decimal(trade.quantity)
+    let normalized_price = normalize_decimal(trade.price.amount)
+    let normalized_traded_at = truncate_to_microseconds(trade.traded_at)
 
     ensures: AuditEvent.created(
-        trade_id: trade_id,
+        trade_id: trade.trade_id,
         book_id: book_id,
-        instrument_id: instrument_id,
-        asset_class: asset_class,
-        side: side,
+        instrument_id: trade.instrument_id,
+        asset_class: trade.asset_class,
+        side: trade.side,
         quantity: normalized_quantity,
         price_amount: normalized_price,
-        price_currency: price_currency,
+        price_currency: trade.price.currency,
         traded_at: normalized_traded_at,
         received_at: now,
-        user_id: user_id,
-        user_role: user_role,
-        event_type: event_type,
+        event_type: "TRADE_BOOKED",
         previous_hash: latest_hash,
-        record_hash: compute_hash(received_at, trade_id, book_id, instrument_id, asset_class, side, normalized_quantity, normalized_price, price_currency, normalized_traded_at, user_id, user_role, event_type, latest_hash)
+        record_hash: compute_hash(all_fields, latest_hash)
     )
 
     @guidance
-        -- Triggered by Kafka consumer on trades.lifecycle topic.
         -- Uses RetryableConsumer with DLQ for resilience.
         -- Hash computation (SHA-256) includes all fields plus previous_hash.
         -- Numeric values and timestamps are normalized before hashing
         -- to match PostgreSQL storage precision (avoids hash drift).
+}
+
+rule RecordAuditEventOnAmend {
+    when: trading/TradeAmended(trade, original_trade_id, book_id, correlation_id)
+    let latest_hash = latest_audit_event_hash
+    let normalized_quantity = normalize_decimal(trade.quantity)
+    let normalized_price = normalize_decimal(trade.price.amount)
+    let normalized_traded_at = truncate_to_microseconds(trade.traded_at)
+
+    ensures: AuditEvent.created(
+        trade_id: trade.trade_id,
+        book_id: book_id,
+        instrument_id: trade.instrument_id,
+        asset_class: trade.asset_class,
+        side: trade.side,
+        quantity: normalized_quantity,
+        price_amount: normalized_price,
+        price_currency: trade.price.currency,
+        traded_at: normalized_traded_at,
+        received_at: now,
+        event_type: "TRADE_AMENDED",
+        previous_hash: latest_hash,
+        record_hash: compute_hash(all_fields, latest_hash)
+    )
+}
+
+rule RecordAuditEventOnCancel {
+    when: trading/TradeCancelled(trade, book_id, correlation_id)
+    let latest_hash = latest_audit_event_hash
+    let normalized_quantity = normalize_decimal(trade.quantity)
+    let normalized_price = normalize_decimal(trade.price.amount)
+    let normalized_traded_at = truncate_to_microseconds(trade.traded_at)
+
+    ensures: AuditEvent.created(
+        trade_id: trade.trade_id,
+        book_id: book_id,
+        instrument_id: trade.instrument_id,
+        asset_class: trade.asset_class,
+        side: trade.side,
+        quantity: normalized_quantity,
+        price_amount: normalized_price,
+        price_currency: trade.price.currency,
+        traded_at: normalized_traded_at,
+        received_at: now,
+        event_type: "TRADE_CANCELLED",
+        previous_hash: latest_hash,
+        record_hash: compute_hash(all_fields, latest_hash)
+    )
 }
 
 -- Hash chain verification
