@@ -40,6 +40,7 @@ import com.kinetix.gateway.routes.factorRiskRoutes
 import com.kinetix.gateway.routes.croReportRoutes
 import com.kinetix.gateway.routes.hierarchyRiskRoutes
 import com.kinetix.gateway.routes.riskBudgetRoutes
+import com.kinetix.gateway.routes.executionProxyRoutes
 import com.kinetix.gateway.routes.liquidityRiskRoutes
 import com.kinetix.gateway.routes.marketRegimeRoutes
 import com.kinetix.gateway.routes.varRoutes
@@ -327,6 +328,7 @@ fun Application.devModule() {
         backtestProxyRoutes(regulatoryClient)
         instrumentRoutes(httpClient, referenceDataUrl)
         auditProxyRoutes(httpClient, auditUrl)
+        executionProxyRoutes(httpClient, positionUrl)
         dataQualityRoutes()
         get("/api/v1/system/health") {
             val serviceUrls = mapOf(
