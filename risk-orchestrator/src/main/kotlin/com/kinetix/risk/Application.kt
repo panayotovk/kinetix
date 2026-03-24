@@ -60,6 +60,7 @@ import com.kinetix.risk.routes.eodPromotionRoutes
 import com.kinetix.risk.routes.runComparisonRoutes
 import com.kinetix.risk.routes.eodTimelineRoutes
 import com.kinetix.risk.routes.hedgeRecommendationRoutes
+import com.kinetix.risk.routes.counterpartyRiskRoutes
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import com.kinetix.risk.service.InputChangeDiffer
 import com.kinetix.risk.service.MarketDataQuantDiffer
@@ -89,6 +90,10 @@ import com.kinetix.risk.service.WhatIfAnalysisService
 import com.kinetix.risk.service.AnalyticalHedgeCalculator
 import com.kinetix.risk.service.HedgeRecommendationService
 import com.kinetix.risk.persistence.ExposedHedgeRecommendationRepository
+import com.kinetix.risk.persistence.ExposedCounterpartyExposureRepository
+import com.kinetix.risk.client.GrpcCounterpartyRiskClient
+import com.kinetix.proto.risk.CounterpartyRiskServiceGrpcKt
+import com.kinetix.risk.service.CounterpartyRiskOrchestrationService
 import com.kinetix.risk.simulation.*
 import io.lettuce.core.RedisClient
 import io.grpc.ManagedChannelBuilder
@@ -303,6 +308,15 @@ fun Application.moduleWithRoutes() {
         referenceDataClient = effectiveReferenceDataServiceClient,
         grpcLiquidityClient = grpcLiquidityClient,
         repository = liquidityRiskSnapshotRepository,
+    )
+
+    val counterpartyRiskServiceCoroutineStub = CounterpartyRiskServiceGrpcKt.CounterpartyRiskServiceCoroutineStub(channel)
+    val grpcCounterpartyRiskClient = GrpcCounterpartyRiskClient(counterpartyRiskServiceCoroutineStub)
+    val counterpartyExposureRepository = ExposedCounterpartyExposureRepository(riskDb)
+    val counterpartyRiskOrchestrationService = CounterpartyRiskOrchestrationService(
+        referenceDataClient = effectiveReferenceDataServiceClient,
+        counterpartyRiskClient = grpcCounterpartyRiskClient,
+        repository = counterpartyExposureRepository,
     )
 
     launch {
@@ -575,6 +589,7 @@ fun Application.moduleWithRoutes() {
             repository = ExposedHedgeRecommendationRepository(riskDb),
         )
         hedgeRecommendationRoutes(hedgeRecommendationService)
+        counterpartyRiskRoutes(counterpartyRiskOrchestrationService)
     }
 
     launch {

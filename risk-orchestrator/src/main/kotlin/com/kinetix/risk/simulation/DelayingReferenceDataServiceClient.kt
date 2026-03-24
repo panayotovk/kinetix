@@ -5,7 +5,9 @@ import com.kinetix.common.model.DividendYield
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.ReferenceDataServiceClient
+import com.kinetix.risk.client.dtos.CounterpartyDto
 import com.kinetix.risk.client.dtos.InstrumentLiquidityDto
+import com.kinetix.risk.client.dtos.NettingAgreementDto
 import kotlinx.coroutines.delay
 
 class DelayingReferenceDataServiceClient(
@@ -31,5 +33,15 @@ class DelayingReferenceDataServiceClient(
     override suspend fun getLiquidityDataBatch(instrumentIds: List<String>): Map<String, InstrumentLiquidityDto> {
         delay(delayMs.random())
         return delegate.getLiquidityDataBatch(instrumentIds)
+    }
+
+    override suspend fun getCounterparty(counterpartyId: String): ClientResponse<CounterpartyDto> {
+        delay(delayMs.random())
+        return delegate.getCounterparty(counterpartyId)
+    }
+
+    override suspend fun getNettingAgreements(counterpartyId: String): ClientResponse<List<NettingAgreementDto>> {
+        delay(delayMs.random())
+        return delegate.getNettingAgreements(counterpartyId)
     }
 }

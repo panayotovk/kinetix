@@ -3,9 +3,11 @@ package com.kinetix.risk.client
 import com.kinetix.common.model.CreditSpread
 import com.kinetix.common.model.DividendYield
 import com.kinetix.common.model.InstrumentId
+import com.kinetix.risk.client.dtos.CounterpartyDto
 import com.kinetix.risk.client.dtos.CreditSpreadDto
 import com.kinetix.risk.client.dtos.DividendYieldDto
 import com.kinetix.risk.client.dtos.InstrumentLiquidityDto
+import com.kinetix.risk.client.dtos.NettingAgreementDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -44,5 +46,19 @@ class HttpReferenceDataServiceClient(
         if (!response.status.value.toString().startsWith("2")) return emptyMap()
         val dtos: List<InstrumentLiquidityDto> = response.body()
         return dtos.associateBy { it.instrumentId }
+    }
+
+    override suspend fun getCounterparty(counterpartyId: String): ClientResponse<CounterpartyDto> {
+        val response = httpClient.get("$baseUrl/api/v1/counterparties/$counterpartyId")
+        if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
+        val dto: CounterpartyDto = response.body()
+        return ClientResponse.Success(dto)
+    }
+
+    override suspend fun getNettingAgreements(counterpartyId: String): ClientResponse<List<NettingAgreementDto>> {
+        val response = httpClient.get("$baseUrl/api/v1/counterparties/$counterpartyId/netting-sets")
+        if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
+        val dtos: List<NettingAgreementDto> = response.body()
+        return ClientResponse.Success(dtos)
     }
 }
