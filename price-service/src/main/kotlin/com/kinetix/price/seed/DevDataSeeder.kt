@@ -31,6 +31,10 @@ class DevDataSeeder(
             seedInstrument(instrumentId, config)
         }
 
+        // Seed IDX-SPX with 300 daily prices for factor loading estimation
+        // (OLS regression requires >= 252 trading days).
+        seedBenchmarkIndex(InstrumentId("IDX-SPX"), basePrice = 5_000.0, dailyVol = 0.012)
+
         log.info("Price data seeding complete")
     }
 
@@ -60,6 +64,45 @@ class DevDataSeeder(
             )
             repository.save(point)
         }
+    }
+
+    /**
+     * Seeds 300 synthetic daily closing prices for a benchmark index.
+     * Prices follow a geometric Brownian motion with deterministic pseudo-random
+     * returns so the series is reproducible and contains sufficient history for
+     * OLS factor loading estimation (requires >= 252 days).
+     */
+    private suspend fun seedBenchmarkIndex(
+        instrumentId: InstrumentId,
+        basePrice: Double,
+        dailyVol: Double,
+    ) {
+        val currency = Currency.getInstance("USD")
+        val days = 300
+        var price = basePrice
+        val seed = instrumentId.value.hashCode().toLong()
+        var state = seed xor 0x6C62272E07BB0142L // simple LCG state
+
+        for (day in days downTo 0) {
+            // Deterministic pseudo-random return via LCG
+            state = state * 6364136223846793005L + 1442695040888963407L
+            val u = ((state ushr 17) and 0xFFFFL).toDouble() / 65535.0  // [0,1)
+            // Box-Muller (use same state for both; acceptable for seeding)
+            val z = (u - 0.5) * 3.46  // rough normal approximation
+            val dailyReturn = z * dailyVol + 0.0003  // slight upward drift
+            price *= (1.0 + dailyReturn)
+            price = price.coerceAtLeast(1.0)
+
+            val timestamp = LATEST_TIME.minus(day.toLong(), ChronoUnit.DAYS)
+            val point = PricePoint(
+                instrumentId = instrumentId,
+                price = Money(BigDecimal(price).setScale(2, RoundingMode.HALF_UP), currency),
+                timestamp = timestamp,
+                source = PriceSource.EXCHANGE,
+            )
+            repository.save(point)
+        }
+        log.info("Seeded {} daily prices for benchmark index {}", days + 1, instrumentId.value)
     }
 
     internal data class InstrumentConfig(

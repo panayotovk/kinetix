@@ -171,6 +171,11 @@ class DevDataSeeder(
         )
 
         private val INSTRUMENTS: Map<String, InstrumentConfig> = mapOf(
+            // Benchmark index — used as SPX factor proxy for equity beta decomposition
+            "IDX-SPX" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NYSE", sector = "Index", countryCode = "US"),
+                "S&P 500 Index", "USD",
+            ),
             "AAPL" to InstrumentConfig(
                 CashEquity(currency = "USD", exchange = "NASDAQ", sector = "Technology", countryCode = "US"),
                 "Apple Inc.", "USD",

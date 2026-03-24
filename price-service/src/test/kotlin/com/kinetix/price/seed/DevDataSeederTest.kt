@@ -23,8 +23,9 @@ class DevDataSeederTest : FunSpec({
 
         seeder.seed()
 
-        // 22 instruments × 169 data points each (0..168 hours inclusive)
-        coVerify(exactly = 22 * 169) { repository.save(any()) }
+        // 22 instruments × 169 hourly data points + 301 daily prices for IDX-SPX benchmark
+        val expectedSaves = 22 * 169 + 301
+        coVerify(exactly = expectedSaves) { repository.save(any()) }
     }
 
     test("skips seeding when data already exists") {
