@@ -21,6 +21,7 @@ uv run python -m grpc_tools.protoc \
     kinetix/risk/market_data_dependencies.proto \
     kinetix/risk/regulatory_reporting.proto \
     kinetix/risk/ml_prediction.proto \
-    kinetix/risk/liquidity.proto
+    kinetix/risk/liquidity.proto \
+    kinetix/risk/counterparty_risk.proto
 
 echo "Proto stubs generated in $OUT_DIR/kinetix/"

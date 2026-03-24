@@ -1,0 +1,112 @@
+syntax = "proto3";
+
+package kinetix.risk;
+
+option java_package = "com.kinetix.proto.risk";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+
+// ---------------------------------------------------------------------------
+// Value types
+// ---------------------------------------------------------------------------
+
+// Exposure statistics at a single future tenor.
+message ExposureProfile {
+  string tenor = 1;                   // e.g. "1M", "3M", "6M", "1Y", "2Y", "5Y"
+  double tenor_years = 2;
+  double expected_exposure = 3;       // mean of positive exposures across MC paths
+  double pfe_95 = 4;                  // 95th percentile of peak positive exposure
+  double pfe_99 = 5;                  // 99th percentile
+}
+
+// Exposure breakdown per netting agreement.
+message NettingSetExposure {
+  string netting_set_id = 1;
+  string agreement_type = 2;          // ISDA_2002, ISDA_1992, GMRA, OTHER
+  double gross_exposure = 3;
+  double net_exposure = 4;
+  double netting_benefit = 5;
+  double netting_benefit_pct = 6;
+  int32 position_count = 7;
+}
+
+// Heuristic wrong-way risk flag for one position.
+message WrongWayRiskFlag {
+  string instrument_id = 1;
+  string counterparty_sector = 2;
+  string position_sector = 3;
+  double exposure = 4;
+  string message = 5;
+}
+
+// ---------------------------------------------------------------------------
+// CalculatePFE
+// ---------------------------------------------------------------------------
+
+// One position belonging to a netting set, used as input to PFE simulation.
+message PFEPositionInput {
+  string instrument_id = 1;
+  double market_value = 2;
+  string asset_class = 3;
+  double volatility = 4;        // annualised volatility for MC simulation
+  string sector = 5;            // for wrong-way risk detection
+}
+
+message CalculatePFERequest {
+  string counterparty_id = 1;
+  string netting_set_id = 2;
+  string agreement_type = 3;
+  repeated PFEPositionInput positions = 4;
+  int32 num_simulations = 5;    // 0 → use server default (10 000)
+  int64 seed = 6;               // 0 → non-deterministic; > 0 → deterministic
+  // Optional: row-major flattened correlation matrix for positions (len = n*n)
+  repeated double correlation_matrix = 7;
+}
+
+message CalculatePFEResponse {
+  string counterparty_id = 1;
+  string netting_set_id = 2;
+  double gross_exposure = 3;
+  double net_exposure = 4;
+  repeated ExposureProfile exposure_profile = 5;
+  google.protobuf.Timestamp calculated_at = 6;
+}
+
+// ---------------------------------------------------------------------------
+// CalculateCVA
+// ---------------------------------------------------------------------------
+
+message CalculateCVARequest {
+  string counterparty_id = 1;
+  repeated ExposureProfile exposure_profile = 2;  // EPE profile from PFE calc
+  double lgd = 3;                   // Loss Given Default (0.0–1.0)
+  double pd_1y = 4;                 // 1-year PD if known; 0 means not provided
+  double cds_spread_bps = 5;        // CDS spread in basis points; 0 means not provided
+  string rating = 6;                // S&P rating string, e.g. "BBB"; empty means not provided
+  string sector = 7;                // Counterparty sector for fallback spread
+  double risk_free_rate = 8;        // Risk-free rate for discounting; 0 → use default (0.05)
+}
+
+message CalculateCVAResponse {
+  string counterparty_id = 1;
+  double cva = 2;
+  bool is_estimated = 3;            // true when sector-average spread was used
+  double hazard_rate = 4;
+  double pd_1y = 5;                 // implied 1-year PD
+  google.protobuf.Timestamp calculated_at = 6;
+}
+
+// ---------------------------------------------------------------------------
+// Service
+// ---------------------------------------------------------------------------
+
+service CounterpartyRiskService {
+  // Monte Carlo simulation of Potential Future Exposure for a netting set.
+  // This is compute-intensive; callers should cache results and use for batch.
+  rpc CalculatePFE(CalculatePFERequest) returns (CalculatePFEResponse);
+
+  // Credit Valuation Adjustment using discrete tenor approximation.
+  // On-demand capable; requires a pre-computed exposure profile from PFE.
+  rpc CalculateCVA(CalculateCVARequest) returns (CalculateCVAResponse);
+}
