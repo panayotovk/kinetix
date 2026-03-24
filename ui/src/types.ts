@@ -848,6 +848,8 @@ export interface FactorRiskDto {
   rSquared: number
   concentrationWarning: boolean
   factors: FactorContributionDto[]
+}
+
 export interface RiskContributorDto {
   entityId: string
   entityName: string
@@ -870,6 +872,8 @@ export interface HierarchyNodeRiskDto {
   childCount: number
   isPartial: boolean
   missingBooks: string[]
+}
+
 export type MarketRegime = 'NORMAL' | 'ELEVATED_VOL' | 'CRISIS' | 'RECOVERY'
 
 export interface RegimeSignalsDto {
@@ -914,4 +918,42 @@ export interface MarketRegimeHistoryItemDto {
 export interface MarketRegimeHistoryDto {
   items: MarketRegimeHistoryItemDto[]
   total: number
+}
+
+// --- Execution Cost Types ---
+
+export interface ExecutionCostDto {
+  orderId: string
+  bookId: string
+  instrumentId: string
+  completedAt: string
+  arrivalPrice: string
+  averageFillPrice: string
+  side: string
+  totalQty: string
+  slippageBps: string
+  marketImpactBps: string | null
+  timingCostBps: string | null
+  totalCostBps: string
+}
+
+// --- Prime Broker Reconciliation Types ---
+
+export interface ReconciliationBreakDto {
+  instrumentId: string
+  internalQty: string
+  primeBrokerQty: string
+  breakQty: string
+  breakNotional: string
+}
+
+export interface ReconciliationDto {
+  reconciliationDate: string
+  bookId: string
+  status: string
+  totalPositions: number
+  matchedCount: number
+  breakCount: number
+  breaks: ReconciliationBreakDto[]
+  reconciledAt: string
 }

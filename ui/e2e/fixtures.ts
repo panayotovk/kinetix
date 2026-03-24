@@ -356,6 +356,16 @@ export async function mockAllApiRoutes(page: Page): Promise<void> {
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
   })
 
+  // Execution cost analysis — return empty list by default
+  await page.route('**/api/v1/execution/cost/**', (route: Route) => {
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+  })
+
+  // Prime broker reconciliation — return empty list by default
+  await page.route('**/api/v1/execution/reconciliation/**', (route: Route) => {
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+  })
+
   // Note: Playwright's page.route() does NOT intercept WebSocket connections.
   // To mock WebSocket behaviour, tests must use page.addInitScript() to replace
   // the browser's WebSocket constructor before the page loads.
