@@ -36,7 +36,9 @@ import com.kinetix.gateway.routes.positionRiskRoutes
 import com.kinetix.gateway.routes.requirePathParam
 import com.kinetix.gateway.routes.crossBookVaRRoutes
 import com.kinetix.gateway.routes.varRoutes
+import com.kinetix.gateway.websocket.PnlBroadcaster
 import com.kinetix.gateway.websocket.PriceBroadcaster
+import com.kinetix.gateway.websocket.pnlWebSocket
 import com.kinetix.gateway.websocket.priceWebSocket
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -165,6 +167,13 @@ fun Application.module(broadcaster: PriceBroadcaster) {
     module()
     routing {
         priceWebSocket(broadcaster)
+    }
+}
+
+fun Application.module(broadcaster: PnlBroadcaster) {
+    module()
+    routing {
+        pnlWebSocket(broadcaster)
     }
 }
 
