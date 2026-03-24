@@ -465,4 +465,10 @@ interface RiskServiceClient {
     suspend fun runReverseStress(params: ReverseStressParams): ReverseStressResultSummary
     suspend fun getLatestFactorRisk(bookId: String): kotlinx.serialization.json.JsonObject?
     suspend fun getFactorRiskHistory(bookId: String, limit: Int = 100): kotlinx.serialization.json.JsonArray
+    suspend fun getHierarchyRisk(level: String, entityId: String): kotlinx.serialization.json.JsonObject?
+    suspend fun getRiskBudgets(level: String? = null, entityId: String? = null): kotlinx.serialization.json.JsonArray
+    suspend fun getRiskBudget(id: String): kotlinx.serialization.json.JsonObject?
+    suspend fun createRiskBudget(body: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject
+    suspend fun deleteRiskBudget(id: String): Boolean
+    suspend fun triggerCroReport(): kotlinx.serialization.json.JsonObject?
 }

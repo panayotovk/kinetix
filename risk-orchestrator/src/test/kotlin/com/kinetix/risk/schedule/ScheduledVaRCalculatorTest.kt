@@ -2,9 +2,11 @@ package com.kinetix.risk.schedule
 
 import com.kinetix.common.model.BookId
 import com.kinetix.risk.cache.InMemoryVaRCache
+import com.kinetix.risk.model.HierarchyLevel
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.model.ValuationResult
 import com.kinetix.risk.service.FactorRiskService
+import com.kinetix.risk.service.HierarchyRiskService
 import com.kinetix.risk.service.VaRCalculationService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
@@ -149,6 +151,13 @@ class ScheduledVaRCalculatorTest : FunSpec({
         val factorRiskService = mockk<FactorRiskService>()
 
         coEvery { varService.calculateVaR(any(), any()) } returns null
+    test("triggers FIRM-level hierarchy aggregation after each per-book VaR cycle") {
+        val varService = mockk<VaRCalculationService>()
+        val hierarchyRiskService = mockk<HierarchyRiskService>()
+        val varCache = InMemoryVaRCache()
+
+        coEvery { varService.calculateVaR(any(), any()) } returns null
+        coEvery { hierarchyRiskService.aggregateHierarchy(HierarchyLevel.FIRM, "FIRM") } returns null
 
         val calculator = ScheduledVaRCalculator(
             varCalculationService = varService,
@@ -164,5 +173,45 @@ class ScheduledVaRCalculatorTest : FunSpec({
         job.cancel()
 
         coVerify(exactly = 0) { factorRiskService.decomposeForBook(any(), any()) }
+            bookIds = { listOf(BookId("book-1")) },
+            intervalMillis = 200,
+            hierarchyRiskService = hierarchyRiskService,
+        )
+
+        val job = launch { calculator.start() }
+        delay(350)
+        job.cancel()
+
+        coVerify(atLeast = 1) { hierarchyRiskService.aggregateHierarchy(HierarchyLevel.FIRM, "FIRM") }
+    }
+
+    test("hierarchy aggregation failure does not interrupt the cycle") {
+        val varService = mockk<VaRCalculationService>()
+        val hierarchyRiskService = mockk<HierarchyRiskService>()
+        val varCache = InMemoryVaRCache()
+
+        var varCallCount = 0
+        coEvery { varService.calculateVaR(any(), any()) } answers {
+            varCallCount++
+            null
+        }
+        coEvery {
+            hierarchyRiskService.aggregateHierarchy(any(), any())
+        } throws RuntimeException("Hierarchy aggregation failure")
+
+        val calculator = ScheduledVaRCalculator(
+            varCalculationService = varService,
+            varCache = varCache,
+            bookIds = { listOf(BookId("book-1")) },
+            intervalMillis = 200,
+            hierarchyRiskService = hierarchyRiskService,
+        )
+
+        val job = launch { calculator.start() }
+        delay(650)
+        job.cancel()
+
+        // VaR calculations continued despite hierarchy failure
+        varCallCount shouldBeGreaterThanOrEqual 2
     }
 })

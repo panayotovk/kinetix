@@ -9,10 +9,13 @@ import { usePnlAttribution } from '../hooks/usePnlAttribution'
 import { useLiquidityRisk } from '../hooks/useLiquidityRisk'
 import { useFactorRisk } from '../hooks/useFactorRisk'
 import { useFactorRiskHistory } from '../hooks/useFactorRiskHistory'
+import { useHierarchyNodeRisk } from '../hooks/useHierarchyNodeRisk'
 import type { StressTestResultDto } from '../types'
 import { VaRDashboard } from './VaRDashboard'
 import { PositionRiskTable } from './PositionRiskTable'
 import { BookContributionTable } from './BookContributionTable'
+import { HierarchyContributionTable } from './HierarchyContributionTable'
+import { RiskBudgetPanel } from './RiskBudgetPanel'
 import { JobHistory } from './JobHistory'
 import { RiskAlertBanner } from './RiskAlertBanner'
 import { StressSummaryCard } from './StressSummaryCard'
@@ -38,6 +41,7 @@ interface RiskTabProps {
   aggregatedView?: boolean
   effectiveBookIds?: string[]
   bookGroupId?: string | null
+  hierarchyLevel?: 'FIRM' | 'DIVISION' | 'DESK' | null
   onNavigateToBook?: (bookId: string) => void
 }
 
@@ -52,6 +56,7 @@ export function RiskTab({
   aggregatedView = false,
   effectiveBookIds = [],
   bookGroupId = null,
+  hierarchyLevel = null,
   onNavigateToBook,
 }: RiskTabProps) {
   const [subTab, setSubTab] = useState<RiskSubTab>('dashboard')
@@ -123,6 +128,10 @@ export function RiskTab({
     loading: factorRiskHistoryLoading,
     error: factorRiskHistoryError,
   } = useFactorRiskHistory(bookId)
+  const { node: hierarchyNode } = useHierarchyNodeRisk(
+    aggregatedView ? hierarchyLevel : null,
+    bookGroupId ?? 'FIRM',
+  )
 
   const [jobRefreshSignal, setJobRefreshSignal] = useState(0)
 
@@ -229,6 +238,15 @@ export function RiskTab({
                 />
               </div>
             </>
+          )}
+          {aggregatedView && hierarchyNode && (
+            <div className="mt-4 space-y-3" data-testid="hierarchy-contribution-section">
+              <RiskBudgetPanel node={hierarchyNode} />
+              <HierarchyContributionTable
+                node={hierarchyNode}
+                onEntityClick={onNavigateToBook}
+              />
+            </div>
           )}
           <div className="mt-4">
             <PositionRiskTable data={positionRisk} loading={positionRiskLoading} error={positionRiskError} />

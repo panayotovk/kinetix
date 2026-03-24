@@ -349,6 +349,7 @@ function App() {
                     aggregatedView={hierarchy.selection.level !== 'book'}
                     effectiveBookIds={hierarchy.effectiveBookIds}
                     bookGroupId={hierarchy.selection.deskId ?? hierarchy.selection.divisionId ?? (hierarchy.selection.level === 'firm' ? 'firm' : null)}
+                    hierarchyLevel={hierarchy.selection.level === 'firm' ? 'FIRM' : hierarchy.selection.level === 'division' ? 'DIVISION' : hierarchy.selection.level === 'desk' ? 'DESK' : null}
                     onNavigateToBook={(bid) => hierarchy.setSelection({ level: 'book', divisionId: hierarchy.selection.divisionId, deskId: hierarchy.selection.deskId, bookId: bid })}
                   />
                 )}

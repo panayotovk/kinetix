@@ -10,6 +10,7 @@ vi.mock('../hooks/useVarLimit')
 vi.mock('../hooks/useAlerts')
 vi.mock('../hooks/useSodBaseline')
 vi.mock('../hooks/usePnlAttribution')
+vi.mock('../hooks/useHierarchyNodeRisk')
 
 import { RiskTab } from './RiskTab'
 import { useVaR } from '../hooks/useVaR'
@@ -19,6 +20,7 @@ import { useVarLimit } from '../hooks/useVarLimit'
 import { useAlerts } from '../hooks/useAlerts'
 import { useSodBaseline } from '../hooks/useSodBaseline'
 import { usePnlAttribution } from '../hooks/usePnlAttribution'
+import { useHierarchyNodeRisk } from '../hooks/useHierarchyNodeRisk'
 
 const mockUseVaR = vi.mocked(useVaR)
 const mockUseJobHistory = vi.mocked(useJobHistory)
@@ -27,6 +29,7 @@ const mockUseVarLimit = vi.mocked(useVarLimit)
 const mockUseAlerts = vi.mocked(useAlerts)
 const mockUseSodBaseline = vi.mocked(useSodBaseline)
 const mockUsePnlAttribution = vi.mocked(usePnlAttribution)
+const mockUseHierarchyNodeRisk = vi.mocked(useHierarchyNodeRisk)
 
 const stressResult: StressTestResultDto = {
   scenarioName: 'MARKET_CRASH',
@@ -125,6 +128,11 @@ describe('RiskTab', () => {
     })
     mockUsePnlAttribution.mockReturnValue({
       data: null,
+      loading: false,
+      error: null,
+    })
+    mockUseHierarchyNodeRisk.mockReturnValue({
+      node: null,
       loading: false,
       error: null,
     })

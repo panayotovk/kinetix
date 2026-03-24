@@ -848,4 +848,26 @@ export interface FactorRiskDto {
   rSquared: number
   concentrationWarning: boolean
   factors: FactorContributionDto[]
+export interface RiskContributorDto {
+  entityId: string
+  entityName: string
+  varContribution: string
+  pctOfTotal: string
+}
+
+export interface HierarchyNodeRiskDto {
+  level: string
+  entityId: string
+  entityName: string
+  parentId: string | null
+  varValue: string
+  expectedShortfall: string | null
+  pnlToday: string | null
+  limitUtilisation: string | null
+  marginalVar: string | null
+  incrementalVar: string | null
+  topContributors: RiskContributorDto[]
+  childCount: number
+  isPartial: boolean
+  missingBooks: string[]
 }
