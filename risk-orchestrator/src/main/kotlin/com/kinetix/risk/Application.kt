@@ -48,6 +48,7 @@ import com.kinetix.common.health.CheckResult
 import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.common.kafka.ConsumerLivenessTracker
 import com.kinetix.risk.routes.crossBookVaRRoutes
+import com.kinetix.risk.routes.croReportRoutes
 import com.kinetix.risk.routes.hierarchyRiskRoutes
 import com.kinetix.risk.routes.riskBudgetRoutes
 import com.kinetix.risk.routes.intradayPnlRoutes
@@ -546,6 +547,7 @@ fun Application.moduleWithRoutes() {
         crossBookVaRRoutes(crossBookVaRService, crossBookVaRCache)
         hierarchyRiskRoutes(hierarchyRiskService)
         riskBudgetRoutes(riskBudgetAllocationRepository)
+        croReportRoutes(hierarchyRiskService)
         intradayPnlRoutes(intradayPnlRepository)
         liquidityRiskRoutes(liquidityRiskService, liquidityRiskSnapshotRepository)
         jobHistoryRoutes(jobRecorder)

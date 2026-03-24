@@ -36,6 +36,7 @@ import com.kinetix.gateway.routes.whatIfRoutes
 import com.kinetix.gateway.routes.positionRiskRoutes
 import com.kinetix.gateway.routes.requirePathParam
 import com.kinetix.gateway.routes.crossBookVaRRoutes
+import com.kinetix.gateway.routes.croReportRoutes
 import com.kinetix.gateway.routes.hierarchyRiskRoutes
 import com.kinetix.gateway.routes.riskBudgetRoutes
 import com.kinetix.gateway.routes.liquidityRiskRoutes
@@ -194,6 +195,7 @@ fun Application.module(riskClient: RiskServiceClient) {
         crossBookVaRRoutes(riskClient)
         hierarchyRiskRoutes(riskClient)
         riskBudgetRoutes(riskClient)
+        croReportRoutes(riskClient)
         liquidityRiskRoutes(riskClient)
         stressTestRoutes(riskClient)
         whatIfRoutes(riskClient)
@@ -235,6 +237,7 @@ fun Application.module(
         crossBookVaRRoutes(riskClient)
         hierarchyRiskRoutes(riskClient)
         riskBudgetRoutes(riskClient)
+        croReportRoutes(riskClient)
         liquidityRiskRoutes(riskClient)
         stressTestRoutes(riskClient)
         whatIfRoutes(riskClient)

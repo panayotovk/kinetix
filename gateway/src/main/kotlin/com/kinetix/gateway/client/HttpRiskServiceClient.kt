@@ -562,4 +562,10 @@ class HttpRiskServiceClient(
         if (!response.status.isSuccess()) handleErrorResponse(response)
         return true
     }
+
+    override suspend fun triggerCroReport(): kotlinx.serialization.json.JsonObject? {
+        val response = httpClient.post("$baseUrl/api/v1/risk/reports/cro")
+        if (!response.status.isSuccess()) return null
+        return response.body()
+    }
 }
