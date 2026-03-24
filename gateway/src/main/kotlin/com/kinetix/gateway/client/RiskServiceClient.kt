@@ -407,4 +407,5 @@ interface RiskServiceClient {
     suspend fun calculateCrossBookVaR(params: com.kinetix.gateway.dto.CrossBookVaRCalculationParams): CrossBookVaRResultSummary?
     suspend fun getCrossBookVaR(groupId: String): CrossBookVaRResultSummary?
     suspend fun calculateStressedCrossBookVaR(params: com.kinetix.gateway.dto.StressedCrossBookVaRParams): StressedCrossBookVaRResultSummary?
+    suspend fun getIntradayPnl(bookId: String, from: String, to: String): kotlinx.serialization.json.JsonObject?
 }

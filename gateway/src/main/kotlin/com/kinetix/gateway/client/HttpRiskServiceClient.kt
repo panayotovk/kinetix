@@ -443,4 +443,20 @@ class HttpRiskServiceClient(
         val dto: com.kinetix.gateway.client.dtos.StressedCrossBookVaRResultClientDto = response.body()
         return dto.toDomain()
     }
+
+    override suspend fun getIntradayPnl(bookId: String, from: String, to: String): JsonObject? {
+        val response = httpClient.get("$baseUrl/api/v1/risk/pnl/intraday/$bookId") {
+            url {
+                parameters.append("from", from)
+                parameters.append("to", to)
+            }
+        }
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (response.status == HttpStatusCode.BadRequest) {
+            val body = try { response.bodyAsText() } catch (_: Exception) { "" }
+            throw IllegalArgumentException(body)
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
 }

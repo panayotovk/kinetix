@@ -1,7 +1,11 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { TrendingUp, Download } from 'lucide-react'
 import { usePnlAttribution } from '../hooks/usePnlAttribution'
 import { useSodBaseline } from '../hooks/useSodBaseline'
+import { useIntradayPnlStream } from '../hooks/useIntradayPnlStream'
+import { useIntradayPnlSeries } from '../hooks/useIntradayPnlSeries'
+import { PnlTickerStrip } from './PnlTickerStrip'
+import { IntradayPnlChart } from './IntradayPnlChart'
 import { PnlWaterfallChart } from './PnlWaterfallChart'
 import { PnlAttributionTable } from './PnlAttributionTable'
 import { SodBaselineIndicator } from './SodBaselineIndicator'
@@ -25,6 +29,21 @@ export function PnlTab({ bookId }: PnlTabProps) {
   const [showResetDialog, setShowResetDialog] = useState(false)
   const [showJobPicker, setShowJobPicker] = useState(false)
   const [computedData, setComputedData] = useState<PnlAttributionDto | null>(null)
+
+  const { from: intradayFrom, to: intradayTo } = useMemo(() => {
+    const today = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const dateStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`
+    return {
+      from: `${dateStr}T00:00:00Z`,
+      to: `${dateStr}T23:59:59Z`,
+    }
+  }, [])
+
+  const { snapshots: historicalSnapshots } = useIntradayPnlSeries(bookId, intradayFrom, intradayTo)
+  const { snapshots: liveSnapshots, latest, connected } = useIntradayPnlStream(bookId)
+
+  const intradaySnapshots = liveSnapshots.length > 0 ? liveSnapshots : historicalSnapshots
 
   const data = computedData ?? pnlData
 
@@ -56,6 +75,12 @@ export function PnlTab({ bookId }: PnlTabProps) {
 
   return (
     <div className="space-y-4">
+      <PnlTickerStrip bookId={bookId} latest={latest} connected={connected} />
+
+      <Card header="Intraday P&L" data-testid="intraday-pnl-card">
+        <IntradayPnlChart snapshots={intradaySnapshots} />
+      </Card>
+
       <SodBaselineIndicator
         status={sod.status}
         loading={sod.loading}

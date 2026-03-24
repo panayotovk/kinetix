@@ -18,6 +18,7 @@ import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.dto.*
 import com.kinetix.gateway.routes.backtestProxyRoutes
 import com.kinetix.gateway.routes.dataQualityRoutes
+import com.kinetix.gateway.routes.intradayPnlProxyRoutes
 import com.kinetix.gateway.routes.dependenciesRoutes
 import com.kinetix.gateway.routes.eodTimelineRoutes
 import com.kinetix.gateway.routes.jobHistoryRoutes
@@ -36,12 +37,19 @@ import com.kinetix.gateway.routes.positionRiskRoutes
 import com.kinetix.gateway.routes.requirePathParam
 import com.kinetix.gateway.routes.crossBookVaRRoutes
 import com.kinetix.gateway.routes.varRoutes
+import com.kinetix.gateway.kafka.KafkaIntradayPnlConsumer
+import com.kinetix.gateway.websocket.PnlBroadcaster
 import com.kinetix.gateway.websocket.PriceBroadcaster
+import com.kinetix.gateway.websocket.pnlWebSocket
 import com.kinetix.gateway.websocket.priceWebSocket
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
+import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.common.serialization.StringDeserializer
+import java.util.Properties
 import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.openApi
 import io.github.smiley4.ktorswaggerui.swaggerUI
@@ -61,6 +69,7 @@ import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
@@ -168,6 +177,13 @@ fun Application.module(broadcaster: PriceBroadcaster) {
     }
 }
 
+fun Application.module(broadcaster: PnlBroadcaster) {
+    module()
+    routing {
+        pnlWebSocket(broadcaster)
+    }
+}
+
 fun Application.module(riskClient: RiskServiceClient) {
     module()
     routing {
@@ -272,15 +288,21 @@ fun Application.devModule() {
         }
     }
 
+    val kafkaBootstrapServers = environment.config
+        .propertyOrNull("kafka.bootstrapServers")?.getString() ?: "localhost:9092"
+
     val positionClient = HttpPositionServiceClient(httpClient, positionUrl)
     val priceClient = HttpPriceServiceClient(httpClient, priceUrl)
     val riskClient = HttpRiskServiceClient(httpClient, riskUrl)
     val notificationClient = HttpNotificationServiceClient(httpClient, notificationUrl)
     val regulatoryClient = HttpRegulatoryServiceClient(httpClient, regulatoryUrl)
-    val broadcaster = PriceBroadcaster()
+    val priceBroadcaster = PriceBroadcaster()
+    val pnlBroadcaster = PnlBroadcaster()
 
-    module(positionClient, priceClient, broadcaster, riskClient)
+    module(positionClient, priceClient, priceBroadcaster, riskClient)
     routing {
+        pnlWebSocket(pnlBroadcaster)
+        intradayPnlProxyRoutes(riskClient)
         notificationRoutes(notificationClient)
         stressScenarioRoutes(regulatoryClient)
         backtestProxyRoutes(regulatoryClient)
@@ -327,6 +349,17 @@ fun Application.devModule() {
             call.respond(response)
         }
     }
+
+    val pnlConsumerProps = Properties().apply {
+        put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers)
+        put(ConsumerConfig.GROUP_ID_CONFIG, "gateway-pnl-broadcaster")
+        put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
+        put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
+        put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")
+        put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+    }
+    val pnlKafkaConsumer = KafkaConsumer<String, String>(pnlConsumerProps)
+    launch { KafkaIntradayPnlConsumer(pnlKafkaConsumer, pnlBroadcaster).start() }
 }
 
 fun Application.module(

@@ -28,6 +28,7 @@ import com.kinetix.risk.client.HttpInstrumentServiceClient
 import com.kinetix.risk.client.HttpVolatilityServiceClient
 import com.kinetix.risk.client.PositionServicePositionProvider
 import com.kinetix.risk.client.ResilientRiskEngineClient
+import com.kinetix.risk.kafka.KafkaIntradayPnlPublisher
 import com.kinetix.risk.kafka.KafkaRiskResultPublisher
 import com.kinetix.risk.kafka.PriceEventConsumer
 import com.kinetix.risk.kafka.TradeEventConsumer
@@ -42,6 +43,7 @@ import com.kinetix.common.health.CheckResult
 import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.common.kafka.ConsumerLivenessTracker
 import com.kinetix.risk.routes.crossBookVaRRoutes
+import com.kinetix.risk.routes.intradayPnlRoutes
 import com.kinetix.risk.routes.riskRoutes
 import com.kinetix.risk.routes.jobHistoryRoutes
 import com.kinetix.risk.routes.eodPromotionRoutes
@@ -63,6 +65,7 @@ import com.kinetix.risk.schedule.ScheduledSodSnapshotJob
 import com.kinetix.risk.schedule.ScheduledVaRCalculator
 import com.kinetix.risk.service.DefaultRunManifestCapture
 import com.kinetix.risk.service.DependenciesDiscoverer
+import com.kinetix.risk.service.IntradayPnlService
 import com.kinetix.risk.service.MarketDataFetcher
 import com.kinetix.risk.service.PnlAttributionService
 import com.kinetix.risk.service.PnlComputationService
@@ -354,6 +357,17 @@ fun Application.moduleWithRoutes() {
         positionProvider = effectivePositionProvider,
     )
 
+    val intradayPnlRepository = com.kinetix.risk.persistence.ExposedIntradayPnlRepository(riskDb)
+    val intradayPnlPublisher = KafkaIntradayPnlPublisher(kafkaProducer)
+    val intradayPnlService = IntradayPnlService(
+        sodBaselineRepository = sodBaselineRepository,
+        dailyRiskSnapshotRepository = dailyRiskSnapshotRepository,
+        intradayPnlRepository = intradayPnlRepository,
+        positionProvider = effectivePositionProvider,
+        pnlAttributionService = pnlAttributionService,
+        publisher = intradayPnlPublisher,
+    )
+
     val stressTestStub = StressTestServiceGrpcKt.StressTestServiceCoroutineStub(channel)
     val regulatoryStub = RegulatoryReportingServiceGrpcKt.RegulatoryReportingServiceCoroutineStub(channel)
 
@@ -462,6 +476,7 @@ fun Application.moduleWithRoutes() {
                 is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
             } },
         varCache = varCache,
+        intradayPnlService = intradayPnlService,
         retryableConsumer = priceRetryableConsumer,
     )
 
@@ -491,6 +506,7 @@ fun Application.moduleWithRoutes() {
         val whatIfAnalysisService = WhatIfAnalysisService(effectivePositionProvider, effectiveRiskEngineClient)
         riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService, stressLimitCheckService = stressLimitCheckService, jobRecorder = jobRecorder)
         crossBookVaRRoutes(crossBookVaRService, crossBookVaRCache)
+        intradayPnlRoutes(intradayPnlRepository)
         jobHistoryRoutes(jobRecorder)
         eodPromotionRoutes(eodPromotionService)
         eodTimelineRoutes(jobRecorder)

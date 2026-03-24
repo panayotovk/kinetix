@@ -15,6 +15,9 @@ dependencies {
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.kafka.clients)
 
     testImplementation(libs.ktor.client.mock)
+    testImplementation(libs.testcontainers.core)
+    testImplementation(libs.testcontainers.kafka)
 }
