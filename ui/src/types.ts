@@ -830,3 +830,22 @@ export interface LiquidityRiskResultDto {
   calculatedAt: string
   positionRisks: PositionLiquidityRiskDto[]
 }
+
+export interface FactorContributionDto {
+  factorType: string
+  varContribution: number
+  pctOfTotal: number
+  loading: number
+  loadingMethod: string
+}
+
+export interface FactorRiskDto {
+  bookId: string
+  calculatedAt: string
+  totalVar: number
+  systematicVar: number
+  idiosyncraticVar: number
+  rSquared: number
+  concentrationWarning: boolean
+  factors: FactorContributionDto[]
+}

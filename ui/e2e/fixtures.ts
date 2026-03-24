@@ -270,6 +270,12 @@ export async function mockAllApiRoutes(page: Page): Promise<void> {
     route.fulfill({ status: 204 })
   })
 
+  // Default factor risk endpoint — return 404 so the panel shows its empty state.
+  // Tests that need factor risk data must call mockFactorRiskRoutes() afterward.
+  await page.route('**/api/v1/books/*/factor-risk/latest', (route: Route) => {
+    route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
+  })
+
   // Note: Playwright's page.route() does NOT intercept WebSocket connections.
   // To mock WebSocket behaviour, tests must use page.addInitScript() to replace
   // the browser's WebSocket constructor before the page loads.
@@ -1544,5 +1550,89 @@ export async function mockIntradayPnlRoutes(
       contentType: 'application/json',
       body: JSON.stringify({ bookId, snapshots }),
     })
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Factor risk fixture data
+// ---------------------------------------------------------------------------
+
+export const TEST_FACTOR_RISK_RESULT = {
+  bookId: 'port-1',
+  calculatedAt: '2026-03-24T10:00:00Z',
+  totalVar: 50_000.0,
+  systematicVar: 38_000.0,
+  idiosyncraticVar: 12_000.0,
+  rSquared: 0.576,
+  concentrationWarning: false,
+  factors: [
+    {
+      factorType: 'EQUITY_BETA',
+      varContribution: 20_000.0,
+      pctOfTotal: 40.0,
+      loading: 1.12,
+      loadingMethod: 'OLS',
+    },
+    {
+      factorType: 'RATES_DURATION',
+      varContribution: 10_000.0,
+      pctOfTotal: 20.0,
+      loading: -0.35,
+      loadingMethod: 'OLS',
+    },
+    {
+      factorType: 'CREDIT_SPREAD',
+      varContribution: 8_000.0,
+      pctOfTotal: 16.0,
+      loading: 0.22,
+      loadingMethod: 'OLS',
+    },
+    {
+      factorType: 'FX_DELTA',
+      varContribution: 6_000.0,
+      pctOfTotal: 12.0,
+      loading: 0.08,
+      loadingMethod: 'OLS',
+    },
+    {
+      factorType: 'VOL_EXPOSURE',
+      varContribution: 6_000.0,
+      pctOfTotal: 12.0,
+      loading: -0.15,
+      loadingMethod: 'OLS',
+    },
+  ],
+}
+
+export const TEST_FACTOR_RISK_CONCENTRATION_WARNING = {
+  ...TEST_FACTOR_RISK_RESULT,
+  concentrationWarning: true,
+  factors: [
+    {
+      ...TEST_FACTOR_RISK_RESULT.factors[0],
+      pctOfTotal: 75.0,
+    },
+    ...TEST_FACTOR_RISK_RESULT.factors.slice(1),
+  ],
+}
+
+/**
+ * Mocks the factor risk API endpoint for a book.
+ * The `latest` parameter controls what GET /factor-risk/latest returns (null → 404).
+ */
+export async function mockFactorRiskRoutes(
+  page: Page,
+  opts: { latest?: object | null } = {},
+): Promise<void> {
+  await page.route('**/api/v1/books/*/factor-risk/latest', (route: Route) => {
+    if (opts.latest) {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(opts.latest),
+      })
+    } else {
+      route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
+    }
   })
 }
