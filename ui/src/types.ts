@@ -984,4 +984,40 @@ export interface HedgeSuggestRequestDto {
   maxNotional?: number | null
   respectPositionLimits?: boolean
   allowedSides?: string[] | null
+// --- Execution Cost Types ---
+
+export interface ExecutionCostDto {
+  orderId: string
+  bookId: string
+  instrumentId: string
+  completedAt: string
+  arrivalPrice: string
+  averageFillPrice: string
+  side: string
+  totalQty: string
+  slippageBps: string
+  marketImpactBps: string | null
+  timingCostBps: string | null
+  totalCostBps: string
+}
+
+// --- Prime Broker Reconciliation Types ---
+
+export interface ReconciliationBreakDto {
+  instrumentId: string
+  internalQty: string
+  primeBrokerQty: string
+  breakQty: string
+  breakNotional: string
+}
+
+export interface ReconciliationDto {
+  reconciliationDate: string
+  bookId: string
+  status: string
+  totalPositions: number
+  matchedCount: number
+  breakCount: number
+  breaks: ReconciliationBreakDto[]
+  reconciledAt: string
 }

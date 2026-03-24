@@ -11,17 +11,24 @@ import com.kinetix.position.persistence.ExposedPositionRepository
 import com.kinetix.position.persistence.ExposedTradeEventRepository
 import com.kinetix.position.persistence.ExposedLimitDefinitionRepository
 import com.kinetix.position.persistence.ExposedTemporaryLimitIncreaseRepository
+import com.kinetix.position.fix.ExposedExecutionCostRepository
+import com.kinetix.position.fix.ExposedFIXSessionRepository
+import com.kinetix.position.fix.ExposedPrimeBrokerReconciliationRepository
+import com.kinetix.position.fix.PrimeBrokerReconciliationService
 import com.kinetix.position.reconciliation.ExposedReconciliationRepository
 import com.kinetix.position.reconciliation.PositionReconciliationJob
 import com.kinetix.position.routes.bookHierarchyRoutes
 import com.kinetix.position.routes.collateralRoutes
 import com.kinetix.position.routes.counterpartyRoutes
+import com.kinetix.position.routes.executionRoutes
+import com.kinetix.position.routes.fixSessionRoutes
 import com.kinetix.position.routes.internalRoutes
 import com.kinetix.position.routes.limitRoutes
 import com.kinetix.position.routes.positionRoutes
 import com.kinetix.position.persistence.ExposedCollateralBalanceRepository
 import com.kinetix.position.persistence.ExposedNettingSetTradeRepository
 import com.kinetix.position.service.CollateralTrackingService
+import com.kinetix.position.routes.preTradeCheckRoutes
 import com.kinetix.position.service.CounterpartyExposureService
 import com.kinetix.position.seed.DevDataSeeder
 import com.kinetix.position.model.LimitDefinition
@@ -170,6 +177,11 @@ fun Application.moduleWithRoutes() {
     val reconciliationRepository = ExposedReconciliationRepository(db)
     val reconciliationJob = PositionReconciliationJob(reconciliationRepository)
 
+    val executionCostRepository = ExposedExecutionCostRepository(db)
+    val primeBrokerReconciliationRepository = ExposedPrimeBrokerReconciliationRepository(db)
+    val primeBrokerReconciliationService = PrimeBrokerReconciliationService()
+    val fixSessionRepository = ExposedFIXSessionRepository(db)
+
     val priceUpdateService = PriceUpdateService(positionRepository)
     val consumerProps = Properties().apply {
         put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
@@ -250,6 +262,9 @@ fun Application.moduleWithRoutes() {
         collateralRoutes(collateralTrackingService)
         internalRoutes(tradeEventRepository)
         bookHierarchyRoutes(bookHierarchyRepository)
+        preTradeCheckRoutes(preTradeCheckService)
+        executionRoutes(executionCostRepository, primeBrokerReconciliationRepository, primeBrokerReconciliationService, positionRepository)
+        fixSessionRoutes(fixSessionRepository)
     }
 
     launch {

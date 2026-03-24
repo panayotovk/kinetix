@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Activity, BarChart3, ScrollText, TrendingUp, Shield, FlaskConical, Scale, Bell, Server, FlaskRound, Sun, Moon, Save, CalendarDays, Users } from 'lucide-react'
 import { PositionGrid } from './components/PositionGrid'
 import { TradeBlotter } from './components/TradeBlotter'
+import { ExecutionCostPanel } from './components/ExecutionCostPanel'
+import { ReconciliationPanel } from './components/ReconciliationPanel'
 import { NotificationCenter } from './components/NotificationCenter'
 import { SystemDashboard } from './components/SystemDashboard'
 import { RiskTab } from './components/RiskTab'
@@ -52,6 +54,7 @@ function App() {
     (workspace.preferences.defaultTab as Tab) || 'positions',
   )
   const [whatIfOpen, setWhatIfOpen] = useState(false)
+  const [tradesSubTab, setTradesSubTab] = useState<'blotter' | 'cost' | 'reconciliation'>('blotter')
   const tabRefs = useRef<Map<Tab, HTMLButtonElement>>(new Map())
 
   const handleTabKeyDown = (e: React.KeyboardEvent) => {
@@ -336,7 +339,31 @@ function App() {
                 )}
 
                 {activeTab === 'trades' && (
-                  <TradeBlotter bookId={bookId} />
+                  <div>
+                    <div className="flex gap-1 mb-4 border-b border-slate-200" role="tablist" aria-label="Trades sections">
+                      {(['blotter', 'cost', 'reconciliation'] as const).map((subTab) => (
+                        <button
+                          key={subTab}
+                          role="tab"
+                          aria-selected={tradesSubTab === subTab}
+                          data-testid={`trades-subtab-${subTab}`}
+                          onClick={() => setTradesSubTab(subTab)}
+                          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                            tradesSubTab === subTab
+                              ? 'border-primary-500 text-primary-600'
+                              : 'border-transparent text-slate-500 hover:text-slate-700'
+                          }`}
+                        >
+                          {subTab === 'blotter' && 'Trade Blotter'}
+                          {subTab === 'cost' && 'Execution Cost'}
+                          {subTab === 'reconciliation' && 'Reconciliation'}
+                        </button>
+                      ))}
+                    </div>
+                    {tradesSubTab === 'blotter' && <TradeBlotter bookId={bookId} />}
+                    {tradesSubTab === 'cost' && <ExecutionCostPanel bookId={bookId} />}
+                    {tradesSubTab === 'reconciliation' && <ReconciliationPanel bookId={bookId} />}
+                  </div>
                 )}
 
                 {activeTab === 'pnl' && (
