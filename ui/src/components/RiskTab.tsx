@@ -7,10 +7,12 @@ import { useAlerts } from '../hooks/useAlerts'
 import { useSodBaseline } from '../hooks/useSodBaseline'
 import { usePnlAttribution } from '../hooks/usePnlAttribution'
 import { useLiquidityRisk } from '../hooks/useLiquidityRisk'
+import { useHierarchyNodeRisk } from '../hooks/useHierarchyNodeRisk'
 import type { StressTestResultDto } from '../types'
 import { VaRDashboard } from './VaRDashboard'
 import { PositionRiskTable } from './PositionRiskTable'
 import { BookContributionTable } from './BookContributionTable'
+import { HierarchyContributionTable } from './HierarchyContributionTable'
 import { JobHistory } from './JobHistory'
 import { RiskAlertBanner } from './RiskAlertBanner'
 import { StressSummaryCard } from './StressSummaryCard'
@@ -34,6 +36,7 @@ interface RiskTabProps {
   aggregatedView?: boolean
   effectiveBookIds?: string[]
   bookGroupId?: string | null
+  hierarchyLevel?: 'FIRM' | 'DIVISION' | 'DESK' | null
   onNavigateToBook?: (bookId: string) => void
 }
 
@@ -48,6 +51,7 @@ export function RiskTab({
   aggregatedView = false,
   effectiveBookIds = [],
   bookGroupId = null,
+  hierarchyLevel = null,
   onNavigateToBook,
 }: RiskTabProps) {
   const [subTab, setSubTab] = useState<RiskSubTab>('dashboard')
@@ -107,6 +111,11 @@ export function RiskTab({
     loading: liquidityLoading,
     refresh: refreshLiquidity,
   } = useLiquidityRisk(bookId)
+
+  const { node: hierarchyNode } = useHierarchyNodeRisk(
+    aggregatedView ? hierarchyLevel : null,
+    bookGroupId ?? 'FIRM',
+  )
 
   const [jobRefreshSignal, setJobRefreshSignal] = useState(0)
 
@@ -213,6 +222,14 @@ export function RiskTab({
                 />
               </div>
             </>
+          )}
+          {aggregatedView && hierarchyNode && (
+            <div className="mt-4" data-testid="hierarchy-contribution-section">
+              <HierarchyContributionTable
+                node={hierarchyNode}
+                onEntityClick={onNavigateToBook}
+              />
+            </div>
           )}
           <div className="mt-4">
             <PositionRiskTable data={positionRisk} loading={positionRiskLoading} error={positionRiskError} />
