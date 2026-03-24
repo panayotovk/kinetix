@@ -70,6 +70,13 @@ private class SlowStubRiskEngineClient : RiskEngineClient {
         confidenceLevel: String,
         instrumentMap: Map<String, InstrumentDto>,
     ) = throw UnsupportedOperationException("Not used in observability test")
+
+    override suspend fun decomposeFactorRisk(
+        bookId: com.kinetix.common.model.BookId,
+        positions: List<Position>,
+        marketData: Map<String, com.kinetix.risk.model.TimeSeriesMarketData>,
+        totalVar: Double,
+    ) = throw UnsupportedOperationException("Not used in observability test")
 }
 
 private class StubPositionProvider : com.kinetix.risk.client.PositionProvider {

@@ -1,9 +1,12 @@
 package com.kinetix.risk.client
 
+import com.kinetix.common.model.BookId
 import com.kinetix.common.model.Position
 import com.kinetix.proto.risk.DataDependenciesResponse
 import com.kinetix.risk.client.dtos.InstrumentDto
+import com.kinetix.risk.model.FactorDecompositionSnapshot
 import com.kinetix.risk.model.MarketDataValue
+import com.kinetix.risk.model.TimeSeriesMarketData
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.model.VaRResult
 import com.kinetix.risk.model.ValuationResult
@@ -27,4 +30,10 @@ interface RiskEngineClient {
         confidenceLevel: String,
         instrumentMap: Map<String, InstrumentDto> = emptyMap(),
     ): DataDependenciesResponse
+    suspend fun decomposeFactorRisk(
+        bookId: BookId,
+        positions: List<Position>,
+        marketData: Map<String, TimeSeriesMarketData>,
+        totalVar: Double,
+    ): FactorDecompositionSnapshot
 }

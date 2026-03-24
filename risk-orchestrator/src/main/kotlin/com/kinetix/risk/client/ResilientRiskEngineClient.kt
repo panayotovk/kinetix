@@ -1,10 +1,13 @@
 package com.kinetix.risk.client
 
+import com.kinetix.common.model.BookId
 import com.kinetix.common.model.Position
 import com.kinetix.common.resilience.CircuitBreaker
 import com.kinetix.proto.risk.DataDependenciesResponse
 import com.kinetix.risk.client.dtos.InstrumentDto
+import com.kinetix.risk.model.FactorDecompositionSnapshot
 import com.kinetix.risk.model.MarketDataValue
+import com.kinetix.risk.model.TimeSeriesMarketData
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.model.VaRResult
 import com.kinetix.risk.model.ValuationResult
@@ -37,4 +40,12 @@ class ResilientRiskEngineClient(
         instrumentMap: Map<String, InstrumentDto>,
     ): DataDependenciesResponse =
         circuitBreaker.execute { delegate.discoverDependencies(positions, calculationType, confidenceLevel, instrumentMap) }
+
+    override suspend fun decomposeFactorRisk(
+        bookId: BookId,
+        positions: List<Position>,
+        marketData: Map<String, TimeSeriesMarketData>,
+        totalVar: Double,
+    ): FactorDecompositionSnapshot =
+        circuitBreaker.execute { delegate.decomposeFactorRisk(bookId, positions, marketData, totalVar) }
 }

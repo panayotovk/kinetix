@@ -1,10 +1,13 @@
 package com.kinetix.risk.simulation
 
+import com.kinetix.common.model.BookId
 import com.kinetix.common.model.Position
 import com.kinetix.proto.risk.DataDependenciesResponse
 import com.kinetix.risk.client.RiskEngineClient
 import com.kinetix.risk.client.dtos.InstrumentDto
+import com.kinetix.risk.model.FactorDecompositionSnapshot
 import com.kinetix.risk.model.MarketDataValue
+import com.kinetix.risk.model.TimeSeriesMarketData
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.model.VaRResult
 import com.kinetix.risk.model.ValuationResult
@@ -45,4 +48,12 @@ class DelayingRiskEngineClient(
         delay(discoverDependenciesDelayMs.random())
         return delegate.discoverDependencies(positions, calculationType, confidenceLevel, instrumentMap)
     }
+
+    override suspend fun decomposeFactorRisk(
+        bookId: BookId,
+        positions: List<Position>,
+        marketData: Map<String, TimeSeriesMarketData>,
+        totalVar: Double,
+    ): FactorDecompositionSnapshot =
+        delegate.decomposeFactorRisk(bookId, positions, marketData, totalVar)
 }
