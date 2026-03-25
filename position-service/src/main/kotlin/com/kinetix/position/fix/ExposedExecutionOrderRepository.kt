@@ -46,6 +46,18 @@ class ExposedExecutionOrderRepository(private val db: Database? = null) : Execut
         }
     }
 
+    override suspend fun updateQuantityAndPrice(
+        orderId: String,
+        quantity: java.math.BigDecimal,
+        limitPrice: java.math.BigDecimal?,
+    ): Unit = newSuspendedTransaction(db = db) {
+        ExecutionOrdersTable.update({ ExecutionOrdersTable.orderId eq orderId }) {
+            it[ExecutionOrdersTable.quantity] = quantity
+            it[ExecutionOrdersTable.limitPrice] = limitPrice
+            it[updatedAt] = OffsetDateTime.now(ZoneOffset.UTC)
+        }
+    }
+
     override suspend fun findById(orderId: String): Order? = newSuspendedTransaction(db = db) {
         ExecutionOrdersTable
             .selectAll()
