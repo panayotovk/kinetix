@@ -666,6 +666,35 @@ class HttpRiskServiceClient(
         return response.body()
     }
 
+    override suspend fun listReportTemplates(): kotlinx.serialization.json.JsonArray {
+        val response = httpClient.get("$baseUrl/api/v1/reports/templates")
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun generateReport(body: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject {
+        val response = httpClient.post("$baseUrl/api/v1/reports/generate") {
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun getReportOutput(outputId: String): kotlinx.serialization.json.JsonObject? {
+        val response = httpClient.get("$baseUrl/api/v1/reports/$outputId")
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun getReportOutputCsv(outputId: String): String? {
+        val response = httpClient.get("$baseUrl/api/v1/reports/$outputId/csv")
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.bodyAsText()
+    }
+
     override suspend fun getIntradayVaRTimeline(bookId: String, from: String, to: String): kotlinx.serialization.json.JsonObject? {
         val response = httpClient.get("$baseUrl/api/v1/risk/var/$bookId/intraday") {
             url {
