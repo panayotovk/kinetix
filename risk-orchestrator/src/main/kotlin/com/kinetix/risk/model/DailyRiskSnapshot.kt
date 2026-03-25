@@ -21,4 +21,8 @@ data class DailyRiskSnapshot(
     val rho: Double? = null,
     val varContribution: BigDecimal? = null,
     val esContribution: BigDecimal? = null,
+    /** Implied volatility (ATM, 1-month tenor) captured at start-of-day. Null when no vol surface exists. */
+    val sodVol: Double? = null,
+    /** Risk-free rate (1Y tenor) captured at start-of-day. Null when no rate data exists. */
+    val sodRate: Double? = null,
 )

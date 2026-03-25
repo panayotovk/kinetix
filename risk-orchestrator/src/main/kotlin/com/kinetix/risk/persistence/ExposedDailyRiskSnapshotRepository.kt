@@ -40,6 +40,8 @@ class ExposedDailyRiskSnapshotRepository(private val db: Database? = null) : Dai
             it[rho] = snapshot.rho
             it[varContribution] = snapshot.varContribution
             it[esContribution] = snapshot.esContribution
+            it[sodVol] = snapshot.sodVol
+            it[sodRate] = snapshot.sodRate
             it[createdAt] = OffsetDateTime.now(ZoneOffset.UTC)
         }
     }
@@ -65,6 +67,8 @@ class ExposedDailyRiskSnapshotRepository(private val db: Database? = null) : Dai
             this[DailyRiskSnapshotsTable.rho] = snapshot.rho
             this[DailyRiskSnapshotsTable.varContribution] = snapshot.varContribution
             this[DailyRiskSnapshotsTable.esContribution] = snapshot.esContribution
+            this[DailyRiskSnapshotsTable.sodVol] = snapshot.sodVol
+            this[DailyRiskSnapshotsTable.sodRate] = snapshot.sodRate
             this[DailyRiskSnapshotsTable.createdAt] = OffsetDateTime.now(ZoneOffset.UTC)
         }
     }
@@ -122,6 +126,8 @@ class ExposedDailyRiskSnapshotRepository(private val db: Database? = null) : Dai
         rho = this[DailyRiskSnapshotsTable.rho],
         varContribution = this[DailyRiskSnapshotsTable.varContribution],
         esContribution = this[DailyRiskSnapshotsTable.esContribution],
+        sodVol = this[DailyRiskSnapshotsTable.sodVol],
+        sodRate = this[DailyRiskSnapshotsTable.sodRate],
     )
 }
 

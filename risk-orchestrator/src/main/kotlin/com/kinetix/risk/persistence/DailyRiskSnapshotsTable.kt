@@ -18,6 +18,8 @@ object DailyRiskSnapshotsTable : Table("daily_risk_snapshots") {
     val rho = double("rho").nullable()
     val varContribution = decimal("var_contribution", 28, 8).nullable()
     val esContribution = decimal("es_contribution", 28, 8).nullable()
+    val sodVol = double("sod_vol").nullable()
+    val sodRate = double("sod_rate").nullable()
     val createdAt = timestampWithTimeZone("created_at")
 
     override val primaryKey = PrimaryKey(id, snapshotDate)
