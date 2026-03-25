@@ -72,6 +72,7 @@ import com.kinetix.risk.persistence.ExposedManifestRetentionRepository
 import com.kinetix.risk.reconciliation.TradeAuditReconciliationJob
 import com.kinetix.risk.schedule.ScheduledBlobRetentionJob
 import com.kinetix.risk.schedule.ScheduledCrossBookVaRCalculator
+import com.kinetix.risk.schedule.ScheduledHedgeExpiryJob
 import com.kinetix.risk.schedule.ScheduledManifestRetentionJob
 import com.kinetix.risk.schedule.ScheduledSodSnapshotJob
 import com.kinetix.risk.schedule.ScheduledVaRCalculator
@@ -571,6 +572,15 @@ fun Application.moduleWithRoutes() {
         }
     }
 
+    val hedgeRecommendationRepository = ExposedHedgeRecommendationRepository(riskDb)
+    val hedgeRecommendationService = HedgeRecommendationService(
+        varCache = varCache,
+        instrumentServiceClient = instrumentServiceClient,
+        referenceDataClient = effectiveReferenceDataServiceClient,
+        calculator = AnalyticalHedgeCalculator(),
+        repository = hedgeRecommendationRepository,
+    )
+
     routing {
         val whatIfAnalysisService = WhatIfAnalysisService(effectivePositionProvider, effectiveRiskEngineClient)
         riskRoutes(varCalculationService, varCache, effectivePositionProvider, stressTestStub, regulatoryStub, effectiveRiskEngineClient, whatIfAnalysisService = whatIfAnalysisService, pnlAttributionRepository = pnlAttributionRepository, sodSnapshotService = sodSnapshotService, pnlComputationService = pnlComputationService, stressLimitCheckService = stressLimitCheckService, jobRecorder = jobRecorder)
@@ -585,13 +595,6 @@ fun Application.moduleWithRoutes() {
         eodPromotionRoutes(eodPromotionService)
         eodTimelineRoutes(jobRecorder)
         runComparisonRoutes(runComparisonService, jobRecorder, varAttributionService, effectiveRiskEngineClient, effectivePositionProvider, manifestRepo, blobStore, marketDataQuantDiffer, quantDiffCache, meterRegistry)
-        val hedgeRecommendationService = HedgeRecommendationService(
-            varCache = varCache,
-            instrumentServiceClient = instrumentServiceClient,
-            referenceDataClient = effectiveReferenceDataServiceClient,
-            calculator = AnalyticalHedgeCalculator(),
-            repository = ExposedHedgeRecommendationRepository(riskDb),
-        )
         hedgeRecommendationRoutes(hedgeRecommendationService)
         counterpartyRiskRoutes(counterpartyRiskOrchestrationService)
     }
@@ -631,6 +634,11 @@ fun Application.moduleWithRoutes() {
     launch {
         ScheduledManifestRetentionJob(
             manifestRetentionRepository = ExposedManifestRetentionRepository(riskDb),
+        ).start()
+    }
+    launch {
+        ScheduledHedgeExpiryJob(
+            repository = hedgeRecommendationRepository,
         ).start()
     }
     launch {
