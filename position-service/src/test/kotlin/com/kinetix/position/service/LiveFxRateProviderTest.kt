@@ -1,8 +1,10 @@
 package com.kinetix.position.service
 
+import com.kinetix.position.persistence.FxRateRepository
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -90,6 +92,28 @@ class LiveFxRateProviderTest : FunSpec({
         val provider = LiveFxRateProvider(delegate)
 
         provider.onPriceUpdate("EURUSD", BigDecimal("1.0950"))
+
+        provider.getRate(EUR, USD) shouldBe BigDecimal("1.0950")
+    }
+
+    test("falls back to database when in-memory cache is empty") {
+        val repository = mockk<FxRateRepository>()
+        coEvery { repository.upsert(any(), any(), any()) } returns Unit
+        coEvery { repository.findRate(GBP, USD) } returns BigDecimal("1.27")
+        val provider = LiveFxRateProvider(delegate, repository)
+
+        provider.getRate(GBP, USD) shouldBe BigDecimal("1.27")
+    }
+
+    test("live rate takes priority over database") {
+        val repository = mockk<FxRateRepository>()
+        coEvery { repository.upsert(any(), any(), any()) } returns Unit
+        coEvery { repository.findRate(EUR, USD) } returns BigDecimal("1.05")
+        val provider = LiveFxRateProvider(delegate, repository)
+
+        provider.onPriceUpdate("EURUSD", BigDecimal("1.0950"))
+        // Allow the fire-and-forget coroutine to settle, then re-check in-memory wins
+        kotlinx.coroutines.delay(50)
 
         provider.getRate(EUR, USD) shouldBe BigDecimal("1.0950")
     }
