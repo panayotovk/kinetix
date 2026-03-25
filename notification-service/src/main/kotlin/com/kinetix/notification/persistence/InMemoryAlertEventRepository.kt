@@ -34,6 +34,12 @@ class InMemoryAlertEventRepository : AlertEventRepository {
         events.addFirst(event.copy(status = status, resolvedAt = resolvedAt, resolvedReason = resolvedReason))
     }
 
+    override suspend fun acknowledge(id: String, acknowledgedAt: Instant) {
+        val event = events.find { it.id == id } ?: return
+        events.remove(event)
+        events.addFirst(event.copy(status = AlertStatus.ACKNOWLEDGED, acknowledgedAt = acknowledgedAt))
+    }
+
     override suspend fun escalate(id: String, escalatedAt: Instant, escalatedTo: String) {
         val event = events.find { it.id == id } ?: return
         events.remove(event)

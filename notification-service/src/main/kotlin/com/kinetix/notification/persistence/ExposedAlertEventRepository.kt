@@ -89,6 +89,16 @@ class ExposedAlertEventRepository(private val db: Database? = null) : AlertEvent
         }
     }
 
+    override suspend fun acknowledge(
+        id: String,
+        acknowledgedAt: Instant,
+    ): Unit = newSuspendedTransaction(db = db) {
+        AlertEventsTable.update({ AlertEventsTable.id eq id }) {
+            it[AlertEventsTable.status] = AlertStatus.ACKNOWLEDGED.name
+            it[AlertEventsTable.acknowledgedAt] = OffsetDateTime.ofInstant(acknowledgedAt, ZoneOffset.UTC)
+        }
+    }
+
     override suspend fun escalate(
         id: String,
         escalatedAt: Instant,
