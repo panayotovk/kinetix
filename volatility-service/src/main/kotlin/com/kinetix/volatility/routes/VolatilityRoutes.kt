@@ -6,7 +6,9 @@ import com.kinetix.common.model.VolSurface
 import com.kinetix.common.model.VolatilitySource
 import com.kinetix.volatility.persistence.VolSurfaceRepository
 import com.kinetix.volatility.routes.dtos.IngestVolSurfaceRequest
+import com.kinetix.volatility.routes.dtos.VolPointDiffDto
 import com.kinetix.volatility.routes.dtos.VolPointDto
+import com.kinetix.volatility.routes.dtos.VolSurfaceDiffResponse
 import com.kinetix.volatility.routes.dtos.VolSurfaceResponse
 import com.kinetix.volatility.service.VolatilityIngestionService
 import io.ktor.http.HttpStatusCode
@@ -40,6 +42,56 @@ fun Route.volatilityRoutes(
                     } else {
                         call.respond(HttpStatusCode.NotFound)
                     }
+                }
+            }
+
+            route("/diff") {
+                get({
+                    summary = "Get vol surface diff vs a comparison date"
+                    tags = listOf("Volatility")
+                    request {
+                        pathParameter<String>("instrumentId") { description = "Instrument identifier" }
+                        queryParameter<String>("compareDate") { description = "Comparison date (ISO-8601 instant)" }
+                    }
+                }) {
+                    val instrumentId = InstrumentId(call.requirePathParam("instrumentId"))
+                    val compareDateStr = call.request.queryParameters["compareDate"]
+                        ?: throw IllegalArgumentException("Missing required query parameter: compareDate")
+                    val compareDate = try {
+                        Instant.parse(compareDateStr)
+                    } catch (_: Exception) {
+                        throw IllegalArgumentException("Invalid compareDate — expected ISO-8601 instant: $compareDateStr")
+                    }
+
+                    val baseSurface = volSurfaceRepository.findLatest(instrumentId)
+                    if (baseSurface == null) {
+                        call.respond(HttpStatusCode.NotFound); return@get
+                    }
+                    val compareSurface = volSurfaceRepository.findAtOrBefore(instrumentId, compareDate)
+                    if (compareSurface == null) {
+                        call.respond(HttpStatusCode.NotFound); return@get
+                    }
+
+                    val compareMap = compareSurface.points.associateBy { it.strike to it.maturityDays }
+                    val diffs = baseSurface.points.mapNotNull { bp ->
+                        val cp = compareMap[bp.strike to bp.maturityDays] ?: return@mapNotNull null
+                        VolPointDiffDto(
+                            strike = bp.strike.toDouble(),
+                            maturityDays = bp.maturityDays,
+                            baseVol = bp.impliedVol.toDouble(),
+                            compareVol = cp.impliedVol.toDouble(),
+                            diff = bp.impliedVol.toDouble() - cp.impliedVol.toDouble(),
+                        )
+                    }
+
+                    call.respond(
+                        VolSurfaceDiffResponse(
+                            instrumentId = instrumentId.value,
+                            baseDate = baseSurface.asOf.toString(),
+                            compareDate = compareSurface.asOf.toString(),
+                            diffs = diffs,
+                        )
+                    )
                 }
             }
 

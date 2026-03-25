@@ -377,6 +377,7 @@ fun Application.devModule() {
                 marketRegimeRoutes(riskClient)
                 hedgeRecommendationRoutes(riskClient)
                 counterpartyRiskRoutes(riskClient)
+                volSurfaceRoutes(volatilityClient)
             }
             requirePermission(Permission.READ_REGULATORY) {
                 regulatoryRoutes(riskClient)

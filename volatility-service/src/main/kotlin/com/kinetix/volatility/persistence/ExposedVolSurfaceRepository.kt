@@ -52,6 +52,31 @@ class ExposedVolSurfaceRepository(private val db: Database? = null) : VolSurface
             toVolSurface(latestHeader, pointRows)
         }
 
+    override suspend fun findAtOrBefore(instrumentId: InstrumentId, asOf: Instant): VolSurface? =
+        newSuspendedTransaction(db = db) {
+            val asOfOffset = asOf.atOffset(ZoneOffset.UTC)
+            val header = VolSurfaceTable
+                .selectAll()
+                .where {
+                    (VolSurfaceTable.instrumentId eq instrumentId.value) and
+                        (VolSurfaceTable.asOfDate lessEq asOfOffset)
+                }
+                .orderBy(VolSurfaceTable.asOfDate, SortOrder.DESC)
+                .limit(1)
+                .singleOrNull() ?: return@newSuspendedTransaction null
+
+            val asOfDate = header[VolSurfaceTable.asOfDate]
+            val pointRows = VolPointTable
+                .selectAll()
+                .where {
+                    (VolPointTable.instrumentId eq instrumentId.value) and
+                        (VolPointTable.asOfDate eq asOfDate)
+                }
+                .toList()
+
+            toVolSurface(header, pointRows)
+        }
+
     override suspend fun findByTimeRange(
         instrumentId: InstrumentId,
         from: Instant,
