@@ -681,4 +681,20 @@ class HttpRiskServiceClient(
         if (!response.status.isSuccess()) handleErrorResponse(response)
         return response.body()
     }
+
+    override suspend fun getBrinsonAttribution(bookId: String, benchmarkId: String, asOfDate: String?): kotlinx.serialization.json.JsonObject? {
+        val response = httpClient.get("$baseUrl/api/v1/books/$bookId/attribution") {
+            url {
+                parameters.append("benchmarkId", benchmarkId)
+                if (asOfDate != null) parameters.append("asOfDate", asOfDate)
+            }
+        }
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (response.status == HttpStatusCode.BadRequest) {
+            val body = try { response.bodyAsText() } catch (_: Exception) { "" }
+            throw IllegalArgumentException(body)
+        }
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
 }
