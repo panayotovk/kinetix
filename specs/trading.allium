@@ -1,4 +1,4 @@
--- allium: 2
+-- allium: 3
 -- Trade booking, lifecycle management (amend, cancel), and event publishing.
 
 use "./core.allium" as core
@@ -20,6 +20,13 @@ entity Trade {
     traded_at: Timestamp
     event_type: core/TradeEventType
     status: core/TradeStatus
+
+    transitions status {
+        live -> amended
+        live -> cancelled
+        terminal: amended, cancelled
+    }
+
     original_trade_id: String?
     counterparty_id: String?
     instrument_type: String?

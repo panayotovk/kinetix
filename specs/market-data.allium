@@ -1,4 +1,4 @@
--- allium: 2
+-- allium: 3
 -- Market data ingestion, storage, and distribution: prices, rates, volatility, correlations.
 
 use "./core.allium" as core

@@ -1,4 +1,4 @@
--- allium: 2
+-- allium: 3
 -- Instruments, organizational hierarchy, and reference data.
 
 use "./core.allium" as core

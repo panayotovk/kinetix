@@ -1,4 +1,4 @@
--- allium: 2
+-- allium: 3
 -- Position management, mark-to-market, realized P&L, and portfolio aggregation.
 
 use "./core.allium" as core

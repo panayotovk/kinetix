@@ -1,4 +1,4 @@
--- allium: 2
+-- allium: 3
 -- Factor-based risk decomposition: systematic risk factors, factor loadings,
 -- VaR attribution by factor, and P&L attribution by factor.
 --

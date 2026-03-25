@@ -1,4 +1,4 @@
--- allium: 2
+-- allium: 3
 -- Hash-chained, immutable audit trail for trade lifecycle events.
 
 use "./core.allium" as core

@@ -1,4 +1,4 @@
--- allium: 2
+-- allium: 3
 -- Historical scenario replay, reverse stress testing, and scenario library
 -- management with versioning and governance.
 --
@@ -16,7 +16,13 @@ use "./core.allium" as core
 -- Enumerations
 ------------------------------------------------------------
 
-enum ScenarioType { historical_replay | custom_parametric | reverse_stress }
+enum ScenarioType { historical_replay | parametric | reverse_stress }
+
+    @guidance
+        -- The code-level enum is ScenarioType { PARAMETRIC, HISTORICAL_REPLAY, REVERSE_STRESS }.
+        -- The spec originally used "custom_parametric" but the implementation uses
+        -- "parametric" (Kotlin: ScenarioType.PARAMETRIC, DB default: 'PARAMETRIC').
+        -- PARAMETRIC is the default scenario type when none is specified.
 
 ------------------------------------------------------------
 -- Value Types
@@ -112,7 +118,17 @@ entity SavedScenario {
     target_loss: Decimal?
     created_by: String
     created_at: Timestamp
+    approved_by: String?
+    approved_at: Timestamp?
     status: core/ScenarioStatus
+
+    transitions status {
+        draft -> pending_approval
+        pending_approval -> approved
+        approved -> retired
+        approved -> draft
+        terminal: retired
+    }
 
     -- Derived
     is_historical: scenario_type = historical_replay
@@ -120,10 +136,14 @@ entity SavedScenario {
     is_approved: status = approved
 
     @guidance
+        -- Implementation name: StressScenario (regulatory-service).
+        -- The Kotlin data class is StressScenario, the DB table is stress_scenarios.
+        -- approved_by and approved_at are set when a scenario transitions to APPROVED.
+        --
         -- SavedScenario supersedes GovernedStressScenario from regulatory.allium.
         -- GovernedStressScenario handled only custom parametric shocks with
         -- governance. SavedScenario extends this to cover three scenario types
-        -- (historical_replay, custom_parametric, reverse_stress) with versioning.
+        -- (historical_replay, parametric, reverse_stress) with versioning.
         --
         -- The governance workflow (draft → pending_approval → approved → retired)
         -- is the same as regulatory.allium's GovernedStressScenario — the status
@@ -133,6 +153,27 @@ entity SavedScenario {
         --
         -- version increments on each update; previous versions retained.
         -- parent_scenario_id links variants ("GFC with extra credit stress").
+}
+
+entity StressTestResult {
+    id: String
+    scenario_id: String
+    book_id: String
+    calculated_at: Timestamp
+    base_pv: Decimal?
+    stressed_pv: Decimal?
+    pnl_impact: Decimal?
+    var_impact: Double?
+    position_impacts: String?
+    model_version: String?
+
+    @guidance
+        -- Persisted outcome of running a SavedScenario against a book.
+        -- Table: stress_test_results (V12 migration, V13 renamed portfolio_id to book_id).
+        -- scenario_id references stress_scenarios(id).
+        -- position_impacts is stored as JSONB — per-position breakdown of stress P&L.
+        -- model_version tracks which risk model version produced the result.
+        -- Indexed on (scenario_id, calculated_at DESC) and (book_id, calculated_at DESC).
 }
 
 ------------------------------------------------------------
@@ -233,7 +274,7 @@ rule CreateCustomScenario {
     ensures: SavedScenario.created(
         name: name,
         description: description,
-        scenario_type: custom_parametric,
+        scenario_type: parametric,
         version: 1,
         shocks: serialize_shocks(price_shocks, vol_shocks),
         correlation_override: correlation_override,
@@ -300,7 +341,7 @@ rule RunSavedScenario {
     @guidance
         -- Dispatches to the appropriate execution path:
         --   HISTORICAL_REPLAY: calls ReplayHistoricalScenario with period_id.
-        --   CUSTOM_PARAMETRIC: calls RunStressTest from risk-models.allium.
+        --   PARAMETRIC: calls RunStressTest from risk-models.allium.
         --   REVERSE_STRESS: calls ReverseStressTest with target_loss.
         --
         -- Only APPROVED scenarios can be run (enforced by regulatory.allium).

@@ -1,4 +1,4 @@
--- allium: 2
+-- allium: 3
 -- Order and execution management: FIX protocol integration, order lifecycle,
 -- fill processing, position reconciliation, and execution cost analysis.
 --
@@ -75,14 +75,27 @@ entity Order {
     arrival_price: Decimal
     submitted_at: Timestamp
     status: OrderStatus
-    risk_check_result: String?
-    risk_check_details: String?
+
+    transitions status {
+        pending_risk_check -> approved
+        pending_risk_check -> rejected
+        approved -> sent
+        sent -> partial
+        sent -> filled
+        sent -> cancelled
+        partial -> filled
+        partial -> cancelled
+        terminal: filled, cancelled, expired, rejected
+    }
+
+    risk_check_result: String when status = approved | rejected | sent | partial | filled | cancelled | expired
+    risk_check_details: String? when status = approved | rejected | sent | partial | filled | cancelled | expired
     fix_session_id: String?
 
     -- Derived
     is_terminal: status in {filled, cancelled, expired, rejected}
-    filled_quantity: fills.sum(f => f.fill_qty)
-    average_fill_price: fills.weighted_avg(f => f.fill_price, f => f.fill_qty)
+    filled_quantity: sum(fills, f => f.fill_qty)
+    average_fill_price: weighted_avg(fills, f => f.fill_price, f => f.fill_qty)
 
     -- Relationships
     fills: ExecutionFill with order = this

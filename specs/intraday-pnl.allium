@@ -1,4 +1,4 @@
--- allium: 2
+-- allium: 3
 -- Streaming intraday P&L: real-time position-level and book-level P&L
 -- with Greek attribution against frozen SOD state.
 --

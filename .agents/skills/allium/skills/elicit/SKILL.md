@@ -1,6 +1,6 @@
 ---
 name: elicit
-description: This skill should be used when the user wants to "build an allium spec", "elicit requirements", "capture domain behaviour", "specify a feature", or is describing functionality they want to build and needs guidance on extracting a specification through conversation.
+description: "Run a structured discovery session to build an Allium specification through conversation. Use when the user wants to create a new spec from scratch, elicit or gather requirements, capture domain behaviour, specify a feature or system, define what a system should do, or is describing functionality and needs help shaping it into a specification."
 ---
 
 # Elicitation
@@ -26,7 +26,7 @@ Before diving into details, establish what you are specifying. Not everything ne
 Capture scope at the start of every spec:
 
 ```
--- allium: 2
+-- allium: 3
 -- interview-scheduling.allium
 
 -- Scope: Interview scheduling for the hiring pipeline

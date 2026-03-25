@@ -1,4 +1,4 @@
--- allium: 2
+-- allium: 3
 -- Liquidity risk: instrument liquidity metadata, position-level liquidity
 -- metrics, liquidity-adjusted VaR, concentration monitoring, and stressed
 -- liquidity analysis.

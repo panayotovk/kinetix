@@ -1,4 +1,4 @@
--- allium: 2
+-- allium: 3
 -- Model governance, backtesting records, stress testing governance,
 -- regulatory submissions with four-eyes approval, and FRTB storage.
 
@@ -14,9 +14,17 @@ entity ModelVersion {
     model_name: String
     version: String
     status: core/ModelStatus
+
+    transitions status {
+        draft -> validated
+        validated -> approved
+        approved -> retired
+        terminal: retired
+    }
+
     parameters: String?
-    approved_by: String?
-    approved_at: Timestamp?
+    approved_by: String when status = approved | retired
+    approved_at: Timestamp when status = approved | retired
 }
 
 -- Backtest records
@@ -59,9 +67,17 @@ entity GovernedStressScenario {
     description: String?
     shocks: String
     status: core/ScenarioStatus
+
+    transitions status {
+        draft -> pending_approval
+        pending_approval -> approved
+        approved -> retired
+        terminal: retired
+    }
+
     created_by: String
-    approved_by: String?
-    approved_at: Timestamp?
+    approved_by: String when status = approved | retired
+    approved_at: Timestamp when status = approved | retired
 }
 
 entity StressTestResultRecord {
@@ -82,10 +98,19 @@ entity RegulatorySubmission {
     report_type: String
     deadline: Timestamp
     status: core/SubmissionStatus
+
+    transitions status {
+        draft -> pending_review
+        pending_review -> approved
+        approved -> submitted
+        submitted -> acknowledged
+        terminal: acknowledged
+    }
+
     preparer_id: String
-    approver_id: String?
-    submitted_at: Timestamp?
-    acknowledged_at: Timestamp?
+    approver_id: String when status = approved | submitted | acknowledged
+    submitted_at: Timestamp when status = submitted | acknowledged
+    acknowledged_at: Timestamp when status = acknowledged
 }
 
 -- FRTB calculation records

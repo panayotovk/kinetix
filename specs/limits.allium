@@ -1,4 +1,4 @@
--- allium: 2
+-- allium: 3
 -- Limit management hierarchy, pre-trade checks, and temporary increases.
 
 use "./core.allium" as core

@@ -1,4 +1,4 @@
--- allium: 2
+-- allium: 3
 -- Alert rules engine: rule evaluation, deduplication, auto-resolution,
 -- suggested actions, delivery routing, and alert acknowledgement.
 
@@ -42,8 +42,15 @@ entity AlertEvent {
     book_id: String
     triggered_at: Timestamp
     status: core/AlertStatus
-    resolved_at: Timestamp?
-    resolved_reason: String?
+
+    transitions status {
+        triggered -> acknowledged
+        triggered -> resolved
+        terminal: acknowledged, resolved
+    }
+
+    resolved_at: Timestamp when status = resolved
+    resolved_reason: String when status = resolved
     correlation_id: String?
     contributors: String?
     suggested_action: String?

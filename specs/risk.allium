@@ -1,4 +1,4 @@
--- allium: 2
+-- allium: 3
 -- Risk calculation: VaR, Greeks, cross-book aggregation, stress testing,
 -- P&L attribution, EOD promotion, and calculation job lifecycle.
 
@@ -32,6 +32,9 @@ value PositionRisk {
     rho: Decimal?
     var_contribution: Decimal?
     es_contribution: Decimal?
+    percentage_of_total: Decimal?
+    instrument_type: String?
+    display_name: String?
 }
 
 value BookVaRContribution {
@@ -87,32 +90,49 @@ entity ValuationJob {
     book_id: String
     trigger_type: core/TriggerType
     status: core/RunStatus
+
+    transitions status {
+        running -> completed
+        running -> failed
+        terminal: completed, failed
+    }
+
     started_at: Timestamp
-    completed_at: Timestamp?
+    completed_at: Timestamp when status = completed | failed
     valuation_date: String
     calculation_type: String
     confidence_level: String
+    time_horizon_days: Integer?
+    current_phase: String?
+    market_data_snapshot_id: String?
 
-    -- Outputs
-    var_value: Decimal?
-    expected_shortfall: Decimal?
-    pv_value: Decimal?
-    delta: Decimal?
-    gamma: Decimal?
-    vega: Decimal?
-    theta: Decimal?
-    rho: Decimal?
-    position_risk_snapshot: List<PositionRisk>?
-    component_breakdown_snapshot: List<ComponentBreakdown>?
-    asset_class_greeks_snapshot: List<GreekValues>?
-    computed_outputs_snapshot: Set<core/ValuationOutput>?
+    -- Regime audit: original request values before any regime override.
+    -- Null when no override was active (calculation_type already holds the requested value).
+    requested_calculation_type: String?
+    requested_confidence_level: String?
+    requested_time_horizon_days: Integer?
+
+    -- Outputs (present only when job completes; ? because not every
+    -- completed job produces every output — depends on requested_outputs)
+    var_value: Decimal? when status = completed
+    expected_shortfall: Decimal? when status = completed
+    pv_value: Decimal? when status = completed
+    delta: Decimal? when status = completed
+    gamma: Decimal? when status = completed
+    vega: Decimal? when status = completed
+    theta: Decimal? when status = completed
+    rho: Decimal? when status = completed
+    position_risk_snapshot: List<PositionRisk>? when status = completed
+    component_breakdown_snapshot: List<ComponentBreakdown>? when status = completed
+    asset_class_greeks_snapshot: List<GreekValues>? when status = completed
+    computed_outputs_snapshot: Set<core/ValuationOutput>? when status = completed
     phases: List<JobPhase>
 
     -- Lifecycle
     -- triggered_by is always populated: "SYSTEM" for scheduled/event-driven jobs,
     -- "API" for on-demand HTTP requests, or the authenticated user identifier.
     triggered_by: String
-    error: String?
+    error: String when status = failed
     run_label: core/RunLabel?
     promoted_at: Timestamp?
     promoted_by: String?
@@ -120,7 +140,7 @@ entity ValuationJob {
 
     -- Derived
     is_promoted: promoted_at != null
-    duration_ms: Integer?
+    duration_ms: Integer when status = completed | failed
 }
 
 entity RunManifest {
@@ -140,9 +160,17 @@ entity RunManifest {
     market_data_digest: String
     input_digest: String
     status: core/ManifestStatus
-    var_value: Decimal?
-    expected_shortfall: Decimal?
-    output_digest: String?
+
+    transitions status {
+        inputs_frozen -> complete
+        inputs_frozen -> partial
+        inputs_frozen -> failed
+        terminal: complete, partial, failed
+    }
+
+    var_value: Decimal when status = complete
+    expected_shortfall: Decimal when status = complete
+    output_digest: String when status = complete
 }
 
 entity DailyRiskSnapshot {
@@ -187,12 +215,18 @@ entity PnlAttribution {
 entity CrossBookValuationResult {
     portfolio_group_id: String
     book_ids: List<String>
+    calculation_type: String
+    confidence_level: String
     var_value: Decimal
     expected_shortfall: Decimal
     component_breakdown: List<ComponentBreakdown>
     book_contributions: List<BookVaRContribution>
     total_standalone_var: Decimal
     diversification_benefit: Decimal
+    calculated_at: Timestamp
+    model_version: String?
+    monte_carlo_seed: Integer
+    job_id: String?
 }
 
 ------------------------------------------------------------

@@ -1,4 +1,4 @@
--- allium: 2
+-- allium: 3
 -- Hedge recommendation engine: constrained optimisation to suggest trades
 -- that minimise a target Greek or VaR, with cost estimation and
 -- what-if validation handoff.
@@ -78,12 +78,21 @@ entity HedgeRecommendation {
     target_reduction_pct: Decimal
     requested_at: Timestamp
     status: HedgeStatus
+    message: String?
+
+    transitions status {
+        pending -> accepted
+        pending -> rejected
+        pending -> expired
+        terminal: accepted, rejected, expired
+    }
+
     constraints: HedgeConstraints
     suggestions: List<HedgeSuggestion>
     pre_hedge_greeks: GreekImpact
     source_job_id: String?
-    accepted_by: String?
-    accepted_at: Timestamp?
+    accepted_by: String when status = accepted
+    accepted_at: Timestamp when status = accepted
     expires_at: Timestamp
 
     -- Derived
