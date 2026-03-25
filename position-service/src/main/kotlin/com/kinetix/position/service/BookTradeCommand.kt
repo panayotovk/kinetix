@@ -21,6 +21,7 @@ data class BookTradeCommand(
     val instrumentType: String? = null,
     val userId: String? = null,
     val userRole: String? = null,
+    val strategyId: String? = null,
 )
 
 data class BookTradeResult(
@@ -58,6 +59,7 @@ class TradeBookingService(
             price = command.price,
             tradedAt = command.tradedAt,
             instrumentType = command.instrumentType,
+            strategyId = command.strategyId,
         )
 
         val (result, isNewTrade) = transactional.run {

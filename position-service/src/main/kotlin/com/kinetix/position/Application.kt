@@ -30,7 +30,10 @@ import com.kinetix.position.routes.fixSessionRoutes
 import com.kinetix.position.routes.internalRoutes
 import com.kinetix.position.routes.limitRoutes
 import com.kinetix.position.routes.orderRoutes
+import com.kinetix.position.persistence.ExposedTradeStrategyRepository
 import com.kinetix.position.routes.positionRoutes
+import com.kinetix.position.routes.strategyRoutes
+import com.kinetix.position.service.TradeStrategyService
 import com.kinetix.position.persistence.ExposedCollateralBalanceRepository
 import com.kinetix.position.persistence.ExposedNettingSetTradeRepository
 import com.kinetix.position.service.CollateralTrackingService
@@ -155,6 +158,9 @@ fun Application.moduleWithRoutes() {
         tradeEventPublisher = tradeEventPublisher,
         limitCheckService = preTradeCheckService,
     )
+    val tradeStrategyRepository = ExposedTradeStrategyRepository(db)
+    val tradeStrategyService = TradeStrategyService(tradeStrategyRepository)
+
     val positionQueryService = PositionQueryService(positionRepository)
     val tradeLifecycleService = TradeLifecycleService(
         tradeEventRepository = tradeEventRepository,
@@ -272,6 +278,7 @@ fun Application.moduleWithRoutes() {
 
     routing {
         positionRoutes(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository, tradeLifecycleService, portfolioAggregationService)
+        strategyRoutes(tradeStrategyService, tradeBookingService)
         limitRoutes(limitDefinitionRepo, temporaryLimitIncreaseRepo)
         counterpartyRoutes(counterpartyExposureService)
         collateralRoutes(collateralTrackingService)
