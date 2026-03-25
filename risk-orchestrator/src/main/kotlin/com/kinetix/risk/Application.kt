@@ -93,8 +93,12 @@ import com.kinetix.risk.service.HedgeRecommendationService
 import com.kinetix.risk.persistence.ExposedHedgeRecommendationRepository
 import com.kinetix.risk.persistence.ExposedCounterpartyExposureRepository
 import com.kinetix.risk.client.GrpcCounterpartyRiskClient
+import com.kinetix.risk.client.GrpcSaCcrClient
 import com.kinetix.proto.risk.CounterpartyRiskServiceGrpcKt
+import com.kinetix.proto.risk.SaCcrServiceGrpcKt
 import com.kinetix.risk.service.CounterpartyRiskOrchestrationService
+import com.kinetix.risk.service.SaCcrService
+import com.kinetix.risk.routes.saCcrRoutes
 import com.kinetix.risk.simulation.*
 import io.lettuce.core.RedisClient
 import io.grpc.ManagedChannelBuilder
@@ -312,6 +316,13 @@ fun Application.moduleWithRoutes() {
         referenceDataClient = effectiveReferenceDataServiceClient,
         counterpartyRiskClient = grpcCounterpartyRiskClient,
         repository = counterpartyExposureRepository,
+    )
+
+    val saCcrStub = SaCcrServiceGrpcKt.SaCcrServiceCoroutineStub(channel)
+    val grpcSaCcrClient = GrpcSaCcrClient(saCcrStub)
+    val saCcrService = SaCcrService(
+        referenceDataClient = effectiveReferenceDataServiceClient,
+        saCcrClient = grpcSaCcrClient,
     )
 
     launch {
@@ -597,6 +608,7 @@ fun Application.moduleWithRoutes() {
         runComparisonRoutes(runComparisonService, jobRecorder, varAttributionService, effectiveRiskEngineClient, effectivePositionProvider, manifestRepo, blobStore, marketDataQuantDiffer, quantDiffCache, meterRegistry)
         hedgeRecommendationRoutes(hedgeRecommendationService)
         counterpartyRiskRoutes(counterpartyRiskOrchestrationService)
+        saCcrRoutes(saCcrService)
     }
 
     launch {
