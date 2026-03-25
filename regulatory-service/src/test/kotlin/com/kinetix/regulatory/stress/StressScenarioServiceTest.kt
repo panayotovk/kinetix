@@ -1,5 +1,7 @@
 package com.kinetix.regulatory.stress
 
+import com.kinetix.regulatory.client.RiskOrchestratorClient
+import com.kinetix.regulatory.client.StressTestResultDto
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
@@ -16,6 +18,7 @@ class StressScenarioServiceTest : FunSpec({
 
     val repository = mockk<StressScenarioRepository>()
     val resultRepository = mockk<StressTestResultRepository>()
+    val riskOrchestratorClient = mockk<RiskOrchestratorClient>()
     val service = StressScenarioService(repository)
 
     test("creates a scenario in DRAFT status") {
@@ -127,19 +130,52 @@ class StressScenarioServiceTest : FunSpec({
         result shouldHaveSize 2
     }
 
-    test("runScenario computes pnlImpact from shocks and persists result") {
+    test("runScenario delegates pnlImpact computation to the risk-orchestrator client") {
         val id = UUID.randomUUID().toString()
         val scenario = aScenario(id = id, status = ScenarioStatus.APPROVED, shocks = """{"EQ":-0.30,"IR":0.01}""")
-        val serviceWithResultRepo = StressScenarioService(repository, resultRepository)
+        val serviceWithClient = StressScenarioService(repository, resultRepository, riskOrchestratorClient)
         coEvery { repository.findById(id) } returns scenario
         coEvery { resultRepository.save(any()) } returns Unit
+        coEvery { riskOrchestratorClient.runStressTest(any(), any(), any()) } returns
+            StressTestResultDto(pnlImpact = "-300000.00")
 
-        val result = serviceWithResultRepo.runScenario(id, "portfolio-1", null)
+        val result = serviceWithClient.runScenario(id, "portfolio-1", null)
 
         result.scenarioId shouldBe id
         result.bookId shouldBe "portfolio-1"
-        result.pnlImpact shouldBe BigDecimal.valueOf(-0.30 + 0.01)
+        result.pnlImpact shouldBe BigDecimal("-300000.00")
+        coVerify(exactly = 1) { riskOrchestratorClient.runStressTest("portfolio-1", scenario.name, any()) }
         coVerify(exactly = 1) { resultRepository.save(any()) }
+    }
+
+    test("runScenario passes shocks as priceShocks to the risk-orchestrator client") {
+        val id = UUID.randomUUID().toString()
+        val shocks = """{"EQ":-0.30,"IR":0.01}"""
+        val scenario = aScenario(id = id, status = ScenarioStatus.APPROVED, shocks = shocks)
+        val serviceWithClient = StressScenarioService(repository, null, riskOrchestratorClient)
+        coEvery { repository.findById(id) } returns scenario
+        coEvery { riskOrchestratorClient.runStressTest(any(), any(), any()) } returns
+            StressTestResultDto(pnlImpact = "-29000.00")
+
+        serviceWithClient.runScenario(id, "book-A", null)
+
+        coVerify {
+            riskOrchestratorClient.runStressTest(
+                bookId = "book-A",
+                scenarioName = scenario.name,
+                priceShocks = mapOf("EQ" to -0.30, "IR" to 0.01),
+            )
+        }
+    }
+
+    test("runScenario falls back to zero pnlImpact when no risk-orchestrator client is configured") {
+        val id = UUID.randomUUID().toString()
+        val scenario = aScenario(id = id, status = ScenarioStatus.APPROVED, shocks = """{"EQ":-0.10}""")
+        coEvery { repository.findById(id) } returns scenario
+
+        val result = service.runScenario(id, "portfolio-1", null)
+
+        result.pnlImpact shouldBe BigDecimal.ZERO
     }
 
     test("runScenario rejects non-APPROVED scenario") {
@@ -150,16 +186,6 @@ class StressScenarioServiceTest : FunSpec({
         shouldThrow<IllegalStateException> {
             service.runScenario(id, "portfolio-1", null)
         }
-    }
-
-    test("runScenario without resultRepository does not persist") {
-        val id = UUID.randomUUID().toString()
-        val scenario = aScenario(id = id, status = ScenarioStatus.APPROVED, shocks = """{"EQ":-0.10}""")
-        coEvery { repository.findById(id) } returns scenario
-
-        val result = service.runScenario(id, "portfolio-1", null)
-
-        result.pnlImpact shouldBe BigDecimal.valueOf(-0.10)
     }
 })
 
