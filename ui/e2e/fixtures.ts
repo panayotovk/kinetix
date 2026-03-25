@@ -168,6 +168,41 @@ export async function mockRegimeRoutes(
   })
 }
 
+export const TEST_REPORT_TEMPLATES = [
+  {
+    templateId: 'tpl-risk-summary',
+    name: 'Risk Summary',
+    templateType: 'RISK_SUMMARY',
+    ownerUserId: 'SYSTEM',
+    description: 'Per-book VaR and Greeks',
+    source: 'risk_positions_flat',
+  },
+  {
+    templateId: 'tpl-stress-summary',
+    name: 'Stress Test Summary',
+    templateType: 'STRESS_TEST_SUMMARY',
+    ownerUserId: 'SYSTEM',
+    description: 'Stressed P&L by scenario',
+    source: 'stress_test_results',
+  },
+  {
+    templateId: 'tpl-pnl-attribution',
+    name: 'P&L Attribution',
+    templateType: 'PNL_ATTRIBUTION',
+    ownerUserId: 'SYSTEM',
+    description: 'P&L attribution by component',
+    source: 'pnl_attributions',
+  },
+]
+
+export const TEST_REPORT_OUTPUT = {
+  outputId: 'out-test-001',
+  templateId: 'tpl-risk-summary',
+  generatedAt: '2025-01-15T10:00:00Z',
+  outputFormat: 'JSON',
+  rowCount: 2,
+}
+
 /**
  * Sets up route handlers to mock all API endpoints the app calls on startup.
  * This allows Playwright tests to run without a real backend.
@@ -379,6 +414,45 @@ export async function mockAllApiRoutes(page: Page): Promise<void> {
   // Prime broker reconciliation — return empty list by default
   await page.route('**/api/v1/execution/reconciliation/**', (route: Route) => {
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+  })
+
+  // Report routes — register specific routes last so they take priority over wildcards.
+  // Playwright uses the last-registered matching handler.
+
+  // Catch-all for report output by ID
+  await page.route('**/api/v1/reports/*', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(TEST_REPORT_OUTPUT),
+    })
+  })
+
+  // CSV download for a specific output ID (more specific than /*)
+  await page.route('**/api/v1/reports/*/csv', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'text/csv',
+      body: 'book_id,instrument_id,var_contribution\nBOOK-1,AAPL,12345.67',
+    })
+  })
+
+  // Report generate (registered after /*, so takes priority)
+  await page.route('**/api/v1/reports/generate', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(TEST_REPORT_OUTPUT),
+    })
+  })
+
+  // Report templates (most specific, registered last — highest priority)
+  await page.route('**/api/v1/reports/templates', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(TEST_REPORT_TEMPLATES),
+    })
   })
 
   // Note: Playwright's page.route() does NOT intercept WebSocket connections.
