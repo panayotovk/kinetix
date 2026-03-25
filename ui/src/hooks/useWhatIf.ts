@@ -10,6 +10,7 @@ export interface TradeFormEntry {
   quantity: string
   priceAmount: string
   priceCurrency: string
+  bidAskSpreadBps?: string
 }
 
 export type ValidationErrors = Record<number, Record<string, string>>

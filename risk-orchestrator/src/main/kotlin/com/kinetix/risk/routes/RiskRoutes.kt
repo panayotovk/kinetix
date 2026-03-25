@@ -21,6 +21,7 @@ import com.kinetix.risk.service.SodSnapshotService
 import com.kinetix.risk.service.StressLimitCheckService
 import com.kinetix.risk.service.VaRCalculationService
 import com.kinetix.risk.service.ValuationJobRecorder
+import com.kinetix.risk.service.RebalancingWhatIfService
 import com.kinetix.risk.service.WhatIfAnalysisService
 import com.kinetix.risk.routes.dtos.BatchScenarioFailureDto
 import com.kinetix.risk.routes.dtos.BatchScenarioResultDto
@@ -60,6 +61,7 @@ fun Route.riskRoutes(
     regulatoryStub: RegulatoryReportingServiceGrpcKt.RegulatoryReportingServiceCoroutineStub,
     riskEngineClient: RiskEngineClient? = null,
     whatIfAnalysisService: WhatIfAnalysisService? = null,
+    rebalancingWhatIfService: RebalancingWhatIfService? = null,
     pnlAttributionRepository: PnlAttributionRepository? = null,
     sodSnapshotService: SodSnapshotService? = null,
     pnlComputationService: PnlComputationService? = null,
@@ -347,6 +349,34 @@ fun Route.riskRoutes(
 
                 call.respond(result.toResponse())
             }
+        }
+    }
+
+    // Rebalancing what-if route
+    if (rebalancingWhatIfService != null) {
+        post("/api/v1/risk/what-if/{bookId}/rebalance", {
+            summary = "Run rebalancing what-if analysis for a portfolio"
+            tags = listOf("What-If")
+            request {
+                pathParameter<String>("bookId") { description = "Portfolio identifier" }
+                body<com.kinetix.risk.routes.dtos.RebalancingRequestBody>()
+            }
+        }) {
+            val bookId = call.requirePathParam("bookId")
+            val body = call.receive<com.kinetix.risk.routes.dtos.RebalancingRequestBody>()
+
+            val trades = body.trades.map { it.toDomain() }
+            val calcType = CalculationType.valueOf(body.calculationType ?: "PARAMETRIC")
+            val confLevel = ConfidenceLevel.valueOf(body.confidenceLevel ?: "CL_95")
+
+            val result = rebalancingWhatIfService.analyzeRebalancing(
+                bookId = BookId(bookId),
+                trades = trades,
+                calculationType = calcType,
+                confidenceLevel = confLevel,
+            )
+
+            call.respond(result.toResponse())
         }
     }
 

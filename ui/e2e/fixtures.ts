@@ -929,6 +929,58 @@ export async function mockWhatIfAnalysis(page: Page, response: object): Promise<
   })
 }
 
+export const TEST_REBALANCING_RESPONSE = {
+  baseVar: '100000.00',
+  rebalancedVar: '80000.00',
+  varChange: '-20000.00',
+  varChangePct: '-20.00',
+  baseExpectedShortfall: '130000.00',
+  rebalancedExpectedShortfall: '104000.00',
+  esChange: '-26000.00',
+  baseGreeks: null,
+  rebalancedGreeks: null,
+  greeksChange: {
+    deltaChange: '-5000.000000',
+    gammaChange: '-100.000000',
+    vegaChange: '-500.000000',
+    thetaChange: '50.000000',
+    rhoChange: '-20.000000',
+  },
+  tradeContributions: [
+    {
+      instrumentId: 'AAPL',
+      side: 'SELL',
+      quantity: '50',
+      marginalVarImpact: '-12000.00',
+      executionCost: '42.50',
+    },
+    {
+      instrumentId: 'GOOGL',
+      side: 'SELL',
+      quantity: '10',
+      marginalVarImpact: '-8000.00',
+      executionCost: '28.00',
+    },
+  ],
+  estimatedExecutionCost: '70.50',
+  calculatedAt: '2026-03-25T10:00:00Z',
+}
+
+/**
+ * Overrides the rebalancing what-if endpoint to return the given response.
+ * Uses a more specific route pattern so it takes priority over mockAllApiRoutes catch-all.
+ * Call AFTER mockAllApiRoutes.
+ */
+export async function mockRebalancingAnalysis(page: Page, response: object): Promise<void> {
+  await page.route('**/api/v1/risk/what-if/*/rebalance', (route: Route) => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(response),
+    })
+  })
+}
+
 /**
  * Generates deterministic position risk data for an array of positions.
  * Useful for sorting and pagination tests that need many positions with risk.

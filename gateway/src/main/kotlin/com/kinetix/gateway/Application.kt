@@ -22,6 +22,8 @@ import com.kinetix.gateway.dto.*
 import com.kinetix.gateway.routes.backtestProxyRoutes
 import com.kinetix.gateway.routes.dataQualityRoutes
 import com.kinetix.gateway.routes.intradayPnlProxyRoutes
+import com.kinetix.gateway.routes.intradayVaRTimelineProxyRoutes
+import com.kinetix.gateway.routes.volSurfaceRoutes
 import com.kinetix.gateway.routes.dependenciesRoutes
 import com.kinetix.gateway.routes.eodTimelineRoutes
 import com.kinetix.gateway.routes.jobHistoryRoutes
