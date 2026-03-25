@@ -1,15 +1,16 @@
 package com.kinetix.gateway.routes
 
+import com.kinetix.gateway.auth.JwtUserPrincipal
 import com.kinetix.gateway.client.ApproveScenarioParams
 import com.kinetix.gateway.client.CreateScenarioParams
 import com.kinetix.gateway.client.RegulatoryServiceClient
-import com.kinetix.gateway.dto.ApproveScenarioRequest
 import com.kinetix.gateway.dto.CreateScenarioRequest
 import com.kinetix.gateway.dto.toResponse
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.patch
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
+import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -37,11 +38,13 @@ fun Route.stressScenarioRoutes(client: RegulatoryServiceClient) {
             tags = listOf("Stress Scenarios")
         }) {
             val request = call.receive<CreateScenarioRequest>()
+            val principal = call.principal<JwtUserPrincipal>()
+            val createdBy = principal?.user?.userId ?: request.createdBy
             val params = CreateScenarioParams(
                 name = request.name,
                 description = request.description,
                 shocks = request.shocks,
-                createdBy = request.createdBy,
+                createdBy = createdBy,
             )
             val scenario = client.createScenario(params)
             call.respond(HttpStatusCode.Created, scenario.toResponse())
@@ -67,8 +70,10 @@ fun Route.stressScenarioRoutes(client: RegulatoryServiceClient) {
             }
         }) {
             val id = call.requirePathParam("id")
-            val request = call.receive<ApproveScenarioRequest>()
-            val params = ApproveScenarioParams(approvedBy = request.approvedBy)
+            val principal = call.principal<JwtUserPrincipal>()
+            val approvedBy = principal?.user?.userId
+                ?: throw IllegalArgumentException("Approver identity must come from authenticated session")
+            val params = ApproveScenarioParams(approvedBy = approvedBy)
             val scenario = client.approve(id, params)
             call.respond(scenario.toResponse())
         }

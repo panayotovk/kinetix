@@ -420,6 +420,9 @@ fun Application.module(
     positionClient: PositionServiceClient? = null,
     riskClient: RiskServiceClient? = null,
     notificationClient: NotificationServiceClient? = null,
+    regulatoryClient: RegulatoryServiceClient? = null,
+    httpClient: io.ktor.client.HttpClient? = null,
+    auditBaseUrl: String? = null,
 ) {
     module()
     configureJwtAuth(jwtConfig)
@@ -472,6 +475,17 @@ fun Application.module(
             if (notificationClient != null) {
                 requirePermission(Permission.READ_ALERTS) {
                     notificationRoutes(notificationClient)
+                }
+            }
+            if (regulatoryClient != null) {
+                requirePermission(Permission.MANAGE_SCENARIOS) {
+                    stressScenarioRoutes(regulatoryClient)
+                    backtestProxyRoutes(regulatoryClient)
+                }
+            }
+            if (httpClient != null && auditBaseUrl != null) {
+                requirePermission(Permission.READ_AUDIT) {
+                    auditProxyRoutes(httpClient, auditBaseUrl)
                 }
             }
         }
