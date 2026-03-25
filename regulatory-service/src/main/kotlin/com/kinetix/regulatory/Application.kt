@@ -3,11 +3,14 @@ package com.kinetix.regulatory
 import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.regulatory.client.RiskOrchestratorClient
 import com.kinetix.regulatory.dto.ErrorResponse
+import com.kinetix.regulatory.historical.HistoricalScenarioRepository
+import com.kinetix.regulatory.historical.historicalScenarioPeriodRoutes
 import com.kinetix.regulatory.persistence.BacktestResultRepository
 import com.kinetix.regulatory.persistence.DatabaseConfig
 import com.kinetix.regulatory.persistence.DatabaseFactory
 import com.kinetix.regulatory.persistence.ExposedBacktestResultRepository
 import com.kinetix.regulatory.persistence.ExposedFrtbCalculationRepository
+import com.kinetix.regulatory.persistence.ExposedHistoricalScenarioRepository
 import com.kinetix.regulatory.persistence.ExposedStressScenarioRepository
 import com.kinetix.regulatory.persistence.ExposedStressTestResultRepository
 import com.kinetix.regulatory.persistence.FrtbCalculationRepository
@@ -15,6 +18,7 @@ import com.kinetix.regulatory.routes.backtestRoutes
 import com.kinetix.regulatory.service.BacktestComparisonService
 import com.kinetix.regulatory.routes.regulatoryRoutes
 import com.kinetix.regulatory.seed.DevDataSeeder
+import com.kinetix.regulatory.seed.HistoricalScenarioSeeder
 import com.kinetix.regulatory.seed.StressScenarioSeeder
 import com.kinetix.regulatory.stress.StressScenarioRepository
 import com.kinetix.regulatory.stress.StressScenarioService
@@ -96,6 +100,7 @@ fun Application.module(
     backtestRepository: BacktestResultRepository? = null,
     stressScenarioRepository: StressScenarioRepository? = null,
     stressTestResultRepository: StressTestResultRepository? = null,
+    historicalScenarioRepository: HistoricalScenarioRepository? = null,
 ) {
     module()
     routing {
@@ -105,6 +110,9 @@ fun Application.module(
         }
         if (stressScenarioRepository != null) {
             stressScenarioRoutes(StressScenarioService(stressScenarioRepository, stressTestResultRepository))
+        }
+        if (historicalScenarioRepository != null) {
+            historicalScenarioPeriodRoutes(historicalScenarioRepository)
         }
     }
 }
@@ -123,6 +131,7 @@ fun Application.moduleWithRoutes() {
     val backtestRepository = ExposedBacktestResultRepository(db)
     val stressScenarioRepository = ExposedStressScenarioRepository(db)
     val stressTestResultRepository = ExposedStressTestResultRepository(db)
+    val historicalScenarioRepository = ExposedHistoricalScenarioRepository(db)
 
     val riskOrchestratorUrl = environment.config
         .config("services.riskOrchestrator")
@@ -144,7 +153,7 @@ fun Application.moduleWithRoutes() {
         seedComplete = { seedDone.get() },
     )
 
-    module(repository, client, backtestRepository, stressScenarioRepository, stressTestResultRepository)
+    module(repository, client, backtestRepository, stressScenarioRepository, stressTestResultRepository, historicalScenarioRepository)
 
     routing {
         get("/health/ready") {
@@ -163,6 +172,7 @@ fun Application.moduleWithRoutes() {
         launch {
             DevDataSeeder(repository).seed()
             StressScenarioSeeder(stressScenarioRepository).seed()
+            HistoricalScenarioSeeder(historicalScenarioRepository).seed()
             seedDone.set(true)
         }
     } else {
