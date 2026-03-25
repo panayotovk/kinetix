@@ -308,6 +308,14 @@ fun Application.devModule() {
     val regulatoryUrl = servicesConfig.property("regulatory.url").getString()
     val auditUrl = servicesConfig.property("audit.url").getString()
 
+    val jwtCfg = environment.config.config("jwt")
+    val jwtConfig = JwtConfig(
+        issuer = jwtCfg.property("issuer").getString(),
+        audience = jwtCfg.property("audience").getString(),
+        realm = jwtCfg.property("realm").getString(),
+        secret = jwtCfg.property("secret").getString(),
+    )
+
     val jsonConfig = Json { ignoreUnknownKeys = true }
     val httpClient = HttpClient(CIO) {
         install(ClientContentNegotiation) {
@@ -325,57 +333,105 @@ fun Application.devModule() {
     val regulatoryClient = HttpRegulatoryServiceClient(httpClient, regulatoryUrl)
     val priceBroadcaster = PriceBroadcaster()
     val pnlBroadcaster = PnlBroadcaster()
+    val alertBroadcaster = AlertBroadcaster()
 
-    module(positionClient, priceClient, priceBroadcaster, riskClient)
+    module()
+    configureJwtAuth(jwtConfig)
     routing {
-        pnlWebSocket(pnlBroadcaster)
-        intradayPnlProxyRoutes(riskClient)
-        marketRegimeRoutes(riskClient)
-        notificationRoutes(notificationClient)
-        stressScenarioRoutes(regulatoryClient)
-        backtestProxyRoutes(regulatoryClient)
-        instrumentRoutes(httpClient, referenceDataUrl)
-        auditProxyRoutes(httpClient, auditUrl)
-        executionProxyRoutes(httpClient, positionUrl)
-        dataQualityRoutes(httpClient, positionUrl)
-        get("/api/v1/system/health") {
-            val serviceUrls = mapOf(
-                "position-service" to positionUrl,
-                "price-service" to priceUrl,
-                "risk-orchestrator" to riskUrl,
-                "notification-service" to notificationUrl,
-                "rates-service" to ratesUrl,
-                "reference-data-service" to referenceDataUrl,
-                "volatility-service" to volatilityUrl,
-                "correlation-service" to correlationUrl,
-                "regulatory-service" to regulatoryUrl,
-                "audit-service" to auditUrl,
-            )
-            val results = coroutineScope {
-                serviceUrls.map { (name, url) ->
-                    name to async {
-                        try {
-                            val resp = withTimeoutOrNull(5000L) {
-                                httpClient.get("$url/health/ready")
+        // WebSocket routes validate JWT via query parameter
+        priceWebSocket(priceBroadcaster, jwtConfig)
+        pnlWebSocket(pnlBroadcaster, jwtConfig)
+        alertWebSocket(alertBroadcaster, jwtConfig)
+
+        // All HTTP API routes require a valid JWT
+        authenticate("auth-jwt") {
+            requirePermission(Permission.READ_PORTFOLIOS) {
+                positionRoutes(positionClient)
+                priceRoutes(priceClient)
+            }
+            requirePermission(Permission.CALCULATE_RISK) {
+                varRoutes(riskClient)
+                crossBookVaRRoutes(riskClient)
+                hierarchyRiskRoutes(riskClient)
+                riskBudgetRoutes(riskClient)
+                croReportRoutes(riskClient)
+                liquidityRiskRoutes(riskClient)
+                factorRiskRoutes(riskClient)
+                whatIfRoutes(riskClient)
+                positionRiskRoutes(riskClient)
+                dependenciesRoutes(riskClient)
+                sodSnapshotRoutes(riskClient)
+                runComparisonRoutes(riskClient)
+                intradayPnlProxyRoutes(riskClient)
+            }
+            requirePermission(Permission.READ_RISK) {
+                stressTestRoutes(riskClient)
+                jobHistoryRoutes(riskClient)
+                marketRegimeRoutes(riskClient)
+                hedgeRecommendationRoutes(riskClient)
+                counterpartyRiskRoutes(riskClient)
+            }
+            requirePermission(Permission.READ_REGULATORY) {
+                regulatoryRoutes(riskClient)
+                eodTimelineRoutes(riskClient)
+            }
+            requirePermission(Permission.READ_ALERTS) {
+                notificationRoutes(notificationClient)
+            }
+            requirePermission(Permission.MANAGE_SCENARIOS) {
+                stressScenarioRoutes(regulatoryClient)
+                backtestProxyRoutes(regulatoryClient)
+            }
+            requirePermission(Permission.READ_POSITIONS) {
+                instrumentRoutes(httpClient, referenceDataUrl)
+                executionProxyRoutes(httpClient, positionUrl)
+                dataQualityRoutes(httpClient, positionUrl)
+            }
+            requirePermission(Permission.READ_AUDIT) {
+                auditProxyRoutes(httpClient, auditUrl)
+            }
+            // System health is admin-only as it reveals internal service topology
+            requirePermission(Permission.READ_PORTFOLIOS) {
+                get("/api/v1/system/health") {
+                    val serviceUrls = mapOf(
+                        "position-service" to positionUrl,
+                        "price-service" to priceUrl,
+                        "risk-orchestrator" to riskUrl,
+                        "notification-service" to notificationUrl,
+                        "rates-service" to ratesUrl,
+                        "reference-data-service" to referenceDataUrl,
+                        "volatility-service" to volatilityUrl,
+                        "correlation-service" to correlationUrl,
+                        "regulatory-service" to regulatoryUrl,
+                        "audit-service" to auditUrl,
+                    )
+                    val results = coroutineScope {
+                        serviceUrls.map { (name, url) ->
+                            name to async {
+                                try {
+                                    val resp = withTimeoutOrNull(5000L) {
+                                        httpClient.get("$url/health/ready")
+                                    }
+                                    if (resp != null && resp.status == HttpStatusCode.OK) "READY" else "NOT_READY"
+                                } catch (_: Exception) {
+                                    "DOWN"
+                                }
                             }
-                            if (resp != null && resp.status == HttpStatusCode.OK) "READY" else "NOT_READY"
-                        } catch (_: Exception) {
-                            "DOWN"
+                        }.map { (name, deferred) -> name to deferred.await() }
+                    }
+                    val overall = if (results.all { it.second == "READY" }) "UP" else "DEGRADED"
+                    val response = buildJsonObject {
+                        put("status", overall)
+                        putJsonObject("services") {
+                            putJsonObject("gateway") { put("status", "READY") }
+                            for ((name, status) in results) {
+                                putJsonObject(name) { put("status", status) }
+                            }
                         }
                     }
-                }.map { (name, deferred) -> name to deferred.await() }
-            }
-            val overall = if (results.all { it.second == "READY" }) "UP" else "DEGRADED"
-            val response = buildJsonObject {
-                put("status", overall)
-                putJsonObject("services") {
-                    putJsonObject("gateway") { put("status", "READY") }
-                    for ((name, status) in results) {
-                        putJsonObject(name) { put("status", status) }
-                    }
+                    call.respond(response)
                 }
             }
-            call.respond(response)
         }
     }
 
