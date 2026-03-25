@@ -4,23 +4,31 @@ import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.Money
 import com.kinetix.common.model.Side
+import com.kinetix.risk.model.GreeksChange
 import com.kinetix.risk.model.HypotheticalTrade
 import com.kinetix.risk.model.PnlAttribution
 import com.kinetix.risk.model.PositionPnlAttribution
 import com.kinetix.risk.model.PositionRisk
+import com.kinetix.risk.model.RebalancingTrade
+import com.kinetix.risk.model.RebalancingWhatIfResult
 import com.kinetix.risk.model.SodBaseline
 import com.kinetix.risk.model.SodBaselineStatus
+import com.kinetix.risk.model.TradeVarContribution
 import com.kinetix.risk.model.ValuationResult
 import com.kinetix.risk.model.WhatIfResult
 import com.kinetix.risk.routes.dtos.ComponentBreakdownDto
 import com.kinetix.risk.routes.dtos.GreekValuesDto
+import com.kinetix.risk.routes.dtos.GreeksChangeDto
 import com.kinetix.risk.routes.dtos.GreeksResponse
 import com.kinetix.risk.routes.dtos.HypotheticalTradeDto
 import com.kinetix.risk.routes.dtos.PnlAttributionResponse
 import com.kinetix.risk.routes.dtos.PositionPnlAttributionDto
 import com.kinetix.risk.routes.dtos.PositionRiskDto
+import com.kinetix.risk.routes.dtos.RebalancingTradeDto
+import com.kinetix.risk.routes.dtos.RebalancingWhatIfResponse
 import com.kinetix.risk.routes.dtos.SodBaselineStatusResponse
 import com.kinetix.risk.routes.dtos.SodSnapshotResponse
+import com.kinetix.risk.routes.dtos.TradeVarContributionDto
 import com.kinetix.risk.routes.dtos.VaRResultResponse
 import com.kinetix.risk.routes.dtos.WhatIfResponse
 import com.kinetix.proto.risk.FrtbRiskClass
@@ -273,3 +281,74 @@ internal fun com.kinetix.proto.risk.ReverseStressResponse.toReverseStressRespons
         converged = converged,
         calculatedAt = java.time.Instant.ofEpochSecond(calculatedAt.seconds, calculatedAt.nanos.toLong()).toString(),
     )
+
+internal fun RebalancingTradeDto.toDomain() = RebalancingTrade(
+    instrumentId = com.kinetix.common.model.InstrumentId(instrumentId),
+    assetClass = com.kinetix.common.model.AssetClass.valueOf(assetClass),
+    side = com.kinetix.common.model.Side.valueOf(side),
+    quantity = java.math.BigDecimal(quantity),
+    price = com.kinetix.common.model.Money(java.math.BigDecimal(priceAmount), java.util.Currency.getInstance(priceCurrency)),
+    bidAskSpreadBps = bidAskSpreadBps,
+)
+
+internal fun GreeksChange.toDto() = GreeksChangeDto(
+    deltaChange = "%.6f".format(deltaChange),
+    gammaChange = "%.6f".format(gammaChange),
+    vegaChange = "%.6f".format(vegaChange),
+    thetaChange = "%.6f".format(thetaChange),
+    rhoChange = "%.6f".format(rhoChange),
+)
+
+internal fun TradeVarContribution.toDto() = TradeVarContributionDto(
+    instrumentId = instrumentId,
+    side = side,
+    quantity = quantity,
+    marginalVarImpact = "%.2f".format(marginalVarImpact),
+    executionCost = "%.2f".format(executionCost),
+)
+
+internal fun RebalancingWhatIfResult.toResponse() = RebalancingWhatIfResponse(
+    baseVar = "%.2f".format(baseVar),
+    rebalancedVar = "%.2f".format(rebalancedVar),
+    varChange = "%.2f".format(varChange),
+    varChangePct = "%.2f".format(varChangePct),
+    baseExpectedShortfall = "%.2f".format(baseExpectedShortfall),
+    rebalancedExpectedShortfall = "%.2f".format(rebalancedExpectedShortfall),
+    esChange = "%.2f".format(esChange),
+    baseGreeks = baseGreeks?.let { g ->
+        GreeksResponse(
+            bookId = "",
+            assetClassGreeks = g.assetClassGreeks.map { gv ->
+                GreekValuesDto(
+                    assetClass = gv.assetClass.name,
+                    delta = "%.6f".format(gv.delta),
+                    gamma = "%.6f".format(gv.gamma),
+                    vega = "%.6f".format(gv.vega),
+                )
+            },
+            theta = "%.6f".format(g.theta),
+            rho = "%.6f".format(g.rho),
+            calculatedAt = calculatedAt.toString(),
+        )
+    },
+    rebalancedGreeks = rebalancedGreeks?.let { g ->
+        GreeksResponse(
+            bookId = "",
+            assetClassGreeks = g.assetClassGreeks.map { gv ->
+                GreekValuesDto(
+                    assetClass = gv.assetClass.name,
+                    delta = "%.6f".format(gv.delta),
+                    gamma = "%.6f".format(gv.gamma),
+                    vega = "%.6f".format(gv.vega),
+                )
+            },
+            theta = "%.6f".format(g.theta),
+            rho = "%.6f".format(g.rho),
+            calculatedAt = calculatedAt.toString(),
+        )
+    },
+    greeksChange = greeksChange.toDto(),
+    tradeContributions = tradeContributions.map { it.toDto() },
+    estimatedExecutionCost = "%.2f".format(estimatedExecutionCost),
+    calculatedAt = calculatedAt.toString(),
+)
