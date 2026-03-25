@@ -14,6 +14,8 @@ object SodBaselinesTable : Table("sod_baselines") {
     val calculationType = varchar("calculation_type", 50).nullable()
     val varValue = double("var_value").nullable()
     val expectedShortfall = double("expected_shortfall").nullable()
+    /** Foreign key to the locked SOD Greek snapshot for this baseline. Null until the snapshot job completes. */
+    val greekSnapshotId = long("greek_snapshot_id").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }
