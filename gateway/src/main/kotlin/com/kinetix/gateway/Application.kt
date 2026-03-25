@@ -47,8 +47,10 @@ import com.kinetix.gateway.routes.varRoutes
 import com.kinetix.gateway.routes.hedgeRecommendationRoutes
 import com.kinetix.gateway.routes.counterpartyRiskRoutes
 import com.kinetix.gateway.kafka.KafkaIntradayPnlConsumer
+import com.kinetix.gateway.websocket.AlertBroadcaster
 import com.kinetix.gateway.websocket.PnlBroadcaster
 import com.kinetix.gateway.websocket.PriceBroadcaster
+import com.kinetix.gateway.websocket.alertWebSocket
 import com.kinetix.gateway.websocket.pnlWebSocket
 import com.kinetix.gateway.websocket.priceWebSocket
 import io.ktor.client.*
@@ -387,6 +389,30 @@ fun Application.devModule() {
     }
     val pnlKafkaConsumer = KafkaConsumer<String, String>(pnlConsumerProps)
     launch { KafkaIntradayPnlConsumer(pnlKafkaConsumer, pnlBroadcaster).start() }
+}
+
+fun Application.module(jwtConfig: JwtConfig, broadcaster: PriceBroadcaster) {
+    module()
+    configureJwtAuth(jwtConfig)
+    routing {
+        priceWebSocket(broadcaster, jwtConfig)
+    }
+}
+
+fun Application.module(jwtConfig: JwtConfig, broadcaster: PnlBroadcaster) {
+    module()
+    configureJwtAuth(jwtConfig)
+    routing {
+        pnlWebSocket(broadcaster, jwtConfig)
+    }
+}
+
+fun Application.module(jwtConfig: JwtConfig, broadcaster: AlertBroadcaster) {
+    module()
+    configureJwtAuth(jwtConfig)
+    routing {
+        alertWebSocket(broadcaster, jwtConfig)
+    }
 }
 
 fun Application.module(
