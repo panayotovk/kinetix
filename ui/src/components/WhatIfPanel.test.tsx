@@ -449,12 +449,16 @@ describe('WhatIfPanel', () => {
 
     const rebalancingProps = {
       ...defaultProps,
-      rebalancingMode: true,
       rebalancingResult,
     }
 
+    function renderInRebalancingMode(extraProps = {}) {
+      render(<WhatIfPanel {...rebalancingProps} {...extraProps} />)
+      fireEvent.click(screen.getByTestId('whatif-mode-rebalancing'))
+    }
+
     it('renders bid-ask spread input per trade when in rebalancing mode', () => {
-      render(<WhatIfPanel {...rebalancingProps} />)
+      renderInRebalancingMode()
 
       expect(screen.getByTestId('whatif-bid-ask-0')).toBeInTheDocument()
     })
@@ -507,7 +511,7 @@ describe('WhatIfPanel', () => {
     })
 
     it('renders preset rebalancing template buttons', () => {
-      render(<WhatIfPanel {...rebalancingProps} />)
+      renderInRebalancingMode()
 
       expect(screen.getByTestId('whatif-preset-reduce-largest')).toBeInTheDocument()
       expect(screen.getByTestId('whatif-preset-flatten-delta')).toBeInTheDocument()
@@ -516,7 +520,7 @@ describe('WhatIfPanel', () => {
 
     it('calls onApplyPreset with preset name when preset button is clicked', () => {
       const onApplyPreset = vi.fn()
-      render(<WhatIfPanel {...rebalancingProps} onApplyPreset={onApplyPreset} />)
+      renderInRebalancingMode({ onApplyPreset })
 
       fireEvent.click(screen.getByTestId('whatif-preset-reduce-largest'))
 
@@ -525,7 +529,7 @@ describe('WhatIfPanel', () => {
 
     it('calls onApplyPreset with FLATTEN_DELTA when that preset is clicked', () => {
       const onApplyPreset = vi.fn()
-      render(<WhatIfPanel {...rebalancingProps} onApplyPreset={onApplyPreset} />)
+      renderInRebalancingMode({ onApplyPreset })
 
       fireEvent.click(screen.getByTestId('whatif-preset-flatten-delta'))
 
@@ -534,7 +538,7 @@ describe('WhatIfPanel', () => {
 
     it('calls onApplyPreset with ROLL_EXPIRING when that preset is clicked', () => {
       const onApplyPreset = vi.fn()
-      render(<WhatIfPanel {...rebalancingProps} onApplyPreset={onApplyPreset} />)
+      renderInRebalancingMode({ onApplyPreset })
 
       fireEvent.click(screen.getByTestId('whatif-preset-roll-expiring'))
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { X, Plus, Trash2, ArrowDown, ArrowUp } from 'lucide-react'
 import type { WhatIfResponseDto, WhatIfImpactDto, PositionRiskDto, RebalancingResponseDto } from '../types'
 import type { TradeFormEntry, ValidationErrors } from '../hooks/useWhatIf'
@@ -26,8 +26,8 @@ interface WhatIfPanelProps {
   validationErrors?: ValidationErrors
   onCompareInDetail?: () => void
   onRetry?: () => void
-  rebalancingMode?: boolean
   rebalancingResult?: RebalancingResponseDto | null
+  onRebalancingSubmit?: () => void
   onApplyPreset?: (preset: 'REDUCE_LARGEST' | 'FLATTEN_DELTA' | 'ROLL_EXPIRING') => void
 }
 
@@ -94,10 +94,11 @@ export function WhatIfPanel({
   validationErrors = {},
   onCompareInDetail,
   onRetry,
-  rebalancingMode = false,
   rebalancingResult = null,
+  onRebalancingSubmit,
   onApplyPreset,
 }: WhatIfPanelProps) {
+  const [rebalancingMode, setRebalancingMode] = useState(false)
   const firstInputRef = useRef<HTMLInputElement>(null)
 
   const prevOpenRef = useRef(false)
@@ -145,14 +146,42 @@ export function WhatIfPanel({
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-surface-700 bg-slate-50 dark:bg-surface-900">
         <h2 id="whatif-title" className="text-sm font-bold text-slate-800 dark:text-slate-200">What-If Analysis</h2>
-        <button
-          data-testid="whatif-close"
-          aria-label="Close what-if panel"
-          onClick={onClose}
-          className="p-1 rounded hover:bg-slate-200 dark:hover:bg-surface-700 transition-colors"
-        >
-          <X className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-md border border-slate-200 dark:border-surface-600 overflow-hidden text-xs font-medium">
+            <button
+              data-testid="whatif-mode-whatif"
+              aria-pressed={!rebalancingMode}
+              onClick={() => setRebalancingMode(false)}
+              className={`px-2.5 py-1 transition-colors ${
+                !rebalancingMode
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-surface-700'
+              }`}
+            >
+              Scenario
+            </button>
+            <button
+              data-testid="whatif-mode-rebalancing"
+              aria-pressed={rebalancingMode}
+              onClick={() => setRebalancingMode(true)}
+              className={`px-2.5 py-1 transition-colors ${
+                rebalancingMode
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-surface-700'
+              }`}
+            >
+              Rebalancing
+            </button>
+          </div>
+          <button
+            data-testid="whatif-close"
+            aria-label="Close what-if panel"
+            onClick={onClose}
+            className="p-1 rounded hover:bg-slate-200 dark:hover:bg-surface-700 transition-colors"
+          >
+            <X className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+          </button>
+        </div>
       </div>
 
       {/* Scrollable content */}
@@ -695,14 +724,14 @@ export function WhatIfPanel({
         <Button
           data-testid="whatif-run"
           variant="primary"
-          onClick={onSubmit}
+          onClick={rebalancingMode && onRebalancingSubmit ? onRebalancingSubmit : onSubmit}
           loading={loading}
           disabled={loading}
           className="flex-1"
         >
-          Run Analysis
+          {rebalancingMode ? 'Run Rebalancing' : 'Run Analysis'}
         </Button>
-        {result && (
+        {(result || rebalancingResult) && (
           <Button
             data-testid="whatif-reset"
             variant="secondary"

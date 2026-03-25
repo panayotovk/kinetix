@@ -23,6 +23,7 @@ import { useNotifications } from './hooks/useNotifications'
 import { usePositionRisk } from './hooks/usePositionRisk'
 import { useSystemHealth } from './hooks/useSystemHealth'
 import { useWhatIf } from './hooks/useWhatIf'
+import { useRebalancing } from './hooks/useRebalancing'
 import { useStressTest } from './hooks/useStressTest'
 import { useRunAllScenarios } from './hooks/useRunAllScenarios'
 import { useHierarchySummary } from './hooks/useHierarchySummary'
@@ -116,6 +117,7 @@ function App() {
   const notifications = useNotifications()
   const systemHealth = useSystemHealth()
   const whatIf = useWhatIf(effectiveBookId)
+  const rebalancing = useRebalancing()
   const stress = useStressTest(bookId)
   const scenariosAll = useRunAllScenarios(bookId)
   const hierarchySummary = useHierarchySummary(hierarchy.selection)
@@ -440,7 +442,7 @@ function App() {
         onRemoveTrade={whatIf.removeTrade}
         onUpdateTrade={whatIf.updateTrade}
         onSubmit={whatIf.submit}
-        onReset={whatIf.reset}
+        onReset={() => { whatIf.reset(); rebalancing.resetRebalancing() }}
         result={whatIf.result}
         impact={whatIf.impact}
         loading={whatIf.loading}
@@ -451,6 +453,12 @@ function App() {
         onCompareInDetail={() => {
           setWhatIfOpen(false)
           setActiveTab('risk')
+        }}
+        rebalancingResult={rebalancing.rebalancingResult}
+        onRebalancingSubmit={() => {
+          if (effectiveBookId) {
+            rebalancing.submitRebalancing(effectiveBookId, whatIf.trades)
+          }
         }}
       />
     </div>
