@@ -1,5 +1,8 @@
 package com.kinetix.regulatory.stress
 
+import com.kinetix.common.audit.AuditEventType
+import com.kinetix.common.audit.GovernanceAuditEvent
+import com.kinetix.regulatory.audit.GovernanceAuditPublisher
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.double
@@ -11,6 +14,7 @@ import java.util.UUID
 class StressScenarioService(
     private val repository: StressScenarioRepository,
     private val resultRepository: StressTestResultRepository? = null,
+    private val auditPublisher: GovernanceAuditPublisher? = null,
 ) {
 
     suspend fun create(
@@ -67,6 +71,15 @@ class StressScenarioService(
             approvedAt = Instant.now(),
         )
         repository.save(updated)
+        auditPublisher?.publish(
+            GovernanceAuditEvent(
+                eventType = AuditEventType.SCENARIO_APPROVED,
+                userId = approvedBy,
+                userRole = "APPROVER",
+                scenarioId = id,
+                details = scenario.name,
+            )
+        )
         return updated
     }
 
@@ -77,6 +90,15 @@ class StressScenarioService(
         }
         val updated = scenario.copy(status = ScenarioStatus.RETIRED)
         repository.save(updated)
+        auditPublisher?.publish(
+            GovernanceAuditEvent(
+                eventType = AuditEventType.SCENARIO_RETIRED,
+                userId = "SYSTEM",
+                userRole = "SYSTEM",
+                scenarioId = id,
+                details = scenario.name,
+            )
+        )
         return updated
     }
 
@@ -134,6 +156,16 @@ class StressScenarioService(
         )
 
         resultRepository?.save(result)
+        auditPublisher?.publish(
+            GovernanceAuditEvent(
+                eventType = AuditEventType.STRESS_TEST_RUN,
+                userId = "SYSTEM",
+                userRole = "SYSTEM",
+                scenarioId = scenarioId,
+                bookId = bookId,
+                details = "modelVersion=$modelVersion",
+            )
+        )
         return result
     }
 
