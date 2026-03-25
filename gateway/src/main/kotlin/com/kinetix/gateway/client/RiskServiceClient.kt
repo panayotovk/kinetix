@@ -502,4 +502,6 @@ interface RiskServiceClient {
     suspend fun computeCounterpartyCVA(counterpartyId: String): kotlinx.serialization.json.JsonObject?
     suspend fun getKeyRateDurations(bookId: String): kotlinx.serialization.json.JsonObject?
     suspend fun getIntradayVaRTimeline(bookId: String, from: String, to: String): kotlinx.serialization.json.JsonObject?
+    // SA-CCR (BCBS 279) — regulatory capital model, distinct from MC PFE
+    suspend fun getCounterpartySaCcr(counterpartyId: String, collateral: Double = 0.0): kotlinx.serialization.json.JsonObject?
 }

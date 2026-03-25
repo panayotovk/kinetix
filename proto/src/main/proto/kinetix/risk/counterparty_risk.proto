@@ -98,6 +98,52 @@ message CalculateCVAResponse {
 }
 
 // ---------------------------------------------------------------------------
+// CalculateSaCcr (BCBS 279 Standardised Approach for CCR)
+//
+// SA-CCR is the REGULATORY capital model for counterparty credit risk.
+// It is deterministic and formulaic — distinct from the Monte Carlo PFE model.
+// ---------------------------------------------------------------------------
+
+// One position within a netting set, used as input to SA-CCR calculation.
+// Separate from PFEPositionInput to keep the two models clearly delineated.
+message SaCcrPositionInput {
+  string instrument_id = 1;
+  string asset_class = 2;         // "IR", "FX", "EQUITY", "COMMODITY", "CREDIT_IG", "CREDIT_HY"
+  double market_value = 3;        // current mark-to-market in base currency
+  double notional = 4;            // contractual notional (required for IR, FX)
+  string currency = 5;            // ISO 4217 currency code (used as hedging set key for IR)
+  string pay_receive = 6;         // "PAY_FIXED" or "RECEIVE_FIXED" for IR swaps
+  string maturity_date = 7;       // ISO date string for maturity factor; empty → assume 1Y
+  bool is_option = 8;             // true for option positions
+  double spot_price = 9;          // option: underlying spot price
+  double strike = 10;             // option: strike price
+  double implied_vol = 11;        // option: implied volatility
+  int32 expiry_days = 12;         // option: days to expiry
+  string option_type = 13;        // option: "CALL" or "PUT"
+  double quantity = 14;           // option: number of contracts (default 1)
+}
+
+message CalculateSaCcrRequest {
+  string netting_set_id = 1;
+  string counterparty_id = 2;
+  repeated SaCcrPositionInput positions = 3;
+  double collateral_net = 4;      // net collateral held after haircuts; 0 = uncollateralised
+}
+
+// SA-CCR result: EAD = alpha × (RC + PFE).
+// Labelled with "sa_ccr" prefix to prevent confusion with MC PFE results.
+message CalculateSaCcrResponse {
+  string netting_set_id = 1;
+  string counterparty_id = 2;
+  double replacement_cost = 3;    // RC = max(V - C, 0)
+  double pfe_addon = 4;           // SA-CCR regulatory add-on (NOT Monte Carlo PFE)
+  double multiplier = 5;          // exposure multiplier ∈ [0.05, 1]
+  double ead = 6;                 // EAD = 1.4 × (RC + multiplier × AddOn)
+  double alpha = 7;               // regulatory constant = 1.4
+  google.protobuf.Timestamp calculated_at = 8;
+}
+
+// ---------------------------------------------------------------------------
 // Service
 // ---------------------------------------------------------------------------
 
@@ -109,4 +155,11 @@ service CounterpartyRiskService {
   // Credit Valuation Adjustment using discrete tenor approximation.
   // On-demand capable; requires a pre-computed exposure profile from PFE.
   rpc CalculateCVA(CalculateCVARequest) returns (CalculateCVAResponse);
+}
+
+service SaCcrService {
+  // SA-CCR (BCBS 279) regulatory EAD calculation for a netting set.
+  // Deterministic, formulaic — NOT Monte Carlo simulation.
+  // Use for regulatory capital reporting; use CalculatePFE for internal limits.
+  rpc CalculateSaCcr(CalculateSaCcrRequest) returns (CalculateSaCcrResponse);
 }

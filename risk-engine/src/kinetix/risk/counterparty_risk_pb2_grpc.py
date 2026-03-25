@@ -154,3 +154,78 @@ class CounterpartyRiskService(object):
             timeout,
             metadata,
             _registered_method=True)
+
+
+class SaCcrServiceStub(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.CalculateSaCcr = channel.unary_unary(
+                '/kinetix.risk.SaCcrService/CalculateSaCcr',
+                request_serializer=kinetix_dot_risk_dot_counterparty__risk__pb2.CalculateSaCcrRequest.SerializeToString,
+                response_deserializer=kinetix_dot_risk_dot_counterparty__risk__pb2.CalculateSaCcrResponse.FromString,
+                _registered_method=True)
+
+
+class SaCcrServiceServicer(object):
+    """Missing associated documentation comment in .proto file."""
+
+    def CalculateSaCcr(self, request, context):
+        """SA-CCR (BCBS 279) regulatory EAD calculation for a netting set.
+        Deterministic, formulaic — NOT Monte Carlo simulation.
+        Use for regulatory capital reporting; use CalculatePFE for internal limits.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_SaCcrServiceServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'CalculateSaCcr': grpc.unary_unary_rpc_method_handler(
+                    servicer.CalculateSaCcr,
+                    request_deserializer=kinetix_dot_risk_dot_counterparty__risk__pb2.CalculateSaCcrRequest.FromString,
+                    response_serializer=kinetix_dot_risk_dot_counterparty__risk__pb2.CalculateSaCcrResponse.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'kinetix.risk.SaCcrService', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('kinetix.risk.SaCcrService', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class SaCcrService(object):
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def CalculateSaCcr(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/kinetix.risk.SaCcrService/CalculateSaCcr',
+            kinetix_dot_risk_dot_counterparty__risk__pb2.CalculateSaCcrRequest.SerializeToString,
+            kinetix_dot_risk_dot_counterparty__risk__pb2.CalculateSaCcrResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
