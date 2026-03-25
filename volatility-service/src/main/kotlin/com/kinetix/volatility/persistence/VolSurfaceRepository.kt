@@ -8,4 +8,5 @@ interface VolSurfaceRepository {
     suspend fun save(surface: VolSurface)
     suspend fun findLatest(instrumentId: InstrumentId): VolSurface?
     suspend fun findByTimeRange(instrumentId: InstrumentId, from: Instant, to: Instant): List<VolSurface>
+    suspend fun findAtOrBefore(instrumentId: InstrumentId, asOf: Instant): VolSurface?
 }
