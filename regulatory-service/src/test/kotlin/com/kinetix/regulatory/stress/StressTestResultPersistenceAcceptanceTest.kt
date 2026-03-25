@@ -1,6 +1,7 @@
 package com.kinetix.regulatory.stress
 
 import com.kinetix.regulatory.client.RiskOrchestratorClient
+import com.kinetix.regulatory.client.StressTestResultDto
 import com.kinetix.regulatory.module
 import com.kinetix.regulatory.persistence.DatabaseTestSetup
 import com.kinetix.regulatory.persistence.ExposedFrtbCalculationRepository
@@ -15,6 +16,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
+import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.serialization.json.*
 import org.jetbrains.exposed.sql.deleteAll
@@ -37,7 +39,10 @@ class StressTestResultPersistenceAcceptanceTest : BehaviorSpec({
 
     given("an approved stress scenario") {
         `when`("POST /{id}/run is called") {
-            then("returns 201 with result and persists to database") {
+            then("returns 201 with engine-computed pnlImpact and persists to database") {
+                coEvery { riskClient.runStressTest(any(), any(), any()) } returns
+                    StressTestResultDto(pnlImpact = "-300000.00")
+
                 testApplication {
                     application {
                         module(
@@ -123,9 +128,15 @@ class StressTestResultPersistenceAcceptanceTest : BehaviorSpec({
         }
     }
 
-    given("an approved scenario with multiple shock factors") {
+    given("an approved scenario for an equity book with a -30% shock and a 1% rate shock") {
         `when`("POST /{id}/run is called") {
-            then("pnlImpact sums the shock factors") {
+            then("pnlImpact reflects the risk-engine valuation, not the raw sum of shock values") {
+                // A portfolio with $1M in equities under a -30% shock should produce
+                // approximately -$300K of P&L impact -- not -0.29 (the raw shock sum).
+                val engineComputedPnl = "-295000.00"
+                coEvery { riskClient.runStressTest(any(), any(), any()) } returns
+                    StressTestResultDto(pnlImpact = engineComputedPnl)
+
                 testApplication {
                     application {
                         module(
@@ -164,9 +175,15 @@ class StressTestResultPersistenceAcceptanceTest : BehaviorSpec({
                     runResponse.status shouldBe HttpStatusCode.Created
                     val body = Json.parseToJsonElement(runResponse.bodyAsText()).jsonObject
                     body["modelVersion"]?.jsonPrimitive?.content shouldBe "v1.0"
-                    // EQ(-0.30) + IR(0.01) = -0.29
-                    val pnlImpact = body["pnlImpact"]?.jsonPrimitive?.content?.toDoubleOrNull()
-                    pnlImpact shouldNotBe null
+
+                    val pnlImpact = body["pnlImpact"]?.jsonPrimitive?.content
+                    pnlImpact shouldBe engineComputedPnl
+
+                    // Explicitly assert the result is position-scaled, not a raw shock sum.
+                    // The raw sum would be -0.29; the engine result is orders of magnitude larger.
+                    val pnlDouble = pnlImpact?.toDouble()
+                    pnlDouble shouldNotBe null
+                    (pnlDouble!! < -1.0) shouldBe true
                 }
             }
         }

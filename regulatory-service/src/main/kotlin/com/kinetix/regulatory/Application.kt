@@ -116,7 +116,7 @@ fun Application.module(
             backtestRoutes(backtestRepository, BacktestComparisonService(backtestRepository))
         }
         if (stressScenarioRepository != null) {
-            stressScenarioRoutes(StressScenarioService(stressScenarioRepository, stressTestResultRepository), client)
+            stressScenarioRoutes(StressScenarioService(stressScenarioRepository, stressTestResultRepository, client), client)
         }
         if (historicalScenarioRepository != null) {
             val replayService = HistoricalReplayService(historicalScenarioRepository, client)
