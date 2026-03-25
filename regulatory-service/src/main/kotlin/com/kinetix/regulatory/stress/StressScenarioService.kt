@@ -1,5 +1,6 @@
 package com.kinetix.regulatory.stress
 
+import com.kinetix.regulatory.client.RiskOrchestratorClient
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.double
@@ -11,6 +12,7 @@ import java.util.UUID
 class StressScenarioService(
     private val repository: StressScenarioRepository,
     private val resultRepository: StressTestResultRepository? = null,
+    private val riskOrchestratorClient: RiskOrchestratorClient? = null,
 ) {
 
     suspend fun create(
@@ -119,7 +121,7 @@ class StressScenarioService(
             throw IllegalStateException("Can only run APPROVED scenarios, current: ${scenario.status}")
         }
 
-        val pnlImpact = computePnlImpact(scenario.shocks)
+        val pnlImpact = computePnlImpact(bookId, scenario)
         val result = StressTestResult(
             id = UUID.randomUUID().toString(),
             scenarioId = scenarioId,
@@ -137,32 +139,23 @@ class StressScenarioService(
         return result
     }
 
-    /**
-     * Estimates aggregate P&L impact from a JSON shock map by summing the raw shock values.
-     *
-     * This is an intentional approximation.  The regulatory-service does not hold position
-     * data — positions live in the position-service and are loaded on demand by the
-     * risk-orchestrator at calculation time.  A proper P&L impact would be:
-     *
-     *   sum_i(position_market_value_i * shock_for_asset_class_i)
-     *
-     * That calculation requires routing through the risk-orchestrator gRPC call to the
-     * risk-engine (StressTestService.RunStressTest), which returns per-position impacts.
-     * The `runScenario` endpoint in StressScenarioRoutes is the governance trigger for
-     * saving a result record; the actual mark-to-scenario calculation happens at the
-     * risk-orchestrator level via the `/api/v1/risk/stress/{bookId}` route.
-     *
-     * TODO: wire runScenario through RiskOrchestratorClient.runStressTest once the
-     * position-service client is available here, replacing this summation with the
-     * engine-computed pnlImpact from StressTestResponse.
-     */
-    private fun computePnlImpact(shocksJson: String): BigDecimal {
+    private suspend fun computePnlImpact(bookId: String, scenario: StressScenario): BigDecimal {
+        val client = riskOrchestratorClient ?: return BigDecimal.ZERO
+        val priceShocks = parseShocks(scenario.shocks)
+        val result = client.runStressTest(
+            bookId = bookId,
+            scenarioName = scenario.name,
+            priceShocks = priceShocks,
+        )
+        return runCatching { BigDecimal(result.pnlImpact) }.getOrDefault(BigDecimal.ZERO)
+    }
+
+    private fun parseShocks(shocksJson: String): Map<String, Double> {
         val parsed = runCatching { Json.parseToJsonElement(shocksJson) as? JsonObject }.getOrNull()
-            ?: return BigDecimal.ZERO
-        val totalShock = parsed.values.sumOf { element ->
-            runCatching { element.jsonPrimitive.double }.getOrDefault(0.0)
-        }
-        return BigDecimal.valueOf(totalShock)
+            ?: return emptyMap()
+        return parsed.entries.mapNotNull { (key, element) ->
+            runCatching { key to element.jsonPrimitive.double }.getOrNull()
+        }.toMap()
     }
 
     private suspend fun findOrThrow(id: String): StressScenario =

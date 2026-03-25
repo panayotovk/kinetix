@@ -28,6 +28,12 @@ private data class ReverseStressRequestBody(
     val maxShock: Double,
 )
 
+@Serializable
+private data class StressTestRequestBody(
+    val scenarioName: String,
+    val priceShocks: Map<String, Double>? = null,
+)
+
 class RiskOrchestratorClient(
     private val httpClient: HttpClient,
     private val baseUrl: String,
@@ -66,6 +72,19 @@ class RiskOrchestratorClient(
     ): ReverseStressResultResponse {
         val body = ReverseStressRequestBody(targetLoss = targetLoss, maxShock = maxShock)
         val response = httpClient.post("$baseUrl/api/v1/risk/stress/$bookId/reverse") {
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }
+        return response.body()
+    }
+
+    suspend fun runStressTest(
+        bookId: String,
+        scenarioName: String,
+        priceShocks: Map<String, Double>,
+    ): StressTestResultDto {
+        val body = StressTestRequestBody(scenarioName = scenarioName, priceShocks = priceShocks)
+        val response = httpClient.post("$baseUrl/api/v1/risk/stress/$bookId") {
             contentType(ContentType.Application.Json)
             setBody(body)
         }
