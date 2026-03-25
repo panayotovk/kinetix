@@ -8,6 +8,7 @@ import { PnlTickerStrip } from './PnlTickerStrip'
 import { IntradayPnlChart } from './IntradayPnlChart'
 import { PnlWaterfallChart } from './PnlWaterfallChart'
 import { PnlAttributionTable } from './PnlAttributionTable'
+import { BenchmarkAttributionSection } from './BenchmarkAttributionSection'
 import { SodBaselineIndicator } from './SodBaselineIndicator'
 import { JobPickerDialog } from './JobPickerDialog'
 import { ConfirmDialog } from './ui/ConfirmDialog'
@@ -179,6 +180,10 @@ export function PnlTab({ bookId }: PnlTabProps) {
             <PnlAttributionTable data={data} />
           </Card>
         </>
+      )}
+
+      {bookId && (
+        <BenchmarkAttributionSection bookId={bookId} />
       )}
 
       {bookId && (

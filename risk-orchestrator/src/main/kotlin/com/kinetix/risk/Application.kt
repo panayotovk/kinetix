@@ -47,6 +47,7 @@ import com.kinetix.risk.persistence.RiskDatabaseFactory
 import com.kinetix.common.health.CheckResult
 import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.common.kafka.ConsumerLivenessTracker
+import com.kinetix.risk.routes.benchmarkAttributionRoutes
 import com.kinetix.risk.routes.crossBookVaRRoutes
 import com.kinetix.risk.routes.croReportRoutes
 import com.kinetix.risk.routes.hierarchyRiskRoutes
@@ -106,6 +107,10 @@ import com.kinetix.risk.client.GrpcCounterpartyRiskClient
 import com.kinetix.risk.client.GrpcSaCcrClient
 import com.kinetix.proto.risk.CounterpartyRiskServiceGrpcKt
 import com.kinetix.proto.risk.SaCcrServiceGrpcKt
+import com.kinetix.proto.risk.AttributionServiceGrpcKt
+import com.kinetix.risk.client.GrpcAttributionClient
+import com.kinetix.risk.client.HttpBenchmarkServiceClient
+import com.kinetix.risk.service.BenchmarkAttributionService
 import com.kinetix.risk.service.CounterpartyRiskOrchestrationService
 import com.kinetix.risk.service.SaCcrService
 import com.kinetix.risk.routes.saCcrRoutes
@@ -318,6 +323,15 @@ fun Application.moduleWithRoutes() {
         referenceDataClient = effectiveReferenceDataServiceClient,
         grpcLiquidityClient = grpcLiquidityClient,
         repository = liquidityRiskSnapshotRepository,
+    )
+
+    val attributionServiceCoroutineStub = AttributionServiceGrpcKt.AttributionServiceCoroutineStub(channel)
+    val grpcAttributionClient = GrpcAttributionClient(attributionServiceCoroutineStub)
+    val benchmarkServiceClient = HttpBenchmarkServiceClient(priceHttpClient, referenceDataServiceBaseUrl)
+    val benchmarkAttributionService = BenchmarkAttributionService(
+        positionProvider = effectivePositionProvider,
+        benchmarkServiceClient = benchmarkServiceClient,
+        attributionEngineClient = grpcAttributionClient,
     )
 
     val counterpartyRiskServiceCoroutineStub = CounterpartyRiskServiceGrpcKt.CounterpartyRiskServiceCoroutineStub(channel)
@@ -635,12 +649,14 @@ fun Application.moduleWithRoutes() {
         runComparisonRoutes(runComparisonService, jobRecorder, varAttributionService, effectiveRiskEngineClient, effectivePositionProvider, manifestRepo, blobStore, marketDataQuantDiffer, quantDiffCache, meterRegistry)
         hedgeRecommendationRoutes(hedgeRecommendationService)
         counterpartyRiskRoutes(counterpartyRiskOrchestrationService)
+<<<<<<< HEAD
         saCcrRoutes(saCcrService)
 
         val reportRepository = ExposedReportRepository(riskDb)
         val reportQueryExecutor = JdbcReportQueryExecutor(RiskDatabaseFactory.dataSource)
         val reportService = ReportService(reportRepository, reportQueryExecutor)
         reportRoutes(reportService)
+        benchmarkAttributionRoutes(benchmarkAttributionService)
     }
 
     launch {

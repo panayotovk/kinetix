@@ -19,6 +19,7 @@ import com.kinetix.gateway.client.PositionServiceClient
 import com.kinetix.gateway.client.PriceServiceClient
 import com.kinetix.gateway.client.RegulatoryServiceClient
 import com.kinetix.gateway.client.RiskServiceClient
+import com.kinetix.gateway.client.VolatilityServiceClient
 import com.kinetix.gateway.dto.*
 import com.kinetix.gateway.routes.backtestProxyRoutes
 import com.kinetix.gateway.routes.dataQualityRoutes
@@ -52,12 +53,12 @@ import com.kinetix.gateway.routes.liquidityRiskRoutes
 import com.kinetix.gateway.routes.marketRegimeRoutes
 import com.kinetix.gateway.routes.varRoutes
 import com.kinetix.gateway.routes.hedgeRecommendationRoutes
+import com.kinetix.gateway.routes.benchmarkAttributionRoutes
 import com.kinetix.gateway.routes.counterpartyRiskRoutes
+import com.kinetix.gateway.routes.intradayVaRTimelineProxyRoutes
 import com.kinetix.gateway.routes.keyRateDurationRoutes
 import com.kinetix.gateway.routes.saCcrRoutes
 import com.kinetix.gateway.audit.GovernanceAuditPublisher
-import com.kinetix.gateway.routes.intradayVaRTimelineProxyRoutes
-import com.kinetix.gateway.routes.volSurfaceRoutes
 import com.kinetix.gateway.routes.reportProxyRoutes
 import com.kinetix.gateway.client.HttpVolatilityServiceClient
 import com.kinetix.gateway.kafka.KafkaIntradayPnlConsumer
@@ -234,6 +235,7 @@ fun Application.module(riskClient: RiskServiceClient) {
         keyRateDurationRoutes(riskClient)
         saCcrRoutes(riskClient)
         reportProxyRoutes(riskClient)
+        benchmarkAttributionRoutes(riskClient)
     }
 }
 
@@ -281,7 +283,11 @@ fun Application.module(
         hedgeRecommendationRoutes(riskClient)
         counterpartyRiskRoutes(riskClient)
         keyRateDurationRoutes(riskClient)
+<<<<<<< HEAD
         saCcrRoutes(riskClient)
+=======
+        benchmarkAttributionRoutes(riskClient)
+>>>>>>> worktree-agent-a4317527
     }
 }
 
@@ -289,6 +295,13 @@ fun Application.module(notificationClient: NotificationServiceClient) {
     module()
     routing {
         notificationRoutes(notificationClient)
+    }
+}
+
+fun Application.moduleWithVolSurface(volatilityClient: VolatilityServiceClient) {
+    module()
+    routing {
+        volSurfaceRoutes(volatilityClient)
     }
 }
 
@@ -400,6 +413,7 @@ fun Application.devModule() {
                 intradayPnlProxyRoutes(riskClient)
                 intradayVaRTimelineProxyRoutes(riskClient)
                 reportProxyRoutes(riskClient)
+                benchmarkAttributionRoutes(riskClient)
             }
             requirePermission(Permission.READ_RISK) {
                 stressTestRoutes(riskClient)
