@@ -84,6 +84,15 @@ class ExposedHistoricalScenarioRepository(private val db: Database? = null) : Hi
                 .map { it.toReturn() }
         }
 
+    override suspend fun findAllReturns(periodId: String): List<HistoricalScenarioReturn> =
+        newSuspendedTransaction(db = db) {
+            HistoricalScenarioReturnsTable
+                .selectAll()
+                .where { HistoricalScenarioReturnsTable.periodId eq periodId }
+                .orderBy(HistoricalScenarioReturnsTable.returnDate)
+                .map { it.toReturn() }
+        }
+
     private fun org.jetbrains.exposed.sql.ResultRow.toPeriod() = HistoricalScenarioPeriod(
         periodId = this[HistoricalScenarioPeriodsTable.periodId],
         name = this[HistoricalScenarioPeriodsTable.name],

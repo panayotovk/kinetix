@@ -6,4 +6,5 @@ interface HistoricalScenarioRepository {
     suspend fun findAllPeriods(): List<HistoricalScenarioPeriod>
     suspend fun findPeriodById(periodId: String): HistoricalScenarioPeriod?
     suspend fun findReturns(periodId: String, instrumentIds: List<String>): List<HistoricalScenarioReturn>
+    suspend fun findAllReturns(periodId: String): List<HistoricalScenarioReturn>
 }

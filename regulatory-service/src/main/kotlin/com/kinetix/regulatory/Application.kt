@@ -3,6 +3,7 @@ package com.kinetix.regulatory
 import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.regulatory.client.RiskOrchestratorClient
 import com.kinetix.regulatory.dto.ErrorResponse
+import com.kinetix.regulatory.historical.HistoricalReplayService
 import com.kinetix.regulatory.historical.HistoricalScenarioRepository
 import com.kinetix.regulatory.historical.historicalScenarioPeriodRoutes
 import com.kinetix.regulatory.persistence.BacktestResultRepository
@@ -75,6 +76,12 @@ fun Application.module() {
                 ErrorResponse(error = "Bad Request", message = cause.message ?: "Invalid request"),
             )
         }
+        exception<NoSuchElementException> { call, cause ->
+            call.respond(
+                HttpStatusCode.NotFound,
+                ErrorResponse(error = "Not Found", message = cause.message ?: "Resource not found"),
+            )
+        }
         exception<Throwable> { call, cause ->
             call.respond(
                 HttpStatusCode.InternalServerError,
@@ -109,10 +116,11 @@ fun Application.module(
             backtestRoutes(backtestRepository, BacktestComparisonService(backtestRepository))
         }
         if (stressScenarioRepository != null) {
-            stressScenarioRoutes(StressScenarioService(stressScenarioRepository, stressTestResultRepository))
+            stressScenarioRoutes(StressScenarioService(stressScenarioRepository, stressTestResultRepository), client)
         }
         if (historicalScenarioRepository != null) {
-            historicalScenarioPeriodRoutes(historicalScenarioRepository)
+            val replayService = HistoricalReplayService(historicalScenarioRepository, client)
+            historicalScenarioPeriodRoutes(historicalScenarioRepository, replayService)
         }
     }
 }
