@@ -9,6 +9,7 @@ data class ModelVersionResponse(
     val version: String,
     val status: String,
     val parameters: String,
+    val registeredBy: String,
     val approvedBy: String?,
     val approvedAt: String?,
     val createdAt: String,

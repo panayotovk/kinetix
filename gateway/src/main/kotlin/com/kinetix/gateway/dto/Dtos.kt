@@ -1057,7 +1057,7 @@ data class CreateScenarioRequest(
     val name: String,
     val description: String,
     val shocks: String,
-    val createdBy: String,
+    val createdBy: String = "",
 )
 
 @Serializable

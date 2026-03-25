@@ -1,5 +1,7 @@
 package com.kinetix.gateway.routes
 
+import com.kinetix.common.security.Role
+import com.kinetix.gateway.auth.TestJwtHelper
 import com.kinetix.gateway.client.*
 import com.kinetix.gateway.module
 import io.kotest.core.spec.style.FunSpec
@@ -26,6 +28,9 @@ private val sampleScenario = StressScenarioItem(
 class StressScenarioRoutesTest : FunSpec({
 
     val regulatoryClient = mockk<RegulatoryServiceClient>()
+    val jwtConfig = TestJwtHelper.testJwtConfig()
+    val riskManagerToken = TestJwtHelper.generateToken(userId = "head@kinetix.com", roles = listOf(Role.RISK_MANAGER))
+    val analystToken = TestJwtHelper.generateToken(userId = "analyst@kinetix.com", roles = listOf(Role.RISK_MANAGER))
 
     beforeEach {
         clearMocks(regulatoryClient)
@@ -35,8 +40,10 @@ class StressScenarioRoutesTest : FunSpec({
         coEvery { regulatoryClient.listScenarios() } returns listOf(sampleScenario)
 
         testApplication {
-            application { module(regulatoryClient) }
-            val response = client.get("/api/v1/stress-scenarios")
+            application { module(jwtConfig, regulatoryClient = regulatoryClient) }
+            val response = client.get("/api/v1/stress-scenarios") {
+                header(HttpHeaders.Authorization, "Bearer $riskManagerToken")
+            }
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
             body.size shouldBe 1
@@ -51,8 +58,10 @@ class StressScenarioRoutesTest : FunSpec({
         coEvery { regulatoryClient.listApprovedScenarios() } returns listOf(approved)
 
         testApplication {
-            application { module(regulatoryClient) }
-            val response = client.get("/api/v1/stress-scenarios/approved")
+            application { module(jwtConfig, regulatoryClient = regulatoryClient) }
+            val response = client.get("/api/v1/stress-scenarios/approved") {
+                header(HttpHeaders.Authorization, "Bearer $riskManagerToken")
+            }
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
             body.size shouldBe 1
@@ -60,19 +69,22 @@ class StressScenarioRoutesTest : FunSpec({
         }
     }
 
-    test("POST /api/v1/stress-scenarios creates scenario") {
-        coEvery { regulatoryClient.createScenario(any()) } returns sampleScenario
+    test("POST /api/v1/stress-scenarios creates scenario and uses JWT principal as createdBy") {
+        val capturedParams = slot<CreateScenarioParams>()
+        coEvery { regulatoryClient.createScenario(capture(capturedParams)) } returns sampleScenario
 
         testApplication {
-            application { module(regulatoryClient) }
+            application { module(jwtConfig, regulatoryClient = regulatoryClient) }
             val response = client.post("/api/v1/stress-scenarios") {
+                header(HttpHeaders.Authorization, "Bearer $analystToken")
                 contentType(ContentType.Application.Json)
-                setBody("""{"name":"GFC Replay","description":"2008 crisis replay","shocks":"{}","createdBy":"analyst@kinetix.com"}""")
+                setBody("""{"name":"GFC Replay","description":"2008 crisis replay","shocks":"{}"}""")
             }
             response.status shouldBe HttpStatusCode.Created
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
             body["id"]?.jsonPrimitive?.content shouldBe "scenario-1"
             body["name"]?.jsonPrimitive?.content shouldBe "GFC Replay"
+            capturedParams.captured.createdBy shouldBe "analyst@kinetix.com"
         }
     }
 
@@ -81,28 +93,33 @@ class StressScenarioRoutesTest : FunSpec({
         coEvery { regulatoryClient.submitForApproval("scenario-1") } returns submitted
 
         testApplication {
-            application { module(regulatoryClient) }
-            val response = client.patch("/api/v1/stress-scenarios/scenario-1/submit")
+            application { module(jwtConfig, regulatoryClient = regulatoryClient) }
+            val response = client.patch("/api/v1/stress-scenarios/scenario-1/submit") {
+                header(HttpHeaders.Authorization, "Bearer $riskManagerToken")
+            }
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
             body["status"]?.jsonPrimitive?.content shouldBe "PENDING_APPROVAL"
         }
     }
 
-    test("PATCH /api/v1/stress-scenarios/{id}/approve approves scenario") {
+    test("PATCH /api/v1/stress-scenarios/{id}/approve uses JWT principal as approvedBy") {
         val approved = sampleScenario.copy(status = "APPROVED", approvedBy = "head@kinetix.com")
-        coEvery { regulatoryClient.approve("scenario-1", any()) } returns approved
+        val capturedParams = slot<ApproveScenarioParams>()
+        coEvery { regulatoryClient.approve("scenario-1", capture(capturedParams)) } returns approved
 
         testApplication {
-            application { module(regulatoryClient) }
+            application { module(jwtConfig, regulatoryClient = regulatoryClient) }
             val response = client.patch("/api/v1/stress-scenarios/scenario-1/approve") {
+                header(HttpHeaders.Authorization, "Bearer $riskManagerToken")
                 contentType(ContentType.Application.Json)
-                setBody("""{"approvedBy":"head@kinetix.com"}""")
+                setBody("{}")
             }
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
             body["status"]?.jsonPrimitive?.content shouldBe "APPROVED"
             body["approvedBy"]?.jsonPrimitive?.content shouldBe "head@kinetix.com"
+            capturedParams.captured.approvedBy shouldBe "head@kinetix.com"
         }
     }
 
@@ -111,8 +128,10 @@ class StressScenarioRoutesTest : FunSpec({
         coEvery { regulatoryClient.retire("scenario-1") } returns retired
 
         testApplication {
-            application { module(regulatoryClient) }
-            val response = client.patch("/api/v1/stress-scenarios/scenario-1/retire")
+            application { module(jwtConfig, regulatoryClient = regulatoryClient) }
+            val response = client.patch("/api/v1/stress-scenarios/scenario-1/retire") {
+                header(HttpHeaders.Authorization, "Bearer $riskManagerToken")
+            }
             response.status shouldBe HttpStatusCode.OK
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
             body["status"]?.jsonPrimitive?.content shouldBe "RETIRED"

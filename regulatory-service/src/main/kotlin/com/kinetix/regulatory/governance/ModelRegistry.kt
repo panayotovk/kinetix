@@ -12,13 +12,14 @@ class ModelRegistry(private val repository: ModelVersionRepository) {
         ModelVersionStatus.RETIRED to emptySet(),
     )
 
-    suspend fun register(modelName: String, version: String, parameters: String): ModelVersion {
+    suspend fun register(modelName: String, version: String, parameters: String, registeredBy: String): ModelVersion {
         val modelVersion = ModelVersion(
             id = UUID.randomUUID().toString(),
             modelName = modelName,
             version = version,
             status = ModelVersionStatus.DRAFT,
             parameters = parameters,
+            registeredBy = registeredBy,
             approvedBy = null,
             approvedAt = null,
             createdAt = Instant.now(),
@@ -43,6 +44,12 @@ class ModelRegistry(private val repository: ModelVersionRepository) {
         if (targetStatus !in allowed) {
             throw IllegalStateException(
                 "Cannot transition from ${model.status} to $targetStatus"
+            )
+        }
+
+        if (targetStatus == ModelVersionStatus.APPROVED && approvedBy == model.registeredBy) {
+            throw IllegalArgumentException(
+                "Self-approval is not permitted: approvedBy and registeredBy cannot be the same user"
             )
         }
 

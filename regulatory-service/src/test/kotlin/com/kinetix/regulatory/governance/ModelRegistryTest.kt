@@ -25,6 +25,7 @@ class ModelRegistryTest : FunSpec({
             modelName = "HistoricalVaR",
             version = "1.0.0",
             parameters = """{"window":250,"confidenceLevel":0.99}""",
+            registeredBy = "analyst-1",
         )
 
         result.modelName shouldBe "HistoricalVaR"
@@ -124,6 +125,28 @@ class ModelRegistryTest : FunSpec({
             service.transitionStatus("non-existent", ModelVersionStatus.VALIDATED, approvedBy = null)
         }
     }
+
+    test("rejects approval when approvedBy matches registeredBy (self-approval prevention)") {
+        val id = UUID.randomUUID().toString()
+        val model = aModelVersion(id = id, status = ModelVersionStatus.VALIDATED, registeredBy = "analyst-1")
+        coEvery { repository.findById(id) } returns model
+
+        shouldThrow<IllegalArgumentException> {
+            service.transitionStatus(id, ModelVersionStatus.APPROVED, approvedBy = "analyst-1")
+        }
+    }
+
+    test("allows approval when approvedBy differs from registeredBy") {
+        val id = UUID.randomUUID().toString()
+        val model = aModelVersion(id = id, status = ModelVersionStatus.VALIDATED, registeredBy = "analyst-1")
+        coEvery { repository.findById(id) } returns model
+        coEvery { repository.save(any()) } returns Unit
+
+        val result = service.transitionStatus(id, ModelVersionStatus.APPROVED, approvedBy = "risk-manager-1")
+
+        result.status shouldBe ModelVersionStatus.APPROVED
+        result.approvedBy shouldBe "risk-manager-1"
+    }
 })
 
 private fun aModelVersion(
@@ -132,6 +155,7 @@ private fun aModelVersion(
     version: String = "1.0.0",
     status: ModelVersionStatus = ModelVersionStatus.DRAFT,
     parameters: String = "{}",
+    registeredBy: String = "default-user",
     approvedBy: String? = null,
     approvedAt: Instant? = null,
     createdAt: Instant = Instant.now(),
@@ -141,6 +165,7 @@ private fun aModelVersion(
     version = version,
     status = status,
     parameters = parameters,
+    registeredBy = registeredBy,
     approvedBy = approvedBy,
     approvedAt = approvedAt,
     createdAt = createdAt,

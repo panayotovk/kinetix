@@ -1,12 +1,17 @@
 package com.kinetix.gateway.websocket
 
+import com.kinetix.gateway.auth.JwtConfig
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.serialization.json.Json
 
-fun Route.priceWebSocket(broadcaster: PriceBroadcaster) {
+fun Route.priceWebSocket(broadcaster: PriceBroadcaster, jwtConfig: JwtConfig? = null) {
     webSocket("/ws/prices") {
+        if (jwtConfig != null && call.validateWebSocketToken(jwtConfig) == null) {
+            close(WEBSOCKET_UNAUTHORIZED_CLOSE)
+            return@webSocket
+        }
         try {
             for (frame in incoming) {
                 if (frame is Frame.Text) {
