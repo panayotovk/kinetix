@@ -50,6 +50,10 @@ import com.kinetix.gateway.routes.varRoutes
 import com.kinetix.gateway.routes.hedgeRecommendationRoutes
 import com.kinetix.gateway.routes.counterpartyRiskRoutes
 import com.kinetix.gateway.routes.keyRateDurationRoutes
+import com.kinetix.gateway.routes.intradayVaRTimelineProxyRoutes
+import com.kinetix.gateway.routes.volSurfaceRoutes
+import com.kinetix.gateway.routes.reportProxyRoutes
+import com.kinetix.gateway.client.HttpVolatilityServiceClient
 import com.kinetix.gateway.kafka.KafkaIntradayPnlConsumer
 import com.kinetix.gateway.websocket.AlertBroadcaster
 import com.kinetix.gateway.websocket.PnlBroadcaster
@@ -222,6 +226,7 @@ fun Application.module(riskClient: RiskServiceClient) {
         hedgeRecommendationRoutes(riskClient)
         counterpartyRiskRoutes(riskClient)
         keyRateDurationRoutes(riskClient)
+        reportProxyRoutes(riskClient)
     }
 }
 
@@ -287,6 +292,13 @@ fun Application.module(regulatoryClient: RegulatoryServiceClient) {
     }
 }
 
+fun Application.moduleWithVolSurface(volatilityClient: com.kinetix.gateway.client.VolatilityServiceClient) {
+    module()
+    routing {
+        volSurfaceRoutes(volatilityClient)
+    }
+}
+
 fun Application.moduleWithDataQuality(
     positionClient: PositionServiceClient,
     priceClient: PriceServiceClient,
@@ -337,6 +349,7 @@ fun Application.devModule() {
     val riskClient = HttpRiskServiceClient(httpClient, riskUrl)
     val notificationClient = HttpNotificationServiceClient(httpClient, notificationUrl)
     val regulatoryClient = HttpRegulatoryServiceClient(httpClient, regulatoryUrl)
+    val volatilityClient = HttpVolatilityServiceClient(httpClient, volatilityUrl)
     val priceBroadcaster = PriceBroadcaster()
     val pnlBroadcaster = PnlBroadcaster()
     val alertBroadcaster = AlertBroadcaster()
@@ -370,6 +383,7 @@ fun Application.devModule() {
                 runComparisonRoutes(riskClient)
                 intradayPnlProxyRoutes(riskClient)
                 intradayVaRTimelineProxyRoutes(riskClient)
+                reportProxyRoutes(riskClient)
             }
             requirePermission(Permission.READ_RISK) {
                 stressTestRoutes(riskClient)
