@@ -7,6 +7,8 @@ import { exportToCsv } from '../utils/exportCsv'
 import { Card, EmptyState } from './ui'
 import { InstrumentTypeBadge } from './InstrumentTypeBadge'
 import { INSTRUMENT_TYPE_COLORS } from '../utils/instrumentTypes'
+import { buildStrategyGroups } from '../utils/strategyGrouping'
+import { StrategyGroupRow } from './StrategyGroupRow'
 
 type SortField = 'delta' | 'gamma' | 'vega' | 'var-pct'
 type SortDirection = 'asc' | 'desc'
@@ -101,16 +103,21 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
     return positions.filter((p) => p.instrumentType === instrumentTypeFilter)
   }, [positions, instrumentTypeFilter])
 
+  const { groups: strategyGroups, ungrouped: ungroupedPositions } = useMemo(
+    () => buildStrategyGroups(filteredPositions, positionRisk),
+    [filteredPositions, positionRisk],
+  )
+
   const sortedPositions = useMemo(() => {
-    if (!sortField || !hasRisk) return filteredPositions
-    return [...filteredPositions].sort((a, b) => {
+    if (!sortField || !hasRisk) return ungroupedPositions
+    return [...ungroupedPositions].sort((a, b) => {
       const riskA = riskByInstrument.get(a.instrumentId)
       const riskB = riskByInstrument.get(b.instrumentId)
       const valA = riskValue(riskA, sortField)
       const valB = riskValue(riskB, sortField)
       return sortDir === 'desc' ? valB - valA : valA - valB
     })
-  }, [filteredPositions, sortField, sortDir, hasRisk, riskByInstrument])
+  }, [ungroupedPositions, sortField, sortDir, hasRisk, riskByInstrument])
 
   const totalPages = Math.ceil(sortedPositions.length / PAGE_SIZE)
   const showPagination = totalPages > 1
@@ -397,6 +404,13 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-surface-700">
+              {strategyGroups.map((strategy) => (
+                <StrategyGroupRow
+                  key={strategy.strategyId}
+                  strategy={strategy}
+                  colSpan={positionColCount + (hasRisk ? riskColCount : 0)}
+                />
+              ))}
               {sortedPositions.length === 0 && instrumentTypeFilter && (
                 <tr>
                   <td colSpan={positionColCount + (hasRisk ? riskColCount : 0)} className="px-4 py-8 text-center text-sm text-slate-500">

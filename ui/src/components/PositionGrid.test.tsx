@@ -486,6 +486,85 @@ describe('PositionGrid', () => {
     })
   })
 
+  describe('strategy grouping', () => {
+    it('renders a strategy group row for positions with strategyId', () => {
+      const positions = [
+        makePosition({ instrumentId: 'AAPL-CALL', strategyId: 'strat-1', strategyType: 'STRADDLE', strategyName: 'Sep Straddle' }),
+        makePosition({ instrumentId: 'AAPL-PUT', strategyId: 'strat-1', strategyType: 'STRADDLE', strategyName: 'Sep Straddle' }),
+      ]
+
+      render(<PositionGrid positions={positions} />)
+
+      expect(screen.getByTestId('strategy-row-strat-1')).toBeInTheDocument()
+    })
+
+    it('does not render individual position rows for positions that belong to a strategy', () => {
+      const positions = [
+        makePosition({ instrumentId: 'AAPL-CALL', strategyId: 'strat-1', strategyType: 'STRADDLE' }),
+        makePosition({ instrumentId: 'AAPL-PUT', strategyId: 'strat-1', strategyType: 'STRADDLE' }),
+      ]
+
+      render(<PositionGrid positions={positions} />)
+
+      expect(screen.queryByTestId('position-row-AAPL-CALL')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('position-row-AAPL-PUT')).not.toBeInTheDocument()
+    })
+
+    it('renders ungrouped positions as normal rows alongside strategy group rows', () => {
+      const positions = [
+        makePosition({ instrumentId: 'AAPL-CALL', strategyId: 'strat-1', strategyType: 'STRADDLE' }),
+        makePosition({ instrumentId: 'AAPL-PUT', strategyId: 'strat-1', strategyType: 'STRADDLE' }),
+        makePosition({ instrumentId: 'MSFT' }),
+      ]
+
+      render(<PositionGrid positions={positions} />)
+
+      expect(screen.getByTestId('strategy-row-strat-1')).toBeInTheDocument()
+      expect(screen.getByTestId('position-row-MSFT')).toBeInTheDocument()
+    })
+
+    it('shows leg rows when strategy row is expanded', async () => {
+      const user = userEvent.setup()
+      const positions = [
+        makePosition({ instrumentId: 'AAPL-CALL', strategyId: 'strat-1', strategyType: 'STRADDLE' }),
+        makePosition({ instrumentId: 'AAPL-PUT', strategyId: 'strat-1', strategyType: 'STRADDLE' }),
+      ]
+
+      render(<PositionGrid positions={positions} />)
+
+      await user.click(screen.getByTestId('strategy-row-strat-1'))
+
+      expect(screen.getByTestId('strategy-leg-AAPL-CALL')).toBeInTheDocument()
+      expect(screen.getByTestId('strategy-leg-AAPL-PUT')).toBeInTheDocument()
+    })
+
+    it('renders strategy net P&L in the strategy row', () => {
+      const positions = [
+        makePosition({ instrumentId: 'AAPL-CALL', strategyId: 'strat-1', strategyType: 'STRADDLE', unrealizedPnl: { amount: '300.00', currency: 'USD' } }),
+        makePosition({ instrumentId: 'AAPL-PUT', strategyId: 'strat-1', strategyType: 'STRADDLE', unrealizedPnl: { amount: '200.00', currency: 'USD' } }),
+      ]
+
+      render(<PositionGrid positions={positions} />)
+
+      expect(screen.getByTestId('strategy-net-pnl-strat-1')).toBeInTheDocument()
+    })
+
+    it('renders strategy net delta when risk data is provided', () => {
+      const positions = [
+        makePosition({ instrumentId: 'AAPL-CALL', strategyId: 'strat-1', strategyType: 'STRADDLE' }),
+        makePosition({ instrumentId: 'AAPL-PUT', strategyId: 'strat-1', strategyType: 'STRADDLE' }),
+      ]
+      const risk = [
+        { instrumentId: 'AAPL-CALL', assetClass: 'EQUITY', marketValue: '10000.00', delta: '0.60', gamma: '0.02', vega: '15.00', theta: null, rho: null, varContribution: '400.00', esContribution: '500.00', percentageOfTotal: '40.00' } as PositionRiskDto,
+        { instrumentId: 'AAPL-PUT', assetClass: 'EQUITY', marketValue: '10000.00', delta: '-0.40', gamma: '0.02', vega: '12.00', theta: null, rho: null, varContribution: '400.00', esContribution: '500.00', percentageOfTotal: '40.00' } as PositionRiskDto,
+      ]
+
+      render(<PositionGrid positions={positions} positionRisk={risk} />)
+
+      expect(screen.getByTestId('strategy-net-delta-strat-1')).toBeInTheDocument()
+    })
+  })
+
   describe('instrument type filter', () => {
     const positions = [
       makePosition({ instrumentId: 'AAPL', instrumentType: 'CASH_EQUITY' }),
