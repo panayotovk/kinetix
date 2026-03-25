@@ -10,6 +10,7 @@ import prometheus_client
 logger = logging.getLogger(__name__)
 
 from kinetix.risk import counterparty_risk_pb2_grpc, liquidity_pb2_grpc, market_data_dependencies_pb2_grpc, ml_prediction_pb2_grpc, regulatory_reporting_pb2_grpc, risk_calculation_pb2_grpc, stress_testing_pb2_grpc
+from kinetix_risk.sa_ccr_server import SaCcrServicer
 from kinetix_risk.converters import (
     cross_book_var_result_to_proto_response,
     proto_calculation_type_to_domain,
@@ -255,6 +256,9 @@ def serve(port: int = 50051, metrics_port: int = 9091, models_dir: str = "models
     )
     counterparty_risk_pb2_grpc.add_CounterpartyRiskServiceServicer_to_server(
         CounterpartyRiskServicer(), server
+    )
+    counterparty_risk_pb2_grpc.add_SaCcrServiceServicer_to_server(
+        SaCcrServicer(), server
     )
 
     tls_enabled = os.environ.get("GRPC_TLS_ENABLED", "false").lower() == "true"

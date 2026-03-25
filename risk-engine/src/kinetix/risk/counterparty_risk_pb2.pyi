@@ -138,3 +138,67 @@ class CalculateCVAResponse(_message.Message):
     pd_1y: float
     calculated_at: _timestamp_pb2.Timestamp
     def __init__(self, counterparty_id: _Optional[str] = ..., cva: _Optional[float] = ..., is_estimated: bool = ..., hazard_rate: _Optional[float] = ..., pd_1y: _Optional[float] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+
+class SaCcrPositionInput(_message.Message):
+    __slots__ = ("instrument_id", "asset_class", "market_value", "notional", "currency", "pay_receive", "maturity_date", "is_option", "spot_price", "strike", "implied_vol", "expiry_days", "option_type", "quantity")
+    INSTRUMENT_ID_FIELD_NUMBER: _ClassVar[int]
+    ASSET_CLASS_FIELD_NUMBER: _ClassVar[int]
+    MARKET_VALUE_FIELD_NUMBER: _ClassVar[int]
+    NOTIONAL_FIELD_NUMBER: _ClassVar[int]
+    CURRENCY_FIELD_NUMBER: _ClassVar[int]
+    PAY_RECEIVE_FIELD_NUMBER: _ClassVar[int]
+    MATURITY_DATE_FIELD_NUMBER: _ClassVar[int]
+    IS_OPTION_FIELD_NUMBER: _ClassVar[int]
+    SPOT_PRICE_FIELD_NUMBER: _ClassVar[int]
+    STRIKE_FIELD_NUMBER: _ClassVar[int]
+    IMPLIED_VOL_FIELD_NUMBER: _ClassVar[int]
+    EXPIRY_DAYS_FIELD_NUMBER: _ClassVar[int]
+    OPTION_TYPE_FIELD_NUMBER: _ClassVar[int]
+    QUANTITY_FIELD_NUMBER: _ClassVar[int]
+    instrument_id: str
+    asset_class: str
+    market_value: float
+    notional: float
+    currency: str
+    pay_receive: str
+    maturity_date: str
+    is_option: bool
+    spot_price: float
+    strike: float
+    implied_vol: float
+    expiry_days: int
+    option_type: str
+    quantity: float
+    def __init__(self, instrument_id: _Optional[str] = ..., asset_class: _Optional[str] = ..., market_value: _Optional[float] = ..., notional: _Optional[float] = ..., currency: _Optional[str] = ..., pay_receive: _Optional[str] = ..., maturity_date: _Optional[str] = ..., is_option: bool = ..., spot_price: _Optional[float] = ..., strike: _Optional[float] = ..., implied_vol: _Optional[float] = ..., expiry_days: _Optional[int] = ..., option_type: _Optional[str] = ..., quantity: _Optional[float] = ...) -> None: ...
+
+class CalculateSaCcrRequest(_message.Message):
+    __slots__ = ("netting_set_id", "counterparty_id", "positions", "collateral_net")
+    NETTING_SET_ID_FIELD_NUMBER: _ClassVar[int]
+    COUNTERPARTY_ID_FIELD_NUMBER: _ClassVar[int]
+    POSITIONS_FIELD_NUMBER: _ClassVar[int]
+    COLLATERAL_NET_FIELD_NUMBER: _ClassVar[int]
+    netting_set_id: str
+    counterparty_id: str
+    positions: _containers.RepeatedCompositeFieldContainer[SaCcrPositionInput]
+    collateral_net: float
+    def __init__(self, netting_set_id: _Optional[str] = ..., counterparty_id: _Optional[str] = ..., positions: _Optional[_Iterable[_Union[SaCcrPositionInput, _Mapping]]] = ..., collateral_net: _Optional[float] = ...) -> None: ...
+
+class CalculateSaCcrResponse(_message.Message):
+    __slots__ = ("netting_set_id", "counterparty_id", "replacement_cost", "pfe_addon", "multiplier", "ead", "alpha", "calculated_at")
+    NETTING_SET_ID_FIELD_NUMBER: _ClassVar[int]
+    COUNTERPARTY_ID_FIELD_NUMBER: _ClassVar[int]
+    REPLACEMENT_COST_FIELD_NUMBER: _ClassVar[int]
+    PFE_ADDON_FIELD_NUMBER: _ClassVar[int]
+    MULTIPLIER_FIELD_NUMBER: _ClassVar[int]
+    EAD_FIELD_NUMBER: _ClassVar[int]
+    ALPHA_FIELD_NUMBER: _ClassVar[int]
+    CALCULATED_AT_FIELD_NUMBER: _ClassVar[int]
+    netting_set_id: str
+    counterparty_id: str
+    replacement_cost: float
+    pfe_addon: float
+    multiplier: float
+    ead: float
+    alpha: float
+    calculated_at: _timestamp_pb2.Timestamp
+    def __init__(self, netting_set_id: _Optional[str] = ..., counterparty_id: _Optional[str] = ..., replacement_cost: _Optional[float] = ..., pfe_addon: _Optional[float] = ..., multiplier: _Optional[float] = ..., ead: _Optional[float] = ..., alpha: _Optional[float] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
