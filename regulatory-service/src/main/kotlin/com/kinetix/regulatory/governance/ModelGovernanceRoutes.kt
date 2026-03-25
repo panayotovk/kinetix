@@ -34,6 +34,7 @@ fun Route.modelGovernanceRoutes(registry: ModelRegistry) {
                 modelName = request.modelName,
                 version = request.version,
                 parameters = request.parameters,
+                registeredBy = request.registeredBy,
             )
             logger.info("Model registered: id={}, name={}, version={}", model.id, model.modelName, model.version)
             call.respond(HttpStatusCode.Created, model.toResponse())
@@ -64,6 +65,7 @@ private fun ModelVersion.toResponse() = ModelVersionResponse(
     version = version,
     status = status.name,
     parameters = parameters,
+    registeredBy = registeredBy,
     approvedBy = approvedBy,
     approvedAt = approvedAt?.toString(),
     createdAt = createdAt.toString(),

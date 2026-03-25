@@ -7,4 +7,5 @@ data class RegisterModelRequest(
     val modelName: String,
     val version: String,
     val parameters: String,
+    val registeredBy: String,
 )

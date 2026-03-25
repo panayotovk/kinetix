@@ -31,7 +31,7 @@ class ModelGovernanceRoutesTest : FunSpec({
             }
             val response = client.post("/api/v1/models") {
                 contentType(ContentType.Application.Json)
-                setBody("""{"modelName":"HistoricalVaR","version":"1.0.0","parameters":"{}"}""")
+                setBody("""{"modelName":"HistoricalVaR","version":"1.0.0","parameters":"{}","registeredBy":"analyst-1"}""")
             }
             response.status shouldBe HttpStatusCode.Created
             val body = response.bodyAsText()
@@ -48,6 +48,7 @@ class ModelGovernanceRoutesTest : FunSpec({
                 version = "1.0.0",
                 status = ModelVersionStatus.DRAFT,
                 parameters = "{}",
+                registeredBy = "analyst-1",
                 approvedBy = null,
                 approvedAt = null,
                 createdAt = Instant.now(),
@@ -75,6 +76,7 @@ class ModelGovernanceRoutesTest : FunSpec({
             version = "1.0.0",
             status = ModelVersionStatus.DRAFT,
             parameters = "{}",
+            registeredBy = "analyst-1",
             approvedBy = null,
             approvedAt = null,
             createdAt = Instant.now(),

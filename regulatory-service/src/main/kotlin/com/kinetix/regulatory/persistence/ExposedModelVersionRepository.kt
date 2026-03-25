@@ -33,6 +33,7 @@ class ExposedModelVersionRepository(private val db: Database? = null) : ModelVer
                 it[version] = modelVersion.version
                 it[status] = modelVersion.status.name
                 it[parameters] = Json.parseToJsonElement(modelVersion.parameters)
+                it[registeredBy] = modelVersion.registeredBy
                 it[approvedBy] = modelVersion.approvedBy
                 it[approvedAt] = modelVersion.approvedAt?.let { ts ->
                     OffsetDateTime.ofInstant(ts, ZoneOffset.UTC)
@@ -63,6 +64,7 @@ class ExposedModelVersionRepository(private val db: Database? = null) : ModelVer
         version = this[ModelVersionsTable.version],
         status = ModelVersionStatus.valueOf(this[ModelVersionsTable.status]),
         parameters = Json.encodeToString(this[ModelVersionsTable.parameters]),
+        registeredBy = this[ModelVersionsTable.registeredBy],
         approvedBy = this[ModelVersionsTable.approvedBy],
         approvedAt = this[ModelVersionsTable.approvedAt]?.toInstant(),
         createdAt = this[ModelVersionsTable.createdAt].toInstant(),

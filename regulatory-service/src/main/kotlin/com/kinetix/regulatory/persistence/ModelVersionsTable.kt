@@ -12,6 +12,7 @@ object ModelVersionsTable : Table("model_versions") {
     val version = varchar("version", 50)
     val status = varchar("status", 20)
     val parameters = jsonb<JsonElement>("parameters", Json)
+    val registeredBy = varchar("registered_by", 255)
     val approvedBy = varchar("approved_by", 255).nullable()
     val approvedAt = timestampWithTimeZone("approved_at").nullable()
     val createdAt = timestampWithTimeZone("created_at")

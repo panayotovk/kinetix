@@ -8,6 +8,7 @@ data class ModelVersion(
     val version: String,
     val status: ModelVersionStatus,
     val parameters: String,
+    val registeredBy: String,
     val approvedBy: String?,
     val approvedAt: Instant?,
     val createdAt: Instant,
