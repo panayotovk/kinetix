@@ -137,6 +137,25 @@ class StressScenarioService(
         return result
     }
 
+    /**
+     * Estimates aggregate P&L impact from a JSON shock map by summing the raw shock values.
+     *
+     * This is an intentional approximation.  The regulatory-service does not hold position
+     * data — positions live in the position-service and are loaded on demand by the
+     * risk-orchestrator at calculation time.  A proper P&L impact would be:
+     *
+     *   sum_i(position_market_value_i * shock_for_asset_class_i)
+     *
+     * That calculation requires routing through the risk-orchestrator gRPC call to the
+     * risk-engine (StressTestService.RunStressTest), which returns per-position impacts.
+     * The `runScenario` endpoint in StressScenarioRoutes is the governance trigger for
+     * saving a result record; the actual mark-to-scenario calculation happens at the
+     * risk-orchestrator level via the `/api/v1/risk/stress/{bookId}` route.
+     *
+     * TODO: wire runScenario through RiskOrchestratorClient.runStressTest once the
+     * position-service client is available here, replacing this summation with the
+     * engine-computed pnlImpact from StressTestResponse.
+     */
     private fun computePnlImpact(shocksJson: String): BigDecimal {
         val parsed = runCatching { Json.parseToJsonElement(shocksJson) as? JsonObject }.getOrNull()
             ?: return BigDecimal.ZERO
