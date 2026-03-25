@@ -13,6 +13,7 @@ import com.kinetix.gateway.client.HttpPositionServiceClient
 import com.kinetix.gateway.client.HttpPriceServiceClient
 import com.kinetix.gateway.client.HttpRegulatoryServiceClient
 import com.kinetix.gateway.client.HttpRiskServiceClient
+import com.kinetix.gateway.client.HttpVolatilityServiceClient
 import com.kinetix.gateway.client.NotificationServiceClient
 import com.kinetix.gateway.client.PositionServiceClient
 import com.kinetix.gateway.client.PriceServiceClient
@@ -32,6 +33,7 @@ import com.kinetix.gateway.routes.auditProxyRoutes
 import com.kinetix.gateway.routes.instrumentRoutes
 import com.kinetix.gateway.routes.notificationRoutes
 import com.kinetix.gateway.routes.positionRoutes
+import com.kinetix.gateway.routes.strategyProxyRoutes
 import com.kinetix.gateway.routes.regulatoryRoutes
 import com.kinetix.gateway.routes.runComparisonRoutes
 import com.kinetix.gateway.routes.sodSnapshotRoutes
@@ -319,6 +321,13 @@ fun Application.moduleWithDataQuality(
     }
 }
 
+fun Application.moduleWithVolSurface(volatilityServiceClient: com.kinetix.gateway.client.VolatilityServiceClient) {
+    module()
+    routing {
+        volSurfaceRoutes(volatilityServiceClient)
+    }
+}
+
 fun Application.devModule() {
     val servicesConfig = environment.config.config("services")
     val positionUrl = servicesConfig.property("position.url").getString()
@@ -372,6 +381,7 @@ fun Application.devModule() {
         authenticate("auth-jwt") {
             requirePermission(Permission.READ_PORTFOLIOS) {
                 positionRoutes(positionClient)
+                strategyProxyRoutes(httpClient, positionUrl)
                 priceRoutes(priceClient)
             }
             requirePermission(Permission.CALCULATE_RISK) {

@@ -42,6 +42,9 @@ data class PositionResponse(
     val marketValue: MoneyDto,
     val unrealizedPnl: MoneyDto,
     val realizedPnl: MoneyDto,
+    val strategyId: String? = null,
+    val strategyType: String? = null,
+    val strategyName: String? = null,
 )
 
 @Serializable
@@ -57,6 +60,7 @@ data class TradeResponse(
     val eventType: String = "NEW",
     val status: String = "LIVE",
     val originalTradeId: String? = null,
+    val strategyId: String? = null,
 )
 
 @Serializable
@@ -93,6 +97,7 @@ data class BookTradeRequest(
     val instrumentType: String? = null,
     val userId: String? = null,
     val userRole: String? = null,
+    val strategyId: String? = null,
 )
 
 @Serializable
@@ -148,6 +153,9 @@ private fun Position.toResponse() = PositionResponse(
     marketValue = marketValue.toDto(),
     unrealizedPnl = unrealizedPnl.toDto(),
     realizedPnl = realizedPnl.toDto(),
+    strategyId = strategyId,
+    strategyType = strategyType,
+    strategyName = strategyName,
 )
 
 private fun Trade.toResponse() = TradeResponse(
@@ -162,6 +170,7 @@ private fun Trade.toResponse() = TradeResponse(
     eventType = eventType.name,
     status = status.name,
     originalTradeId = originalTradeId?.value,
+    strategyId = strategyId,
 )
 
 private fun LimitBreach.toDto() = LimitBreachDto(
@@ -259,6 +268,7 @@ fun Route.positionRoutes(
                         instrumentType = request.instrumentType,
                         userId = request.userId,
                         userRole = request.userRole,
+                        strategyId = request.strategyId,
                     )
                     try {
                         val result = tradeBookingService.handle(command)

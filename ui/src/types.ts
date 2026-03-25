@@ -14,6 +14,20 @@ export interface PositionDto {
   unrealizedPnl: MoneyDto
   instrumentType?: string
   displayName?: string
+  strategyId?: string
+  strategyType?: string
+  strategyName?: string
+}
+
+export interface StrategyGroupDto {
+  strategyId: string
+  strategyType: string
+  strategyName?: string
+  legs: PositionDto[]
+  netDelta: string | null
+  netGamma: string | null
+  netVega: string | null
+  netPnl: string
 }
 
 export interface PositionRiskDto {

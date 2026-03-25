@@ -21,6 +21,7 @@ data class BookTradeCommand(
     val instrumentType: String? = null,
     val userId: String? = null,
     val userRole: String? = null,
+    val strategyId: String? = null,
 )
 
 data class BookTradeResult(
@@ -58,6 +59,7 @@ class TradeBookingService(
             price = command.price,
             tradedAt = command.tradedAt,
             instrumentType = command.instrumentType,
+            strategyId = command.strategyId,
         )
 
         val (result, isNewTrade) = transactional.run {
@@ -74,6 +76,7 @@ class TradeBookingService(
                 ?: Position.empty(trade.bookId, trade.instrumentId, trade.assetClass, trade.price.currency)
 
             val updatedPosition = currentPosition.applyTrade(trade)
+                .let { pos -> if (trade.strategyId != null) pos.copy(strategyId = trade.strategyId) else pos }
             positionRepository.save(updatedPosition)
 
             Pair(BookTradeResult(trade, updatedPosition, warnings), true)
