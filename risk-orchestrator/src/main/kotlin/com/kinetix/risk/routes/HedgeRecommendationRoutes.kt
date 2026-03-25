@@ -6,6 +6,7 @@ import com.kinetix.risk.model.HedgeConstraints
 import com.kinetix.risk.model.HedgeRecommendation
 import com.kinetix.risk.model.HedgeSuggestion
 import com.kinetix.risk.model.HedgeTarget
+import com.kinetix.risk.routes.dtos.AcceptHedgeRequestBody
 import com.kinetix.risk.routes.dtos.GreekImpactDto
 import com.kinetix.risk.routes.dtos.HedgeRecommendationResponse
 import com.kinetix.risk.routes.dtos.HedgeSuggestRequestBody
@@ -74,6 +75,50 @@ fun Route.hedgeRecommendationRoutes(service: HedgeRecommendationService) {
         } else {
             call.respond(recommendation.toResponse())
         }
+    }
+
+    post("/api/v1/risk/hedge-suggest/{bookId}/{id}/accept") {
+        val id = try {
+            UUID.fromString(call.requirePathParam("id"))
+        } catch (e: IllegalArgumentException) {
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "invalid_id", "message" to "Invalid UUID"))
+            return@post
+        }
+
+        val body = call.receive<AcceptHedgeRequestBody>()
+
+        val recommendation = try {
+            service.acceptRecommendation(id, body.acceptedBy)
+        } catch (e: NoSuchElementException) {
+            call.respond(HttpStatusCode.NotFound, mapOf("error" to "not_found", "message" to (e.message ?: "Not found")))
+            return@post
+        } catch (e: IllegalStateException) {
+            call.respond(HttpStatusCode.Conflict, mapOf("error" to "conflict", "message" to (e.message ?: "Conflict")))
+            return@post
+        }
+
+        call.respond(recommendation.toResponse())
+    }
+
+    post("/api/v1/risk/hedge-suggest/{bookId}/{id}/reject") {
+        val id = try {
+            UUID.fromString(call.requirePathParam("id"))
+        } catch (e: IllegalArgumentException) {
+            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "invalid_id", "message" to "Invalid UUID"))
+            return@post
+        }
+
+        val recommendation = try {
+            service.rejectRecommendation(id)
+        } catch (e: NoSuchElementException) {
+            call.respond(HttpStatusCode.NotFound, mapOf("error" to "not_found", "message" to (e.message ?: "Not found")))
+            return@post
+        } catch (e: IllegalStateException) {
+            call.respond(HttpStatusCode.Conflict, mapOf("error" to "conflict", "message" to (e.message ?: "Conflict")))
+            return@post
+        }
+
+        call.respond(recommendation.toResponse())
     }
 }
 

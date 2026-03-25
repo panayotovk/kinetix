@@ -114,6 +114,38 @@ class HedgeRecommendationService(
         return recommendation
     }
 
+    suspend fun acceptRecommendation(id: UUID, acceptedBy: String): HedgeRecommendation {
+        val recommendation = repository.findById(id)
+            ?: throw NoSuchElementException("Hedge recommendation $id not found")
+
+        if (recommendation.isExpired) {
+            throw IllegalStateException("Recommendation has expired and cannot be accepted")
+        }
+        if (recommendation.status != HedgeStatus.PENDING) {
+            throw IllegalStateException("Recommendation is not PENDING (current status: ${recommendation.status})")
+        }
+
+        val now = Instant.now()
+        repository.updateStatus(id, HedgeStatus.ACCEPTED, acceptedBy = acceptedBy, acceptedAt = now)
+
+        logger.info("Hedge recommendation {} accepted by {}", id, acceptedBy)
+        return recommendation.copy(status = HedgeStatus.ACCEPTED, acceptedBy = acceptedBy, acceptedAt = now)
+    }
+
+    suspend fun rejectRecommendation(id: UUID): HedgeRecommendation {
+        val recommendation = repository.findById(id)
+            ?: throw NoSuchElementException("Hedge recommendation $id not found")
+
+        if (recommendation.status != HedgeStatus.PENDING) {
+            throw IllegalStateException("Recommendation is not PENDING (current status: ${recommendation.status})")
+        }
+
+        repository.updateStatus(id, HedgeStatus.REJECTED)
+
+        logger.info("Hedge recommendation {} rejected", id)
+        return recommendation.copy(status = HedgeStatus.REJECTED)
+    }
+
     suspend fun getLatestRecommendations(bookId: BookId, limit: Int = 10): List<HedgeRecommendation> =
         repository.findLatestByBookId(bookId.value, limit)
 

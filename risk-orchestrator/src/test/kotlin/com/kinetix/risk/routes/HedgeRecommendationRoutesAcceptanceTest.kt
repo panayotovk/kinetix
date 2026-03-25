@@ -213,4 +213,72 @@ class HedgeRecommendationRoutesAcceptanceTest : FunSpec({
             response.status shouldBe HttpStatusCode.NotFound
         }
     }
+
+    test("accepts a pending recommendation and sets status to ACCEPTED") {
+        val id = UUID.fromString("00000000-0000-0000-0000-000000000001")
+        val accepted = sampleRecommendation.copy(
+            status = HedgeStatus.ACCEPTED,
+            acceptedBy = "trader-1",
+            acceptedAt = Instant.parse("2026-03-24T10:05:00Z"),
+        )
+        coEvery { service.acceptRecommendation(id, "trader-1") } returns accepted
+
+        testApp {
+            val response = client.post("/api/v1/risk/hedge-suggest/BOOK-1/00000000-0000-0000-0000-000000000001/accept") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"acceptedBy":"trader-1"}""")
+            }
+
+            response.status shouldBe HttpStatusCode.OK
+
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["status"]?.jsonPrimitive?.content shouldBe "ACCEPTED"
+            body["acceptedBy"]?.jsonPrimitive?.content shouldBe "trader-1"
+        }
+    }
+
+    test("rejects acceptance of an expired recommendation with HTTP 409") {
+        val id = UUID.fromString("00000000-0000-0000-0000-000000000001")
+        coEvery { service.acceptRecommendation(id, "trader-1") } throws
+            IllegalStateException("Recommendation has expired and cannot be accepted")
+
+        testApp {
+            val response = client.post("/api/v1/risk/hedge-suggest/BOOK-1/00000000-0000-0000-0000-000000000001/accept") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"acceptedBy":"trader-1"}""")
+            }
+
+            response.status shouldBe HttpStatusCode.Conflict
+        }
+    }
+
+    test("rejects acceptance of an already-accepted recommendation with HTTP 409") {
+        val id = UUID.fromString("00000000-0000-0000-0000-000000000001")
+        coEvery { service.acceptRecommendation(id, "trader-1") } throws
+            IllegalStateException("Recommendation is not PENDING (current status: ACCEPTED)")
+
+        testApp {
+            val response = client.post("/api/v1/risk/hedge-suggest/BOOK-1/00000000-0000-0000-0000-000000000001/accept") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"acceptedBy":"trader-1"}""")
+            }
+
+            response.status shouldBe HttpStatusCode.Conflict
+        }
+    }
+
+    test("rejects a pending recommendation and sets status to REJECTED") {
+        val id = UUID.fromString("00000000-0000-0000-0000-000000000001")
+        val rejected = sampleRecommendation.copy(status = HedgeStatus.REJECTED)
+        coEvery { service.rejectRecommendation(id) } returns rejected
+
+        testApp {
+            val response = client.post("/api/v1/risk/hedge-suggest/BOOK-1/00000000-0000-0000-0000-000000000001/reject")
+
+            response.status shouldBe HttpStatusCode.OK
+
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["status"]?.jsonPrimitive?.content shouldBe "REJECTED"
+        }
+    }
 })
