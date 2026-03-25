@@ -291,6 +291,7 @@ fun Application.moduleWithRoutes() {
     val pnlAttributionRepository = com.kinetix.risk.persistence.ExposedPnlAttributionRepository(riskDb)
     val dailyRiskSnapshotRepository = ExposedDailyRiskSnapshotRepository(riskDb)
     val sodBaselineRepository = ExposedSodBaselineRepository(riskDb)
+    val sodGreekSnapshotRepository = com.kinetix.risk.persistence.ExposedSodGreekSnapshotRepository(riskDb)
     val liquidityRiskSnapshotRepository = ExposedLiquidityRiskSnapshotRepository(riskDb)
     val factorDecompositionRepository = com.kinetix.risk.persistence.ExposedFactorDecompositionRepository(riskDb)
     val hierarchySnapshotRepository = ExposedRiskHierarchySnapshotRepository(riskDb)
@@ -428,6 +429,7 @@ fun Application.moduleWithRoutes() {
         positionProvider = effectivePositionProvider,
         volatilityServiceClient = effectiveVolatilityServiceClient,
         ratesServiceClient = effectiveRatesServiceClient,
+        sodGreekSnapshotRepository = sodGreekSnapshotRepository,
     )
 
     val intradayPnlRepository = com.kinetix.risk.persistence.ExposedIntradayPnlRepository(riskDb)
