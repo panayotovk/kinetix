@@ -481,4 +481,6 @@ interface RiskServiceClient {
     suspend fun getCounterpartyExposureHistory(counterpartyId: String, limit: Int = 90): kotlinx.serialization.json.JsonArray
     suspend fun computeCounterpartyPFE(counterpartyId: String, body: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject?
     suspend fun computeCounterpartyCVA(counterpartyId: String): kotlinx.serialization.json.JsonObject?
+    // SA-CCR (BCBS 279) — regulatory capital model, distinct from MC PFE
+    suspend fun getCounterpartySaCcr(counterpartyId: String, collateral: Double = 0.0): kotlinx.serialization.json.JsonObject?
 }

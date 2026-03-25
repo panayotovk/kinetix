@@ -658,4 +658,18 @@ class HttpRiskServiceClient(
         if (!response.status.isSuccess()) handleErrorResponse(response)
         return response.body()
     }
+
+    override suspend fun getCounterpartySaCcr(
+        counterpartyId: String,
+        collateral: Double,
+    ): kotlinx.serialization.json.JsonObject? {
+        val response = httpClient.get("$baseUrl/api/v1/counterparty/$counterpartyId/sa-ccr") {
+            if (collateral != 0.0) {
+                url { parameters.append("collateral", collateral.toString()) }
+            }
+        }
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
 }
