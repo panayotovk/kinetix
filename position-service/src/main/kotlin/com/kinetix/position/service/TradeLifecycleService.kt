@@ -55,7 +55,7 @@ class TradeLifecycleService(
             BookTradeResult(amendTrade, finalPosition)
         }
 
-        tradeEventPublisher.publish(TradeEvent(trade = result.trade))
+        tradeEventPublisher.publish(TradeEvent(trade = result.trade, userId = command.userId, userRole = command.userRole))
         logger.info("Trade amended: originalTradeId={}, newTradeId={}", command.originalTradeId.value, command.newTradeId.value)
         return result
     }

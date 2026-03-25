@@ -19,6 +19,8 @@ data class BookTradeCommand(
     val price: Money,
     val tradedAt: Instant,
     val instrumentType: String? = null,
+    val userId: String? = null,
+    val userRole: String? = null,
 )
 
 data class BookTradeResult(
@@ -78,7 +80,7 @@ class TradeBookingService(
         }
 
         if (isNewTrade) {
-            tradeEventPublisher.publish(TradeEvent(trade = result.trade))
+            tradeEventPublisher.publish(TradeEvent(trade = result.trade, userId = command.userId, userRole = command.userRole))
             logger.info("Trade booked: tradeId={}, book={}, newPosition={}",
                 result.trade.tradeId.value, result.trade.bookId.value, result.position.quantity)
         }

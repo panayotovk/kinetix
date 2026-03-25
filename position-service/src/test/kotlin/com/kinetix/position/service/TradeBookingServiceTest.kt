@@ -164,6 +164,21 @@ class TradeBookingServiceTest : FunSpec({
         coVerify(exactly = 1) { publisher.publish(match { it.trade.tradeId == TradeId("t-1") }) }
     }
 
+    test("publishes userId and userRole from command on the trade event") {
+        coEvery { tradeRepo.findByTradeId(any()) } returns null
+        coEvery { tradeRepo.save(any()) } just runs
+        coEvery { positionRepo.findByKey(any(), any()) } returns null
+        coEvery { positionRepo.save(any()) } just runs
+
+        val capturedEvent = slot<com.kinetix.common.model.TradeEvent>()
+        coEvery { publisher.publish(capture(capturedEvent)) } just runs
+
+        service.handle(command().copy(userId = "alice", userRole = "TRADER"))
+
+        capturedEvent.captured.userId shouldBe "alice"
+        capturedEvent.captured.userRole shouldBe "TRADER"
+    }
+
     test("does NOT publish trade event for duplicate trade") {
         val existingTrade = Trade(
             tradeId = TradeId("t-1"),

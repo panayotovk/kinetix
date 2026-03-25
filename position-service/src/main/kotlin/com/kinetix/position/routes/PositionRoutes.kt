@@ -69,6 +69,8 @@ data class AmendTradeRequest(
     val priceAmount: String,
     val priceCurrency: String,
     val tradedAt: String,
+    val userId: String? = null,
+    val userRole: String? = null,
 )
 
 @Serializable
@@ -89,6 +91,8 @@ data class BookTradeRequest(
     val priceCurrency: String,
     val tradedAt: String,
     val instrumentType: String? = null,
+    val userId: String? = null,
+    val userRole: String? = null,
 )
 
 @Serializable
@@ -253,6 +257,8 @@ fun Route.positionRoutes(
                         price = Money(priceAmt, Currency.getInstance(request.priceCurrency)),
                         tradedAt = Instant.parse(request.tradedAt),
                         instrumentType = request.instrumentType,
+                        userId = request.userId,
+                        userRole = request.userRole,
                     )
                     try {
                         val result = tradeBookingService.handle(command)
@@ -349,6 +355,8 @@ fun Route.positionRoutes(
                         quantity = qty,
                         price = Money(priceAmt, Currency.getInstance(request.priceCurrency)),
                         tradedAt = Instant.parse(request.tradedAt),
+                        userId = request.userId,
+                        userRole = request.userRole,
                     )
                     val result = tradeLifecycleService.handleAmend(command)
                     call.respond(
