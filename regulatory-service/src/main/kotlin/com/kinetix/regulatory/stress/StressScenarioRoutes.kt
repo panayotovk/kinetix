@@ -5,9 +5,11 @@ import com.kinetix.regulatory.stress.dto.CreateScenarioRequest
 import com.kinetix.regulatory.stress.dto.RunStressTestRequest
 import com.kinetix.regulatory.stress.dto.StressScenarioResponse
 import com.kinetix.regulatory.stress.dto.StressTestResultResponse
+import com.kinetix.regulatory.stress.dto.UpdateScenarioRequest
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.patch
 import io.github.smiley4.ktoropenapi.post
+import io.github.smiley4.ktoropenapi.put
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -47,6 +49,11 @@ fun Route.stressScenarioRoutes(service: StressScenarioService) {
                 createdBy = request.createdBy,
                 scenarioType = runCatching { ScenarioType.valueOf(request.scenarioType) }
                     .getOrDefault(ScenarioType.PARAMETRIC),
+                parentScenarioId = request.parentScenarioId,
+                correlationOverride = request.correlationOverride,
+                liquidityStressFactors = request.liquidityStressFactors,
+                historicalPeriodId = request.historicalPeriodId,
+                targetLoss = request.targetLoss?.let { java.math.BigDecimal(it) },
             )
             logger.info("Stress scenario created: id={}, name={}", scenario.id, scenario.name)
             call.respond(HttpStatusCode.Created, scenario.toResponse())
@@ -98,6 +105,27 @@ fun Route.stressScenarioRoutes(service: StressScenarioService) {
             call.respond(updated.toResponse())
         }
 
+        put("/{id}", {
+            summary = "Update a stress scenario"
+            tags = listOf("Stress Testing")
+            request {
+                pathParameter<String>("id") { description = "Scenario identifier" }
+            }
+        }) {
+            val id = call.parameters["id"]
+                ?: throw IllegalArgumentException("Missing required path parameter: id")
+            val request = call.receive<UpdateScenarioRequest>()
+            logger.info("Updating stress scenario: id={}", id)
+            val updated = service.update(
+                id = id,
+                shocks = request.shocks,
+                correlationOverride = request.correlationOverride,
+                liquidityStressFactors = request.liquidityStressFactors,
+            )
+            logger.info("Stress scenario updated: id={}, version={}, status={}", updated.id, updated.version, updated.status)
+            call.respond(updated.toResponse())
+        }
+
         post("/{id}/run", {
             summary = "Run a stress scenario against a book"
             tags = listOf("Stress Testing")
@@ -127,6 +155,12 @@ private fun StressScenario.toResponse() = StressScenarioResponse(
     approvedAt = approvedAt?.toString(),
     createdAt = createdAt.toString(),
     scenarioType = scenarioType.name,
+    version = version,
+    parentScenarioId = parentScenarioId,
+    correlationOverride = correlationOverride,
+    liquidityStressFactors = liquidityStressFactors,
+    historicalPeriodId = historicalPeriodId,
+    targetLoss = targetLoss?.toPlainString(),
 )
 
 private fun StressTestResult.toResponse() = StressTestResultResponse(

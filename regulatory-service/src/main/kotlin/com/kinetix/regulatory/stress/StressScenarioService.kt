@@ -19,6 +19,11 @@ class StressScenarioService(
         shocks: String,
         createdBy: String,
         scenarioType: ScenarioType = ScenarioType.PARAMETRIC,
+        parentScenarioId: String? = null,
+        correlationOverride: String? = null,
+        liquidityStressFactors: String? = null,
+        historicalPeriodId: String? = null,
+        targetLoss: BigDecimal? = null,
     ): StressScenario {
         val scenario = StressScenario(
             id = UUID.randomUUID().toString(),
@@ -31,6 +36,11 @@ class StressScenarioService(
             approvedAt = null,
             createdAt = Instant.now(),
             scenarioType = scenarioType,
+            parentScenarioId = parentScenarioId,
+            correlationOverride = correlationOverride,
+            liquidityStressFactors = liquidityStressFactors,
+            historicalPeriodId = historicalPeriodId,
+            targetLoss = targetLoss,
         )
         repository.save(scenario)
         return scenario
@@ -66,6 +76,33 @@ class StressScenarioService(
             throw IllegalStateException("Can only retire from APPROVED status, current: ${scenario.status}")
         }
         val updated = scenario.copy(status = ScenarioStatus.RETIRED)
+        repository.save(updated)
+        return updated
+    }
+
+    suspend fun update(
+        id: String,
+        shocks: String? = null,
+        correlationOverride: String? = null,
+        liquidityStressFactors: String? = null,
+    ): StressScenario {
+        val scenario = findOrThrow(id)
+        if (scenario.status == ScenarioStatus.RETIRED) {
+            throw IllegalStateException("Cannot update a RETIRED scenario")
+        }
+
+        val resetStatus = scenario.status == ScenarioStatus.APPROVED ||
+                          scenario.status == ScenarioStatus.PENDING_APPROVAL
+
+        val updated = scenario.copy(
+            version = scenario.version + 1,
+            shocks = shocks ?: scenario.shocks,
+            correlationOverride = correlationOverride ?: scenario.correlationOverride,
+            liquidityStressFactors = liquidityStressFactors ?: scenario.liquidityStressFactors,
+            status = if (resetStatus) ScenarioStatus.DRAFT else scenario.status,
+            approvedBy = if (resetStatus) null else scenario.approvedBy,
+            approvedAt = if (resetStatus) null else scenario.approvedAt,
+        )
         repository.save(updated)
         return updated
     }
