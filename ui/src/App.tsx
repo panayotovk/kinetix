@@ -513,6 +513,35 @@ function App() {
             rebalancing.submitRebalancing(effectiveBookId, whatIf.trades)
           }
         }}
+        onApplyPreset={(preset) => {
+          if (!positions || positions.length === 0) return
+          if (preset === 'REDUCE_LARGEST') {
+            const sorted = [...positions].sort((a, b) =>
+              Math.abs(Number(b.marketValue.amount)) - Math.abs(Number(a.marketValue.amount)),
+            )
+            const largest = sorted[0]
+            if (!largest) return
+            const reduceQty = (Number(largest.quantity) * 0.25).toFixed(0)
+            whatIf.reset()
+            whatIf.addTrade()
+            whatIf.updateTrade(0, 'instrumentId', largest.instrumentId)
+            whatIf.updateTrade(0, 'assetClass', largest.assetClass)
+            whatIf.updateTrade(0, 'side', Number(largest.quantity) > 0 ? 'SELL' : 'BUY')
+            whatIf.updateTrade(0, 'quantity', reduceQty)
+            whatIf.updateTrade(0, 'price', largest.marketPrice.amount)
+          } else if (preset === 'FLATTEN_DELTA') {
+            // Use the first position as a proxy — in practice this needs the net delta
+            const firstEquity = positions.find((p) => p.assetClass === 'EQUITY')
+            if (!firstEquity) return
+            whatIf.reset()
+            whatIf.addTrade()
+            whatIf.updateTrade(0, 'instrumentId', firstEquity.instrumentId)
+            whatIf.updateTrade(0, 'assetClass', 'EQUITY')
+            whatIf.updateTrade(0, 'side', Number(firstEquity.quantity) > 0 ? 'SELL' : 'BUY')
+            whatIf.updateTrade(0, 'quantity', Math.abs(Number(firstEquity.quantity)).toFixed(0))
+            whatIf.updateTrade(0, 'price', firstEquity.marketPrice.amount)
+          }
+        }}
       />
     </div>
   )
