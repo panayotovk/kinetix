@@ -3,6 +3,7 @@ package com.kinetix.risk.routes
 import com.kinetix.risk.model.AdaptiveVaRParameters
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
+import com.kinetix.risk.model.EarlyWarning
 import com.kinetix.risk.model.MarketRegime
 import com.kinetix.risk.model.MarketRegimeHistory
 import com.kinetix.risk.model.RegimeSignals
@@ -151,6 +152,43 @@ class MarketRegimeRoutesAcceptanceTest : FunSpec({
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
 
             body["total"]!!.jsonPrimitive.content.toInt() shouldBe 3
+        }
+    }
+
+    test("GET /api/v1/risk/regime/current response body contains empty earlyWarnings array when none present") {
+        testApp(currentState = crisisState()) {
+            val response = client.get("/api/v1/risk/regime/current")
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+
+            body["earlyWarnings"]!!.jsonArray.size shouldBe 0
+        }
+    }
+
+    test("GET /api/v1/risk/regime/current response body contains earlyWarnings with correct fields") {
+        val stateWithWarning = crisisState().copy(
+            earlyWarnings = listOf(
+                EarlyWarning(
+                    signalName = "realised_vol",
+                    currentValue = 0.13,
+                    threshold = 0.15,
+                    proximityPct = 86.7,
+                    message = "Realised volatility approaching elevated regime threshold",
+                )
+            )
+        )
+
+        testApp(currentState = stateWithWarning) {
+            val response = client.get("/api/v1/risk/regime/current")
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            val warnings = body["earlyWarnings"]!!.jsonArray
+
+            warnings.size shouldBe 1
+            val w = warnings[0].jsonObject
+            w["signalName"]!!.jsonPrimitive.content shouldBe "realised_vol"
+            w["currentValue"]!!.jsonPrimitive.content.toDouble() shouldBe 0.13
+            w["threshold"]!!.jsonPrimitive.content.toDouble() shouldBe 0.15
+            w["proximityPct"]!!.jsonPrimitive.content.toDouble() shouldBe 86.7
+            w["message"]!!.jsonPrimitive.content shouldBe "Realised volatility approaching elevated regime threshold"
         }
     }
 })

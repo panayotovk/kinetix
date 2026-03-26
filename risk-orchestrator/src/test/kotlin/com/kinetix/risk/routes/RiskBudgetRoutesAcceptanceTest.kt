@@ -147,6 +147,42 @@ class RiskBudgetRoutesAcceptanceTest : FunSpec({
         }
     }
 
+    // ── PUT /api/v1/risk/budgets/{id} ─────────────────────────────────────────
+
+    test("PUT updates budget amount and returns updated budget") {
+        val original = sampleAllocation("alloc-1")
+        coEvery { budgetRepository.findById("alloc-1") } returns original
+        coEvery { budgetRepository.update(any()) } returns Unit
+
+        testApp {
+            val response = client.put("/api/v1/risk/budgets/alloc-1") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"budgetAmount":"7500000.00","allocationNote":"Revised budget"}""")
+            }
+
+            response.status shouldBe HttpStatusCode.OK
+
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["id"]!!.jsonPrimitive.content shouldBe "alloc-1"
+            body["budgetAmount"]!!.jsonPrimitive.content shouldBe "7500000.00"
+            body["allocationNote"]!!.jsonPrimitive.content shouldBe "Revised budget"
+            coVerify(exactly = 1) { budgetRepository.update(any()) }
+        }
+    }
+
+    test("PUT returns 404 for non-existent budget") {
+        coEvery { budgetRepository.findById("nonexistent") } returns null
+
+        testApp {
+            val response = client.put("/api/v1/risk/budgets/nonexistent") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"budgetAmount":"1000000.00"}""")
+            }
+
+            response.status shouldBe HttpStatusCode.NotFound
+        }
+    }
+
     // ── DELETE /api/v1/risk/budgets/{id} ──────────────────────────────────────
 
     test("DELETE /api/v1/risk/budgets/{id} removes allocation and returns 204") {

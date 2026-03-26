@@ -3,6 +3,7 @@ package com.kinetix.risk.routes
 import com.kinetix.risk.model.RegimeState
 import com.kinetix.risk.persistence.MarketRegimeRepository
 import com.kinetix.risk.routes.dtos.AdaptiveVaRParametersDto
+import com.kinetix.risk.routes.dtos.EarlyWarningDto
 import com.kinetix.risk.routes.dtos.MarketRegimeCurrentResponse
 import com.kinetix.risk.routes.dtos.MarketRegimeHistoryItemResponse
 import com.kinetix.risk.routes.dtos.MarketRegimeHistoryResponse
@@ -71,6 +72,15 @@ private fun RegimeState.toCurrentResponse() = MarketRegimeCurrentResponse(
         correlationMethod = varParameters.correlationMethod,
         numSimulations = varParameters.numSimulations,
     ),
+    earlyWarnings = earlyWarnings.map { w ->
+        EarlyWarningDto(
+            signalName = w.signalName,
+            currentValue = w.currentValue,
+            threshold = w.threshold,
+            proximityPct = w.proximityPct,
+            message = w.message,
+        )
+    },
 )
 
 private fun com.kinetix.risk.model.MarketRegimeHistory.toHistoryItemResponse() = MarketRegimeHistoryItemResponse(

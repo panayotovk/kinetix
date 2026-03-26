@@ -26,4 +26,5 @@ data class RegimeState(
     val consecutiveObservations: Int,
     val isConfirmed: Boolean,
     val degradedInputs: Boolean,
+    val earlyWarnings: List<EarlyWarning> = emptyList(),
 )

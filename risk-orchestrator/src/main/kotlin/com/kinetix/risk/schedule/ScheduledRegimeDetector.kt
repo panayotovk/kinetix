@@ -4,6 +4,7 @@ import com.kinetix.risk.client.RegimeDetectorClient
 import com.kinetix.risk.model.AdaptiveVaRParameters
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
+import com.kinetix.risk.model.EarlyWarning
 import com.kinetix.risk.model.MarketRegime
 import com.kinetix.risk.model.RegimeSignals
 import com.kinetix.risk.model.RegimeState
@@ -118,6 +119,7 @@ class ScheduledRegimeDetector(
                 consecutiveObservations = pendingCount,
                 isConfirmed = true,
                 degradedInputs = classified.degradedInputs,
+                earlyWarnings = classified.earlyWarnings,
             )
             val oldRegime = confirmedRegime
             confirmedRegime = incoming
@@ -148,6 +150,7 @@ class ScheduledRegimeDetector(
                 consecutiveObservations = pendingCount,
                 isConfirmed = isConfirmed && incoming == confirmedRegime,
                 degradedInputs = classified.degradedInputs,
+                earlyWarnings = classified.earlyWarnings,
             )
             _currentState.set(updatedState)
         }
@@ -166,6 +169,15 @@ class ScheduledRegimeDetector(
             regime = result.regime,
             confidence = result.confidence,
             degradedInputs = result.degradedInputs,
+            earlyWarnings = result.earlyWarnings.map { w ->
+                EarlyWarning(
+                    signalName = w.signalName,
+                    currentValue = w.currentValue,
+                    threshold = w.threshold,
+                    proximityPct = w.proximityPct,
+                    message = w.message,
+                )
+            },
         )
     }
 
@@ -173,5 +185,6 @@ class ScheduledRegimeDetector(
         val regime: MarketRegime,
         val confidence: Double,
         val degradedInputs: Boolean,
+        val earlyWarnings: List<EarlyWarning>,
     )
 }

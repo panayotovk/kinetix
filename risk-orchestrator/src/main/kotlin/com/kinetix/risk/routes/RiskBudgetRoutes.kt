@@ -27,6 +27,13 @@ private data class CreateRiskBudgetRequest(
     val allocationNote: String? = null,
 )
 
+@Serializable
+private data class UpdateRiskBudgetRequest(
+    val budgetAmount: String? = null,
+    val effectiveTo: String? = null,
+    val allocationNote: String? = null,
+)
+
 fun Route.riskBudgetRoutes(budgetRepository: RiskBudgetAllocationRepository) {
     route("/api/v1/risk/budgets") {
         get {
@@ -106,6 +113,40 @@ fun Route.riskBudgetRoutes(budgetRepository: RiskBudgetAllocationRepository) {
                 } else {
                     call.respond(allocation.toResponse())
                 }
+            }
+
+            put {
+                val id = call.requirePathParam("id")
+                val existing = budgetRepository.findById(id)
+                if (existing == null) {
+                    call.respond(HttpStatusCode.NotFound)
+                    return@put
+                }
+                val request = try {
+                    call.receive<UpdateRiskBudgetRequest>()
+                } catch (e: Exception) {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid request body: ${e.message}")
+                    return@put
+                }
+                val newAmount = request.budgetAmount?.let {
+                    it.toBigDecimalOrNull() ?: run {
+                        call.respond(HttpStatusCode.BadRequest, "Invalid budgetAmount: $it")
+                        return@put
+                    }
+                } ?: existing.budgetAmount
+                val newEffectiveTo = request.effectiveTo?.let {
+                    runCatching { LocalDate.parse(it) }.getOrElse {
+                        call.respond(HttpStatusCode.BadRequest, "Invalid effectiveTo date: $it")
+                        return@put
+                    }
+                } ?: existing.effectiveTo
+                val updated = existing.copy(
+                    budgetAmount = newAmount,
+                    effectiveTo = newEffectiveTo,
+                    allocationNote = request.allocationNote ?: existing.allocationNote,
+                )
+                budgetRepository.update(updated)
+                call.respond(HttpStatusCode.OK, updated.toResponse())
             }
 
             delete {

@@ -6,6 +6,7 @@ import com.kinetix.risk.client.RegimeDetectorClient
 import com.kinetix.risk.model.AdaptiveVaRParameters
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ConfidenceLevel
+import com.kinetix.risk.model.EarlyWarning
 import com.kinetix.risk.model.MarketRegime
 import com.kinetix.risk.model.RegimeSignals
 import com.kinetix.risk.model.RegimeState
@@ -258,5 +259,85 @@ class ScheduledRegimeDetectorTest : FunSpec({
 
         detector.detect()
         detector.currentState.degradedInputs shouldBe true
+    }
+
+    test("early warnings from detection result are surfaced in regime state") {
+        val client = mockk<RegimeDetectorClient>()
+        val warning = EarlyWarningResult(
+            signalName = "realised_vol",
+            currentValue = 0.13,
+            threshold = 0.15,
+            proximityPct = 86.7,
+            message = "Realised volatility approaching elevated regime threshold",
+        )
+        coEvery { client.detectRegime(any(), any(), any(), any(), any(), any()) } returns
+            normalResult().copy(earlyWarnings = listOf(warning))
+
+        val detector = ScheduledRegimeDetector(
+            regimeDetectorClient = client,
+            signalProvider = { normalSignals() },
+            parameterProvider = paramProvider,
+        )
+
+        detector.detect()
+
+        val state = detector.currentState
+        state.earlyWarnings shouldBe listOf(
+            EarlyWarning(
+                signalName = "realised_vol",
+                currentValue = 0.13,
+                threshold = 0.15,
+                proximityPct = 86.7,
+                message = "Realised volatility approaching elevated regime threshold",
+            )
+        )
+    }
+
+    test("early warnings are included in regime state on confirmed transition") {
+        val client = mockk<RegimeDetectorClient>()
+        val warning = EarlyWarningResult(
+            signalName = "cross_asset_correlation",
+            currentValue = 0.72,
+            threshold = 0.75,
+            proximityPct = 96.0,
+            message = "Cross-asset correlation structure shifting toward crisis pattern",
+        )
+        coEvery { client.detectRegime(any(), any(), any(), any(), any(), any()) } returns
+            crisisResult().copy(earlyWarnings = listOf(warning))
+
+        val detector = ScheduledRegimeDetector(
+            regimeDetectorClient = client,
+            signalProvider = { crisisSignals() },
+            parameterProvider = paramProvider,
+            escalationDebounce = 3,
+        )
+
+        repeat(3) { detector.detect() }
+
+        detector.currentState.regime shouldBe MarketRegime.CRISIS
+        detector.currentState.earlyWarnings shouldBe listOf(
+            EarlyWarning(
+                signalName = "cross_asset_correlation",
+                currentValue = 0.72,
+                threshold = 0.75,
+                proximityPct = 96.0,
+                message = "Cross-asset correlation structure shifting toward crisis pattern",
+            )
+        )
+    }
+
+    test("empty early warnings list is surfaced when no thresholds are approached") {
+        val client = mockk<RegimeDetectorClient>()
+        coEvery { client.detectRegime(any(), any(), any(), any(), any(), any()) } returns
+            normalResult().copy(earlyWarnings = emptyList())
+
+        val detector = ScheduledRegimeDetector(
+            regimeDetectorClient = client,
+            signalProvider = { normalSignals() },
+            parameterProvider = paramProvider,
+        )
+
+        detector.detect()
+        detector.currentState.earlyWarnings shouldBe emptyList()
     }
 })
