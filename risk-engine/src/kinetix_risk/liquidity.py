@@ -14,7 +14,7 @@ Key behavioural invariants:
   - Stale ADV (adv_staleness_days > ADV_MAX_STALENESS_DAYS) -> adv_stale=True.
     Concentration check returns WARNING (not BREACHED) unless also over limit.
   - LVaR = base_var * sqrt(liquidation_days / base_holding_period).
-  - data_completeness = fraction of portfolio (by count) with ADV data present.
+  - data_completeness = fraction of portfolio (by notional) with ADV data present.
 """
 from __future__ import annotations
 
@@ -186,8 +186,9 @@ def compute_lvar(
     if not inputs:
         data_completeness = 1.0
     else:
-        count_with_adv = sum(1 for inp in inputs if inp.adv is not None)
-        data_completeness = count_with_adv / len(inputs)
+        total_notional = sum(abs(inp.market_value) for inp in inputs)
+        covered_notional = sum(abs(inp.market_value) for inp in inputs if inp.adv is not None)
+        data_completeness = covered_notional / total_notional if total_notional > 0 else 1.0
 
     return LVaRResult(lvar_value=lvar_value, data_completeness=data_completeness)
 

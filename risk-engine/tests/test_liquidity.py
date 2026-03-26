@@ -149,10 +149,14 @@ def test_lvar_equals_var_when_horizon_equals_base_period():
 
 @pytest.mark.unit
 def test_lvar_data_completeness_reflects_positions_with_adv():
-    """data_completeness is the fraction of portfolio with ADV data present."""
+    """data_completeness is the notional-weighted fraction of portfolio with ADV.
+
+    Position A: $900K with ADV. Position B: $100K without ADV.
+    Total notional: $1M. Covered: $900K -> completeness = 0.9.
+    """
     inputs = [
-        LiquidityInput(instrument_id="A", market_value=500_000.0, adv=10_000_000.0, adv_staleness_days=0, asset_class=AssetClass.EQUITY),
-        LiquidityInput(instrument_id="B", market_value=500_000.0, adv=None, adv_staleness_days=None, asset_class=AssetClass.EQUITY),
+        LiquidityInput(instrument_id="A", market_value=900_000.0, adv=10_000_000.0, adv_staleness_days=0, asset_class=AssetClass.EQUITY),
+        LiquidityInput(instrument_id="B", market_value=100_000.0, adv=None, adv_staleness_days=None, asset_class=AssetClass.EQUITY),
     ]
 
     result = compute_lvar(
@@ -162,8 +166,8 @@ def test_lvar_data_completeness_reflects_positions_with_adv():
         inputs=inputs,
     )
 
-    # Only 1 of 2 positions has ADV data
-    assert abs(result.data_completeness - 0.5) < 1e-6
+    # $900K covered / $1M total = 0.9
+    assert abs(result.data_completeness - 0.9) < 1e-6
 
 
 @pytest.mark.unit
@@ -342,3 +346,30 @@ def test_concentration_flag_current_value_and_limit_populated():
     )
     assert abs(result.current_pct - 0.30) < 1e-6  # 3M / 10M = 30%
     assert abs(result.limit_pct - 0.50) < 1e-6
+
+
+# ---------------------------------------------------------------------------
+# data_completeness notional-weighting (LIQ-12)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+def test_data_completeness_is_notional_weighted():
+    """data_completeness is weighted by notional, not position count.
+
+    One position worth $9M has ADV; one worth $1M does not.
+    Count-based completeness would be 0.5; notional-weighted is 0.9.
+    """
+    inputs = [
+        LiquidityInput(instrument_id="A", market_value=9_000_000.0, adv=50_000_000.0, adv_staleness_days=0, asset_class=AssetClass.EQUITY),
+        LiquidityInput(instrument_id="B", market_value=1_000_000.0, adv=None, adv_staleness_days=None, asset_class=AssetClass.EQUITY),
+    ]
+
+    result = compute_lvar(
+        base_var=100_000.0,
+        liquidation_horizon_days=5,
+        base_holding_period=1,
+        inputs=inputs,
+    )
+
+    assert abs(result.data_completeness - 0.9) < 1e-6
