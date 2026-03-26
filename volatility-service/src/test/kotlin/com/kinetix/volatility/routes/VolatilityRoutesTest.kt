@@ -113,6 +113,45 @@ class VolatilityRoutesTest : FunSpec({
         }
     }
 
+    test("POST surfaces returns 400 when any vol point has zero implied vol") {
+        testApplication {
+            application { module(volSurfaceRepo, ingestionService) }
+
+            val response = client.post("/api/v1/volatility/surfaces") {
+                contentType(ContentType.Application.Json)
+                setBody("""
+                    {
+                        "instrumentId": "AAPL",
+                        "points": [
+                            {"strike": 100.0, "maturityDays": 30, "impliedVol": 0.25},
+                            {"strike": 110.0, "maturityDays": 30, "impliedVol": 0.0}
+                        ],
+                        "source": "BLOOMBERG"
+                    }
+                """.trimIndent())
+            }
+            response.status shouldBe HttpStatusCode.BadRequest
+        }
+    }
+
+    test("POST surfaces returns 400 when any vol point has negative implied vol") {
+        testApplication {
+            application { module(volSurfaceRepo, ingestionService) }
+
+            val response = client.post("/api/v1/volatility/surfaces") {
+                contentType(ContentType.Application.Json)
+                setBody("""
+                    {
+                        "instrumentId": "AAPL",
+                        "points": [{"strike": 100.0, "maturityDays": 30, "impliedVol": -0.10}],
+                        "source": "BLOOMBERG"
+                    }
+                """.trimIndent())
+            }
+            response.status shouldBe HttpStatusCode.BadRequest
+        }
+    }
+
     test("GET surface history returns 400 when missing from parameter") {
         testApplication {
             application { module(volSurfaceRepo, ingestionService) }
