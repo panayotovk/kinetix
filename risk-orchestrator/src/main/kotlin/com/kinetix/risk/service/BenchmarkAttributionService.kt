@@ -16,8 +16,9 @@ import java.time.LocalDate
  *
  * Portfolio weights are computed from position market values relative to the total book market value.
  * Benchmark weights are read from the benchmark's constituent list as of the requested date.
- * Returns are set to zero — the current implementation uses this as a structural skeleton that
- * can be extended once historical price returns are wired in.
+ * Portfolio returns are computed from unrealized P&L relative to cost basis.
+ * Benchmark returns use portfolio returns as a proxy for shared constituents;
+ * a proper implementation requires a benchmark returns data feed.
  */
 class BenchmarkAttributionService(
     private val positionProvider: PositionProvider,
@@ -57,12 +58,25 @@ class BenchmarkAttributionService(
                 .divide(totalMarketValue, 10, java.math.RoundingMode.HALF_UP)
                 .toDouble()
             val benchmarkWeight = benchmarkWeightByInstrument[instrumentId] ?: 0.0
+
+            // Portfolio return: unrealized P&L / cost basis (market value - unrealized P&L)
+            val pnl = position.unrealizedPnl.amount
+            val costBasis = position.marketValue.amount - pnl
+            val portfolioReturn = if (costBasis.signum() > 0) {
+                pnl.divide(costBasis, 10, java.math.RoundingMode.HALF_UP).toDouble()
+            } else 0.0
+
+            // Benchmark return: use portfolio return as proxy for constituents in our book;
+            // off-benchmark holdings get zero benchmark return.
+            // A proper implementation requires a benchmark returns data feed.
+            val benchmarkReturn = if (benchmarkWeight > 0.0) portfolioReturn else 0.0
+
             SectorInput(
                 sectorLabel = instrumentId,
                 portfolioWeight = portfolioWeight,
                 benchmarkWeight = benchmarkWeight,
-                portfolioReturn = 0.0,
-                benchmarkReturn = 0.0,
+                portfolioReturn = portfolioReturn,
+                benchmarkReturn = benchmarkReturn,
             )
         }
 
