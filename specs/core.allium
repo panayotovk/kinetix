@@ -18,8 +18,11 @@ value TimeRange {
 
 value CurvePoint {
     tenor: String
-    days: Integer
-    rate: Decimal
+    value: Decimal
+
+    @guidance
+        -- days can be derived from the tenor string (e.g. "1Y" = 365, "6M" = 182).
+        -- value represents the rate at that tenor point.
 }
 
 value VolPoint {
@@ -41,9 +44,12 @@ value Tenor {
 enum Role { admin | trader | risk_manager | compliance | viewer }
 
 enum Permission {
-    read_positions | book_trades | calculate_risk | read_risk |
-    manage_alerts | manage_limits | approve_submissions | promote_eod_run |
-    view_audit | manage_models | manage_scenarios | admin
+    read_portfolios | write_trades | read_positions |
+    read_risk | calculate_risk |
+    read_regulatory | generate_reports |
+    manage_alerts | read_alerts |
+    read_audit | manage_users |
+    promote_eod_run | manage_scenarios
 }
 
 enum ScenarioType { parametric | historical_replay | reverse_stress }

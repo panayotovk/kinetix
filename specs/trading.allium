@@ -66,7 +66,7 @@ entity TradeEvent {
 -- Trade booking
 
 rule BookTrade {
-    when: BookTradeRequested(trade_id, book_id, instrument_id, asset_class, side, quantity, price, traded_at, counterparty_id, instrument_type, strategy_id, correlation_id)
+    when: BookTradeRequested(trade_id, book_id, instrument_id, asset_class, side, quantity, price, traded_at, counterparty_id, instrument_type, strategy_id)
     requires: quantity > 0
     requires: price.amount >= 0
     requires: not exists Trade{trade_id: trade_id}
@@ -88,9 +88,10 @@ rule BookTrade {
     )
 
     ensures: trade
-    ensures: TradeBooked(trade: trade, book_id: book_id, correlation_id: correlation_id)
+    ensures: TradeBooked(trade: trade, book_id: book_id)
 
     @guidance
+        -- Correlation IDs are system-generated (UUID) per event, not caller-supplied.
         -- If a trade with the same trade_id already exists, return it idempotently.
         -- Limit checks (position, notional, concentration) are evaluated before booking.
         -- Hard limit breaches block the trade; soft warnings are returned alongside.
@@ -98,7 +99,7 @@ rule BookTrade {
 }
 
 rule BookTradeIdempotent {
-    when: BookTradeRequested(trade_id, book_id, instrument_id, asset_class, side, quantity, price, traded_at, counterparty_id, instrument_type, strategy_id, correlation_id)
+    when: BookTradeRequested(trade_id, book_id, instrument_id, asset_class, side, quantity, price, traded_at, counterparty_id, instrument_type, strategy_id)
     requires: exists Trade{trade_id: trade_id}
 
     @guidance
@@ -109,7 +110,7 @@ rule BookTradeIdempotent {
 -- Trade amendment
 
 rule AmendTrade {
-    when: AmendTradeRequested(original_trade_id, new_trade_id, book_id, instrument_id, asset_class, side, quantity, price, traded_at, correlation_id)
+    when: AmendTradeRequested(original_trade_id, new_trade_id, book_id, instrument_id, asset_class, side, quantity, price, traded_at)
     let original = Trade{trade_id: original_trade_id}
     requires: original.status = live
     requires: quantity > 0
@@ -130,7 +131,7 @@ rule AmendTrade {
         original_trade_id: original_trade_id
     )
     ensures: new_trade
-    ensures: TradeAmended(trade: new_trade, original_trade_id: original_trade_id, book_id: book_id, correlation_id: correlation_id)
+    ensures: TradeAmended(trade: new_trade, original_trade_id: original_trade_id, book_id: book_id)
 
     @guidance
         -- Within a single transaction:
@@ -143,7 +144,7 @@ rule AmendTrade {
 }
 
 rule AmendTradeRejectedNotLive {
-    when: AmendTradeRequested(original_trade_id, new_trade_id, book_id, instrument_id, asset_class, side, quantity, price, traded_at, correlation_id)
+    when: AmendTradeRequested(original_trade_id, new_trade_id, book_id, instrument_id, asset_class, side, quantity, price, traded_at)
     let original = Trade{trade_id: original_trade_id}
     requires: original.status != live
 
@@ -154,12 +155,12 @@ rule AmendTradeRejectedNotLive {
 -- Trade cancellation
 
 rule CancelTrade {
-    when: CancelTradeRequested(trade_id, book_id, correlation_id)
+    when: CancelTradeRequested(trade_id, book_id)
     let trade = Trade{trade_id: trade_id}
     requires: trade.status = live
 
     ensures: trade.status = cancelled
-    ensures: TradeCancelled(trade: trade, book_id: book_id, correlation_id: correlation_id)
+    ensures: TradeCancelled(trade: trade, book_id: book_id)
 
     @guidance
         -- Within a single transaction:
@@ -171,7 +172,7 @@ rule CancelTrade {
 }
 
 rule CancelTradeRejectedNotLive {
-    when: CancelTradeRequested(trade_id, book_id, correlation_id)
+    when: CancelTradeRequested(trade_id, book_id)
     let trade = Trade{trade_id: trade_id}
     requires: trade.status != live
 
@@ -190,9 +191,13 @@ invariant TradeQuantityPositive {
 
 invariant TradeImmutabilityExceptStatus {
     @guidance
-        -- Enforced by database trigger: only the status field can be updated.
-        -- trade_id, book_id, instrument_id, asset_class, side, quantity,
-        -- price, traded_at, event_type, strategy_id are all immutable after insertion.
+        -- Enforced by database trigger (V14): the following fields are immutable
+        -- after insertion:
+        --   trade_id, book_id, instrument_id, asset_class, side, quantity,
+        --   price_amount, price_currency, traded_at, created_at, event_type.
+        -- The following fields are intentionally mutable (not protected by trigger):
+        --   status (lifecycle transitions), counterparty_id, instrument_type,
+        --   original_trade_id, strategy_id.
 }
 
 invariant TradeNeverDeleted {

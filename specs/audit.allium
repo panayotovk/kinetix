@@ -37,7 +37,7 @@ entity AuditEvent {
     user_id: String?
     user_role: String?
     event_type: AuditEventType
-    previous_hash: String
+    previous_hash: String?
     record_hash: String
 
     -- Trade fields (present for trade_booked, trade_amended, trade_cancelled)
@@ -62,7 +62,7 @@ entity AuditEvent {
         -- quantity and price_amount stored as NUMERIC(28,12) for precision.
         -- traded_at stored as TIMESTAMPTZ, truncated to microsecond precision.
         -- Hash chain: each event's previous_hash = previous event's record_hash.
-        -- The first event in the chain has previous_hash = empty string.
+        -- The first event in the chain has previous_hash = null.
         -- Non-trade events leave trade fields null; their identity is carried
         -- in model_name, scenario_id, limit_id, or submission_id as appropriate.
         -- All fields (including nulls) are included in hash computation so that
@@ -99,7 +99,7 @@ config {
 -- We subscribe to all three; the recording logic is identical.
 
 rule RecordAuditEventOnBook {
-    when: trading/TradeBooked(trade, book_id, correlation_id)
+    when: trading/TradeBooked(trade, book_id)
     let latest_hash = latest_audit_event_hash
     let normalized_quantity = normalize_decimal(trade.quantity)
     let normalized_price = normalize_decimal(trade.price.amount)
@@ -128,13 +128,13 @@ rule RecordAuditEventOnBook {
         -- quantity, price_amount, price_currency, traded_at, user_id, user_role,
         -- event_type, model_name, scenario_id, limit_id, submission_id, details,
         -- previous_hash. Null fields are substituted with empty string (except
-        -- user_id and user_role which use "NULL").
+        -- user_id, user_role, and previous_hash which use "NULL").
         -- Numeric values and timestamps are normalized before hashing
         -- to match PostgreSQL storage precision (avoids hash drift).
 }
 
 rule RecordAuditEventOnAmend {
-    when: trading/TradeAmended(trade, original_trade_id, book_id, correlation_id)
+    when: trading/TradeAmended(trade, original_trade_id, book_id)
     let latest_hash = latest_audit_event_hash
     let normalized_quantity = normalize_decimal(trade.quantity)
     let normalized_price = normalize_decimal(trade.price.amount)
@@ -158,7 +158,7 @@ rule RecordAuditEventOnAmend {
 }
 
 rule RecordAuditEventOnCancel {
-    when: trading/TradeCancelled(trade, book_id, correlation_id)
+    when: trading/TradeCancelled(trade, book_id)
     let latest_hash = latest_audit_event_hash
     let normalized_quantity = normalize_decimal(trade.quantity)
     let normalized_price = normalize_decimal(trade.price.amount)
@@ -294,7 +294,7 @@ invariant HashChainIntegrity {
     @guidance
         -- For all consecutive audit events (ordered by id):
         --   event[n].previous_hash = event[n-1].record_hash
-        -- The first event has previous_hash = "" (empty string).
+        -- The first event has previous_hash = null.
         -- Each record_hash = SHA-256(serialized fields + previous_hash).
         -- Breaking the chain indicates tampering.
 }

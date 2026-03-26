@@ -61,7 +61,7 @@ entity BacktestResultRecord {
     christoffersen_pass: Boolean
     traffic_light_zone: core/TrafficLightZone
     calculated_at: Timestamp
-    input_digest: String
+    input_digest: String?
     window_start: Date?
     window_end: Date?
     model_version: String?
@@ -128,7 +128,7 @@ entity StressTestResultRecord {
     calculated_at: Timestamp
     base_pv: Decimal?
     stressed_pv: Decimal?
-    pnl_impact: Decimal
+    pnl_impact: Decimal?
     var_impact: Decimal?
     position_impacts: String?
     model_version: String?

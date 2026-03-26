@@ -149,18 +149,30 @@ variant CommodityOption : Instrument {
 
 entity DividendYield {
     instrument_id: String
-    yield: Decimal
+    yield: Double
     ex_date: String?
     as_of_date: Timestamp
     source: core/ReferenceDataSource
+
+    @guidance
+        -- The database stores yield as decimal(18,8) for full precision,
+        -- but the domain model uses 64-bit floating point (Double).
+        -- This is adequate for dividend yield values which are small
+        -- fractions (typically 0.00 to 0.10).
 }
 
 entity CreditSpread {
     instrument_id: String
-    spread: Decimal
+    spread: Double
     rating: String?
     as_of_date: Timestamp
     source: core/ReferenceDataSource
+
+    @guidance
+        -- The database stores spread as decimal(18,8) for full precision,
+        -- but the domain model uses 64-bit floating point (Double).
+        -- This is adequate for credit spread values which are small
+        -- fractions (typically 0.0001 to 0.05).
 }
 
 entity Counterparty {

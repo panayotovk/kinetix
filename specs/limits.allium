@@ -8,20 +8,27 @@ use "./core.allium" as core
 ------------------------------------------------------------
 
 value LimitCheckResult {
-    limit_type: core/LimitType
     status: core/LimitCheckStatus
-    current_value: Decimal
-    limit_value: Decimal
-    level: core/LimitLevel
-    entity_id: String
+    limit_value: Decimal?
+    effective_limit: Decimal?
+    current_exposure: Decimal?
+    breached_at: core/LimitLevel?
+    message: String?
 }
 
 value LimitBreach {
-    limit_type: core/LimitType
-    status: core/LimitCheckStatus
-    current_value: Decimal
-    limit_value: Decimal
+    limit_type: String
+    severity: LimitBreachSeverity
+    current_value: String
+    limit_value: String
+    message: String
 }
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+enum LimitBreachSeverity { soft | hard }
 
 ------------------------------------------------------------
 -- Entities and Variants

@@ -176,12 +176,20 @@ deferred eligible_instruments
     --
     -- Criteria:
     --   1. Instrument is marked hedging_eligible in reference-data.
-    --   2. Liquidity tier is TIER_1 or TIER_2 (excludes illiquid).
-    --   3. Price data is fresher than config.candidate_price_staleness.
+    --   2. Liquidity tier is TIER_1 or TIER_2 (excludes illiquid and TIER_3).
+    --   3. Stale-priced candidates (price older than config.candidate_price_staleness)
+    --      are included but flagged with data_quality = "STALE". Fresh candidates
+    --      are flagged data_quality = "FRESH".
     --   4. For vega hedges: vol surface available.
     --   5. Filtered to at most config.max_candidate_instruments (ranked by liquidity).
     --
     -- If constraints.instrument_universe is specified, filter to that set.
+    --
+    -- @guidance
+    --   Stale candidates are included rather than excluded because in thin
+    --   markets, excluding stale data would leave gaps in the candidate set.
+    --   The data_quality flag lets consumers (UI, optimiser) decide how to
+    --   weight or warn on stale-priced suggestions.
 
 -- Analytical hedge optimisation
 

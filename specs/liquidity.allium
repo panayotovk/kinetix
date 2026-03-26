@@ -45,7 +45,7 @@ value PositionLiquidityResult {
     liquidation_days: Decimal
     lvar: Decimal
     concentration_flagged: Boolean
-    stressed_liquidation_days: Decimal?
+    stressed_liquidation_value: Decimal
     liquidity_tier: LiquidityTier
     data_available: Boolean
 
@@ -53,6 +53,9 @@ value PositionLiquidityResult {
         -- adv_pct is null when no ADV data exists for the instrument.
         -- In that case, liquidation_days defaults to config.default_no_adv_horizon.
         -- data_available = false indicates the tier and horizon are conservative defaults.
+        -- stressed_liquidation_value is the monetary cost of liquidation under
+        -- stressed market conditions. stressed_liquidation_days (the time-based
+        -- counterpart) would be a complementary metric for future addition.
 }
 
 value LiquidityRiskSummary {
@@ -147,6 +150,10 @@ entity PositionLiquidityMetrics {
         -- Computed risk metric, recalculated daily and on significant
         -- position changes (trade events).
         -- Primary key: (book_id, instrument_id, as_of_date).
+        -- Currently embedded as JSON in LiquidityRiskSnapshot.position_risks_json
+        -- rather than separately persisted as its own table. This is adequate
+        -- for current scale; a separate table would be warranted if position-level
+        -- liquidity metrics need independent querying or indexing.
 }
 
 entity LiquidityRiskSnapshot {

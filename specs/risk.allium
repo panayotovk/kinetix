@@ -199,45 +199,51 @@ entity SodBaseline {
     baseline_date: String
     snapshot_type: core/SnapshotType
     source_job_id: String
-    greek_snapshot_id: String?  -- references SodGreekSnapshot.snapshot_id
+    greek_snapshot_id: String?  -- legacy; SodGreekSnapshot is now flat per-instrument
     calculation_type: String?
     var_value: Decimal?
     expected_shortfall: Decimal?
 }
 
--- Immutable snapshot of analytical pricing Greeks (PricingGreeks) locked
--- before market open. These are the SOD sensitivities used for P&L attribution
--- throughout the trading day. Must NOT be updated once locked.
+-- Immutable per-instrument analytical pricing Greeks locked before market open.
+-- These are SOD sensitivities used for P&L attribution throughout the trading day.
+-- Must NOT be updated once locked.
 -- Distinct from DailyRiskSnapshot (which holds VaR sensitivities).
 entity SodGreekSnapshot {
-    snapshot_id: String
     book_id: String
     snapshot_date: String
-    locked_at: Timestamp      -- time at which the snapshot was locked
-    locked_by: String         -- user or "SYSTEM"
-    is_locked: Boolean
-
-    -- Per-instrument pricing Greeks (dPV/dX, from BS / bond_dv01 / swap_dv01)
-    -- keyed by instrument_id
-    position_greeks: List<SodPositionGreeks>
-}
-
-value SodPositionGreeks {
     instrument_id: String
-    asset_class: core/AssetClass
+
+    -- SOD market state used to compute the Greeks
     sod_price: Decimal
     sod_vol: Decimal?
     sod_rate: Decimal?
-    delta: Decimal        -- dPV/dSpot
-    gamma: Decimal        -- d²PV/dSpot²
-    vega: Decimal         -- dPV/dVol
-    theta: Decimal        -- dPV/dTime
-    rho: Decimal          -- dPV/dRate
-    vanna: Decimal        -- d²PV/dSpot dVol
-    volga: Decimal        -- d²PV/dVol²
-    charm: Decimal        -- d²PV/dSpot dTime
+
+    -- First-order pricing Greeks (analytical BS for options; DV01 for fixed income)
+    delta: Decimal?       -- dPV/dSpot
+    gamma: Decimal?       -- d²PV/dSpot²
+    vega: Decimal?        -- dPV/dVol
+    theta: Decimal?       -- dPV/dTime
+    rho: Decimal?         -- dPV/dRate
+
+    -- Cross-Greeks (second-order mixed sensitivities, analytical BS)
+    vanna: Decimal?       -- d²PV/dSpot dVol
+    volga: Decimal?       -- d²PV/dVol²
+    charm: Decimal?       -- d²PV/dSpot dTime
+
+    -- Fixed-income sensitivities (null for non-fixed-income instruments)
     bond_dv01: Decimal?
     swap_dv01: Decimal?
+
+    -- Immutability lock
+    is_locked: Boolean
+    locked_at: Timestamp?
+    locked_by: String?
+
+    @guidance
+        -- Each row represents one instrument's Greeks for a single (book_id, snapshot_date).
+        -- Grouping is implicit via the composite key (book_id, snapshot_date).
+        -- There is no parent snapshot entity; the per-instrument rows are the snapshots.
 }
 
 entity PnlAttribution {
@@ -451,8 +457,8 @@ rule ComputePnlAttribution {
         -- are dVaR/dX; P&L attribution requires dPV/dX.
         --
         -- 1. Verify SodBaseline exists for date (else throw NoSodBaselineException).
-        -- 2. Load SodGreekSnapshot via SodBaseline.greek_snapshot_id.
-        --    If greek_snapshot_id is null, set data_quality_flag = price_only and
+        -- 2. Load SodGreekSnapshot rows for the (book_id, date).
+        --    If no rows exist, set data_quality_flag = price_only and
         --    skip Greek attribution (delta_pnl/gamma_pnl/... = 0).
         -- 3. Fetch current positions from position-service.
         -- 4. Fetch intraday market deltas from live services:
@@ -461,7 +467,7 @@ rule ComputePnlAttribution {
         --      drate = current_rate - sod_rate  (from rates-service; NOT hardcoded 0)
         -- 5. For each instrument:
         --      total_pnl = dS * quantity
-        -- 6. Attribute per position using SodPositionGreeks:
+        -- 6. Attribute per position using SodGreekSnapshot row:
         --      delta_pnl       = delta * dS
         --      gamma_pnl       = 0.5 * gamma * dS^2
         --      vega_pnl        = vega * dvol
@@ -585,8 +591,7 @@ invariant PnlExplainUsesPricingSensitivities {
 
 invariant SodGreekSnapshotImmutable {
     @guidance
-        -- Once SodGreekSnapshot.is_locked = true, the snapshot and all its
-        -- SodPositionGreeks entries are immutable for the remainder of the
-        -- trading day. Any attempt to modify a locked snapshot must be rejected.
-        -- A new snapshot for the following day may be created independently.
+        -- Once SodGreekSnapshot.is_locked = true, the row is immutable for the
+        -- remainder of the trading day. Any attempt to modify a locked row must
+        -- be rejected. New rows for the following day may be created independently.
 }

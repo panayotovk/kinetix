@@ -34,19 +34,32 @@ value ExposureAtTenor {
 value NettingSetExposure {
     netting_set_id: String
     agreement_type: String
-    gross_exposure: Decimal
     net_exposure: Decimal
-    netting_benefit: Decimal
-    netting_benefit_pct: Decimal
-    position_count: Integer
+    peak_pfe: Decimal
+
+    @guidance
+        -- Aspirational fields not yet in the code:
+        --   gross_exposure: Decimal       -- sum of |MtM| before netting
+        --   netting_benefit: Decimal      -- gross - net
+        --   netting_benefit_pct: Decimal  -- netting_benefit / gross_exposure
+        --   position_count: Integer       -- number of trades in the netting set
+        -- These would enrich the netting breakdown but are not yet computed.
 }
 
+-- Aspirational: wrong-way risk flags are currently plain strings in the code.
+-- This structured type represents the future target shape.
 value WrongWayRiskFlag {
     instrument_id: String
     counterparty_sector: String
     position_sector: String
     exposure: Decimal
     message: String
+
+    @guidance
+        -- Not yet used. CounterpartyExposureSnapshot.wrong_way_risk_flags is
+        -- currently List<String>?. Migrating to List<WrongWayRiskFlag> would
+        -- provide richer wrong-way risk attribution but requires changes to
+        -- the risk-orchestrator exposure calculation pipeline.
 }
 
 value SaCcrTradeClassification {
@@ -65,6 +78,13 @@ value SaCcrResult {
     multiplier: Decimal
     ead: Decimal
     alpha: Decimal
+
+    @guidance
+        -- Aspirational field not yet surfaced from the risk engine:
+        --   hedging_set_addons: List<HedgingSetAddon>
+        -- The CalculateSaCcr rule computes hedging set addons internally
+        -- but does not yet include them in the returned SaCcrResult.
+        -- Adding this field would improve transparency of the PFE breakdown.
 }
 
 value HedgingSetAddon {
@@ -149,27 +169,36 @@ entity CollateralBalance {
 
 entity CounterpartyExposureSnapshot {
     counterparty_id: String
-    book_id: String?
     calculated_at: Timestamp
-    gross_exposure: Decimal
-    net_exposure: Decimal
+    pfe_profile: List<ExposureAtTenor>
+    current_net_exposure: Decimal
+    peak_pfe: Decimal
+    cva: Decimal?
+    cva_estimated: Boolean
+    currency: String
+    netting_set_exposures: List<NettingSetExposure>?
     collateral_held: Decimal
     collateral_posted: Decimal
-    net_net_exposure: Decimal
-    pfe_95_1y: Decimal?
-    cva: Decimal?
-    wrong_way_risk_flags: List<WrongWayRiskFlag>
-    netting_sets: List<NettingSetExposure>
-    exposure_profile: List<ExposureAtTenor>?
+    net_net_exposure: Decimal?
+    wrong_way_risk_flags: List<String>?
 
     -- Derived
-    has_pfe: pfe_95_1y != null
-    has_wrong_way_risk: wrong_way_risk_flags.count > 0
+    has_pfe: peak_pfe != null
+    has_wrong_way_risk: wrong_way_risk_flags != null and wrong_way_risk_flags.count > 0
 
     @guidance
-        -- net_net_exposure = net_exposure - collateral_received + collateral_posted.
+        -- net_net_exposure = current_net_exposure - collateral_held + collateral_posted.
         -- This is the residual exposure after netting and collateral.
-        -- exposure_profile is populated by the PFE Monte Carlo (nightly batch).
+        -- pfe_profile is populated by the PFE Monte Carlo (nightly batch).
+        -- cva_estimated is true when CVA was derived from sector-average spreads
+        -- rather than the counterparty's own CDS spread or PD.
+        -- wrong_way_risk_flags are plain strings; see CPTY-04 guidance for future
+        -- structured type plans.
+        --
+        -- Aspirational fields not yet in the code:
+        --   book_id: String?          -- per-book breakdown of exposure
+        --   gross_exposure: Decimal   -- sum of |MtM| before netting
+        --   pfe_95_1y: Decimal?       -- 95th percentile PFE at 1-year horizon
 }
 
 ------------------------------------------------------------
@@ -215,9 +244,9 @@ rule CalculateCounterpartyExposure {
         let net = max(0, set_mtm)
         NettingSetExposure{
             netting_set_id: agreement.netting_set_id,
-            gross_exposure: sum(set_trades, t => abs(mtm(t))),
+            agreement_type: agreement.agreement_type,
             net_exposure: net,
-            netting_benefit: gross - net
+            peak_pfe: 0
         }
 
     -- Trades without netting agreements: use gross
@@ -231,14 +260,17 @@ rule CalculateCounterpartyExposure {
 
     ensures: CounterpartyExposureSnapshot.created(
         counterparty_id: counterparty_id,
-        book_id: book_id,
         calculated_at: now,
-        gross_exposure: gross,
-        net_exposure: total_net,
+        pfe_profile: [],
+        current_net_exposure: total_net,
+        peak_pfe: 0,
+        cva: null,
+        cva_estimated: false,
+        currency: "USD",
+        netting_set_exposures: netting_exposures,
         collateral_held: received,
         collateral_posted: posted,
         net_net_exposure: net_net,
-        netting_sets: netting_exposures,
         wrong_way_risk_flags: detect_wrong_way_risk(counterparty_id, trades)
     )
 }
@@ -412,17 +444,15 @@ rule ScheduledCounterpartyRisk {
 -- Invariants
 ------------------------------------------------------------
 
-invariant NettingReducesExposure {
-    for snapshot in CounterpartyExposureSnapshots:
-        snapshot.net_exposure <= snapshot.gross_exposure
-
-    @guidance
-        -- Netting can only reduce or maintain exposure, never increase it.
-}
+@invariant NettingReducesExposure
+    -- Netting can only reduce or maintain exposure, never increase it.
+    -- Cannot be expressed as an expression invariant because gross_exposure
+    -- is not yet tracked on CounterpartyExposureSnapshot (aspirational field).
 
 invariant NetNetExposureFormula {
     for snapshot in CounterpartyExposureSnapshots:
-        snapshot.net_net_exposure = snapshot.net_exposure - snapshot.collateral_held + snapshot.collateral_posted
+        snapshot.net_net_exposure = null or
+        snapshot.net_net_exposure = snapshot.current_net_exposure - snapshot.collateral_held + snapshot.collateral_posted
 }
 
 invariant PFEExceedsCurrentExposure {
