@@ -82,6 +82,11 @@ private fun IntradayPnlSnapshot.toDto(): IntradayPnlSnapshotDto = IntradayPnlSna
     charmPnl = charmPnl.toPlainString(),
     crossGammaPnl = crossGammaPnl.toPlainString(),
     unexplainedPnl = unexplainedPnl.toPlainString(),
+    unexplainedPct = if (totalPnl.signum() != 0) {
+        unexplainedPnl.toDouble() / totalPnl.toDouble()
+    } else {
+        null
+    },
     pnlVsSod = (totalPnl - sodTotalPnl).toPlainString(),
     highWaterMark = highWaterMark.toPlainString(),
     instrumentPnl = instrumentPnl.map { pos ->

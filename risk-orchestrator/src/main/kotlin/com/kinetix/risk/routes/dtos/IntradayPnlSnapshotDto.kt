@@ -20,6 +20,7 @@ data class IntradayPnlSnapshotDto(
     val charmPnl: String,
     val crossGammaPnl: String,
     val unexplainedPnl: String,
+    val unexplainedPct: Double?,
     val pnlVsSod: String,
     val highWaterMark: String,
     val instrumentPnl: List<InstrumentPnlBreakdownDto> = emptyList(),

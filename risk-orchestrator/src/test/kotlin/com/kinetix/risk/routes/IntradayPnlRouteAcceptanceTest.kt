@@ -263,6 +263,49 @@ class IntradayPnlRouteAcceptanceTest : FunSpec({
         }
     }
 
+    test("GET /api/v1/risk/pnl/intraday/{bookId} returns unexplained_pct as unexplainedPnl divided by totalPnl") {
+        val t = Instant.parse("2026-03-24T12:00:00Z")
+        // snapshot() sets unexplainedPnl=125.00 and totalPnl=1000.00 → pct = 0.125
+        coEvery { repository.findSeries(BOOK, any(), any()) } returns listOf(
+            snapshot(snapshotAt = t, totalPnl = "1000.00"),
+        )
+
+        testApplication {
+            install(ContentNegotiation) { json() }
+            routing { intradayPnlRoutes(repository) }
+
+            val response = client.get(
+                "/api/v1/risk/pnl/intraday/book-1" +
+                    "?from=2026-03-24T00:00:00Z&to=2026-03-24T23:59:59Z",
+            )
+            response.status shouldBe HttpStatusCode.OK
+
+            val snap = Json.decodeFromString<IntradayPnlSeriesResponse>(response.bodyAsText()).snapshots[0]
+            snap.unexplainedPct shouldBe 0.125
+        }
+    }
+
+    test("GET /api/v1/risk/pnl/intraday/{bookId} returns null unexplained_pct when totalPnl is zero") {
+        val t = Instant.parse("2026-03-24T12:00:00Z")
+        val zeroTotalSnap = snapshot(snapshotAt = t, totalPnl = "0.00", realisedPnl = "0.00", unrealisedPnl = "0.00")
+            .copy(unexplainedPnl = bd("0.00"))
+        coEvery { repository.findSeries(BOOK, any(), any()) } returns listOf(zeroTotalSnap)
+
+        testApplication {
+            install(ContentNegotiation) { json() }
+            routing { intradayPnlRoutes(repository) }
+
+            val response = client.get(
+                "/api/v1/risk/pnl/intraday/book-1" +
+                    "?from=2026-03-24T00:00:00Z&to=2026-03-24T23:59:59Z",
+            )
+            response.status shouldBe HttpStatusCode.OK
+
+            val snap = Json.decodeFromString<IntradayPnlSeriesResponse>(response.bodyAsText()).snapshots[0]
+            snap.unexplainedPct shouldBe null
+        }
+    }
+
     test("GET /api/v1/risk/pnl/intraday/{bookId} returns pnl_vs_sod as totalPnl minus sodTotalPnl") {
         val t = Instant.parse("2026-03-24T11:00:00Z")
         val snap = snapshot(snapshotAt = t, totalPnl = "1500.00").copy(sodTotalPnl = bd("300.00"))
