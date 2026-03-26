@@ -452,6 +452,10 @@ export interface PositionPnlAttributionDto {
   vegaPnl: string
   thetaPnl: string
   rhoPnl: string
+  vannaPnl?: string
+  volgaPnl?: string
+  charmPnl?: string
+  crossGammaPnl?: string
   unexplainedPnl: string
 }
 
@@ -464,7 +468,12 @@ export interface PnlAttributionDto {
   vegaPnl: string
   thetaPnl: string
   rhoPnl: string
+  vannaPnl?: string
+  volgaPnl?: string
+  charmPnl?: string
+  crossGammaPnl?: string
   unexplainedPnl: string
+  dataQualityFlag?: string
   positionAttributions: PositionPnlAttributionDto[]
   calculatedAt: string
 }

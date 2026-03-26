@@ -14,7 +14,7 @@ interface FactorDef {
   positionField: keyof PositionPnlAttributionDto
 }
 
-const FACTORS: FactorDef[] = [
+const FIRST_ORDER_FACTORS: FactorDef[] = [
   { key: 'delta', label: 'Delta', portfolioField: 'deltaPnl', positionField: 'deltaPnl' },
   { key: 'gamma', label: 'Gamma', portfolioField: 'gammaPnl', positionField: 'gammaPnl' },
   { key: 'vega', label: 'Vega', portfolioField: 'vegaPnl', positionField: 'vegaPnl' },
@@ -23,26 +23,57 @@ const FACTORS: FactorDef[] = [
   { key: 'unexplained', label: 'Unexplained', portfolioField: 'unexplainedPnl', positionField: 'unexplainedPnl' },
 ]
 
+const CROSS_GREEK_FACTORS: FactorDef[] = [
+  { key: 'vanna', label: 'Vanna', portfolioField: 'vannaPnl', positionField: 'vannaPnl' },
+  { key: 'volga', label: 'Volga', portfolioField: 'volgaPnl', positionField: 'volgaPnl' },
+  { key: 'charm', label: 'Charm', portfolioField: 'charmPnl', positionField: 'charmPnl' },
+  { key: 'crossGamma', label: 'Cross-Gamma', portfolioField: 'crossGammaPnl', positionField: 'crossGammaPnl' },
+]
+
 const FACTOR_COLORS: Record<string, string> = {
   delta: '#3b82f6',
   gamma: '#8b5cf6',
   vega: '#a855f7',
   theta: '#f59e0b',
   rho: '#22c55e',
+  vanna: '#c084fc',
+  volga: '#d946ef',
+  charm: '#fb923c',
+  crossGamma: '#a78bfa',
   unexplained: '#9ca3af',
 }
 
 export function PnlAttributionTable({ data }: PnlAttributionTableProps) {
   const [expandedFactor, setExpandedFactor] = useState<string | null>(null)
+  const [showCrossGreeks, setShowCrossGreeks] = useState(false)
 
   const totalPnl = Number(data.totalPnl)
+  const factors = showCrossGreeks ? [...FIRST_ORDER_FACTORS.slice(0, -1), ...CROSS_GREEK_FACTORS, FIRST_ORDER_FACTORS[FIRST_ORDER_FACTORS.length - 1]] : FIRST_ORDER_FACTORS
 
   const toggleFactor = (key: string) => {
     setExpandedFactor((prev) => (prev === key ? null : key))
   }
 
+  const dataQuality = data.dataQualityFlag
+
   return (
     <div data-testid="attribution-table">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          {dataQuality === 'PRICE_ONLY' && (
+            <span data-testid="attribution-quality-badge" className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300">
+              First-order only
+            </span>
+          )}
+        </div>
+        <button
+          data-testid="expand-greeks-toggle"
+          onClick={() => setShowCrossGreeks((prev) => !prev)}
+          className="text-xs text-primary-600 dark:text-primary-400 hover:underline"
+        >
+          {showCrossGreeks ? 'Hide cross-Greeks' : 'Expand Greeks'}
+        </button>
+      </div>
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-slate-200">
@@ -53,8 +84,8 @@ export function PnlAttributionTable({ data }: PnlAttributionTableProps) {
           </tr>
         </thead>
         <tbody>
-          {FACTORS.map((factor) => {
-            const amount = String(data[factor.portfolioField])
+          {factors.map((factor) => {
+            const amount = String(data[factor.portfolioField] ?? '0')
             const amountNum = Number(amount)
             const pctOfTotal = totalPnl !== 0 ? ((amountNum / totalPnl) * 100) : 0
             const isExpanded = expandedFactor === factor.key
@@ -96,7 +127,7 @@ export function PnlAttributionTable({ data }: PnlAttributionTableProps) {
                 </tr>
 
                 {isExpanded && data.positionAttributions.map((pos) => {
-                  const posAmount = String(pos[factor.positionField])
+                  const posAmount = String(pos[factor.positionField] ?? '0')
                   const posAmountNum = Number(posAmount)
 
                   return (
