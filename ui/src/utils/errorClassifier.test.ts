@@ -29,10 +29,12 @@ describe('classifyFetchError', () => {
     expect(result.message).toContain('Session expired')
   })
 
-  it('classifies 403 as auth and not retryable', () => {
+  it('classifies 403 as forbidden and not retryable', () => {
     const result = classifyFetchError(new Error('Forbidden'), 403)
-    expect(result.kind).toBe('auth')
+    expect(result.kind).toBe('forbidden')
     expect(result.retryable).toBe(false)
+    expect(result.message).not.toContain('Session expired')
+    expect(result.message).toContain('do not have access')
   })
 
   it('classifies 404 as notfound and not retryable', () => {

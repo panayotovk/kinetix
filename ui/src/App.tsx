@@ -331,16 +331,26 @@ function App() {
                 role="alert"
               >
                 <div>
-                  <p className="text-red-700 font-medium text-sm">Failed to load positions</p>
-                  <p className="text-red-600 text-sm mt-1">{error}</p>
+                  <p className="text-red-700 font-medium text-sm">
+                    {error.includes('403') || error.includes('Forbidden') || error.includes('not permitted')
+                      ? 'Access denied'
+                      : 'Failed to load positions'}
+                  </p>
+                  <p className="text-red-600 text-sm mt-1">
+                    {error.includes('403') || error.includes('Forbidden') || error.includes('not permitted')
+                      ? 'You do not have access to this book. Contact your administrator.'
+                      : error}
+                  </p>
                 </div>
-                <button
-                  data-testid="retry-load-button"
-                  onClick={retryInitialLoad}
-                  className="flex-shrink-0 px-3 py-1.5 text-sm font-medium bg-red-100 hover:bg-red-200 text-red-800 rounded-md transition-colors"
-                >
-                  Retry
-                </button>
+                {!(error.includes('403') || error.includes('Forbidden') || error.includes('not permitted')) && (
+                  <button
+                    data-testid="retry-load-button"
+                    onClick={retryInitialLoad}
+                    className="flex-shrink-0 px-3 py-1.5 text-sm font-medium bg-red-100 hover:bg-red-200 text-red-800 rounded-md transition-colors"
+                  >
+                    Retry
+                  </button>
+                )}
               </div>
             )}
 

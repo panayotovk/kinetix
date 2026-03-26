@@ -1,4 +1,4 @@
-export type ErrorKind = 'transient' | 'auth' | 'notfound' | 'error'
+export type ErrorKind = 'transient' | 'auth' | 'forbidden' | 'notfound' | 'error'
 
 export interface ClassifiedError {
   kind: ErrorKind
@@ -24,10 +24,17 @@ export function classifyFetchError(
       retryable: true,
     }
   }
-  if (status === 401 || status === 403) {
+  if (status === 401) {
     return {
       kind: 'auth',
       message: 'Session expired. Please refresh the page.',
+      retryable: false,
+    }
+  }
+  if (status === 403) {
+    return {
+      kind: 'forbidden',
+      message: 'You do not have access to this resource.',
       retryable: false,
     }
   }
