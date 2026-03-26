@@ -1,5 +1,6 @@
 import type { PnlAttributionDto } from '../types'
 import { formatNum, pnlColorClass } from '../utils/format'
+import { PNL_FACTOR_COLORS } from '../utils/factorColors'
 
 interface PnlWaterfallChartProps {
   data: PnlAttributionDto
@@ -12,15 +13,7 @@ interface FactorEntry {
   color: string
 }
 
-const FACTOR_COLORS: Record<string, string> = {
-  delta: '#3b82f6',
-  gamma: '#8b5cf6',
-  vega: '#a855f7',
-  theta: '#f59e0b',
-  rho: '#22c55e',
-  unexplained: '#9ca3af',
-  total: '#1e293b',
-}
+const FACTOR_COLORS = PNL_FACTOR_COLORS
 
 export function PnlWaterfallChart({ data }: PnlWaterfallChartProps) {
   const factors: FactorEntry[] = [

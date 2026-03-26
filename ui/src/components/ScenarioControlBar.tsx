@@ -1,4 +1,4 @@
-import { Zap, BarChart3, Settings, Download } from 'lucide-react'
+import { Zap, BarChart3, Settings, Download, RotateCcw } from 'lucide-react'
 import { Button, Select } from './ui'
 
 interface ScenarioControlBarProps {
@@ -13,6 +13,7 @@ interface ScenarioControlBarProps {
   onCompare?: () => void
   onManageScenarios?: () => void
   onExportCsv?: () => void
+  onReverseStress?: () => void
 }
 
 export function ScenarioControlBar({
@@ -27,6 +28,7 @@ export function ScenarioControlBar({
   onCompare,
   onManageScenarios,
   onExportCsv,
+  onReverseStress,
 }: ScenarioControlBarProps) {
   const canCompare = compareCount >= 2 && compareCount <= 3
 
@@ -73,6 +75,18 @@ export function ScenarioControlBar({
           onClick={onCustomScenario}
         >
           + Custom Scenario
+        </Button>
+      )}
+
+      {onReverseStress && (
+        <Button
+          data-testid="reverse-stress-btn"
+          variant="secondary"
+          size="md"
+          icon={<RotateCcw className="h-3.5 w-3.5" />}
+          onClick={onReverseStress}
+        >
+          Reverse Stress
         </Button>
       )}
 

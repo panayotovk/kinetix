@@ -189,6 +189,7 @@ export function ScenariosTab({
           onCompare={handleCompare}
           onExportCsv={results.length > 0 ? () => exportStressResultsToCsv(results) : undefined}
           onManageScenarios={() => setShowGovernance((v) => !v)}
+          onReverseStress={() => setReverseStressOpen(true)}
         />
 
         {loading && (

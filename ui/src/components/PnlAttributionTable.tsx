@@ -2,6 +2,7 @@ import { Fragment, useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import type { PnlAttributionDto, PositionPnlAttributionDto } from '../types'
 import { formatNum, pnlColorClass } from '../utils/format'
+import { PNL_FACTOR_COLORS } from '../utils/factorColors'
 
 interface PnlAttributionTableProps {
   data: PnlAttributionDto
@@ -30,18 +31,7 @@ const CROSS_GREEK_FACTORS: FactorDef[] = [
   { key: 'crossGamma', label: 'Cross-Gamma', portfolioField: 'crossGammaPnl', positionField: 'crossGammaPnl' },
 ]
 
-const FACTOR_COLORS: Record<string, string> = {
-  delta: '#3b82f6',
-  gamma: '#8b5cf6',
-  vega: '#a855f7',
-  theta: '#f59e0b',
-  rho: '#22c55e',
-  vanna: '#c084fc',
-  volga: '#d946ef',
-  charm: '#fb923c',
-  crossGamma: '#a78bfa',
-  unexplained: '#9ca3af',
-}
+const FACTOR_COLORS = PNL_FACTOR_COLORS
 
 export function PnlAttributionTable({ data }: PnlAttributionTableProps) {
   const [expandedFactor, setExpandedFactor] = useState<string | null>(null)
