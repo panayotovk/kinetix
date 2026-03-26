@@ -207,7 +207,102 @@ export const TEST_REPORT_OUTPUT = {
  * Sets up route handlers to mock all API endpoints the app calls on startup.
  * This allows Playwright tests to run without a real backend.
  */
+export interface MockAuthOptions {
+  username?: string
+  roles?: string[]
+  sub?: string
+}
+
+export async function mockKeycloakAuth(page: Page, opts: MockAuthOptions = {}): Promise<void> {
+  const username = opts.username ?? 'testuser'
+  const roles = opts.roles ?? ['ADMIN']
+  const sub = opts.sub ?? 'a0000000-0000-0000-0000-000000000001'
+
+  // Intercept Keycloak OIDC endpoints so the real Keycloak is never contacted
+  await page.route('**/auth/realms/**', (route: Route) => {
+    const url = route.request().url()
+    if (url.includes('/protocol/openid-connect/token')) {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          access_token: 'mock-e2e-token',
+          token_type: 'Bearer',
+          expires_in: 3600,
+          refresh_token: 'mock-refresh-token',
+        }),
+      })
+    } else if (url.includes('/protocol/openid-connect/certs')) {
+      route.fulfill({ status: 200, contentType: 'application/json', body: '{"keys":[]}' })
+    } else if (url.includes('/protocol/openid-connect/3p-cookies')) {
+      route.fulfill({ status: 200, contentType: 'text/html', body: '' })
+    } else if (url.includes('/.well-known/openid-configuration')) {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          issuer: 'http://localhost:8180/realms/kinetix',
+          authorization_endpoint: 'http://localhost:8180/realms/kinetix/protocol/openid-connect/auth',
+          token_endpoint: 'http://localhost:8180/realms/kinetix/protocol/openid-connect/token',
+          jwks_uri: 'http://localhost:8180/realms/kinetix/protocol/openid-connect/certs',
+          end_session_endpoint: 'http://localhost:8180/realms/kinetix/protocol/openid-connect/logout',
+        }),
+      })
+    } else {
+      route.fulfill({ status: 200, contentType: 'text/html', body: '' })
+    }
+  })
+
+  // Mock the Keycloak constructor at the JS level before the app loads.
+  // This replaces the real keycloak-js init flow with an immediately-resolved mock.
+  await page.addInitScript(`
+    window.__KEYCLOAK_MOCK__ = {
+      username: ${JSON.stringify(username)},
+      roles: ${JSON.stringify(roles)},
+      sub: ${JSON.stringify(sub)},
+    };
+  `)
+
+  // Intercept the keycloak-js module load by patching the Keycloak global
+  // after the module is loaded but before init() is called
+  await page.addInitScript(`
+    const _origDefineProperty = Object.defineProperty;
+    let _keycloakPatched = false;
+
+    // Patch any imported Keycloak class prototype
+    const _patchInterval = setInterval(() => {
+      if (_keycloakPatched) { clearInterval(_patchInterval); return; }
+
+      // The AuthProvider creates a Keycloak instance and calls init()
+      // We intercept by replacing the init method on any Keycloak-like object
+    }, 10);
+
+    // More reliable: patch the module at the window level for Vite bundles
+    window.Keycloak = function MockKeycloak() {
+      const mock = window.__KEYCLOAK_MOCK__;
+      this.authenticated = false;
+      this.token = null;
+      this.tokenParsed = null;
+      this.init = function(opts) {
+        this.authenticated = true;
+        this.token = 'mock-e2e-token';
+        this.tokenParsed = {
+          preferred_username: mock.username,
+          roles: mock.roles,
+          sub: mock.sub,
+        };
+        return Promise.resolve(true);
+      };
+      this.updateToken = function() { return Promise.resolve(false); };
+      this.logout = function() {};
+      this.login = function() {};
+    };
+  `)
+}
+
 export async function mockAllApiRoutes(page: Page): Promise<void> {
+  await mockKeycloakAuth(page)
+
   await page.route('**/api/v1/divisions', (route: Route) => {
     route.fulfill({
       status: 200,

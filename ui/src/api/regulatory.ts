@@ -1,9 +1,10 @@
 import type { FrtbResultDto, ReportResultDto } from '../types'
+import { authFetch } from '../auth/authFetch'
 
 export async function fetchFrtb(
   bookId: string,
 ): Promise<FrtbResultDto | null> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/regulatory/frtb/${encodeURIComponent(bookId)}`,
     {
       method: 'POST',
@@ -26,7 +27,7 @@ export async function generateReport(
   bookId: string,
   format: string,
 ): Promise<ReportResultDto | null> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/regulatory/report/${encodeURIComponent(bookId)}`,
     {
       method: 'POST',

@@ -1,3 +1,5 @@
+import { authFetch } from '../auth/authFetch'
+
 export interface ExposureAtTenorDto {
   tenor: string
   tenorYears: number
@@ -18,7 +20,7 @@ export interface CounterpartyExposureDto {
 }
 
 export async function fetchAllCounterpartyExposures(): Promise<CounterpartyExposureDto[]> {
-  const response = await fetch('/api/v1/counterparty-risk')
+  const response = await authFetch('/api/v1/counterparty-risk')
   if (!response.ok) {
     throw new Error(`Failed to fetch counterparty exposures: ${response.status} ${response.statusText}`)
   }
@@ -28,7 +30,7 @@ export async function fetchAllCounterpartyExposures(): Promise<CounterpartyExpos
 export async function fetchCounterpartyExposure(
   counterpartyId: string,
 ): Promise<CounterpartyExposureDto | null> {
-  const response = await fetch(`/api/v1/counterparty-risk/${encodeURIComponent(counterpartyId)}`)
+  const response = await authFetch(`/api/v1/counterparty-risk/${encodeURIComponent(counterpartyId)}`)
   if (response.status === 404) {
     return null
   }
@@ -42,7 +44,7 @@ export async function fetchCounterpartyExposureHistory(
   counterpartyId: string,
   limit = 90,
 ): Promise<CounterpartyExposureDto[]> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/counterparty-risk/${encodeURIComponent(counterpartyId)}/history?limit=${limit}`,
   )
   if (!response.ok) {
@@ -54,7 +56,7 @@ export async function fetchCounterpartyExposureHistory(
 export async function triggerPFEComputation(
   counterpartyId: string,
 ): Promise<CounterpartyExposureDto> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/counterparty-risk/${encodeURIComponent(counterpartyId)}/pfe`,
     {
       method: 'POST',
@@ -78,7 +80,7 @@ export async function triggerPFEComputation(
 export async function triggerCVAComputation(
   counterpartyId: string,
 ): Promise<CounterpartyExposureDto | null> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/counterparty-risk/${encodeURIComponent(counterpartyId)}/cva`,
     { method: 'POST' },
   )

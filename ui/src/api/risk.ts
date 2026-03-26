@@ -1,4 +1,5 @@
 import type { CrossBookVaRRequestDto, CrossBookVaRResultDto, PositionRiskDto, VaRCalculationRequestDto, VaRResultDto } from '../types'
+import { authFetch } from '../auth/authFetch'
 
 export async function fetchVaR(
   bookId: string,
@@ -8,7 +9,7 @@ export async function fetchVaR(
   if (valuationDate) {
     url += `?valuationDate=${encodeURIComponent(valuationDate)}`
   }
-  const response = await fetch(url)
+  const response = await authFetch(url)
   if (response.status === 404) {
     return null
   }
@@ -28,7 +29,7 @@ export async function triggerVaRCalculation(
     ...request,
     requestedOutputs: request.requestedOutputs ?? ['VAR', 'EXPECTED_SHORTFALL', 'GREEKS', 'PV'],
   }
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/var/${encodeURIComponent(bookId)}`,
     {
       method: 'POST',
@@ -57,7 +58,7 @@ export async function triggerVaRCalculation(
 export async function fetchCrossBookVaR(
   groupId: string,
 ): Promise<CrossBookVaRResultDto | null> {
-  const response = await fetch(`/api/v1/risk/var/cross-book/${encodeURIComponent(groupId)}`)
+  const response = await authFetch(`/api/v1/risk/var/cross-book/${encodeURIComponent(groupId)}`)
   if (response.status === 404) {
     return null
   }
@@ -70,7 +71,7 @@ export async function fetchCrossBookVaR(
 export async function triggerCrossBookVaR(
   request: CrossBookVaRRequestDto,
 ): Promise<CrossBookVaRResultDto | null> {
-  const response = await fetch('/api/v1/risk/var/cross-book', {
+  const response = await authFetch('/api/v1/risk/var/cross-book', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
@@ -101,7 +102,7 @@ export async function fetchPositionRisk(
   if (valuationDate) {
     url += `?valuationDate=${encodeURIComponent(valuationDate)}`
   }
-  const response = await fetch(url)
+  const response = await authFetch(url)
   if (response.status === 404) {
     return []
   }

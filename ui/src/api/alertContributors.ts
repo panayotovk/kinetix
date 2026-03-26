@@ -1,3 +1,5 @@
+import { authFetch } from '../auth/authFetch'
+
 export interface PositionContributor {
   instrumentId: string
   instrumentName?: string
@@ -14,7 +16,7 @@ export interface PositionContributor {
 export async function fetchAlertContributors(
   alertId: string,
 ): Promise<PositionContributor[]> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/notifications/alerts/${encodeURIComponent(alertId)}/contributors`,
   )
   if (!response.ok) {

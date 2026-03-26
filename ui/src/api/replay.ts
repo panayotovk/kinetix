@@ -1,7 +1,8 @@
 import type { RunManifestDto, ReplayResponseDto } from '../types'
+import { authFetch } from '../auth/authFetch'
 
 export async function fetchRunManifest(jobId: string): Promise<RunManifestDto | null> {
-  const response = await fetch(`/api/v1/risk/runs/${encodeURIComponent(jobId)}/manifest`)
+  const response = await authFetch(`/api/v1/risk/runs/${encodeURIComponent(jobId)}/manifest`)
   if (response.status === 404) return null
   if (!response.ok) {
     throw new Error(`Failed to fetch manifest: ${response.status} ${response.statusText}`)
@@ -10,7 +11,7 @@ export async function fetchRunManifest(jobId: string): Promise<RunManifestDto | 
 }
 
 export async function triggerReplay(jobId: string): Promise<ReplayResponseDto> {
-  const response = await fetch(`/api/v1/risk/runs/${encodeURIComponent(jobId)}/replay`, {
+  const response = await authFetch(`/api/v1/risk/runs/${encodeURIComponent(jobId)}/replay`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
   })

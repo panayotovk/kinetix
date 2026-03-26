@@ -1,4 +1,5 @@
 import type { ValuationJobSummaryDto, ValuationJobDetailDto } from '../types'
+import { authFetch } from '../auth/authFetch'
 
 export async function fetchValuationJobs(
   bookId: string,
@@ -15,7 +16,7 @@ export async function fetchValuationJobs(
   if (from) params.set('from', from)
   if (to) params.set('to', to)
   if (status) params.set('status', status)
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/jobs/${encodeURIComponent(bookId)}?${params}`,
   )
   if (!response.ok) {
@@ -54,7 +55,7 @@ export async function fetchChartData(
   to: string,
 ): Promise<ChartDataResponse> {
   const params = new URLSearchParams({ from, to })
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/jobs/${encodeURIComponent(bookId)}/chart?${params}`,
   )
   if (!response.ok) {
@@ -68,7 +69,7 @@ export async function fetchChartData(
 export async function fetchValuationJobDetail(
   jobId: string,
 ): Promise<ValuationJobDetailDto | null> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/jobs/detail/${encodeURIComponent(jobId)}`,
   )
   if (response.status === 404) {

@@ -1,4 +1,5 @@
 import type { RunComparisonResponseDto, ModelComparisonRequestDto, VaRAttributionDto, BacktestComparisonDto, MarketDataQuantDiffDto } from '../types'
+import { authFetch } from '../auth/authFetch'
 
 export async function compareDayOverDay(
   bookId: string,
@@ -11,7 +12,7 @@ export async function compareDayOverDay(
   if (baseDate) params.set('baseDate', baseDate)
   const qs = params.toString()
   if (qs) url += `?${qs}`
-  const response = await fetch(url)
+  const response = await authFetch(url)
   if (response.status === 404) return null
   if (!response.ok) throw new Error(`Failed to compare day-over-day: ${response.status}`)
   return response.json()
@@ -22,7 +23,7 @@ export async function compareByJobIds(
   baseJobId: string,
   targetJobId: string,
 ): Promise<RunComparisonResponseDto> {
-  const response = await fetch(`/api/v1/risk/compare/${encodeURIComponent(bookId)}`, {
+  const response = await authFetch(`/api/v1/risk/compare/${encodeURIComponent(bookId)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ baseJobId, targetJobId }),
@@ -42,7 +43,7 @@ export async function requestAttribution(
   if (baseDate) params.set('baseDate', baseDate)
   const qs = params.toString()
   if (qs) url += `?${qs}`
-  const response = await fetch(url, { method: 'POST' })
+  const response = await authFetch(url, { method: 'POST' })
   if (!response.ok) throw new Error(`Failed to request attribution: ${response.status}`)
   return response.json()
 }
@@ -51,7 +52,7 @@ export async function compareModelVersions(
   bookId: string,
   request: ModelComparisonRequestDto,
 ): Promise<RunComparisonResponseDto> {
-  const response = await fetch(`/api/v1/risk/compare/${encodeURIComponent(bookId)}/model`, {
+  const response = await authFetch(`/api/v1/risk/compare/${encodeURIComponent(bookId)}/model`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
@@ -65,7 +66,7 @@ export async function compareBacktests(
   targetId: string,
 ): Promise<BacktestComparisonDto | null> {
   const url = `/api/v1/regulatory/backtest/compare?baseId=${encodeURIComponent(baseId)}&targetId=${encodeURIComponent(targetId)}`
-  const response = await fetch(url)
+  const response = await authFetch(url)
   if (response.status === 404) return null
   if (!response.ok) throw new Error(`Failed to compare backtests: ${response.status}`)
   return response.json()
@@ -85,7 +86,7 @@ export async function fetchMarketDataQuantDiff(
     targetManifestId,
   })
   const url = `/api/v1/risk/compare/${encodeURIComponent(bookId)}/market-data-quant?${params}`
-  const response = await fetch(url)
+  const response = await authFetch(url)
   if (response.status === 404) return null
   if (!response.ok) throw new Error(`Failed to fetch quant diff: ${response.status}`)
   return response.json()

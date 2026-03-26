@@ -11,6 +11,7 @@ vi.mock('./hooks/useBookSelector')
 vi.mock('./hooks/useHierarchySelector')
 vi.mock('./hooks/useDataQuality')
 vi.mock('./hooks/useWorkspace')
+vi.mock('./auth/useAuth')
 vi.mock('./components/TradeBlotter', () => ({
   TradeBlotter: () => <div data-testid="trade-blotter-wrapper" />,
 }))
@@ -34,8 +35,10 @@ import { useBookSelector } from './hooks/useBookSelector'
 import { useHierarchySelector } from './hooks/useHierarchySelector'
 import { useDataQuality } from './hooks/useDataQuality'
 import { useWorkspace, DEFAULT_PREFERENCES } from './hooks/useWorkspace'
+import { useAuth } from './auth/useAuth'
 
 const mockUsePositions = vi.mocked(usePositions)
+const mockUseAuth = vi.mocked(useAuth)
 const mockUsePriceStream = vi.mocked(usePriceStream)
 const mockUseNotifications = vi.mocked(useNotifications)
 const mockUseSystemHealth = vi.mocked(useSystemHealth)
@@ -59,6 +62,14 @@ const position: PositionDto = {
 const selectBook = vi.fn()
 
 function setupDefaults() {
+  mockUseAuth.mockReturnValue({
+    authenticated: true,
+    initialising: false,
+    token: 'mock-token',
+    username: 'trader1',
+    roles: ['TRADER'],
+    logout: vi.fn(),
+  })
   mockUsePositions.mockReturnValue({
     positions: [position],
     bookId: 'book-1',

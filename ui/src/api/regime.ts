@@ -1,7 +1,8 @@
 import type { MarketRegimeDto, MarketRegimeHistoryDto } from '../types'
+import { authFetch } from '../auth/authFetch'
 
 export async function fetchCurrentRegime(): Promise<MarketRegimeDto> {
-  const response = await fetch('/api/v1/risk/regime/current')
+  const response = await authFetch('/api/v1/risk/regime/current')
   if (!response.ok) {
     throw new Error(`Failed to fetch current regime: ${response.status} ${response.statusText}`)
   }
@@ -9,7 +10,7 @@ export async function fetchCurrentRegime(): Promise<MarketRegimeDto> {
 }
 
 export async function fetchRegimeHistory(limit = 50): Promise<MarketRegimeHistoryDto> {
-  const response = await fetch(`/api/v1/risk/regime/history?limit=${limit}`)
+  const response = await authFetch(`/api/v1/risk/regime/history?limit=${limit}`)
   if (!response.ok) {
     throw new Error(`Failed to fetch regime history: ${response.status} ${response.statusText}`)
   }

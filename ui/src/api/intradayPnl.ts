@@ -1,4 +1,5 @@
 import type { IntradayPnlSeriesDto } from '../types'
+import { authFetch } from '../auth/authFetch'
 
 export async function fetchIntradayPnl(
   bookId: string,
@@ -6,7 +7,7 @@ export async function fetchIntradayPnl(
   to: string,
 ): Promise<IntradayPnlSeriesDto> {
   const params = new URLSearchParams({ from, to })
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/pnl/intraday/${encodeURIComponent(bookId)}?${params}`,
   )
   if (!response.ok) {

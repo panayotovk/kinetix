@@ -1,9 +1,10 @@
 import type { CreateScenarioRequestDto, StressScenarioDto } from '../types'
+import { authFetch } from '../auth/authFetch'
 
 export async function createScenario(
   request: CreateScenarioRequestDto,
 ): Promise<StressScenarioDto> {
-  const response = await fetch('/api/v1/stress-scenarios', {
+  const response = await authFetch('/api/v1/stress-scenarios', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
@@ -17,7 +18,7 @@ export async function createScenario(
 }
 
 export async function listScenarios(): Promise<StressScenarioDto[]> {
-  const response = await fetch('/api/v1/stress-scenarios')
+  const response = await authFetch('/api/v1/stress-scenarios')
   if (!response.ok) {
     throw new Error(
       `Failed to list scenarios: ${response.status} ${response.statusText}`,
@@ -27,7 +28,7 @@ export async function listScenarios(): Promise<StressScenarioDto[]> {
 }
 
 export async function listApprovedScenarios(): Promise<StressScenarioDto[]> {
-  const response = await fetch('/api/v1/stress-scenarios/approved')
+  const response = await authFetch('/api/v1/stress-scenarios/approved')
   if (!response.ok) {
     throw new Error(
       `Failed to list approved scenarios: ${response.status} ${response.statusText}`,
@@ -37,7 +38,7 @@ export async function listApprovedScenarios(): Promise<StressScenarioDto[]> {
 }
 
 export async function submitScenario(id: string): Promise<StressScenarioDto> {
-  const response = await fetch(`/api/v1/stress-scenarios/${id}/submit`, {
+  const response = await authFetch(`/api/v1/stress-scenarios/${id}/submit`, {
     method: 'PATCH',
   })
   if (!response.ok) {
@@ -52,7 +53,7 @@ export async function approveScenario(
   id: string,
   approvedBy: string,
 ): Promise<StressScenarioDto> {
-  const response = await fetch(`/api/v1/stress-scenarios/${id}/approve`, {
+  const response = await authFetch(`/api/v1/stress-scenarios/${id}/approve`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ approvedBy }),
@@ -66,7 +67,7 @@ export async function approveScenario(
 }
 
 export async function retireScenario(id: string): Promise<StressScenarioDto> {
-  const response = await fetch(`/api/v1/stress-scenarios/${id}/retire`, {
+  const response = await authFetch(`/api/v1/stress-scenarios/${id}/retire`, {
     method: 'PATCH',
   })
   if (!response.ok) {

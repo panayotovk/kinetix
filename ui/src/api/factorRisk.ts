@@ -1,9 +1,10 @@
 import type { FactorRiskDto } from '../types'
+import { authFetch } from '../auth/authFetch'
 
 export async function fetchLatestFactorRisk(
   bookId: string,
 ): Promise<FactorRiskDto | null> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/books/${encodeURIComponent(bookId)}/factor-risk/latest`,
   )
   if (response.status === 404) {
@@ -21,7 +22,7 @@ export async function fetchFactorRiskHistory(
   bookId: string,
   limit: number = 30,
 ): Promise<FactorRiskDto[]> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/books/${encodeURIComponent(bookId)}/factor-risk?limit=${limit}`,
   )
   if (!response.ok) {

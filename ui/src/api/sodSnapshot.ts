@@ -1,9 +1,10 @@
 import type { PnlAttributionDto, SodBaselineStatusDto } from '../types'
+import { authFetch } from '../auth/authFetch'
 
 export async function fetchSodBaselineStatus(
   bookId: string,
 ): Promise<SodBaselineStatusDto> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/sod-snapshot/${encodeURIComponent(bookId)}/status`,
   )
   if (response.status === 404) {
@@ -24,7 +25,7 @@ export async function createSodSnapshot(
   const url = jobId
     ? `/api/v1/risk/sod-snapshot/${encodeURIComponent(bookId)}?jobId=${encodeURIComponent(jobId)}`
     : `/api/v1/risk/sod-snapshot/${encodeURIComponent(bookId)}`
-  const response = await fetch(url, { method: 'POST' })
+  const response = await authFetch(url, { method: 'POST' })
   if (!response.ok) {
     const body = await response.json().catch(() => null)
     const message = body?.message ?? `Failed to create SOD snapshot: ${response.status} ${response.statusText}`
@@ -36,7 +37,7 @@ export async function createSodSnapshot(
 export async function resetSodBaseline(
   bookId: string,
 ): Promise<void> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/sod-snapshot/${encodeURIComponent(bookId)}`,
     { method: 'DELETE' },
   )
@@ -50,7 +51,7 @@ export async function resetSodBaseline(
 export async function computePnlAttribution(
   bookId: string,
 ): Promise<PnlAttributionDto> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/pnl-attribution/${encodeURIComponent(bookId)}/compute`,
     { method: 'POST' },
   )

@@ -2,6 +2,8 @@
   "realm": "kinetix",
   "enabled": true,
   "sslRequired": "none",
+  "eventsEnabled": true,
+  "enabledEventTypes": ["LOGIN", "LOGIN_ERROR", "LOGOUT", "REGISTER"],
   "roles": {
     "realm": [
       { "name": "ADMIN", "description": "Full system access" },
@@ -17,8 +19,8 @@
       "enabled": true,
       "publicClient": true,
       "directAccessGrantsEnabled": true,
-      "redirectUris": ["*"],
-      "webOrigins": ["*"],
+      "redirectUris": ["https://kinetixrisk.ai/*", "http://localhost:5173/*", "http://localhost/*"],
+      "webOrigins": ["https://kinetixrisk.ai", "http://localhost:5173", "http://localhost"],
       "defaultClientScopes": ["web-origins", "profile", "roles", "email"],
       "protocolMappers": [
         {
@@ -39,6 +41,7 @@
   ],
   "users": [
     {
+      "id": "a0000000-0000-0000-0000-000000000001",
       "username": "admin",
       "enabled": true,
       "email": "admin@kinetix.local",
@@ -46,6 +49,7 @@
       "realmRoles": ["ADMIN"]
     },
     {
+      "id": "a0000000-0000-0000-0000-000000000002",
       "username": "trader1",
       "enabled": true,
       "email": "trader1@kinetix.local",
@@ -53,6 +57,7 @@
       "realmRoles": ["TRADER"]
     },
     {
+      "id": "a0000000-0000-0000-0000-000000000003",
       "username": "risk_mgr",
       "enabled": true,
       "email": "risk_mgr@kinetix.local",
@@ -60,6 +65,7 @@
       "realmRoles": ["RISK_MANAGER"]
     },
     {
+      "id": "a0000000-0000-0000-0000-000000000004",
       "username": "compliance1",
       "enabled": true,
       "email": "compliance1@kinetix.local",
@@ -67,6 +73,7 @@
       "realmRoles": ["COMPLIANCE"]
     },
     {
+      "id": "a0000000-0000-0000-0000-000000000005",
       "username": "viewer1",
       "enabled": true,
       "email": "viewer1@kinetix.local",

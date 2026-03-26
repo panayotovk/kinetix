@@ -1,3 +1,5 @@
+import { authFetch } from '../auth/authFetch'
+
 export interface ServiceHealth {
   status: 'READY' | 'NOT_READY' | 'DOWN'
 }
@@ -8,7 +10,7 @@ export interface SystemHealthResponse {
 }
 
 export async function fetchSystemHealth(): Promise<SystemHealthResponse> {
-  const response = await fetch('/api/v1/system/health')
+  const response = await authFetch('/api/v1/system/health')
   if (!response.ok) {
     throw new Error(
       `Failed to fetch system health: ${response.status} ${response.statusText}`,

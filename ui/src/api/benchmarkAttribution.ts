@@ -1,3 +1,5 @@
+import { authFetch } from '../auth/authFetch'
+
 export interface BrinsonSectorDto {
   sectorLabel: string
   portfolioWeight: number
@@ -29,7 +31,7 @@ export async function fetchBrinsonAttribution(
   const params = new URLSearchParams({ benchmarkId })
   if (asOfDate) params.set('asOfDate', asOfDate)
 
-  const response = await fetch(`/api/v1/books/${bookId}/attribution?${params}`)
+  const response = await authFetch(`/api/v1/books/${bookId}/attribution?${params}`)
   if (!response.ok) {
     const text = await response.text().catch(() => response.statusText)
     throw new Error(`Failed to fetch attribution: ${response.status} ${text}`)

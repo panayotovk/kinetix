@@ -4,12 +4,13 @@ import type {
   ReverseStressRequestDto,
   ReverseStressResultDto,
 } from '../types'
+import { authFetch } from '../auth/authFetch'
 
 export async function runHistoricalReplay(
   bookId: string,
   request: HistoricalReplayRequestDto,
 ): Promise<HistoricalReplayResultDto> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/stress/${encodeURIComponent(bookId)}/historical-replay`,
     {
       method: 'POST',
@@ -27,7 +28,7 @@ export async function runReverseStress(
   bookId: string,
   request: ReverseStressRequestDto,
 ): Promise<ReverseStressResultDto> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/stress/${encodeURIComponent(bookId)}/reverse`,
     {
       method: 'POST',

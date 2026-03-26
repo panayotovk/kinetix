@@ -1,4 +1,5 @@
 import type { PnlAttributionDto } from '../types'
+import { authFetch } from '../auth/authFetch'
 
 export async function fetchPnlAttribution(
   bookId: string,
@@ -7,7 +8,7 @@ export async function fetchPnlAttribution(
   const base = `/api/v1/risk/pnl-attribution/${encodeURIComponent(bookId)}`
   const url = date ? `${base}?date=${date}` : base
 
-  const response = await fetch(url)
+  const response = await authFetch(url)
   if (response.status === 404) {
     return null
   }

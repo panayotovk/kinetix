@@ -1,7 +1,8 @@
 import type { StressTestResultDto } from '../types'
+import { authFetch } from '../auth/authFetch'
 
 export async function fetchScenarios(): Promise<string[]> {
-  const response = await fetch('/api/v1/risk/stress/scenarios')
+  const response = await authFetch('/api/v1/risk/stress/scenarios')
   if (!response.ok) {
     throw new Error(
       `Failed to fetch scenarios: ${response.status} ${response.statusText}`,
@@ -15,7 +16,7 @@ export async function runStressTest(
   scenarioName: string,
   request: Record<string, unknown> = {},
 ): Promise<StressTestResultDto | null> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/stress/${encodeURIComponent(bookId)}`,
     {
       method: 'POST',
@@ -44,7 +45,7 @@ export async function runAllStressTests(
   scenarioNames: string[],
   params: RunAllParams = {},
 ): Promise<StressTestResultDto[]> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/stress/${encodeURIComponent(bookId)}/batch`,
     {
       method: 'POST',

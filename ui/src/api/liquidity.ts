@@ -1,9 +1,10 @@
 import type { LiquidityRiskResultDto } from '../types'
+import { authFetch } from '../auth/authFetch'
 
 export async function fetchLatestLiquidityRisk(
   bookId: string,
 ): Promise<LiquidityRiskResultDto | null> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/books/${encodeURIComponent(bookId)}/liquidity-risk/latest`,
   )
   if (response.status === 404) {
@@ -21,7 +22,7 @@ export async function triggerLiquidityRiskCalculation(
   bookId: string,
   baseVar: number,
 ): Promise<LiquidityRiskResultDto | null> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/books/${encodeURIComponent(bookId)}/liquidity-risk`,
     {
       method: 'POST',

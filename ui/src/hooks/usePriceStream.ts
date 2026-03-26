@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ClientMessage, PositionDto, PriceUpdateMessage } from '../types'
+import { getAuthToken } from '../auth/authFetch'
 
 export function applyPriceUpdate(
   position: PositionDto,
@@ -66,9 +67,11 @@ export function usePriceStream(
     connectRef.current = () => {
       if (initialPositions.length === 0) return
 
-      const url =
+      const baseUrl =
         wsUrl ??
         `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/prices`
+      const token = getAuthToken()
+      const url = token ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}` : baseUrl
       const ws = new WebSocket(url)
       wsRef.current = ws
 

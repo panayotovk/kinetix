@@ -1,4 +1,5 @@
 import type { IntradayVaRTimelineDto } from '../types'
+import { authFetch } from '../auth/authFetch'
 
 export async function fetchIntradayVaRTimeline(
   bookId: string,
@@ -6,7 +7,7 @@ export async function fetchIntradayVaRTimeline(
   to: string,
 ): Promise<IntradayVaRTimelineDto> {
   const params = new URLSearchParams({ from, to })
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/var/${encodeURIComponent(bookId)}/intraday?${params}`,
   )
   if (!response.ok) {

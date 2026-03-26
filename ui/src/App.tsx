@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Activity, BarChart3, ScrollText, TrendingUp, Shield, FlaskConical, Scale, Bell, Server, FlaskRound, Sun, Moon, Save, CalendarDays, Users, FileText } from 'lucide-react'
+import { Activity, BarChart3, ScrollText, TrendingUp, Shield, FlaskConical, Scale, Bell, Server, FlaskRound, Sun, Moon, Save, CalendarDays, Users, FileText, LogOut } from 'lucide-react'
 import { PositionGrid } from './components/PositionGrid'
 import { TradeBlotter } from './components/TradeBlotter'
 import { ExecutionCostPanel } from './components/ExecutionCostPanel'
@@ -34,6 +34,7 @@ import { DataQualityIndicator } from './components/DataQualityIndicator'
 import { useMarketRegime } from './hooks/useMarketRegime'
 import { RegimeIndicator } from './components/RegimeIndicator'
 import { useWorkspace } from './hooks/useWorkspace'
+import { useAuth } from './auth/useAuth'
 
 type Tab = 'positions' | 'trades' | 'pnl' | 'risk' | 'eod' | 'scenarios' | 'regulatory' | 'counterparty-risk' | 'reports' | 'alerts' | 'system'
 
@@ -53,6 +54,7 @@ const TABS: { key: Tab; label: string; icon: typeof Activity }[] = [
 
 function App() {
   const workspace = useWorkspace()
+  const auth = useAuth()
   const [activeTab, setActiveTab] = useState<Tab>(
     (workspace.preferences.defaultTab as Tab) || 'positions',
   )
@@ -182,6 +184,41 @@ function App() {
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
+          {auth.authenticated && (
+            <>
+              <div className="border-l border-surface-700 ml-1 pl-3 flex items-center gap-2">
+                <span
+                  data-testid="header-role-badge"
+                  aria-label={`Role: ${auth.roles[0] ?? 'UNKNOWN'}`}
+                  className={`px-2 py-0.5 text-xs font-medium rounded ${
+                    auth.roles.includes('ADMIN')
+                      ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300'
+                      : auth.roles.includes('RISK_MANAGER')
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
+                        : auth.roles.includes('TRADER')
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                          : auth.roles.includes('COMPLIANCE')
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                            : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  {auth.roles[0]?.replace('_', ' ') ?? 'VIEWER'}
+                </span>
+                <span data-testid="header-username" className="text-sm text-slate-300">
+                  {auth.username}
+                </span>
+                <button
+                  data-testid="logout-button"
+                  onClick={auth.logout}
+                  className="p-1.5 rounded-md hover:bg-surface-800 transition-colors text-slate-300 hover:text-white"
+                  aria-label="Log out"
+                  title={`Log out ${auth.username}`}
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </header>
 

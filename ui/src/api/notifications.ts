@@ -1,7 +1,8 @@
 import type { AlertRuleDto, AlertEventDto, CreateAlertRuleRequestDto } from '../types'
+import { authFetch } from '../auth/authFetch'
 
 export async function fetchRules(): Promise<AlertRuleDto[]> {
-  const response = await fetch('/api/v1/notifications/rules')
+  const response = await authFetch('/api/v1/notifications/rules')
   if (!response.ok) {
     throw new Error(
       `Failed to fetch rules: ${response.status} ${response.statusText}`,
@@ -13,7 +14,7 @@ export async function fetchRules(): Promise<AlertRuleDto[]> {
 export async function createRule(
   request: CreateAlertRuleRequestDto,
 ): Promise<AlertRuleDto> {
-  const response = await fetch('/api/v1/notifications/rules', {
+  const response = await authFetch('/api/v1/notifications/rules', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
@@ -27,7 +28,7 @@ export async function createRule(
 }
 
 export async function deleteRule(ruleId: string): Promise<void> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/notifications/rules/${encodeURIComponent(ruleId)}`,
     { method: 'DELETE' },
   )
@@ -42,7 +43,7 @@ export async function fetchAlerts(
   limit?: number,
 ): Promise<AlertEventDto[]> {
   const params = limit ? `?limit=${limit}` : ''
-  const response = await fetch(`/api/v1/notifications/alerts${params}`)
+  const response = await authFetch(`/api/v1/notifications/alerts${params}`)
   if (!response.ok) {
     throw new Error(
       `Failed to fetch alerts: ${response.status} ${response.statusText}`,
@@ -52,7 +53,7 @@ export async function fetchAlerts(
 }
 
 export async function fetchEscalatedAlerts(): Promise<AlertEventDto[]> {
-  const response = await fetch('/api/v1/notifications/alerts/escalated')
+  const response = await authFetch('/api/v1/notifications/alerts/escalated')
   if (!response.ok) {
     throw new Error(
       `Failed to fetch escalated alerts: ${response.status} ${response.statusText}`,
@@ -66,7 +67,7 @@ export async function acknowledgeAlert(
   acknowledgedBy: string,
   notes?: string,
 ): Promise<AlertEventDto> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/notifications/alerts/${encodeURIComponent(alertId)}/acknowledge`,
     {
       method: 'POST',

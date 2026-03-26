@@ -1,4 +1,5 @@
 import type { RebalancingRequestDto, RebalancingResponseDto, WhatIfRequestDto, WhatIfResponseDto } from '../types'
+import { authFetch } from '../auth/authFetch'
 
 export class FetchError extends Error {
   status: number
@@ -12,7 +13,7 @@ export async function runWhatIfAnalysis(
   bookId: string,
   request: WhatIfRequestDto,
 ): Promise<WhatIfResponseDto> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/what-if/${encodeURIComponent(bookId)}`,
     {
       method: 'POST',
@@ -33,7 +34,7 @@ export async function runRebalancingAnalysis(
   bookId: string,
   request: RebalancingRequestDto,
 ): Promise<RebalancingResponseDto> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/what-if/${encodeURIComponent(bookId)}/rebalance`,
     {
       method: 'POST',

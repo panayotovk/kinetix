@@ -1,10 +1,11 @@
 import type { HedgeRecommendationDto, HedgeSuggestRequestDto } from '../types'
+import { authFetch } from '../auth/authFetch'
 
 export async function suggestHedge(
   bookId: string,
   request: HedgeSuggestRequestDto,
 ): Promise<HedgeRecommendationDto> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/hedge-suggest/${encodeURIComponent(bookId)}`,
     {
       method: 'POST',
@@ -23,7 +24,7 @@ export async function fetchLatestHedgeRecommendations(
   bookId: string,
   limit = 10,
 ): Promise<HedgeRecommendationDto[]> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/hedge-suggest/${encodeURIComponent(bookId)}?limit=${limit}`,
   )
   if (!response.ok) {
@@ -36,7 +37,7 @@ export async function fetchHedgeRecommendation(
   bookId: string,
   id: string,
 ): Promise<HedgeRecommendationDto | null> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/hedge-suggest/${encodeURIComponent(bookId)}/${encodeURIComponent(id)}`,
   )
   if (response.status === 404) return null

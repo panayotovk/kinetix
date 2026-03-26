@@ -1,3 +1,5 @@
+import { authFetch } from '../auth/authFetch'
+
 export interface EodPromotionResponse {
   jobId: string
   bookId: string
@@ -11,7 +13,7 @@ export async function promoteToOfficialEod(
   jobId: string,
   promotedBy: string,
 ): Promise<EodPromotionResponse> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/jobs/${encodeURIComponent(jobId)}/label`,
     {
       method: 'PATCH',
@@ -33,7 +35,7 @@ export async function demoteOfficialEod(
   jobId: string,
   demotedBy: string,
 ): Promise<EodPromotionResponse> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/jobs/${encodeURIComponent(jobId)}/label`,
     {
       method: 'PATCH',
@@ -55,7 +57,7 @@ export async function fetchOfficialEod(
   bookId: string,
   date: string,
 ): Promise<EodPromotionResponse | null> {
-  const response = await fetch(
+  const response = await authFetch(
     `/api/v1/risk/jobs/${encodeURIComponent(bookId)}/official-eod?date=${encodeURIComponent(date)}`,
   )
   if (response.status === 404) return null
