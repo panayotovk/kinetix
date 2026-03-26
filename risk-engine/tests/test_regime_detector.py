@@ -530,6 +530,102 @@ def test_returns_early_warnings_even_on_degraded_inputs():
     assert "realised_vol" in signal_names
 
 
+# ── Credit spread widening early warning (REG_D-09) ───────────────────────────
+
+@pytest.mark.unit
+def test_credit_spread_widening_early_warning_fires_when_spread_increases_by_more_than_30_pct():
+    """Warning fires when credit_spread_bps increases >30% over the previous observation."""
+    detector = RegimeDetector(THRESHOLDS, escalation_debounce=3, de_escalation_debounce=1)
+
+    # First observation: establish previous spread at 100 bps
+    signals_first = RegimeSignals(
+        realised_vol_20d=0.10,
+        cross_asset_correlation=0.40,
+        credit_spread_bps=100.0,
+        pnl_volatility=0.02,
+    )
+    detector.observe(signals_first)
+
+    # Second observation: spread jumps to 135 bps (35% increase — above 30% threshold)
+    signals_second = RegimeSignals(
+        realised_vol_20d=0.10,
+        cross_asset_correlation=0.40,
+        credit_spread_bps=135.0,
+        pnl_volatility=0.02,
+    )
+    result = detector.observe(signals_second)
+
+    signal_names = [w.signal_name for w in result.early_warnings]
+    assert "credit_spread_bps" in signal_names
+
+
+@pytest.mark.unit
+def test_credit_spread_widening_early_warning_does_not_fire_below_30_pct_increase():
+    """Warning does not fire when credit_spread_bps increases by 30% or less."""
+    detector = RegimeDetector(THRESHOLDS, escalation_debounce=3, de_escalation_debounce=1)
+
+    signals_first = RegimeSignals(
+        realised_vol_20d=0.10,
+        cross_asset_correlation=0.40,
+        credit_spread_bps=100.0,
+        pnl_volatility=0.02,
+    )
+    detector.observe(signals_first)
+
+    # 30% increase exactly — should not trigger (condition is strictly >30%)
+    signals_second = RegimeSignals(
+        realised_vol_20d=0.10,
+        cross_asset_correlation=0.40,
+        credit_spread_bps=130.0,
+        pnl_volatility=0.02,
+    )
+    result = detector.observe(signals_second)
+
+    signal_names = [w.signal_name for w in result.early_warnings]
+    assert "credit_spread_bps" not in signal_names
+
+
+@pytest.mark.unit
+def test_credit_spread_widening_early_warning_not_fired_on_first_observation():
+    """No credit spread warning on first observation (no previous spread to compare)."""
+    detector = RegimeDetector(THRESHOLDS, escalation_debounce=3, de_escalation_debounce=1)
+
+    high_spread_signals = RegimeSignals(
+        realised_vol_20d=0.10,
+        cross_asset_correlation=0.40,
+        credit_spread_bps=500.0,  # even an extremely high spread has no history to compare against
+        pnl_volatility=0.02,
+    )
+    result = detector.observe(high_spread_signals)
+
+    signal_names = [w.signal_name for w in result.early_warnings]
+    assert "credit_spread_bps" not in signal_names
+
+
+@pytest.mark.unit
+def test_credit_spread_widening_warning_message_is_informative():
+    """Credit spread warning message communicates current and previous values."""
+    detector = RegimeDetector(THRESHOLDS, escalation_debounce=3, de_escalation_debounce=1)
+
+    detector.observe(RegimeSignals(
+        realised_vol_20d=0.10,
+        cross_asset_correlation=0.40,
+        credit_spread_bps=100.0,
+        pnl_volatility=0.02,
+    ))
+    result = detector.observe(RegimeSignals(
+        realised_vol_20d=0.10,
+        cross_asset_correlation=0.40,
+        credit_spread_bps=150.0,
+        pnl_volatility=0.02,
+    ))
+
+    spread_warning = next(w for w in result.early_warnings if w.signal_name == "credit_spread_bps")
+    assert spread_warning.current_value == pytest.approx(150.0)
+    assert spread_warning.threshold == pytest.approx(100.0)  # previous value is the reference
+    assert "credit spread" in spread_warning.message.lower()
+
+
 # ── RegimeClassification structure ────────────────────────────────────────────
 
 @pytest.mark.unit

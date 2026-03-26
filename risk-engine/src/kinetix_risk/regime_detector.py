@@ -162,10 +162,14 @@ def _classify_confidence(
 def detect_early_warnings(
     signals: RegimeSignals,
     thresholds: RegimeThresholds,
+    prev_credit_spread_bps: Optional[float] = None,
 ) -> list[EarlyWarning]:
     """Detect signals approaching regime transition thresholds.
 
     Fires when a signal is within 20% of a threshold (proximity >= 80%).
+
+    Also fires a credit spread widening warning when credit_spread_bps has increased
+    by more than 30% relative to the previous observation.
     """
     warnings: list[EarlyWarning] = []
 
@@ -191,6 +195,26 @@ def detect_early_warnings(
             message="Cross-asset correlation structure shifting toward crisis pattern",
         ))
 
+    # Credit spread rapid widening: >30% increase over the 5-day (previous) observation
+    if (
+        signals.credit_spread_bps is not None
+        and prev_credit_spread_bps is not None
+        and prev_credit_spread_bps > 0.0
+    ):
+        spread_increase_pct = (signals.credit_spread_bps - prev_credit_spread_bps) / prev_credit_spread_bps
+        if spread_increase_pct > 0.30:
+            warnings.append(EarlyWarning(
+                signal_name="credit_spread_bps",
+                current_value=signals.credit_spread_bps,
+                threshold=prev_credit_spread_bps,
+                proximity_pct=spread_increase_pct * 100.0,
+                message=(
+                    f"Credit spread rapid widening detected: "
+                    f"{signals.credit_spread_bps:.1f} bps vs previous {prev_credit_spread_bps:.1f} bps "
+                    f"({spread_increase_pct * 100:.1f}% increase)"
+                ),
+            ))
+
     return warnings
 
 
@@ -215,9 +239,10 @@ class RegimeDetector:
     """Stateful regime classifier with debounce.
 
     Maintains:
-      _confirmed_regime: the currently active, confirmed regime.
-      _pending_regime:   the candidate regime being built up.
-      _pending_count:    how many consecutive observations of _pending_regime.
+      _confirmed_regime:     the currently active, confirmed regime.
+      _pending_regime:       the candidate regime being built up.
+      _pending_count:        how many consecutive observations of _pending_regime.
+      _prev_credit_spread:   previous observation's credit_spread_bps for widening detection.
     """
 
     def __init__(
@@ -233,12 +258,18 @@ class RegimeDetector:
         self._confirmed_regime = MarketRegime.NORMAL
         self._pending_regime: Optional[MarketRegime] = None
         self._pending_count: int = 0
+        self._prev_credit_spread: Optional[float] = None
 
     def observe(self, signals: RegimeSignals) -> RegimeClassification:
         """Process one detection cycle and return the current classification state."""
         classified = classify_regime(signals, self._thresholds)
         degraded = signals.credit_spread_bps is None or signals.pnl_volatility is None
-        early_warnings = detect_early_warnings(signals, self._thresholds)
+        early_warnings = detect_early_warnings(
+            signals, self._thresholds, prev_credit_spread_bps=self._prev_credit_spread
+        )
+        # Update previous credit spread for next cycle (only when a value is present)
+        if signals.credit_spread_bps is not None:
+            self._prev_credit_spread = signals.credit_spread_bps
 
         if degraded:
             # Hold confirmed regime — do not escalate or de-escalate on incomplete signals.
