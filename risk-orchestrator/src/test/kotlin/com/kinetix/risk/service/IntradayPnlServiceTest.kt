@@ -14,6 +14,8 @@ import com.kinetix.risk.persistence.DailyRiskSnapshotRepository
 import com.kinetix.risk.persistence.IntradayPnlRepository
 import com.kinetix.risk.persistence.SodBaselineRepository
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -106,7 +108,7 @@ private fun previousSnapshot(
 /**
  * Fresh mocks for each test. Each test is fully isolated — no shared state between calls.
  */
-private class TestFixtures {
+private class TestFixtures(fxRateProvider: FxRateProvider? = null) {
     val sodBaselineRepo = mockk<SodBaselineRepository>()
     val dailyRiskSnapshotRepo = mockk<DailyRiskSnapshotRepository>()
     val pnlRepository = mockk<IntradayPnlRepository>(relaxed = true)
@@ -120,6 +122,7 @@ private class TestFixtures {
         positionProvider = positionProvider,
         pnlAttributionService = PnlAttributionService(),
         publisher = publisher,
+        fxRateProvider = fxRateProvider,
     )
 }
 
@@ -395,5 +398,92 @@ class IntradayPnlServiceTest : FunSpec({
 
         snapshot.shouldNotBeNull()
         snapshot.totalPnl.compareTo(bd("3000.00")) shouldBe 0
+    }
+
+    // --- FX conversion tests ---
+
+    test("converts EUR position P&L to USD using live FX rate") {
+        val EUR = Currency.getInstance("EUR")
+        val fxProvider = mockk<FxRateProvider>()
+        coEvery { fxProvider.getRate("EUR", "USD") } returns BigDecimal("1.08")
+        val f = TestFixtures(fxRateProvider = fxProvider)
+        coEvery { f.sodBaselineRepo.findByBookIdAndDate(BOOK, any()) } returns sodBaseline()
+        // AAPL (USD) anchors baseCurrency to USD; DAX (EUR) is the foreign position.
+        coEvery { f.dailyRiskSnapshotRepo.findByBookIdAndDate(BOOK, TODAY) } returns listOf(
+            sodSnapshot("AAPL", quantity = "100", marketPrice = "100.00"),
+            sodSnapshot("DAX", quantity = "10", marketPrice = "100.00"),
+        )
+        // AAPL USD: unrealised = 0 (flat)
+        // DAX  EUR: unrealised = (110 - 90) * 10 = 200 EUR → 216 USD at 1.08
+        coEvery { f.positionProvider.getPositions(BOOK) } returns listOf(
+            position("AAPL", quantity = "100", avgCost = "100.00", marketPrice = "100.00"),
+            Position(
+                bookId = BOOK,
+                instrumentId = InstrumentId("DAX"),
+                assetClass = AssetClass.EQUITY,
+                quantity = bd("10"),
+                averageCost = Money(bd("90.00"), EUR),
+                marketPrice = Money(bd("110.00"), EUR),
+                realizedPnl = Money(bd("0.00"), EUR),
+            ),
+        )
+        coEvery { f.pnlRepository.findLatest(BOOK) } returns null
+
+        val snapshot = f.service.recompute(BOOK, PnlTrigger.POSITION_CHANGE, correlationId = null)
+
+        snapshot.shouldNotBeNull()
+        // AAPL P&L = 0; DAX P&L = 200 EUR * 1.08 = 216 USD → total = 216
+        snapshot.totalPnl.compareTo(bd("216.00")) shouldBe 0
+        snapshot.missingFxRates.shouldBeEmpty()
+    }
+
+    test("tracks missing FX rates in snapshot") {
+        val GBP = Currency.getInstance("GBP")
+        val fxProvider = mockk<FxRateProvider>()
+        coEvery { fxProvider.getRate("GBP", "USD") } returns null
+        val f = TestFixtures(fxRateProvider = fxProvider)
+        coEvery { f.sodBaselineRepo.findByBookIdAndDate(BOOK, any()) } returns sodBaseline()
+        // AAPL (USD) anchors baseCurrency to USD; FTSE (GBP) is the foreign position.
+        coEvery { f.dailyRiskSnapshotRepo.findByBookIdAndDate(BOOK, TODAY) } returns listOf(
+            sodSnapshot("AAPL", quantity = "100", marketPrice = "100.00"),
+            sodSnapshot("FTSE", quantity = "5", marketPrice = "200.00"),
+        )
+        coEvery { f.positionProvider.getPositions(BOOK) } returns listOf(
+            position("AAPL", quantity = "100", avgCost = "100.00", marketPrice = "100.00"),
+            Position(
+                bookId = BOOK,
+                instrumentId = InstrumentId("FTSE"),
+                assetClass = AssetClass.EQUITY,
+                quantity = bd("5"),
+                averageCost = Money(bd("190.00"), GBP),
+                marketPrice = Money(bd("210.00"), GBP),
+                realizedPnl = Money(bd("0.00"), GBP),
+            ),
+        )
+        coEvery { f.pnlRepository.findLatest(BOOK) } returns null
+
+        val snapshot = f.service.recompute(BOOK, PnlTrigger.POSITION_CHANGE, correlationId = null)
+
+        snapshot.shouldNotBeNull()
+        snapshot.missingFxRates shouldContain "GBP"
+    }
+
+    test("does not call FX provider when all positions are base currency") {
+        val fxProvider = mockk<FxRateProvider>()
+        val f = TestFixtures(fxRateProvider = fxProvider)
+        coEvery { f.sodBaselineRepo.findByBookIdAndDate(BOOK, any()) } returns sodBaseline()
+        coEvery { f.dailyRiskSnapshotRepo.findByBookIdAndDate(BOOK, TODAY) } returns listOf(
+            sodSnapshot("AAPL", quantity = "100", marketPrice = "100.00"),
+        )
+        coEvery { f.positionProvider.getPositions(BOOK) } returns listOf(
+            position("AAPL", quantity = "100", avgCost = "90.00", marketPrice = "110.00"),
+        )
+        coEvery { f.pnlRepository.findLatest(BOOK) } returns null
+
+        val snapshot = f.service.recompute(BOOK, PnlTrigger.POSITION_CHANGE, correlationId = null)
+
+        snapshot.shouldNotBeNull()
+        coVerify(exactly = 0) { fxProvider.getRate(any(), any()) }
+        snapshot.missingFxRates.shouldBeEmpty()
     }
 })

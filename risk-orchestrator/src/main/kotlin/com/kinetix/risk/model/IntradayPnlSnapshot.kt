@@ -39,4 +39,9 @@ data class IntradayPnlSnapshot(
     val instrumentPnl: List<InstrumentPnlBreakdown> = emptyList(),
 
     val correlationId: String? = null,
+
+    // Currencies for which no live FX rate was available at snapshot time.
+    // A non-empty list means the P&L figures used a 1:1 fallback for those currencies
+    // and should be treated as approximate until rates are restored.
+    val missingFxRates: List<String> = emptyList(),
 )

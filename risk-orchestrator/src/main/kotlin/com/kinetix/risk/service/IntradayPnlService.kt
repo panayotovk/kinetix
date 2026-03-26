@@ -33,6 +33,7 @@ class IntradayPnlService(
     private val debounceInterval: Duration = Duration.ofSeconds(1),
     private val volatilityServiceClient: VolatilityServiceClient? = null,
     private val ratesServiceClient: RatesServiceClient? = null,
+    private val fxRateProvider: FxRateProvider? = null,
 ) {
     private val logger = LoggerFactory.getLogger(IntradayPnlService::class.java)
     private val mc = MathContext(20, RoundingMode.HALF_UP)
@@ -76,11 +77,15 @@ class IntradayPnlService(
 
         // Total P&L is the truth: computed from position state, never from Greek attribution.
         val baseCurrency = deriveBaseCurrency(positions)
+
+        // Pre-fetch all FX rates needed so convertToBase stays a pure function.
+        val (fxRates, missingFxRates) = prefetchFxRates(positions, baseCurrency)
+
         val totalRealised = positions.fold(BigDecimal.ZERO) { acc, pos ->
-            acc.add(convertToBase(pos.realizedPnl, baseCurrency), mc)
+            acc.add(convertToBase(pos.realizedPnl, baseCurrency, fxRates), mc)
         }
         val totalUnrealised = positions.fold(BigDecimal.ZERO) { acc, pos ->
-            acc.add(convertToBase(pos.unrealizedPnl, baseCurrency), mc)
+            acc.add(convertToBase(pos.unrealizedPnl, baseCurrency, fxRates), mc)
         }
         val totalPnl = totalRealised.add(totalUnrealised, mc)
 
@@ -91,7 +96,7 @@ class IntradayPnlService(
         val currentRateMap = fetchCurrentRates(currencies)
 
         // Greek attribution: analytical overlay against frozen SOD state.
-        val pnlInputs = buildAttributionInputs(positions, sodSnapshots, baseCurrency, currentVolMap, currentRateMap)
+        val pnlInputs = buildAttributionInputs(positions, sodSnapshots, baseCurrency, fxRates, currentVolMap, currentRateMap)
         val attribution = pnlAttributionService.attribute(bookId, pnlInputs, date)
 
         // High-water mark is monotonically non-decreasing within the trading day.
@@ -139,6 +144,7 @@ class IntradayPnlService(
             highWaterMark = newHwm,
             instrumentPnl = instrumentPnl,
             correlationId = correlationId,
+            missingFxRates = missingFxRates,
         )
 
         intradayPnlRepository.save(snapshot)
@@ -151,6 +157,7 @@ class IntradayPnlService(
         positions: List<com.kinetix.common.model.Position>,
         sodSnapshots: List<DailyRiskSnapshot>,
         baseCurrency: String,
+        fxRates: Map<String, BigDecimal>,
         currentVolMap: Map<InstrumentId, Double>,
         currentRateMap: Map<Currency, Double>,
     ): List<PositionPnlInput> {
@@ -159,8 +166,8 @@ class IntradayPnlService(
             val sod = sodByInstrument[position.instrumentId] ?: return@mapNotNull null
             val currentPrice = position.marketPrice.amount
             val priceChange = currentPrice.subtract(sod.marketPrice, mc)
-            val positionPnl = convertToBase(position.unrealizedPnl, baseCurrency)
-                .add(convertToBase(position.realizedPnl, baseCurrency), mc)
+            val positionPnl = convertToBase(position.unrealizedPnl, baseCurrency, fxRates)
+                .add(convertToBase(position.realizedPnl, baseCurrency, fxRates), mc)
 
             val volChange = computeVolChange(sod, currentVolMap[position.instrumentId])
             val rateChange = computeRateChange(sod, currentRateMap[position.currency])
@@ -222,17 +229,64 @@ class IntradayPnlService(
         return BigDecimal.valueOf(current - sodRate)
     }
 
-    private fun convertToBase(money: Money, baseCurrency: String): BigDecimal {
-        return if (money.currency.currencyCode == baseCurrency) {
-            money.amount
-        } else {
-            // Simplified: use 1:1 rate when no FX provider is wired.
-            // Production improvement: inject LiveFxRateProvider.
-            money.amount
+    /**
+     * Pre-fetches all FX rates needed to convert position P&L to [baseCurrency].
+     *
+     * Currencies equal to [baseCurrency] are skipped (rate is 1:1 by definition).
+     * Returns a pair of:
+     * - fxRates: Map from currency code to the rate against [baseCurrency]
+     * - missingCurrencies: List of currency codes for which no rate was available
+     */
+    private suspend fun prefetchFxRates(
+        positions: List<com.kinetix.common.model.Position>,
+        baseCurrency: String,
+    ): Pair<Map<String, BigDecimal>, List<String>> {
+        val provider = fxRateProvider ?: return emptyMap<String, BigDecimal>() to emptyList()
+
+        val foreignCurrencies = positions
+            .map { it.currency.currencyCode }
+            .filter { it != baseCurrency }
+            .distinct()
+
+        if (foreignCurrencies.isEmpty()) return emptyMap<String, BigDecimal>() to emptyList()
+
+        val fxRates = mutableMapOf<String, BigDecimal>()
+        val missingCurrencies = mutableListOf<String>()
+
+        for (currency in foreignCurrencies) {
+            val rate = provider.getRate(currency, baseCurrency)
+            if (rate != null) {
+                fxRates[currency] = rate
+            } else {
+                logger.warn(
+                    "No FX rate available for {}/{} — P&L for positions in {} will use 1:1 fallback",
+                    currency, baseCurrency, currency,
+                )
+                missingCurrencies.add(currency)
+            }
         }
+
+        return fxRates to missingCurrencies
     }
 
-    private fun deriveBaseCurrency(positions: List<com.kinetix.common.model.Position>): String {
-        return positions.firstOrNull()?.currency?.currencyCode ?: "USD"
+    /**
+     * Converts [money] to [baseCurrency] using the pre-fetched [fxRates] map.
+     *
+     * Same currency returns the amount directly. Missing rate uses 1:1 (the caller
+     * is responsible for tracking missing currencies via [prefetchFxRates]).
+     */
+    private fun convertToBase(
+        money: Money,
+        baseCurrency: String,
+        fxRates: Map<String, BigDecimal>,
+    ): BigDecimal {
+        val currencyCode = money.currency.currencyCode
+        if (currencyCode == baseCurrency) return money.amount
+        val rate = fxRates[currencyCode] ?: return money.amount
+        return money.amount.multiply(rate, mc)
     }
+
+    private fun deriveBaseCurrency(
+        @Suppress("UNUSED_PARAMETER") positions: List<com.kinetix.common.model.Position>,
+    ): String = "USD"
 }
