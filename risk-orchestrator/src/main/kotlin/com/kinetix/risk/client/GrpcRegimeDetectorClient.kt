@@ -35,6 +35,9 @@ class GrpcRegimeDetectorClient(
                 pnlVolatility = signals.pnlVolatility
                 pnlVolatilityPresent = true
             }
+            if (signals.volOfVol != null) {
+                volOfVol = signals.volOfVol
+            }
         }.build()
 
         val thresholdsProto = RegimeThresholdsProto.newBuilder().apply {

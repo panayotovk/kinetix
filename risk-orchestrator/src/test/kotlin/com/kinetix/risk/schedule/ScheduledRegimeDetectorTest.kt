@@ -340,4 +340,26 @@ class ScheduledRegimeDetectorTest : FunSpec({
         detector.detect()
         detector.currentState.earlyWarnings shouldBe emptyList()
     }
+
+    test("vol_of_vol signal is forwarded to regime detector when present") {
+        val client = mockk<RegimeDetectorClient>()
+        val capturedSignals = mutableListOf<RegimeSignals>()
+        coEvery { client.detectRegime(capture(capturedSignals), any(), any(), any(), any(), any()) } returns normalResult()
+
+        val signalsWithVolOfVol = RegimeSignals(
+            realisedVol20d = 0.12,
+            crossAssetCorrelation = 0.45,
+            volOfVol = 0.30,
+        )
+
+        val detector = ScheduledRegimeDetector(
+            regimeDetectorClient = client,
+            signalProvider = { signalsWithVolOfVol },
+            parameterProvider = paramProvider,
+        )
+
+        detector.detect()
+
+        capturedSignals.first().volOfVol shouldBe 0.30
+    }
 })

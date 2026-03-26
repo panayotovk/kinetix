@@ -7,6 +7,7 @@ data class RegimeSignals(
     val crossAssetCorrelation: Double,
     val creditSpreadBps: Double? = null,
     val pnlVolatility: Double? = null,
+    val volOfVol: Double? = null,
 )
 
 data class AdaptiveVaRParameters(
