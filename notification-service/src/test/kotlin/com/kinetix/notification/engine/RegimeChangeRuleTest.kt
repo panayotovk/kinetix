@@ -62,12 +62,21 @@ class RegimeChangeRuleTest : FunSpec({
         alert.severity shouldBe Severity.INFO
     }
 
-    test("returns null for NORMAL regime — no alert needed") {
+    test("returns null when transitioning to NORMAL from a non-CRISIS regime") {
         val rule = RegimeChangeRule()
 
         val alert = rule.evaluate(regimeEvent("NORMAL", previousRegime = "ELEVATED_VOL"))
 
         alert.shouldBeNull()
+    }
+
+    test("fires INFO alert when transitioning from CRISIS to NORMAL (spec: CRISIS->any = INFO)") {
+        val rule = RegimeChangeRule()
+
+        val alert = rule.evaluate(regimeEvent("NORMAL", previousRegime = "CRISIS"))
+
+        alert.shouldNotBeNull()
+        alert.severity shouldBe Severity.INFO
     }
 
     test("alert message includes regime and previous regime") {

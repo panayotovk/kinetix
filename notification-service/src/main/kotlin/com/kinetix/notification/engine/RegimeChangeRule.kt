@@ -12,19 +12,21 @@ import java.util.UUID
  * Evaluates a [MarketRegimeEvent] and produces a [AlertEvent] when the regime
  * transitions to a state that warrants operator attention.
  *
- * Severity mapping:
- *   CRISIS       → CRITICAL
- *   ELEVATED_VOL → WARNING
- *   RECOVERY     → INFO
- *   NORMAL       → no alert (returns null)
+ * Severity mapping (spec REG_D-10):
+ *   any → CRISIS               = CRITICAL
+ *   NORMAL → ELEVATED_VOL      = WARNING
+ *   CRISIS → any (except stay) = INFO  (recovery from crisis — includes NORMAL, RECOVERY, ELEVATED_VOL)
+ *   NORMAL → NORMAL            = no alert (returns null)
+ *   ELEVATED_VOL → NORMAL      = no alert (returns null)
  */
 class RegimeChangeRule {
 
     fun evaluate(event: MarketRegimeEvent): AlertEvent? {
-        val severity = when (event.regime) {
-            "CRISIS" -> Severity.CRITICAL
-            "ELEVATED_VOL" -> Severity.WARNING
-            "RECOVERY" -> Severity.INFO
+        val severity = when {
+            event.regime == "CRISIS" -> Severity.CRITICAL
+            event.regime == "ELEVATED_VOL" -> Severity.WARNING
+            event.regime == "RECOVERY" -> Severity.INFO
+            event.previousRegime == "CRISIS" && event.regime == "NORMAL" -> Severity.INFO
             else -> return null
         }
 
