@@ -11,6 +11,10 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.time.Instant
 
+// TODO(HIER-06): Add a GET /api/v1/risk/hierarchy/{level}/{entityId}/children endpoint that
+// returns the immediate children of a node with their VaR, P&L, and limit utilisation.
+// This enables the UI to drill down from FIRM → DIVISION → DESK → BOOK without loading the
+// full hierarchy. Requires HierarchyRiskService.aggregateChildren(level, entityId).
 fun Route.hierarchyRiskRoutes(hierarchyRiskService: HierarchyRiskService) {
     get("/api/v1/risk/hierarchy/{level}/{entityId}") {
         val levelStr = call.requirePathParam("level")

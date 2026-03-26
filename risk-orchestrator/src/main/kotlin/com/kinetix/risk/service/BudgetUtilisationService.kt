@@ -65,6 +65,9 @@ class BudgetUtilisationService(
                 "Budget utilisation {} for {} {}: currentVar={}, budget={}, utilisation={}%",
                 breachStatus, level, entityId, currentVar, budgetAmount, utilisationPct,
             )
+            // TODO(HIER-03): publish a VAR_BUDGET_BREACH alert event to the notification-service
+            // via an AlertEventPublisher when breachStatus == BreachStatus.BREACH.
+            // Include entityLevel, entityId, utilisationPct, and a breach timestamp.
         }
 
         return BudgetUtilisation(

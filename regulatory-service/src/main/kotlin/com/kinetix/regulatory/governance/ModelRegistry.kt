@@ -7,6 +7,11 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 
+// TODO(REG_D-03): Introduce a RegimeModelConfig entity that maps a named market regime
+// (e.g. "HIGH_VOL", "STRESS", "NORMAL") to the approved ModelVersion that should be used
+// for that regime. Requires a new RegimeModelConfig domain class, repository, and routes
+// (POST to create, GET to list, PATCH to activate). The risk-orchestrator can then query
+// the active regime and select the correct model version for VaR calculation automatically.
 class ModelRegistry(
     private val repository: ModelVersionRepository,
     private val auditPublisher: GovernanceAuditPublisher? = null,

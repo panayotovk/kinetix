@@ -29,5 +29,5 @@ data class MarketRegimeCurrentResponse(
     val degradedInputs: Boolean,
     val signals: RegimeSignalsDto,
     val varParameters: AdaptiveVaRParametersDto,
-    val earlyWarnings: List<EarlyWarningDto> = emptyList(),
+    val earlyWarnings: List<EarlyWarningDto>,
 )
