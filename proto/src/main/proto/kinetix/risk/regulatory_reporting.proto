@@ -24,12 +24,20 @@ message FrtbRequest {
   repeated kinetix.common.Position positions = 2;
 }
 
+message TenorCharge {
+  string tenor_label = 1;
+  double sensitivity = 2;
+  double risk_weight = 3;
+  double weighted_sensitivity = 4;
+}
+
 message RiskClassCharge {
   FrtbRiskClass risk_class = 1;
   double delta_charge = 2;
   double vega_charge = 3;
   double curvature_charge = 4;
   double total_charge = 5;
+  repeated TenorCharge tenor_charges = 6;  // Per-tenor detail for GIRR (BCBS 352)
 }
 
 message SbmResult {

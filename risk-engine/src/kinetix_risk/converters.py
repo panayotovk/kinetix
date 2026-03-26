@@ -452,12 +452,23 @@ _DOMAIN_FRTB_RC_TO_PROTO = {
 def frtb_result_to_proto(result: FrtbResult) -> regulatory_reporting_pb2.FrtbResponse:
     rc_charges = []
     for rcc in result.sbm.risk_class_charges:
+        # Populate per-tenor detail for GIRR charges (BCBS 352 tenor attribution)
+        tenor_charges_proto = []
+        if hasattr(rcc, "tenor_charges") and rcc.tenor_charges:
+            for tc in rcc.tenor_charges:
+                tenor_charges_proto.append(regulatory_reporting_pb2.TenorCharge(
+                    tenor_label=tc.tenor_label,
+                    sensitivity=tc.sensitivity,
+                    risk_weight=tc.risk_weight,
+                    weighted_sensitivity=tc.weighted_sensitivity,
+                ))
         rc_charges.append(regulatory_reporting_pb2.RiskClassCharge(
             risk_class=_DOMAIN_FRTB_RC_TO_PROTO[rcc.risk_class],
             delta_charge=rcc.delta_charge,
             vega_charge=rcc.vega_charge,
             curvature_charge=rcc.curvature_charge,
             total_charge=rcc.total_charge,
+            tenor_charges=tenor_charges_proto,
         ))
 
     now = Timestamp()

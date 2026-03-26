@@ -238,12 +238,20 @@ export interface GreeksResultDto {
   calculatedAt: string
 }
 
+export interface TenorChargeDto {
+  tenorLabel: string
+  sensitivity: string
+  riskWeight: string
+  weightedSensitivity: string
+}
+
 export interface RiskClassChargeDto {
   riskClass: string
   deltaCharge: string
   vegaCharge: string
   curvatureCharge: string
   totalCharge: string
+  tenorCharges?: TenorChargeDto[]
 }
 
 export interface FrtbResultDto {

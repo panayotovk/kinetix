@@ -146,6 +146,14 @@ private fun FrtbCalculationRecord.toResponse() = FrtbCalculationResponse(
             vegaCharge = "%.2f".format(it.vegaCharge),
             curvatureCharge = "%.2f".format(it.curvatureCharge),
             totalCharge = "%.2f".format(it.totalCharge),
+            tenorCharges = it.tenorCharges?.map { tc ->
+                com.kinetix.regulatory.dto.TenorChargeDto(
+                    tenorLabel = tc.tenorLabel,
+                    sensitivity = "%.2f".format(tc.sensitivity),
+                    riskWeight = "%.4f".format(tc.riskWeight),
+                    weightedSensitivity = "%.2f".format(tc.weightedSensitivity),
+                )
+            },
         )
     },
     totalSbmCharge = "%.2f".format(totalSbmCharge),
