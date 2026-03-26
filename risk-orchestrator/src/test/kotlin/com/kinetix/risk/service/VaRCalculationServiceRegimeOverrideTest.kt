@@ -290,7 +290,7 @@ class VaRCalculationServiceRegimeOverrideTest : FunSpec({
         completedJob.requestedTimeHorizonDays shouldBe 1
     }
 
-    test("no regime override means requested params are null on the job") {
+    test("no regime override means requested params equal effective params on the job") {
         val capturedJobs = mutableListOf<ValuationJob>()
         val capturingRecorder = capturingJobRecorder(capturedJobs)
 
@@ -323,9 +323,12 @@ class VaRCalculationServiceRegimeOverrideTest : FunSpec({
         )
 
         val completedJob = capturedJobs.last { it.status == RunStatus.COMPLETED }
-        completedJob.requestedCalculationType shouldBe null
-        completedJob.requestedConfidenceLevel shouldBe null
-        completedJob.requestedTimeHorizonDays shouldBe null
+        // Requested params are always recorded — when no override is active they
+        // mirror the effective params, making the audit trail unambiguous.
+        completedJob.requestedCalculationType shouldBe CalculationType.PARAMETRIC.name
+        completedJob.requestedConfidenceLevel shouldBe ConfidenceLevel.CL_95.name
+        // timeHorizonDays defaults to 1 in VaRCalculationRequest
+        completedJob.requestedTimeHorizonDays shouldBe 1
     }
 })
 

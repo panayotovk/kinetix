@@ -382,9 +382,14 @@ class VaRCalculationService(
                 manifestId = manifestId,
                 runLabel = runLabel,
                 triggeredBy = triggeredBy,
-                requestedCalculationType = if (regimeOverrideApplied) request.calculationType.name else null,
-                requestedConfidenceLevel = if (regimeOverrideApplied) request.confidenceLevel.name else null,
-                requestedTimeHorizonDays = if (regimeOverrideApplied) request.timeHorizonDays else null,
+                // Always record the originally requested parameters so the audit trail is
+                // unambiguous regardless of whether a regime override was active.  When
+                // no override applies, requestedX == calculationType/confidenceLevel/
+                // timeHorizonDays (i.e. effective == requested); the non-null presence
+                // signals that the record is complete, not that an override occurred.
+                requestedCalculationType = request.calculationType.name,
+                requestedConfidenceLevel = request.confidenceLevel.name,
+                requestedTimeHorizonDays = request.timeHorizonDays,
             )
             updateJobSafely(job)
 
