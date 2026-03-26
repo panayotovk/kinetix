@@ -1110,3 +1110,21 @@ export interface ReconciliationDto {
   breaks: ReconciliationBreakDto[]
   reconciledAt: string
 }
+
+export interface KrdBucketDto {
+  tenorLabel: string
+  tenorDays: number
+  dv01: string
+}
+
+export interface InstrumentKrdResultDto {
+  instrumentId: string
+  krdBuckets: KrdBucketDto[]
+  totalDv01: string
+}
+
+export interface KeyRateDurationResponseDto {
+  bookId: string
+  instruments: InstrumentKrdResultDto[]
+  aggregated: KrdBucketDto[]
+}
