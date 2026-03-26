@@ -89,6 +89,7 @@ import com.kinetix.risk.schedule.ScheduledVaRCalculator
 import com.kinetix.risk.service.DefaultRunManifestCapture
 import com.kinetix.risk.service.DependenciesDiscoverer
 import com.kinetix.risk.service.IntradayPnlService
+import com.kinetix.risk.service.PriceBasedFxRateProvider
 import com.kinetix.risk.service.IntradayVaRTimelineService
 import com.kinetix.risk.service.PositionServiceTradeProvider
 import com.kinetix.risk.persistence.ExposedIntradayVaRTimelineRepository
@@ -479,6 +480,7 @@ fun Application.moduleWithRoutes() {
 
     val intradayPnlRepository = com.kinetix.risk.persistence.ExposedIntradayPnlRepository(riskDb)
     val intradayPnlPublisher = KafkaIntradayPnlPublisher(kafkaProducer)
+    val fxRateProvider = PriceBasedFxRateProvider(effectivePriceServiceClient)
     val intradayPnlService = IntradayPnlService(
         sodBaselineRepository = sodBaselineRepository,
         dailyRiskSnapshotRepository = dailyRiskSnapshotRepository,
@@ -488,6 +490,7 @@ fun Application.moduleWithRoutes() {
         publisher = intradayPnlPublisher,
         volatilityServiceClient = effectiveVolatilityServiceClient,
         ratesServiceClient = effectiveRatesServiceClient,
+        fxRateProvider = fxRateProvider,
     )
 
     val stressTestStub = StressTestServiceGrpcKt.StressTestServiceCoroutineStub(channel)
@@ -629,6 +632,7 @@ fun Application.moduleWithRoutes() {
     val hedgeRecommendationService = HedgeRecommendationService(
         varCache = varCache,
         instrumentServiceClient = instrumentServiceClient,
+        priceServiceClient = effectivePriceServiceClient,
         referenceDataClient = effectiveReferenceDataServiceClient,
         calculator = AnalyticalHedgeCalculator(),
         repository = hedgeRecommendationRepository,

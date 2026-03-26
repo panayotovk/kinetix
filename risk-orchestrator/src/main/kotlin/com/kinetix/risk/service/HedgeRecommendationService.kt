@@ -1,8 +1,11 @@
 package com.kinetix.risk.service
 
 import com.kinetix.common.model.BookId
+import com.kinetix.common.model.InstrumentId
 import com.kinetix.risk.cache.VaRCache
+import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.InstrumentServiceClient
+import com.kinetix.risk.client.PriceServiceClient
 import com.kinetix.risk.client.ReferenceDataServiceClient
 import com.kinetix.risk.model.CandidateInstrument
 import com.kinetix.risk.model.GreekImpact
@@ -23,6 +26,7 @@ private const val MAX_CANDIDATES = 50
 class HedgeRecommendationService(
     private val varCache: VaRCache,
     private val instrumentServiceClient: InstrumentServiceClient,
+    private val priceServiceClient: PriceServiceClient,
     private val referenceDataClient: ReferenceDataServiceClient,
     private val calculator: AnalyticalHedgeCalculator,
     private val repository: HedgeRecommendationRepository,
@@ -204,16 +208,27 @@ class HedgeRecommendationService(
         target: HedgeTarget,
     ): CandidateInstrument? {
         return try {
-            val instrumentResp = instrumentServiceClient.getInstrument(
-                com.kinetix.common.model.InstrumentId(liq.instrumentId)
-            )
+            val instrumentResp = instrumentServiceClient.getInstrument(InstrumentId(liq.instrumentId))
             val instrument = when (instrumentResp) {
-                is com.kinetix.risk.client.ClientResponse.Success -> instrumentResp.value
-                is com.kinetix.risk.client.ClientResponse.NotFound -> return null
+                is ClientResponse.Success -> instrumentResp.value
+                is ClientResponse.NotFound -> return null
             }
 
             val tier = classifyTier(liq.adv, liq.bidAskSpreadBps)
             if (tier !in LIQUID_TIERS) return null
+
+            val priceResp = priceServiceClient.getLatestPrice(InstrumentId(liq.instrumentId))
+            val pricePerUnit = when (priceResp) {
+                is ClientResponse.Success -> priceResp.value.price.amount.toDouble()
+                is ClientResponse.NotFound -> {
+                    logger.debug("No price found for candidate {}, excluding", liq.instrumentId)
+                    return null
+                }
+            }
+            if (pricePerUnit <= 0.0) {
+                logger.debug("Zero or negative price for candidate {}, excluding", liq.instrumentId)
+                return null
+            }
 
             // Price age in minutes — use staleness flag from DTO
             val priceAgeMinutes = if (liq.advStale) 20 else 5
@@ -221,7 +236,7 @@ class HedgeRecommendationService(
             CandidateInstrument(
                 instrumentId = liq.instrumentId,
                 instrumentType = instrument.instrumentType,
-                pricePerUnit = 100.0, // placeholder — real implementation would fetch current price
+                pricePerUnit = pricePerUnit,
                 bidAskSpreadBps = liq.bidAskSpreadBps,
                 deltaPerUnit = greekPerUnitForInstrumentType(instrument.instrumentType, target, "delta"),
                 gammaPerUnit = greekPerUnitForInstrumentType(instrument.instrumentType, target, "gamma"),

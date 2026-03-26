@@ -2,9 +2,14 @@ package com.kinetix.risk.service
 
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.BookId
+import com.kinetix.common.model.InstrumentId
+import com.kinetix.common.model.Money
+import com.kinetix.common.model.PricePoint
+import com.kinetix.common.model.PriceSource
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.InstrumentServiceClient
+import com.kinetix.risk.client.PriceServiceClient
 import com.kinetix.risk.client.ReferenceDataServiceClient
 import com.kinetix.risk.client.dtos.InstrumentDto
 import com.kinetix.risk.client.dtos.InstrumentLiquidityDto
@@ -33,8 +38,10 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.serialization.json.JsonObject
+import java.math.BigDecimal
 import java.time.Duration
 import java.time.Instant
+import java.util.Currency
 import java.util.UUID
 
 private fun varResult(
@@ -93,6 +100,13 @@ private fun liquidityDto(
     updatedAt = "2026-03-24T09:00:00Z",
 )
 
+private fun pricePoint(instrumentId: String, amount: Double = 150.0) = PricePoint(
+    instrumentId = InstrumentId(instrumentId),
+    price = Money(BigDecimal.valueOf(amount), Currency.getInstance("USD")),
+    timestamp = Instant.now(),
+    source = PriceSource.EXCHANGE,
+)
+
 private val defaultConstraints = HedgeConstraints(
     maxNotional = null,
     maxSuggestions = 5,
@@ -105,6 +119,7 @@ class HedgeRecommendationServiceTest : FunSpec({
 
     val varCache = mockk<VaRCache>()
     val instrumentServiceClient = mockk<InstrumentServiceClient>()
+    val priceServiceClient = mockk<PriceServiceClient>()
     val referenceDataClient = mockk<ReferenceDataServiceClient>()
     val calculator = mockk<AnalyticalHedgeCalculator>()
     val repository = mockk<HedgeRecommendationRepository>(relaxed = true)
@@ -112,6 +127,7 @@ class HedgeRecommendationServiceTest : FunSpec({
     val service = HedgeRecommendationService(
         varCache = varCache,
         instrumentServiceClient = instrumentServiceClient,
+        priceServiceClient = priceServiceClient,
         referenceDataClient = referenceDataClient,
         calculator = calculator,
         repository = repository,
@@ -122,7 +138,7 @@ class HedgeRecommendationServiceTest : FunSpec({
     val bookId = BookId("BOOK-1")
 
     beforeEach {
-        clearMocks(varCache, instrumentServiceClient, referenceDataClient, calculator, repository)
+        clearMocks(varCache, instrumentServiceClient, priceServiceClient, referenceDataClient, calculator, repository)
     }
 
     test("throws when no VaR result is cached for the book") {
@@ -167,6 +183,7 @@ class HedgeRecommendationServiceTest : FunSpec({
             "AAPL" to liquidityDto("AAPL"),
         )
         coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("AAPL"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("AAPL"))
         coEvery { calculator.suggest(any(), any(), any(), any(), any()) } returns emptyList()
 
         service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
@@ -186,6 +203,7 @@ class HedgeRecommendationServiceTest : FunSpec({
             "AAPL" to liquidityDto("AAPL"),
         )
         coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("AAPL"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("AAPL"))
 
         val targetSlot = slot<HedgeTarget>()
         val pctSlot = slot<Double>()
@@ -215,6 +233,7 @@ class HedgeRecommendationServiceTest : FunSpec({
             "AAPL" to liquidityDto("AAPL"),
         )
         coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("AAPL"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("AAPL"))
         coEvery { calculator.suggest(any(), any(), any(), any(), any()) } returns emptyList()
 
         val rec = service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
@@ -237,6 +256,7 @@ class HedgeRecommendationServiceTest : FunSpec({
         )
         coEvery { instrumentServiceClient.getInstrument(any()) } returns
             ClientResponse.Success(instrumentDto("ANY"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("ANY"))
 
         val candidatesSlot = slot<List<com.kinetix.risk.model.CandidateInstrument>>()
         coEvery { calculator.suggest(any(), any(), any(), capture(candidatesSlot), any()) } returns emptyList()
@@ -269,6 +289,7 @@ class HedgeRecommendationServiceTest : FunSpec({
             "TIER1-STOCK" to liquidityDto("TIER1-STOCK", adv = 100_000_000.0, bidAskSpreadBps = 3.0),
         )
         coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("TIER1-STOCK"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("TIER1-STOCK"))
         coEvery { calculator.suggest(any(), any(), any(), any(), any()) } returns emptyList()
 
         val rec = service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
@@ -284,6 +305,7 @@ class HedgeRecommendationServiceTest : FunSpec({
             "AAPL" to liquidityDto("AAPL"),
         )
         coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("AAPL"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("AAPL"))
         coEvery { calculator.suggest(any(), any(), any(), any(), any()) } returns emptyList()
 
         // Should not throw — only blocks after 2 hours
@@ -291,5 +313,61 @@ class HedgeRecommendationServiceTest : FunSpec({
 
         rec.shouldNotBeNull()
         rec.status shouldBe HedgeStatus.PENDING
+    }
+
+    test("uses real price per unit from price service") {
+        coEvery { varCache.get("BOOK-1") } returns varResult()
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+            "AAPL" to liquidityDto("AAPL"),
+        )
+        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("AAPL"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("AAPL", amount = 42.50))
+
+        val candidatesSlot = slot<List<com.kinetix.risk.model.CandidateInstrument>>()
+        coEvery { calculator.suggest(any(), any(), any(), capture(candidatesSlot), any()) } returns emptyList()
+
+        service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
+
+        candidatesSlot.captured shouldHaveSize 1
+        candidatesSlot.captured.first().pricePerUnit shouldBe 42.50
+    }
+
+    test("excludes candidate when price not found") {
+        coEvery { varCache.get("BOOK-1") } returns varResult()
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+            "AAPL" to liquidityDto("AAPL"),
+        )
+        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("AAPL"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.NotFound(404)
+
+        val rec = service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
+
+        rec.status shouldBe HedgeStatus.REJECTED
+    }
+
+    test("excludes candidate when price is zero") {
+        coEvery { varCache.get("BOOK-1") } returns varResult()
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+            "AAPL" to liquidityDto("AAPL"),
+        )
+        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("AAPL"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("AAPL", amount = 0.0))
+
+        val rec = service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
+
+        rec.status shouldBe HedgeStatus.REJECTED
+    }
+
+    test("excludes candidate when price service throws") {
+        coEvery { varCache.get("BOOK-1") } returns varResult()
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+            "AAPL" to liquidityDto("AAPL"),
+        )
+        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("AAPL"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } throws RuntimeException("price service unavailable")
+
+        val rec = service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
+
+        rec.status shouldBe HedgeStatus.REJECTED
     }
 })
