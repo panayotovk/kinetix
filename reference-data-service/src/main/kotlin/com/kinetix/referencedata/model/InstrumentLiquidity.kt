@@ -11,4 +11,7 @@ data class InstrumentLiquidity(
     val advUpdatedAt: Instant,
     val createdAt: Instant,
     val updatedAt: Instant,
+    val advShares: Double? = null,
+    val marketDepthScore: Double? = null,
+    val source: String = "unknown",
 )

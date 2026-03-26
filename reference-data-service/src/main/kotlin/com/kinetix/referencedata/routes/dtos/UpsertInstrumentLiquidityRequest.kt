@@ -8,4 +8,7 @@ data class UpsertInstrumentLiquidityRequest(
     val adv: Double,
     val bidAskSpreadBps: Double = 0.0,
     val assetClass: String,
+    val advShares: Double? = null,
+    val marketDepthScore: Double? = null,
+    val source: String = "unknown",
 )

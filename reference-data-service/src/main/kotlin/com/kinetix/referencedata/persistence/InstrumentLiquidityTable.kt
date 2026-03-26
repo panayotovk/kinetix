@@ -12,6 +12,9 @@ object InstrumentLiquidityTable : Table("instrument_liquidity") {
     val advUpdatedAt = timestampWithTimeZone("adv_updated_at")
     val createdAt = timestampWithTimeZone("created_at")
     val updatedAt = timestampWithTimeZone("updated_at")
+    val advShares = decimal("adv_shares", precision = 24, scale = 6).nullable()
+    val marketDepthScore = decimal("market_depth_score", precision = 10, scale = 4).nullable()
+    val dataSource = varchar("source", 50).default("unknown")
 
     override val primaryKey = PrimaryKey(instrumentId)
 }

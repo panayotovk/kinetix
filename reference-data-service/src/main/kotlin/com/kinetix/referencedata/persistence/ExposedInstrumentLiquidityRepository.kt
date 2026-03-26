@@ -45,6 +45,9 @@ class ExposedInstrumentLiquidityRepository(
                 it[advUpdatedAt] = liquidity.advUpdatedAt.atOffset(ZoneOffset.UTC)
                 it[createdAt] = now
                 it[updatedAt] = now
+                it[advShares] = liquidity.advShares?.let { v -> BigDecimal.valueOf(v) }
+                it[marketDepthScore] = liquidity.marketDepthScore?.let { v -> BigDecimal.valueOf(v) }
+                it[dataSource] = liquidity.source
             }
         }
 
@@ -65,5 +68,8 @@ class ExposedInstrumentLiquidityRepository(
         advUpdatedAt = this[InstrumentLiquidityTable.advUpdatedAt].toInstant(),
         createdAt = this[InstrumentLiquidityTable.createdAt].toInstant(),
         updatedAt = this[InstrumentLiquidityTable.updatedAt].toInstant(),
+        advShares = this[InstrumentLiquidityTable.advShares]?.toDouble(),
+        marketDepthScore = this[InstrumentLiquidityTable.marketDepthScore]?.toDouble(),
+        source = this[InstrumentLiquidityTable.dataSource],
     )
 }

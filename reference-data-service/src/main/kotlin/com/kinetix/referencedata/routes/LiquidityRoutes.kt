@@ -42,6 +42,9 @@ fun Route.liquidityRoutes(liquidityService: InstrumentLiquidityService) {
                 advUpdatedAt = now,
                 createdAt = now,
                 updatedAt = now,
+                advShares = request.advShares,
+                marketDepthScore = request.marketDepthScore,
+                source = request.source,
             )
             liquidityService.upsert(liquidity)
             call.respond(HttpStatusCode.Created, liquidity.toResponse(liquidityService, now))
@@ -102,4 +105,7 @@ private fun InstrumentLiquidity.toResponse(
     advStalenessDays = service.staleDays(this, now),
     createdAt = createdAt.toString(),
     updatedAt = updatedAt.toString(),
+    advShares = advShares,
+    marketDepthScore = marketDepthScore,
+    source = source,
 )

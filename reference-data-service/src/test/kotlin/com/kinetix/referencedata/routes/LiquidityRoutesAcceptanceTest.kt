@@ -201,6 +201,91 @@ class LiquidityRoutesAcceptanceTest : FunSpec({
         }
     }
 
+    test("POST /api/v1/liquidity accepts advShares, marketDepthScore, and source fields") {
+        val saved = slot<InstrumentLiquidity>()
+        coEvery { liquidityRepo.upsert(capture(saved)) } returns Unit
+
+        testApplication {
+            application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, liquidityService = liquidityService) }
+
+            val response = client.post("/api/v1/liquidity") {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    """
+                    {
+                        "instrumentId": "AAPL",
+                        "adv": 50000000.0,
+                        "bidAskSpreadBps": 2.0,
+                        "assetClass": "EQUITY",
+                        "advShares": 450000.0,
+                        "marketDepthScore": 9.5,
+                        "source": "bloomberg"
+                    }
+                    """.trimIndent()
+                )
+            }
+            response.status shouldBe HttpStatusCode.Created
+
+            val body: JsonObject = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["advShares"]?.jsonPrimitive?.content?.toDouble() shouldBe 450_000.0
+            body["marketDepthScore"]?.jsonPrimitive?.content?.toDouble() shouldBe 9.5
+            body["source"]?.jsonPrimitive?.content shouldBe "bloomberg"
+
+            saved.captured.advShares shouldBe 450_000.0
+            saved.captured.marketDepthScore shouldBe 9.5
+            saved.captured.source shouldBe "bloomberg"
+        }
+    }
+
+    test("POST /api/v1/liquidity defaults new fields when not provided") {
+        val saved = slot<InstrumentLiquidity>()
+        coEvery { liquidityRepo.upsert(capture(saved)) } returns Unit
+
+        testApplication {
+            application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, liquidityService = liquidityService) }
+
+            val response = client.post("/api/v1/liquidity") {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    """
+                    {
+                        "instrumentId": "MSFT",
+                        "adv": 25000000.0,
+                        "bidAskSpreadBps": 3.5,
+                        "assetClass": "EQUITY"
+                    }
+                    """.trimIndent()
+                )
+            }
+            response.status shouldBe HttpStatusCode.Created
+
+            saved.captured.advShares shouldBe null
+            saved.captured.marketDepthScore shouldBe null
+            saved.captured.source shouldBe "unknown"
+        }
+    }
+
+    test("GET /api/v1/liquidity/{id} includes advShares, marketDepthScore, and source in response") {
+        val withNewFields = sampleLiquidity().copy(
+            advShares = 500_000.0,
+            marketDepthScore = 8.5,
+            source = "bloomberg",
+        )
+        coEvery { liquidityRepo.findById("AAPL") } returns withNewFields
+
+        testApplication {
+            application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, liquidityService = liquidityService) }
+
+            val response = client.get("/api/v1/liquidity/AAPL")
+            response.status shouldBe HttpStatusCode.OK
+
+            val body: JsonObject = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["advShares"]?.jsonPrimitive?.content?.toDouble() shouldBe 500_000.0
+            body["marketDepthScore"]?.jsonPrimitive?.content?.toDouble() shouldBe 8.5
+            body["source"]?.jsonPrimitive?.content shouldBe "bloomberg"
+        }
+    }
+
     test("GET /api/v1/liquidity/batch returns liquidity for multiple instruments") {
         coEvery { liquidityRepo.findByIds(listOf("AAPL", "MSFT")) } returns listOf(
             sampleLiquidity("AAPL"),

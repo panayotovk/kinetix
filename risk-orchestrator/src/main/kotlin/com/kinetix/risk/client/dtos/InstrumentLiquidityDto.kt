@@ -13,4 +13,8 @@ data class InstrumentLiquidityDto(
     val advStalenessDays: Int,
     val createdAt: String,
     val updatedAt: String,
+    val liquidityTier: String = "ILLIQUID",
+    val advShares: Double? = null,
+    val marketDepthScore: Double? = null,
+    val source: String = "unknown",
 )
