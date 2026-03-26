@@ -61,6 +61,7 @@ data class TradeResponse(
     val status: String = "LIVE",
     val originalTradeId: String? = null,
     val strategyId: String? = null,
+    val counterpartyId: String? = null,
 )
 
 @Serializable
@@ -75,6 +76,7 @@ data class AmendTradeRequest(
     val tradedAt: String,
     val userId: String? = null,
     val userRole: String? = null,
+    val counterpartyId: String? = null,
 )
 
 @Serializable
@@ -98,6 +100,7 @@ data class BookTradeRequest(
     val userId: String? = null,
     val userRole: String? = null,
     val strategyId: String? = null,
+    val counterpartyId: String? = null,
 )
 
 @Serializable
@@ -171,6 +174,7 @@ private fun Trade.toResponse() = TradeResponse(
     status = status.name,
     originalTradeId = originalTradeId?.value,
     strategyId = strategyId,
+    counterpartyId = counterpartyId,
 )
 
 private fun LimitBreach.toDto() = LimitBreachDto(
@@ -269,6 +273,7 @@ fun Route.positionRoutes(
                         userId = request.userId,
                         userRole = request.userRole,
                         strategyId = request.strategyId,
+                        counterpartyId = request.counterpartyId,
                     )
                     try {
                         val result = tradeBookingService.handle(command)
@@ -346,6 +351,7 @@ fun Route.positionRoutes(
                     response {
                         code(HttpStatusCode.OK) { body<BookTradeResponse>() }
                         code(HttpStatusCode.BadRequest) { body<ErrorResponse>() }
+                        code(HttpStatusCode.Conflict) { body<ErrorResponse>() }
                     }
                 }) {
                     val bookId = BookId(call.requirePathParam("bookId"))
@@ -367,15 +373,23 @@ fun Route.positionRoutes(
                         tradedAt = Instant.parse(request.tradedAt),
                         userId = request.userId,
                         userRole = request.userRole,
+                        counterpartyId = request.counterpartyId,
                     )
-                    val result = tradeLifecycleService.handleAmend(command)
-                    call.respond(
-                        HttpStatusCode.OK,
-                        BookTradeResponse(
-                            trade = result.trade.toResponse(),
-                            position = result.position.toResponse(),
-                        ),
-                    )
+                    try {
+                        val result = tradeLifecycleService.handleAmend(command)
+                        call.respond(
+                            HttpStatusCode.OK,
+                            BookTradeResponse(
+                                trade = result.trade.toResponse(),
+                                position = result.position.toResponse(),
+                            ),
+                        )
+                    } catch (e: InvalidTradeStateException) {
+                        call.respond(
+                            HttpStatusCode.Conflict,
+                            ErrorResponse("invalid_trade_state", e.message ?: "Trade is not in a valid state for amend"),
+                        )
+                    }
                 }
 
                 delete({
@@ -388,6 +402,7 @@ fun Route.positionRoutes(
                     response {
                         code(HttpStatusCode.OK) { body<BookTradeResponse>() }
                         code(HttpStatusCode.BadRequest) { body<ErrorResponse>() }
+                        code(HttpStatusCode.Conflict) { body<ErrorResponse>() }
                     }
                 }) {
                     val bookId = BookId(call.requirePathParam("bookId"))
@@ -396,14 +411,21 @@ fun Route.positionRoutes(
                         tradeId = tradeId,
                         bookId = bookId,
                     )
-                    val result = tradeLifecycleService.handleCancel(command)
-                    call.respond(
-                        HttpStatusCode.OK,
-                        BookTradeResponse(
-                            trade = result.trade.toResponse(),
-                            position = result.position.toResponse(),
-                        ),
-                    )
+                    try {
+                        val result = tradeLifecycleService.handleCancel(command)
+                        call.respond(
+                            HttpStatusCode.OK,
+                            BookTradeResponse(
+                                trade = result.trade.toResponse(),
+                                position = result.position.toResponse(),
+                            ),
+                        )
+                    } catch (e: InvalidTradeStateException) {
+                        call.respond(
+                            HttpStatusCode.Conflict,
+                            ErrorResponse("invalid_trade_state", e.message ?: "Trade is not in a valid state for cancel"),
+                        )
+                    }
                 }
             }
         }

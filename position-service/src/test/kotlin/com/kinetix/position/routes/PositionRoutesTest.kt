@@ -3,9 +3,11 @@ package com.kinetix.position.routes
 import com.kinetix.common.model.*
 import com.kinetix.position.persistence.PositionRepository
 import com.kinetix.position.persistence.TradeEventRepository
+import com.kinetix.position.service.AmendTradeCommand
 import com.kinetix.position.service.BookTradeCommand
 import com.kinetix.position.service.BookTradeResult
 import com.kinetix.position.service.GetPositionsQuery
+import com.kinetix.position.service.InvalidTradeStateException
 import com.kinetix.position.service.PositionQueryService
 import com.kinetix.position.service.TradeBookingService
 import com.kinetix.position.service.PortfolioAggregationService
@@ -268,6 +270,53 @@ class PositionRoutesTest : FunSpec({
             val body = response.bodyAsText()
             body shouldContain "bad_request"
             body shouldContain "Trade quantity must be positive"
+        }
+    }
+
+    test("amend rejects non-live trade with 409 Conflict") {
+        testApplication {
+            setupApp()
+            coEvery {
+                tradeLifecycleService.handleAmend(any<AmendTradeCommand>())
+            } throws InvalidTradeStateException("t-amended", TradeStatus.AMENDED, "amend")
+
+            val response = client.put("/api/v1/books/port-1/trades/t-amended") {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    """
+                    {
+                        "instrumentId": "AAPL",
+                        "assetClass": "EQUITY",
+                        "side": "BUY",
+                        "quantity": "200",
+                        "priceAmount": "160.00",
+                        "priceCurrency": "USD",
+                        "tradedAt": "2025-01-15T10:00:00Z"
+                    }
+                    """.trimIndent(),
+                )
+            }
+
+            response.status shouldBe HttpStatusCode.Conflict
+            val body = response.bodyAsText()
+            body shouldContain "invalid_trade_state"
+            body shouldContain "t-amended"
+        }
+    }
+
+    test("cancel rejects non-live trade with 409 Conflict") {
+        testApplication {
+            setupApp()
+            coEvery {
+                tradeLifecycleService.handleCancel(any())
+            } throws InvalidTradeStateException("t-cancelled", TradeStatus.CANCELLED, "cancel")
+
+            val response = client.delete("/api/v1/books/port-1/trades/t-cancelled")
+
+            response.status shouldBe HttpStatusCode.Conflict
+            val body = response.bodyAsText()
+            body shouldContain "invalid_trade_state"
+            body shouldContain "t-cancelled"
         }
     }
 })
