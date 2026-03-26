@@ -55,12 +55,10 @@ import com.kinetix.gateway.routes.varRoutes
 import com.kinetix.gateway.routes.hedgeRecommendationRoutes
 import com.kinetix.gateway.routes.benchmarkAttributionRoutes
 import com.kinetix.gateway.routes.counterpartyRiskRoutes
-import com.kinetix.gateway.routes.intradayVaRTimelineProxyRoutes
 import com.kinetix.gateway.routes.keyRateDurationRoutes
 import com.kinetix.gateway.routes.saCcrRoutes
 import com.kinetix.gateway.audit.GovernanceAuditPublisher
 import com.kinetix.gateway.routes.reportProxyRoutes
-import com.kinetix.gateway.client.HttpVolatilityServiceClient
 import com.kinetix.gateway.kafka.KafkaIntradayPnlConsumer
 import com.kinetix.gateway.websocket.AlertBroadcaster
 import com.kinetix.gateway.websocket.PnlBroadcaster
@@ -310,13 +308,6 @@ fun Application.module(regulatoryClient: RegulatoryServiceClient) {
     }
 }
 
-fun Application.moduleWithVolSurface(volatilityClient: com.kinetix.gateway.client.VolatilityServiceClient) {
-    module()
-    routing {
-        volSurfaceRoutes(volatilityClient)
-    }
-}
-
 fun Application.moduleWithDataQuality(
     positionClient: PositionServiceClient,
     priceClient: PriceServiceClient,
@@ -328,13 +319,6 @@ fun Application.moduleWithDataQuality(
         priceRoutes(priceClient)
         varRoutes(riskClient)
         dataQualityRoutes()
-    }
-}
-
-fun Application.moduleWithVolSurface(volatilityServiceClient: com.kinetix.gateway.client.VolatilityServiceClient) {
-    module()
-    routing {
-        volSurfaceRoutes(volatilityServiceClient)
     }
 }
 
