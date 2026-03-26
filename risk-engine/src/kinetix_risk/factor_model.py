@@ -128,6 +128,11 @@ class FactorDecompositionResult:
             return 0.0
         return self.idiosyncratic_var / self.total_var
 
+    @property
+    def concentration_warning(self) -> bool:
+        """True when any single factor accounts for more than CONCENTRATION_WARNING_PCT of total VaR."""
+        return any(fc.pct_of_total_var > CONCENTRATION_WARNING_PCT for fc in self.factor_contributions)
+
 
 @dataclass
 class FactorPnlAttributionResult:

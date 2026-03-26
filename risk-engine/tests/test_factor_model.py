@@ -449,6 +449,49 @@ def test_decompose_factor_risk_concentration_warning_when_single_factor_dominate
 
 
 @pytest.mark.unit
+def test_concentration_warning_property_true_when_factor_dominates():
+    """FactorDecompositionResult.concentration_warning uses CONCENTRATION_WARNING_PCT."""
+    from kinetix_risk.factor_model import FactorDecompositionResult, FactorContribution, EQUITY_BETA
+
+    dominant = FactorContribution(
+        factor=EQUITY_BETA,
+        factor_exposure=100_000.0,
+        factor_var=70_000.0,
+        pnl_attribution=0.0,
+        pct_of_total_var=0.70,  # > CONCENTRATION_WARNING_PCT (0.60)
+    )
+    result = FactorDecompositionResult(
+        book_id="TEST",
+        decomposition_date="2026-03-19",
+        total_var=100_000.0,
+        systematic_var=70_000.0,
+        idiosyncratic_var=30_000.0,
+        r_squared=0.49,
+        factor_contributions=[dominant],
+    )
+    assert result.concentration_warning is True
+
+
+@pytest.mark.unit
+def test_concentration_warning_property_false_when_no_factor_dominates():
+    """FactorDecompositionResult.concentration_warning is False when all pct_of_total_var <= 0.60."""
+    from kinetix_risk.factor_model import FactorDecompositionResult, FactorContribution, EQUITY_BETA, RATES_DURATION
+
+    contrib_a = FactorContribution(EQUITY_BETA, 60_000.0, 40_000.0, 0.0, 0.40)
+    contrib_b = FactorContribution(RATES_DURATION, 30_000.0, 20_000.0, 0.0, 0.20)
+    result = FactorDecompositionResult(
+        book_id="TEST",
+        decomposition_date="2026-03-19",
+        total_var=100_000.0,
+        systematic_var=60_000.0,
+        idiosyncratic_var=40_000.0,
+        r_squared=0.36,
+        factor_contributions=[contrib_a, contrib_b],
+    )
+    assert result.concentration_warning is False
+
+
+@pytest.mark.unit
 def test_decompose_factor_risk_with_no_loadings_all_idiosyncratic():
     """If no factor loadings exist, all VaR is idiosyncratic."""
     positions = [_make_equity_position("MYSTERY", 1_000_000.0)]
