@@ -143,6 +143,16 @@ class FIXMessageConverterTest : FunSpec({
         val id2 = FIXMessageConverter.deterministicFillId("SESSION-B", "EXEC-001")
         (id1 == id2) shouldBe false
     }
+
+    test("rejects message with duplicate tags (tag injection prevention)") {
+        // A malicious message with duplicate tag 35: first is D (NewOrderSingle), second is 8 (ExecutionReport)
+        val injected = "35=D|35=8|49=BROKER|56=KINETIX|17=exec-001|11=ord-001|150=F|32=100|31=150.00|14=100|6=150.00"
+
+        val result = converter.parseExecutionReport(injected, "session-1")
+
+        // Should be null because duplicate tag 35 causes parseTags to return emptyMap
+        result.shouldBeNull()
+    }
 })
 
 /**

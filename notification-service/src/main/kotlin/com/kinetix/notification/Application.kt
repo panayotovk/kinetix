@@ -13,6 +13,7 @@ import com.kinetix.notification.engine.RulesEngine
 import com.kinetix.notification.engine.ScheduledAlertEscalation
 import com.kinetix.notification.persistence.AlertAcknowledgement
 import com.kinetix.notification.persistence.AlertAcknowledgementRepository
+import com.kinetix.notification.persistence.ExposedAlertAcknowledgementRepository
 import com.kinetix.notification.persistence.InMemoryAlertAcknowledgementRepository
 import com.kinetix.notification.kafka.AnomalyEventConsumer
 import com.kinetix.notification.kafka.RiskResultConsumer
@@ -186,7 +187,8 @@ fun Application.moduleWithRoutes() {
         seedComplete = { seedDone.get() },
     )
 
-    module(rulesEngine, inAppDelivery)
+    val ackRepository = ExposedAlertAcknowledgementRepository(db)
+    module(rulesEngine, inAppDelivery, ackRepository)
 
     routing {
         get("/health/ready") {

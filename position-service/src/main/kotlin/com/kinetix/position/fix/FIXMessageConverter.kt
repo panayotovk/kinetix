@@ -98,12 +98,19 @@ class FIXMessageConverter {
     private fun parseTags(rawMessage: String): Map<String, String> {
         // Support both SOH (ASCII 0x01) and pipe as field delimiter
         val delimiter = if (rawMessage.contains('\u0001')) '\u0001' else '|'
-        return rawMessage.split(delimiter)
-            .mapNotNull { field ->
-                val eq = field.indexOf('=')
-                if (eq > 0) field.substring(0, eq) to field.substring(eq + 1) else null
+        val result = mutableMapOf<String, String>()
+        for (field in rawMessage.split(delimiter)) {
+            val eq = field.indexOf('=')
+            if (eq <= 0) continue
+            val tag = field.substring(0, eq)
+            val value = field.substring(eq + 1)
+            if (result.containsKey(tag)) {
+                logger.error("Rejecting FIX message with duplicate tag {}: possible tag injection", tag)
+                return emptyMap()
             }
-            .toMap()
+            result[tag] = value
+        }
+        return result
     }
 
     companion object {
