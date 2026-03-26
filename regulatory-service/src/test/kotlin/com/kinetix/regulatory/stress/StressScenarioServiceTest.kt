@@ -148,14 +148,17 @@ class StressScenarioServiceTest : FunSpec({
         coVerify(exactly = 1) { resultRepository.save(any()) }
     }
 
-    test("runScenario passes shocks as priceShocks to the risk-orchestrator client") {
+    test("runScenario passes empty priceShocks so the risk engine resolves the scenario by name (SCEN-06)") {
+        // SCEN-06 invariant: P&L impact must be computed by the risk engine via full position
+        // repricing. Shock values from the stored JSON must never be re-interpreted and summed
+        // locally — that bypasses the valuation model entirely.
         val id = UUID.randomUUID().toString()
         val shocks = """{"EQ":-0.30,"IR":0.01}"""
         val scenario = aScenario(id = id, status = ScenarioStatus.APPROVED, shocks = shocks)
         val serviceWithClient = StressScenarioService(repository, null, riskOrchestratorClient)
         coEvery { repository.findById(id) } returns scenario
         coEvery { riskOrchestratorClient.runStressTest(any(), any(), any()) } returns
-            StressTestResultDto(pnlImpact = "-29000.00")
+            StressTestResultDto(pnlImpact = "-295000.00")
 
         serviceWithClient.runScenario(id, "book-A", null)
 
@@ -163,7 +166,7 @@ class StressScenarioServiceTest : FunSpec({
             riskOrchestratorClient.runStressTest(
                 bookId = "book-A",
                 scenarioName = scenario.name,
-                priceShocks = mapOf("EQ" to -0.30, "IR" to 0.01),
+                priceShocks = emptyMap(),
             )
         }
     }

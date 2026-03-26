@@ -90,6 +90,7 @@ private fun aModel(
     version = version,
     status = status,
     parameters = "{}",
+    registeredBy = "risk-analyst-1",
     approvedBy = null,
     approvedAt = null,
     createdAt = Instant.now(),
