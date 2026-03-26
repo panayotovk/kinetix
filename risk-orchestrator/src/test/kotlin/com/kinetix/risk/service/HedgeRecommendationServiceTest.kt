@@ -486,6 +486,61 @@ class HedgeRecommendationServiceTest : FunSpec({
         rec.suggestions.first().warnings.any { it.contains("limit") } shouldBe true
     }
 
+    // ------------------------------------------------------------------ hedging_eligible filter (HDG-05)
+
+    test("excludes candidates where hedgingEligible is false") {
+        coEvery { varCache.get("BOOK-1") } returns varResult()
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+            "ELIGIBLE-STOCK" to liquidityDto("ELIGIBLE-STOCK").copy(hedgingEligible = true),
+            "INELIGIBLE-STOCK" to liquidityDto("INELIGIBLE-STOCK").copy(hedgingEligible = false),
+        )
+        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("ANY"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("ANY"))
+
+        val candidatesSlot = slot<List<com.kinetix.risk.model.CandidateInstrument>>()
+        coEvery { calculator.suggest(any(), any(), any(), capture(candidatesSlot), any()) } returns emptyList()
+
+        service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
+
+        val candidateIds = candidatesSlot.captured.map { it.instrumentId }
+        (candidateIds.contains("ELIGIBLE-STOCK")) shouldBe true
+        (candidateIds.contains("INELIGIBLE-STOCK")) shouldBe false
+    }
+
+    test("includes candidates where hedgingEligible is true") {
+        coEvery { varCache.get("BOOK-1") } returns varResult()
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+            "HEDGE-ETF" to liquidityDto("HEDGE-ETF").copy(hedgingEligible = true),
+        )
+        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("HEDGE-ETF"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("HEDGE-ETF"))
+
+        val candidatesSlot = slot<List<com.kinetix.risk.model.CandidateInstrument>>()
+        coEvery { calculator.suggest(any(), any(), any(), capture(candidatesSlot), any()) } returns emptyList()
+
+        service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
+
+        candidatesSlot.captured shouldHaveSize 1
+        candidatesSlot.captured.first().instrumentId shouldBe "HEDGE-ETF"
+    }
+
+    test("includes candidates when hedgingEligible is null (legacy data without the flag)") {
+        coEvery { varCache.get("BOOK-1") } returns varResult()
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+            "LEGACY-STOCK" to liquidityDto("LEGACY-STOCK").copy(hedgingEligible = null),
+        )
+        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("LEGACY-STOCK"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("LEGACY-STOCK"))
+
+        val candidatesSlot = slot<List<com.kinetix.risk.model.CandidateInstrument>>()
+        coEvery { calculator.suggest(any(), any(), any(), capture(candidatesSlot), any()) } returns emptyList()
+
+        service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
+
+        candidatesSlot.captured shouldHaveSize 1
+        candidatesSlot.captured.first().instrumentId shouldBe "LEGACY-STOCK"
+    }
+
     // ------------------------------------------------------------------ suggestion_indices on accept (HDG-02)
 
     test("acceptRecommendation with null suggestionIndices returns all suggestions unchanged") {

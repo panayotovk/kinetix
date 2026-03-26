@@ -48,6 +48,7 @@ class ExposedInstrumentLiquidityRepository(
                 it[advShares] = liquidity.advShares?.let { v -> BigDecimal.valueOf(v) }
                 it[marketDepthScore] = liquidity.marketDepthScore?.let { v -> BigDecimal.valueOf(v) }
                 it[dataSource] = liquidity.source
+                it[hedgingEligible] = liquidity.hedgingEligible
             }
         }
 
@@ -71,5 +72,6 @@ class ExposedInstrumentLiquidityRepository(
         advShares = this[InstrumentLiquidityTable.advShares]?.toDouble(),
         marketDepthScore = this[InstrumentLiquidityTable.marketDepthScore]?.toDouble(),
         source = this[InstrumentLiquidityTable.dataSource],
+        hedgingEligible = this[InstrumentLiquidityTable.hedgingEligible],
     )
 }

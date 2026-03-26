@@ -17,4 +17,5 @@ data class InstrumentLiquidityResponse(
     val advShares: Double? = null,
     val marketDepthScore: Double? = null,
     val source: String = "unknown",
+    val hedgingEligible: Boolean? = null,
 )

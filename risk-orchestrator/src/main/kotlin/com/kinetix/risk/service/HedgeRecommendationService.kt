@@ -229,6 +229,7 @@ class HedgeRecommendationService(
 
         return liquidityByInstrument.values
             .filter { liq -> liq.assetClass !in setOf("ILLIQUID") }
+            .filter { liq -> liq.hedgingEligible != false } // null treated as eligible (backward compatible)
             .take(MAX_CANDIDATES)
             .mapNotNull { liq ->
                 buildCandidate(liq, target)

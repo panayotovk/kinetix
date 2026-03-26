@@ -135,6 +135,7 @@ class DevDataSeeder(
                     advShares = config.advShares,
                     marketDepthScore = config.marketDepthScore,
                     source = config.source,
+                    hedgingEligible = config.hedgingEligible,
                 )
             )
         }

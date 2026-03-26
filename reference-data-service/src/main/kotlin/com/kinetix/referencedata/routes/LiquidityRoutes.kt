@@ -108,4 +108,5 @@ private fun InstrumentLiquidity.toResponse(
     advShares = advShares,
     marketDepthScore = marketDepthScore,
     source = source,
+    hedgingEligible = hedgingEligible,
 )
