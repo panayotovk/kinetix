@@ -95,6 +95,60 @@ class SubmissionRoutesTest : FunSpec({
         }
     }
 
+    test("PATCH /api/v1/submissions/{id}/acknowledge transitions to ACKNOWLEDGED") {
+        val id = UUID.randomUUID().toString()
+        val submission = RegulatorySubmission(
+            id = id,
+            reportType = "FRTB_SBM",
+            status = SubmissionStatus.SUBMITTED,
+            preparerId = "analyst-1",
+            approverId = "manager-1",
+            deadline = Instant.parse("2026-03-31T23:59:59Z"),
+            submittedAt = Instant.parse("2026-03-30T12:00:00Z"),
+            acknowledgedAt = null,
+            createdAt = Instant.now(),
+        )
+        coEvery { repository.findById(id) } returns submission
+        coEvery { repository.save(any()) } returns Unit
+
+        testApplication {
+            application {
+                module(mockk<FrtbCalculationRepository>(), mockk<RiskOrchestratorClient>())
+                routing { submissionRoutes(service) }
+            }
+            val response = client.patch("/api/v1/submissions/$id/acknowledge")
+            response.status shouldBe HttpStatusCode.OK
+            val body = response.bodyAsText()
+            body shouldContain "\"status\":\"ACKNOWLEDGED\""
+            body shouldContain "\"acknowledgedAt\":"
+        }
+    }
+
+    test("PATCH /api/v1/submissions/{id}/acknowledge returns 400 when not SUBMITTED") {
+        val id = UUID.randomUUID().toString()
+        val submission = RegulatorySubmission(
+            id = id,
+            reportType = "FRTB_SBM",
+            status = SubmissionStatus.APPROVED,
+            preparerId = "analyst-1",
+            approverId = "manager-1",
+            deadline = Instant.parse("2026-03-31T23:59:59Z"),
+            submittedAt = null,
+            acknowledgedAt = null,
+            createdAt = Instant.now(),
+        )
+        coEvery { repository.findById(id) } returns submission
+
+        testApplication {
+            application {
+                module(mockk<FrtbCalculationRepository>(), mockk<RiskOrchestratorClient>())
+                routing { submissionRoutes(service) }
+            }
+            val response = client.patch("/api/v1/submissions/$id/acknowledge")
+            response.status shouldBe HttpStatusCode.BadRequest
+        }
+    }
+
     test("PATCH /api/v1/submissions/{id}/approve enforces four-eyes") {
         val id = UUID.randomUUID().toString()
         val submission = RegulatorySubmission(

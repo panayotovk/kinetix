@@ -50,6 +50,24 @@ class SubmissionAuditTest : FunSpec({
         decoded.userId shouldBe "approver-1"
     }
 
+    test("publishes SUBMISSION_ACKNOWLEDGED when submission is acknowledged") {
+        val id = UUID.randomUUID().toString()
+        val submission = aSubmission(id = id, status = SubmissionStatus.SUBMITTED)
+        coEvery { repository.findById(id) } returns submission
+        coEvery { repository.save(any()) } returns Unit
+
+        val publishedSlot = slot<org.apache.kafka.clients.producer.ProducerRecord<String, String>>()
+        every { producer.send(capture(publishedSlot)) } returns givenFuture()
+
+        service.acknowledge(id)
+
+        verify(exactly = 1) { producer.send(any()) }
+        val decoded = Json { ignoreUnknownKeys = true }
+            .decodeFromString<GovernanceAuditEvent>(publishedSlot.captured.value())
+        decoded.eventType shouldBe AuditEventType.SUBMISSION_ACKNOWLEDGED
+        decoded.submissionId shouldBe id
+    }
+
     test("does not publish audit event when submission approval is rejected due to same preparer and approver") {
         val id = UUID.randomUUID().toString()
         val submission = aSubmission(id = id, status = SubmissionStatus.PENDING_REVIEW, preparerId = "user-1")

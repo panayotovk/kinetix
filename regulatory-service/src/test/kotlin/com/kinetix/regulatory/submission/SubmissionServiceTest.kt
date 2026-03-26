@@ -131,6 +131,28 @@ class SubmissionServiceTest : FunSpec({
         }
     }
 
+    test("transitions from SUBMITTED to ACKNOWLEDGED") {
+        val id = UUID.randomUUID().toString()
+        val submission = aSubmission(id = id, status = SubmissionStatus.SUBMITTED)
+        coEvery { repository.findById(id) } returns submission
+        coEvery { repository.save(any()) } returns Unit
+
+        val result = service.acknowledge(id)
+
+        result.status shouldBe SubmissionStatus.ACKNOWLEDGED
+        result.acknowledgedAt shouldNotBe null
+    }
+
+    test("rejects acknowledgement when not in SUBMITTED status") {
+        val id = UUID.randomUUID().toString()
+        val submission = aSubmission(id = id, status = SubmissionStatus.APPROVED)
+        coEvery { repository.findById(id) } returns submission
+
+        shouldThrow<IllegalStateException> {
+            service.acknowledge(id)
+        }.message shouldBe "Can only acknowledge from SUBMITTED status, current: APPROVED"
+    }
+
     test("lists all submissions") {
         val submissions = listOf(
             aSubmission(reportType = "FRTB_SBM"),

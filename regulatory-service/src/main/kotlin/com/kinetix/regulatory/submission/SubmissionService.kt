@@ -75,6 +75,28 @@ class SubmissionService(
         return updated
     }
 
+    suspend fun acknowledge(id: String): RegulatorySubmission {
+        val submission = findOrThrow(id)
+        if (submission.status != SubmissionStatus.SUBMITTED) {
+            throw IllegalStateException("Can only acknowledge from SUBMITTED status, current: ${submission.status}")
+        }
+        val updated = submission.copy(
+            status = SubmissionStatus.ACKNOWLEDGED,
+            acknowledgedAt = Instant.now(),
+        )
+        repository.save(updated)
+        auditPublisher?.publish(
+            GovernanceAuditEvent(
+                eventType = AuditEventType.SUBMISSION_ACKNOWLEDGED,
+                userId = "SYSTEM",
+                userRole = "REGULATOR",
+                submissionId = id,
+                details = submission.reportType,
+            )
+        )
+        return updated
+    }
+
     suspend fun listAll(): List<RegulatorySubmission> = repository.findAll()
 
     suspend fun findById(id: String): RegulatorySubmission? = repository.findById(id)

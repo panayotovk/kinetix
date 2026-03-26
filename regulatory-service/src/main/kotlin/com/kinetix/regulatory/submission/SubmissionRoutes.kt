@@ -71,6 +71,21 @@ fun Route.submissionRoutes(service: SubmissionService) {
             call.respond(updated.toResponse())
         }
 
+        patch("/{id}/acknowledge", {
+            summary = "Acknowledge a submitted submission"
+            tags = listOf("Submissions")
+            request {
+                pathParameter<String>("id") { description = "Submission identifier" }
+            }
+        }) {
+            val id = call.parameters["id"]
+                ?: throw IllegalArgumentException("Missing required path parameter: id")
+            logger.info("Acknowledgement requested: id={}", id)
+            val updated = service.acknowledge(id)
+            logger.info("Submission acknowledged: id={}, acknowledgedAt={}", updated.id, updated.acknowledgedAt)
+            call.respond(updated.toResponse())
+        }
+
         patch("/{id}/submit", {
             summary = "Final submit"
             tags = listOf("Submissions")

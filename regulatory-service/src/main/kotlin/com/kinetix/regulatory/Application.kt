@@ -76,6 +76,12 @@ fun Application.module() {
                 ErrorResponse(error = "Bad Request", message = cause.message ?: "Invalid request"),
             )
         }
+        exception<IllegalStateException> { call, cause ->
+            call.respond(
+                HttpStatusCode.BadRequest,
+                ErrorResponse(error = "Bad Request", message = cause.message ?: "Invalid state transition"),
+            )
+        }
         exception<NoSuchElementException> { call, cause ->
             call.respond(
                 HttpStatusCode.NotFound,
