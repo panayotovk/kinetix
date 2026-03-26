@@ -3,6 +3,7 @@ set -euo pipefail
 
 BOOTSTRAP="${KAFKA_BOOTSTRAP:-localhost:9092}"
 KAFKA_TOPICS="${KAFKA_TOPICS_CMD:-/opt/kafka/bin/kafka-topics.sh}"
+# DEV default: RF=1. Production: set REPLICATION_FACTOR=3 with a 3-broker cluster.
 REPLICATION="${REPLICATION_FACTOR:-1}"
 
 # Wait for broker to be ready before creating topics.

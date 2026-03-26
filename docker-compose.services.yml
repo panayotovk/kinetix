@@ -352,7 +352,7 @@ services:
       OTEL_LOGS_EXPORTER: otlp
       OTEL_METRICS_EXPORTER: none
       OTEL_TRACES_EXPORTER: none
-      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms64m -XX:+UseG1GC -XX:MaxGCPauseMillis=100"
+      JAVA_TOOL_OPTIONS: "-Xmx512m -Xms128m -XX:+UseG1GC -XX:MaxGCPauseMillis=100"
     expose:
       - "8083"
     healthcheck:

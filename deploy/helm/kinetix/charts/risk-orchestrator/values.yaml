@@ -23,11 +23,11 @@ env:
 
 resources:
   requests:
-    cpu: 250m
-    memory: 512Mi
+    cpu: 500m
+    memory: 768Mi
   limits:
     cpu: "1"
-    memory: 1Gi
+    memory: 1536Mi
 
 autoscaling:
   enabled: false
