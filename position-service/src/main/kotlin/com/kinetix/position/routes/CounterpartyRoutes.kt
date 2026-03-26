@@ -43,4 +43,20 @@ fun Route.counterpartyRoutes(counterpartyExposureService: CounterpartyExposureSe
         val exposures = counterpartyExposureService.getExposures(BookId(bookId))
         call.respond(exposures.map { it.toResponse() })
     }
+
+    get("/api/v1/counterparties/{counterpartyId}/instrument-netting-sets", {
+        summary = "Get instrumentId -> nettingSetId mapping for a counterparty"
+        tags = listOf("Counterparty Risk")
+        request {
+            pathParameter<String>("counterpartyId") { description = "Counterparty identifier" }
+        }
+        response {
+            code(HttpStatusCode.OK) { body<Map<String, String>>() }
+        }
+    }) {
+        val counterpartyId = call.parameters["counterpartyId"]
+            ?: throw IllegalArgumentException("Missing path parameter: counterpartyId")
+        val mapping = counterpartyExposureService.getInstrumentNettingSets(counterpartyId)
+        call.respond(mapping)
+    }
 }

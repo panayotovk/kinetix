@@ -65,4 +65,11 @@ class HttpPositionServiceClient(
             )
         )
     }
+
+    override suspend fun getInstrumentNettingSets(counterpartyId: String): ClientResponse<Map<String, String>> {
+        val response = httpClient.get("$baseUrl/api/v1/counterparties/$counterpartyId/instrument-netting-sets")
+        if (response.status == HttpStatusCode.NotFound) return ClientResponse.NotFound(response.status.value)
+        val mapping: Map<String, String> = response.body()
+        return ClientResponse.Success(mapping)
+    }
 }

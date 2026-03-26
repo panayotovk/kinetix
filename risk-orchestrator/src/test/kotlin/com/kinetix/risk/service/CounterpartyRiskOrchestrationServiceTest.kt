@@ -15,6 +15,7 @@ import com.kinetix.risk.model.ExposureAtTenor
 import com.kinetix.risk.persistence.CounterpartyExposureRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -76,10 +77,14 @@ class CounterpartyRiskOrchestrationServiceTest : FunSpec({
         repository = repository,
     )
 
-    // Default: position-service returns zero collateral so existing tests are unaffected.
+    // Reset call history on all mocks before each test so coVerify call-count assertions are isolated.
+    // answers = false preserves any coEvery stubs set inside individual tests.
     beforeEach {
+        clearMocks(counterpartyRiskClient, referenceDataClient, positionServiceClient, repository, answers = false)
         coEvery { positionServiceClient.getNetCollateral(any()) } returns
             ClientResponse.Success(NetCollateralDto(collateralReceived = 0.0, collateralPosted = 0.0))
+        coEvery { positionServiceClient.getInstrumentNettingSets(any()) } returns
+            ClientResponse.Success(emptyMap())
     }
 
     context("computeAndPersistPFE") {
@@ -87,6 +92,8 @@ class CounterpartyRiskOrchestrationServiceTest : FunSpec({
         test("fetches counterparty and netting set, calls PFE, persists snapshot") {
             coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(COUNTERPARTY)
             coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns ClientResponse.Success(listOf(NETTING_AGREEMENT))
+            coEvery { positionServiceClient.getInstrumentNettingSets("CP-GS") } returns
+                ClientResponse.Success(mapOf("AAPL" to "NS-GS-001", "GS-BOND" to "NS-GS-001"))
             coEvery {
                 counterpartyRiskClient.calculatePFE(
                     counterpartyId = "CP-GS",
@@ -178,8 +185,6 @@ class CounterpartyRiskOrchestrationServiceTest : FunSpec({
 
             result.cva.shouldBeNull()
             result.cvaEstimated shouldBe false
-            // Clear accumulated call history from earlier tests before asserting this test's count
-            clearMocks(counterpartyRiskClient, answers = false)
             coVerify(exactly = 0) { counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any()) }
         }
 
@@ -262,6 +267,153 @@ class CounterpartyRiskOrchestrationServiceTest : FunSpec({
             result.collateralHeld shouldBe 500_000.0
             result.collateralPosted shouldBe 0.0
             result.netNetExposure shouldBe 1_500_000.0
+        }
+
+        test("splits positions across two netting sets and calls calculatePFE twice") {
+            val agreementA = NETTING_AGREEMENT.copy(nettingSetId = "NS-GS-001", agreementType = "ISDA_2002")
+            val agreementB = NETTING_AGREEMENT.copy(nettingSetId = "NS-GS-002", agreementType = "GMRA")
+            coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(COUNTERPARTY)
+            coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns
+                ClientResponse.Success(listOf(agreementA, agreementB))
+            // AAPL belongs to NS-GS-001, GS-BOND to NS-GS-002
+            coEvery { positionServiceClient.getInstrumentNettingSets("CP-GS") } returns
+                ClientResponse.Success(mapOf("AAPL" to "NS-GS-001", "GS-BOND" to "NS-GS-002"))
+            val pfeSlot = slot<String>()
+            coEvery {
+                counterpartyRiskClient.calculatePFE(
+                    counterpartyId = "CP-GS",
+                    nettingSetId = capture(pfeSlot),
+                    agreementType = any(),
+                    positions = any(),
+                    numSimulations = 0,
+                    seed = 0,
+                )
+            } returns pfeResult()
+            coEvery {
+                counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any())
+            } returns cvaResult()
+            coEvery { repository.save(any()) } answers { args[0] as CounterpartyExposureSnapshot }
+
+            val positions = listOf(
+                PFEPositionInput("AAPL", 1_000_000.0, "EQUITY", 0.25, "TECHNOLOGY"),
+                PFEPositionInput("GS-BOND", 2_000_000.0, "FIXED_INCOME", 0.05, "FINANCIALS"),
+            )
+
+            service.computeAndPersistPFE("CP-GS", positions)
+
+            coVerify(exactly = 2) {
+                counterpartyRiskClient.calculatePFE(
+                    counterpartyId = "CP-GS",
+                    nettingSetId = any(),
+                    agreementType = any(),
+                    positions = any(),
+                    numSimulations = 0,
+                    seed = 0,
+                )
+            }
+        }
+
+        test("positions with no netting set assignment are grouped into UNASSIGNED set") {
+            coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(COUNTERPARTY)
+            coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns
+                ClientResponse.Success(listOf(NETTING_AGREEMENT))
+            // AAPL has no assignment; GS-BOND belongs to NS-GS-001
+            coEvery { positionServiceClient.getInstrumentNettingSets("CP-GS") } returns
+                ClientResponse.Success(mapOf("GS-BOND" to "NS-GS-001"))
+            coEvery {
+                counterpartyRiskClient.calculatePFE(any(), any(), any(), any(), any(), any())
+            } returns pfeResult()
+            coEvery {
+                counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any())
+            } returns cvaResult()
+            coEvery { repository.save(any()) } answers { args[0] as CounterpartyExposureSnapshot }
+
+            val positions = listOf(
+                PFEPositionInput("AAPL", 1_000_000.0, "EQUITY", 0.25, "TECHNOLOGY"),
+                PFEPositionInput("GS-BOND", 2_000_000.0, "FIXED_INCOME", 0.05, "FINANCIALS"),
+            )
+
+            val result = service.computeAndPersistPFE("CP-GS", positions)
+
+            // Two groups: NS-GS-001 and UNASSIGNED — PFE called twice
+            coVerify(exactly = 2) {
+                counterpartyRiskClient.calculatePFE(any(), any(), any(), any(), any(), any())
+            }
+            // UNASSIGNED group produces its own nettingSetExposures entry
+            result.nettingSetExposures shouldNotBe null
+            result.nettingSetExposures!! shouldHaveSize 2
+        }
+
+        test("nettingSetExposures has one entry per netting set") {
+            val agreementA = NETTING_AGREEMENT.copy(nettingSetId = "NS-GS-001", agreementType = "ISDA_2002")
+            val agreementB = NETTING_AGREEMENT.copy(nettingSetId = "NS-GS-002", agreementType = "GMRA")
+            coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(COUNTERPARTY)
+            coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns
+                ClientResponse.Success(listOf(agreementA, agreementB))
+            coEvery { positionServiceClient.getInstrumentNettingSets("CP-GS") } returns
+                ClientResponse.Success(mapOf("AAPL" to "NS-GS-001", "GS-BOND" to "NS-GS-002"))
+            coEvery {
+                counterpartyRiskClient.calculatePFE(any(), any(), any(), any(), any(), any())
+            } returns pfeResult()
+            coEvery {
+                counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any())
+            } returns cvaResult()
+            coEvery { repository.save(any()) } answers { args[0] as CounterpartyExposureSnapshot }
+
+            val positions = listOf(
+                PFEPositionInput("AAPL", 1_000_000.0, "EQUITY", 0.25, "TECHNOLOGY"),
+                PFEPositionInput("GS-BOND", 2_000_000.0, "FIXED_INCOME", 0.05, "FINANCIALS"),
+            )
+
+            val result = service.computeAndPersistPFE("CP-GS", positions)
+
+            result.nettingSetExposures shouldNotBe null
+            result.nettingSetExposures!! shouldHaveSize 2
+            result.nettingSetExposures!!.map { it.nettingSetId }.toSet() shouldBe setOf("NS-GS-001", "NS-GS-002")
+        }
+
+        test("total exposure is sum of per-set max(0, netExposure)") {
+            val agreementA = NETTING_AGREEMENT.copy(nettingSetId = "NS-GS-001", agreementType = "ISDA_2002")
+            val agreementB = NETTING_AGREEMENT.copy(nettingSetId = "NS-GS-002", agreementType = "GMRA")
+            coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(COUNTERPARTY)
+            coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns
+                ClientResponse.Success(listOf(agreementA, agreementB))
+            coEvery { positionServiceClient.getInstrumentNettingSets("CP-GS") } returns
+                ClientResponse.Success(mapOf("AAPL" to "NS-GS-001", "GS-BOND" to "NS-GS-002"))
+            coEvery {
+                counterpartyRiskClient.calculatePFE(
+                    counterpartyId = "CP-GS",
+                    nettingSetId = "NS-GS-001",
+                    agreementType = any(),
+                    positions = any(),
+                    numSimulations = any(),
+                    seed = any(),
+                )
+            } returns pfeResult(netExposure = 1_200_000.0)
+            coEvery {
+                counterpartyRiskClient.calculatePFE(
+                    counterpartyId = "CP-GS",
+                    nettingSetId = "NS-GS-002",
+                    agreementType = any(),
+                    positions = any(),
+                    numSimulations = any(),
+                    seed = any(),
+                )
+            } returns pfeResult(netExposure = 800_000.0)
+            coEvery {
+                counterpartyRiskClient.calculateCVA(any(), any(), any(), any(), any(), any(), any(), any())
+            } returns cvaResult()
+            coEvery { repository.save(any()) } answers { args[0] as CounterpartyExposureSnapshot }
+
+            val positions = listOf(
+                PFEPositionInput("AAPL", 1_000_000.0, "EQUITY", 0.25, "TECHNOLOGY"),
+                PFEPositionInput("GS-BOND", 2_000_000.0, "FIXED_INCOME", 0.05, "FINANCIALS"),
+            )
+
+            val result = service.computeAndPersistPFE("CP-GS", positions)
+
+            // total = sum of per-set max(0, netExposure) = 1_200_000 + 800_000
+            result.currentNetExposure shouldBe 2_000_000.0
         }
 
         test("floors net-net exposure at zero") {

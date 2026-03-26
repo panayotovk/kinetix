@@ -11,4 +11,11 @@ interface PositionServiceClient {
     suspend fun getDistinctBookIds(): ClientResponse<List<BookId>>
     suspend fun getTradesInRange(bookId: BookId, from: Instant, to: Instant): ClientResponse<List<TradeDto>>
     suspend fun getNetCollateral(counterpartyId: String): ClientResponse<NetCollateralDto>
+
+    /**
+     * Returns a map of instrumentId -> nettingSetId for all live trades booked
+     * against the given counterparty.  Instruments with no netting-set assignment
+     * are absent from the map.
+     */
+    suspend fun getInstrumentNettingSets(counterpartyId: String): ClientResponse<Map<String, String>>
 }

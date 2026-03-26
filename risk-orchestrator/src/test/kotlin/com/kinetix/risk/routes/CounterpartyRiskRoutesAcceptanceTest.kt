@@ -78,6 +78,8 @@ class CounterpartyRiskRoutesAcceptanceTest : FunSpec({
         clearMocks(referenceDataClient, counterpartyRiskClient, repository)
         coEvery { positionServiceClient.getNetCollateral(any()) } returns
             ClientResponse.Success(NetCollateralDto(collateralReceived = 0.0, collateralPosted = 0.0))
+        coEvery { positionServiceClient.getInstrumentNettingSets(any()) } returns
+            ClientResponse.Success(emptyMap())
     }
 
     test("GET /api/v1/counterparty-risk/ returns all latest exposures") {
@@ -141,6 +143,8 @@ class CounterpartyRiskRoutesAcceptanceTest : FunSpec({
         coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns ClientResponse.Success(
             listOf(NettingAgreementDto("NS-001", "CP-GS", "ISDA_2002", true, 0.0, "USD"))
         )
+        coEvery { positionServiceClient.getInstrumentNettingSets("CP-GS") } returns
+            ClientResponse.Success(mapOf("AAPL" to "NS-001"))
         coEvery {
             counterpartyRiskClient.calculatePFE(
                 counterpartyId = "CP-GS",

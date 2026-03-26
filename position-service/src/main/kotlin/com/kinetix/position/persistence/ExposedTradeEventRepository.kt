@@ -57,6 +57,13 @@ class ExposedTradeEventRepository(private val db: Database? = null) : TradeEvent
         }
     }
 
+    override suspend fun findByCounterpartyId(counterpartyId: String): List<Trade> = newSuspendedTransaction(db = db) {
+        TradeEventsTable
+            .selectAll()
+            .where { TradeEventsTable.counterpartyId eq counterpartyId }
+            .map { it.toTrade() }
+    }
+
     override suspend fun countSince(since: Instant): Long = newSuspendedTransaction(db = db) {
         TradeEventsTable
             .selectAll()

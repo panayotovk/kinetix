@@ -12,4 +12,10 @@ interface TradeEventRepository {
     suspend fun findByBookId(bookId: BookId): List<Trade>
     suspend fun updateStatus(tradeId: TradeId, status: TradeStatus)
     suspend fun countSince(since: Instant): Long
+
+    /**
+     * Returns all trades (across all books) booked against the given counterparty.
+     * Used to derive per-counterparty netting-set membership.
+     */
+    suspend fun findByCounterpartyId(counterpartyId: String): List<Trade>
 }

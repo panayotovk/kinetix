@@ -14,6 +14,23 @@ class CounterpartyExposureService(
     private val tradeEventRepository: TradeEventRepository,
     private val nettingSetTradeRepository: NettingSetTradeRepository? = null,
 ) {
+    /**
+     * Returns a map of instrumentId -> nettingSetId for all trades booked against
+     * the given counterparty.  Instruments with no netting-set assignment are excluded.
+     * When multiple trades for the same instrument exist, the first resolved netting set wins.
+     */
+    suspend fun getInstrumentNettingSets(counterpartyId: String): Map<String, String> {
+        val trades = tradeEventRepository.findByCounterpartyId(counterpartyId)
+        if (trades.isEmpty() || nettingSetTradeRepository == null) return emptyMap()
+        val nettingSets = nettingSetTradeRepository.findNettingSetsByTradeIds(trades.map { it.tradeId.value })
+        return trades
+            .mapNotNull { trade ->
+                val nettingSetId = nettingSets[trade.tradeId.value] ?: return@mapNotNull null
+                trade.instrumentId.value to nettingSetId
+            }
+            .toMap()
+    }
+
     suspend fun getExposures(bookId: BookId): List<CounterpartyExposure> {
         val trades = tradeEventRepository.findByBookId(bookId)
         val counterpartyTrades = trades.filter { it.counterpartyId != null }
