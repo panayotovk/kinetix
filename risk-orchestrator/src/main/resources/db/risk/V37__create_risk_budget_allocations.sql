@@ -2,7 +2,7 @@
 -- Stores soft risk budgets per hierarchy entity.
 -- Budgets are strategic soft targets — exceeding one fires alerts
 -- and triggers risk committee review. They do NOT block trades.
--- budget_type: VAR, NOTIONAL, ES
+-- budget_type: VAR_BUDGET, NOTIONAL, ES
 -- budget_period: daily, monthly, quarterly
 
 CREATE TABLE risk_budget_allocations (
