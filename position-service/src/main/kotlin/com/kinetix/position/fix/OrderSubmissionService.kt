@@ -43,6 +43,10 @@ class OrderSubmissionService(
 
     private val logger = LoggerFactory.getLogger(OrderSubmissionService::class.java)
 
+    companion object {
+        const val ARRIVAL_PRICE_MAX_AGE_MS: Long = 30_000L
+    }
+
     suspend fun submit(
         bookId: String,
         instrumentId: String,
@@ -54,8 +58,16 @@ class OrderSubmissionService(
         fixSessionId: String?,
         assetClass: String = "EQUITY",
         currency: String = "USD",
+        arrivalPriceTimestamp: Instant? = null,
     ): Order {
         require(quantity > BigDecimal.ZERO) { "Quantity must be positive" }
+
+        if (arrivalPriceTimestamp != null) {
+            val ageMs = Instant.now().toEpochMilli() - arrivalPriceTimestamp.toEpochMilli()
+            require(ageMs <= ARRIVAL_PRICE_MAX_AGE_MS) {
+                "Arrival price is stale: observed ${ageMs}ms ago, limit is ${ARRIVAL_PRICE_MAX_AGE_MS}ms"
+            }
+        }
 
         val resolvedAssetClass = resolveAssetClass(assetClass)
         val resolvedCurrency = resolveCurrency(currency)

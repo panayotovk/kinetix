@@ -148,6 +148,62 @@ class OrderSubmissionServiceTest : FunSpec({
         coVerify(exactly = 0) { orderRepository.save(any()) }
     }
 
+    test("rejects order when arrival price timestamp is older than 30 seconds") {
+        val staleTimestamp = Instant.now().minusSeconds(31)
+
+        shouldThrow<IllegalArgumentException> {
+            service.submit(
+                bookId = "book-1",
+                instrumentId = "AAPL",
+                side = Side.BUY,
+                quantity = BigDecimal("100"),
+                orderType = "MARKET",
+                limitPrice = null,
+                arrivalPrice = BigDecimal("150.00"),
+                fixSessionId = null,
+                arrivalPriceTimestamp = staleTimestamp,
+            )
+        }
+
+        coVerify(exactly = 0) { orderRepository.save(any()) }
+    }
+
+    test("accepts order when arrival price timestamp is within 30 seconds") {
+        val freshTimestamp = Instant.now().minusSeconds(10)
+
+        val order = service.submit(
+            bookId = "book-1",
+            instrumentId = "AAPL",
+            side = Side.BUY,
+            quantity = BigDecimal("100"),
+            orderType = "MARKET",
+            limitPrice = null,
+            arrivalPrice = BigDecimal("150.00"),
+            fixSessionId = null,
+            arrivalPriceTimestamp = freshTimestamp,
+        )
+
+        order.status shouldBe OrderStatus.APPROVED
+        coVerify(exactly = 1) { orderRepository.save(any()) }
+    }
+
+    test("skips arrival price staleness check when no timestamp is provided") {
+        val order = service.submit(
+            bookId = "book-1",
+            instrumentId = "AAPL",
+            side = Side.BUY,
+            quantity = BigDecimal("100"),
+            orderType = "MARKET",
+            limitPrice = null,
+            arrivalPrice = BigDecimal("150.00"),
+            fixSessionId = null,
+            arrivalPriceTimestamp = null,
+        )
+
+        order.status shouldBe OrderStatus.APPROVED
+        coVerify(exactly = 1) { orderRepository.save(any()) }
+    }
+
     test("approves and dispatches when check passes with no breaches") {
         coEvery { preTradeCheckService.check(any()) } returns LimitBreachResult(emptyList())
 
