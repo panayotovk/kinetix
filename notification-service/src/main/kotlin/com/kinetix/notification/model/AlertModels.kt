@@ -27,7 +27,7 @@ enum class AlertStatus {
 }
 enum class Severity { INFO, WARNING, CRITICAL }
 enum class ComparisonOperator { GREATER_THAN, LESS_THAN, EQUALS }
-enum class DeliveryChannel { IN_APP, EMAIL, WEBHOOK }
+enum class DeliveryChannel { IN_APP, EMAIL, WEBHOOK, PAGER_DUTY }
 
 data class AlertRule(
     val id: String,

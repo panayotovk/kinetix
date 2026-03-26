@@ -27,7 +27,8 @@ class AlertEscalationService(
             repository.escalate(alert.id, now, escalatedTo)
 
             val escalatedAlert = repository.findById(alert.id) ?: continue
-            deliveryRouter.route(escalatedAlert, listOf(DeliveryChannel.EMAIL))
+            val channels = escalationChannelsFor(alert.severity)
+            deliveryRouter.route(escalatedAlert, channels)
 
             auditPublisher?.publish(
                 GovernanceAuditEvent(
@@ -50,5 +51,16 @@ class AlertEscalationService(
         Severity.WARNING -> "desk-head"
         Severity.CRITICAL -> "risk-manager,cro"
         Severity.INFO -> "desk-head"
+    }
+
+    /**
+     * Routes escalations across channels based on severity:
+     * - WARNING  -> email only
+     * - CRITICAL -> email + webhook + PagerDuty
+     * - INFO     -> email only
+     */
+    private fun escalationChannelsFor(severity: Severity): List<DeliveryChannel> = when (severity) {
+        Severity.CRITICAL -> listOf(DeliveryChannel.EMAIL, DeliveryChannel.WEBHOOK, DeliveryChannel.PAGER_DUTY)
+        Severity.WARNING, Severity.INFO -> listOf(DeliveryChannel.EMAIL)
     }
 }

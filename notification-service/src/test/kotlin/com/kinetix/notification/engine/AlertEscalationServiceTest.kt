@@ -204,6 +204,40 @@ class AlertEscalationServiceTest : FunSpec({
         }
     }
 
+    test("escalates WARNING alert via email only") {
+        val repo = InMemoryAlertEventRepository()
+        val router = mockk<DeliveryRouter>(relaxed = true)
+        val now = Instant.parse("2025-01-15T12:00:00Z")
+        val acknowledgedAt = now.minusSeconds(31 * 60)
+
+        val alert = warningAlert("alt04-warning", acknowledgedAt)
+        repo.save(alert)
+
+        val service = AlertEscalationService(repo, router, escalationTimeoutMinutes = 30)
+        service.processEscalations(now)
+
+        coVerify(exactly = 1) {
+            router.route(any(), listOf(DeliveryChannel.EMAIL))
+        }
+    }
+
+    test("escalates CRITICAL alert via email, webhook, and PagerDuty") {
+        val repo = InMemoryAlertEventRepository()
+        val router = mockk<DeliveryRouter>(relaxed = true)
+        val now = Instant.parse("2025-01-15T12:00:00Z")
+        val acknowledgedAt = now.minusSeconds(31 * 60)
+
+        val alert = criticalAlert("alt04-critical", acknowledgedAt)
+        repo.save(alert)
+
+        val service = AlertEscalationService(repo, router, escalationTimeoutMinutes = 30)
+        service.processEscalations(now)
+
+        coVerify(exactly = 1) {
+            router.route(any(), listOf(DeliveryChannel.EMAIL, DeliveryChannel.WEBHOOK, DeliveryChannel.PAGER_DUTY))
+        }
+    }
+
     test("resolved alert is not escalated even if acknowledged long ago") {
         val repo = InMemoryAlertEventRepository()
         val router = mockk<DeliveryRouter>(relaxed = true)
