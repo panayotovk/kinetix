@@ -30,6 +30,8 @@ class FIXExecutionReportProcessor(
     private val orderRepository: ExecutionOrderRepository,
     private val fillRepository: ExecutionFillRepository,
     private val tradeBookingService: TradeBookingService,
+    private val executionCostService: ExecutionCostService,
+    private val executionCostRepository: ExecutionCostRepository,
 ) {
 
     private val logger = LoggerFactory.getLogger(FIXExecutionReportProcessor::class.java)
@@ -69,8 +71,8 @@ class FIXExecutionReportProcessor(
         }
 
         // Overfill guard: cumulative from the event is the ground truth from the broker
-        val existingFilledQty = fillRepository.findByOrderId(order.orderId)
-            .fold(BigDecimal.ZERO) { acc, f -> acc + f.fillQty }
+        val existingFills = fillRepository.findByOrderId(order.orderId)
+        val existingFilledQty = existingFills.fold(BigDecimal.ZERO) { acc, f -> acc + f.fillQty }
         if (existingFilledQty + event.lastQty > order.quantity) {
             logger.error(
                 "Overfill rejected: orderId={}, orderQty={}, alreadyFilled={}, incomingQty={}",
@@ -117,6 +119,17 @@ class FIXExecutionReportProcessor(
             tradedAt = fill.fillTime,
         )
         tradeBookingService.handle(tradeCommand)
+
+        if (isFull) {
+            val allFills = existingFills + fill
+            val filledOrder = order.copy(fills = allFills)
+            val costAnalysis = executionCostService.compute(filledOrder, fill.fillTime)
+            executionCostRepository.save(costAnalysis)
+            logger.info(
+                "Execution cost persisted: orderId={}, slippageBps={}",
+                order.orderId, costAnalysis.metrics.slippageBps,
+            )
+        }
     }
 
     // --- Cancel (ExecType = 4) ---

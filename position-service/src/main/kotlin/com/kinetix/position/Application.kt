@@ -202,10 +202,13 @@ fun Application.moduleWithRoutes() {
         fixOrderSender = fixOrderSender,
         preTradeCheckService = preTradeCheckService,
     )
+    val executionCostService = com.kinetix.position.fix.ExecutionCostService()
     val fixExecutionReportProcessor = FIXExecutionReportProcessor(
         orderRepository = executionOrderRepository,
         fillRepository = executionFillRepository,
         tradeBookingService = tradeBookingService,
+        executionCostService = executionCostService,
+        executionCostRepository = executionCostRepository,
     )
 
     val priceUpdateService = PriceUpdateService(positionRepository)

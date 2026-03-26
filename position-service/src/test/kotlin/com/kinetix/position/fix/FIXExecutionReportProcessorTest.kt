@@ -63,14 +63,24 @@ class FIXExecutionReportProcessorTest : FunSpec({
     val orderRepository = mockk<ExecutionOrderRepository>()
     val fillRepository = mockk<ExecutionFillRepository>()
     val tradeBookingService = mockk<TradeBookingService>()
+    val executionCostService = mockk<ExecutionCostService>()
+    val executionCostRepository = mockk<ExecutionCostRepository>()
 
-    val processor = FIXExecutionReportProcessor(orderRepository, fillRepository, tradeBookingService)
+    val processor = FIXExecutionReportProcessor(
+        orderRepository,
+        fillRepository,
+        tradeBookingService,
+        executionCostService,
+        executionCostRepository,
+    )
 
     beforeEach {
-        clearMocks(orderRepository, fillRepository, tradeBookingService)
+        clearMocks(orderRepository, fillRepository, tradeBookingService, executionCostService, executionCostRepository)
         coEvery { fillRepository.save(any()) } just runs
         coEvery { orderRepository.updateStatus(any(), any(), any(), any()) } just runs
         coEvery { tradeBookingService.handle(any()) } returns mockk(relaxed = true)
+        coEvery { executionCostService.compute(any(), any()) } returns mockk(relaxed = true)
+        coEvery { executionCostRepository.save(any()) } just runs
     }
 
     test("full fill (ExecType=F) saves fill, advances order to FILLED, and triggers trade booking") {
@@ -227,5 +237,48 @@ class FIXExecutionReportProcessorTest : FunSpec({
         coVerify(exactly = 1) {
             tradeBookingService.handle(match { it.assetClass == AssetClass.FX && it.price.currency == eur })
         }
+    }
+
+    test("computes and persists execution cost after a full fill") {
+        val order = makeOrder("ord-11", quantity = BigDecimal("100"))
+        coEvery { orderRepository.findById("ord-11") } returns order
+        coEvery { fillRepository.existsByFixExecId("exec-full-1") } returns false
+        coEvery { fillRepository.findByOrderId("ord-11") } returns emptyList()
+        val costAnalysis = mockk<ExecutionCostAnalysis>(relaxed = true)
+        coEvery { executionCostService.compute(any(), any()) } returns costAnalysis
+
+        processor.process(fillEvent("ord-11", "exec-full-1", "F",
+            lastQty = BigDecimal("100"),
+            lastPrice = BigDecimal("150.10"),
+            cumulativeQty = BigDecimal("100"),
+            averagePrice = BigDecimal("150.10"),
+        ))
+
+        coVerify(exactly = 1) {
+            executionCostService.compute(
+                match { enrichedOrder ->
+                    enrichedOrder.orderId == "ord-11" &&
+                        enrichedOrder.fills.size == 1 &&
+                        enrichedOrder.fills[0].fillQty.compareTo(BigDecimal("100")) == 0
+                },
+                any(),
+            )
+        }
+        coVerify(exactly = 1) { executionCostRepository.save(costAnalysis) }
+    }
+
+    test("does not compute execution cost after a partial fill") {
+        val order = makeOrder("ord-12", quantity = BigDecimal("100"))
+        coEvery { orderRepository.findById("ord-12") } returns order
+        coEvery { fillRepository.existsByFixExecId("exec-partial-1") } returns false
+        coEvery { fillRepository.findByOrderId("ord-12") } returns emptyList()
+
+        processor.process(fillEvent("ord-12", "exec-partial-1", "1",
+            lastQty = BigDecimal("60"),
+            cumulativeQty = BigDecimal("60"),
+        ))
+
+        coVerify(exactly = 0) { executionCostService.compute(any(), any()) }
+        coVerify(exactly = 0) { executionCostRepository.save(any()) }
     }
 })
