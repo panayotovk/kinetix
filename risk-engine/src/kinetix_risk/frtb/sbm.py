@@ -119,7 +119,24 @@ def _compute_girr_charge(girr_positions: list[PositionRisk]) -> GirrRiskClassCha
         if dv01_by_bucket[i] != 0.0
     ]
 
-    # Vega and curvature use the existing flat-rate approximation
+    # KNOWN LIMITATION: Vega and curvature charges use a flat-rate approximation.
+    #
+    # BCBS 352 requires vega to be the sum of per-option vega sensitivities at
+    # each tenor bucket multiplied by tenor-specific vega risk weights, and
+    # curvature to be a second-order reprice under scenario shocks.
+    #
+    # This implementation instead uses: vega = VRW * total_market_value,
+    # curvature = 0.5 * RW^2 * total_market_value. This is a CONSERVATIVE
+    # overestimate for vanilla bond portfolios (which have zero vega) and
+    # meaningless for option-heavy books where actual vega sensitivities
+    # from a term-structure model are needed.
+    #
+    # Impact: bond portfolios will show a non-zero vega charge that should be
+    # zero. Option portfolios may show an understated or overstated vega charge
+    # depending on net vega position relative to market value.
+    #
+    # Fix: extract per-option vega from black_scholes.py, apply only to
+    # positions that are actually options, and use tenor-bucketed vega weights.
     total_market_value = sum(abs(p.market_value) for p in girr_positions)
     vrw = VEGA_RISK_WEIGHTS[FrtbRiskClass.GIRR]
     rw_flat = RISK_WEIGHTS[FrtbRiskClass.GIRR]
