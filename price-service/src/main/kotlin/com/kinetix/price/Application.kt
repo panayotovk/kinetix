@@ -199,10 +199,10 @@ fun Application.moduleWithRoutes() {
                 assetClass = config.assetClass,
             )
         }
-        val simulator = PriceFeedSimulator(seeds)
+        val simulator = PriceFeedSimulator(seeds, tickIntervalSeconds = 60.0)
         launch {
             while (isActive) {
-                delay(1000)
+                delay(60_000)
                 try {
                     simulator.tick(Instant.now(), PriceSource.INTERNAL).forEach { point ->
                         ingestionService.ingest(point)
