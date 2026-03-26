@@ -55,6 +55,19 @@ test.describe('Strategy Grouping', () => {
         body: JSON.stringify(STRATEGY_POSITIONS),
       })
     })
+
+    // Override position risk to include Greeks for strategy legs
+    await page.route('**/api/v1/risk/positions/*', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          { instrumentId: 'AAPL-CALL', assetClass: 'EQUITY', marketValue: '800.00', delta: '0.55', gamma: '0.08', vega: '180.00', varContribution: '200.00', esContribution: '300.00', percentageOfTotal: '40.0' },
+          { instrumentId: 'AAPL-PUT', assetClass: 'EQUITY', marketValue: '600.00', delta: '-0.45', gamma: '0.07', vega: '160.00', varContribution: '150.00', esContribution: '250.00', percentageOfTotal: '30.0' },
+          { instrumentId: 'MSFT', assetClass: 'EQUITY', marketValue: '15500.00', delta: '1550.00', gamma: '12.50', vega: '320.00', varContribution: '400.00', esContribution: '500.00', percentageOfTotal: '30.0' },
+        ]),
+      })
+    })
   })
 
   test('renders a strategy group row for positions with strategyId', async ({ page }) => {
@@ -129,5 +142,25 @@ test.describe('Strategy Grouping', () => {
 
     await page.getByTestId('strategy-row-strat-1').click()
     await expect(page.getByTestId('strategy-leg-AAPL-CALL')).not.toBeVisible()
+  })
+
+  test('strategy group row shows aggregated net Greeks from position risk', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForSelector('[data-testid="strategy-row-strat-1"]')
+
+    // Net Delta = 0.55 (CALL) + (-0.45) (PUT) = 0.10
+    const netDelta = page.getByTestId('strategy-net-delta-strat-1')
+    await expect(netDelta).toBeVisible()
+    await expect(netDelta).not.toHaveText('\u2014') // should not be a dash
+
+    // Net Gamma = 0.08 + 0.07 = 0.15
+    const netGamma = page.getByTestId('strategy-net-gamma-strat-1')
+    await expect(netGamma).toBeVisible()
+    await expect(netGamma).not.toHaveText('\u2014')
+
+    // Net Vega = 180 + 160 = 340
+    const netVega = page.getByTestId('strategy-net-vega-strat-1')
+    await expect(netVega).toBeVisible()
+    await expect(netVega).not.toHaveText('\u2014')
   })
 })
