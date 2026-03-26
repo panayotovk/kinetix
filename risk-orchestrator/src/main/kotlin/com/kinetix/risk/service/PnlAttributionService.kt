@@ -20,8 +20,14 @@ class PnlAttributionService {
         bookId: BookId,
         positions: List<PositionPnlInput>,
         date: LocalDate = LocalDate.now(),
+        correlations: Map<Pair<String, String>, Double> = emptyMap(),
     ): PnlAttribution {
         val dt = BigDecimal.ONE.divide(tradingDaysPerYear, mc)
+
+        // Pre-compute cross-gamma P&L for each position based on correlation with other instruments.
+        // cross_gamma_ij = corr(i,j) * gamma_i * dS_i * gamma_j * dS_j
+        // Each position's share: sum over all j≠i of the pairwise term, split evenly between i and j.
+        val crossGammaByPosition = computeCrossGamma(positions, correlations)
 
         val positionAttributions = positions.map { pos ->
             // First-order Taylor terms
@@ -32,14 +38,10 @@ class PnlAttributionService {
             val rhoPnl = pos.rho.multiply(pos.rateChange, mc)
 
             // Cross-Greek (second-order mixed) terms
-            // vanna_pnl = vanna * dS * dvol
             val vannaPnl = pos.vanna.multiply(pos.priceChange, mc).multiply(pos.volChange, mc)
-            // volga_pnl = 0.5 * volga * dvol^2
             val volgaPnl = half.multiply(pos.volga, mc).multiply(pos.volChange.pow(2), mc)
-            // charm_pnl = charm * dS * dT  (decay of delta per unit time per unit price move)
             val charmPnl = pos.charm.multiply(pos.priceChange, mc).multiply(dt, mc)
-            // cross_gamma_pnl = 0 for single-asset books (multi-asset cross-gamma deferred)
-            val crossGammaPnl = BigDecimal.ZERO
+            val crossGammaPnl = crossGammaByPosition[pos.instrumentId.value] ?: BigDecimal.ZERO
 
             val explained = deltaPnl + gammaPnl + vegaPnl + thetaPnl + rhoPnl +
                 vannaPnl + volgaPnl + charmPnl + crossGammaPnl
@@ -94,6 +96,49 @@ class PnlAttributionService {
             dataQualityFlag = dataQualityFlag,
             calculatedAt = Instant.now(),
         )
+    }
+
+    /**
+     * Computes cross-gamma P&L for each position based on pairwise correlation with other instruments.
+     *
+     * For each pair (i, j) with different instrument IDs:
+     *   cross_gamma_ij = corr(i,j) * gamma_i * dS_i * gamma_j * dS_j
+     *
+     * Each pairwise term is split evenly: half assigned to position i, half to position j.
+     * If no correlation data is available, returns empty map (all zero).
+     */
+    private fun computeCrossGamma(
+        positions: List<PositionPnlInput>,
+        correlations: Map<Pair<String, String>, Double>,
+    ): Map<String, BigDecimal> {
+        if (correlations.isEmpty() || positions.size < 2) return emptyMap()
+
+        val result = mutableMapOf<String, BigDecimal>()
+
+        for (i in positions.indices) {
+            for (j in i + 1 until positions.size) {
+                val pi = positions[i]
+                val pj = positions[j]
+                if (pi.instrumentId == pj.instrumentId) continue
+
+                val corr = correlations[pi.instrumentId.value to pj.instrumentId.value] ?: continue
+                if (corr == 0.0) continue
+
+                // cross_gamma_ij = corr(i,j) * gamma_i * dS_i * gamma_j * dS_j
+                val term = BigDecimal.valueOf(corr)
+                    .multiply(pi.gamma, mc)
+                    .multiply(pi.priceChange, mc)
+                    .multiply(pj.gamma, mc)
+                    .multiply(pj.priceChange, mc)
+
+                // Split evenly between the two positions
+                val halfTerm = term.multiply(half, mc)
+                result[pi.instrumentId.value] = (result[pi.instrumentId.value] ?: BigDecimal.ZERO).add(halfTerm, mc)
+                result[pj.instrumentId.value] = (result[pj.instrumentId.value] ?: BigDecimal.ZERO).add(halfTerm, mc)
+            }
+        }
+
+        return result
     }
 
     /**

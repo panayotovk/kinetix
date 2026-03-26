@@ -4,6 +4,7 @@ import com.kinetix.common.model.BookId
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.client.ClientResponse
+import com.kinetix.risk.client.CorrelationServiceClient
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.client.RatesServiceClient
 import com.kinetix.risk.client.VolatilityServiceClient
@@ -29,6 +30,7 @@ class PnlComputationService(
     private val ratesServiceClient: RatesServiceClient? = null,
     /** Repository for immutable pricing Greeks locked at SOD. Null when not wired (degrades to PRICE_ONLY). */
     private val sodGreekSnapshotRepository: SodGreekSnapshotRepository? = null,
+    private val correlationServiceClient: CorrelationServiceClient? = null,
 ) {
     private val logger = LoggerFactory.getLogger(PnlComputationService::class.java)
 
@@ -86,7 +88,8 @@ class PnlComputationService(
             )
         }
 
-        val attribution = pnlAttributionService.attribute(bookId, inputs, date)
+        val correlations = fetchCorrelations(inputs.map { it.instrumentId.value }.distinct())
+        val attribution = pnlAttributionService.attribute(bookId, inputs, date, correlations)
         pnlAttributionRepository.save(attribution)
 
         logger.info(
@@ -150,5 +153,37 @@ class PnlComputationService(
         val sodRate = snapshot.sodRate ?: return BigDecimal.ZERO
         val current = currentRate ?: return BigDecimal.ZERO
         return BigDecimal.valueOf(current - sodRate)
+    }
+
+    /**
+     * Fetches the correlation matrix for the given instruments and converts it
+     * to a pairwise lookup map. Returns empty map if the correlation service
+     * is not available or the fetch fails (graceful degradation to zero cross-gamma).
+     */
+    private suspend fun fetchCorrelations(instrumentIds: List<String>): Map<Pair<String, String>, Double> {
+        val client = correlationServiceClient ?: return emptyMap()
+        if (instrumentIds.size < 2) return emptyMap()
+
+        return try {
+            when (val response = client.getCorrelationMatrix(instrumentIds)) {
+                is ClientResponse.Success -> {
+                    val matrix = response.value
+                    val result = mutableMapOf<Pair<String, String>, Double>()
+                    for (i in matrix.labels.indices) {
+                        for (j in matrix.labels.indices) {
+                            if (i != j) {
+                                val corr = matrix.values[i * matrix.labels.size + j]
+                                result[matrix.labels[i] to matrix.labels[j]] = corr
+                            }
+                        }
+                    }
+                    result
+                }
+                is ClientResponse.NotFound -> emptyMap()
+            }
+        } catch (e: Exception) {
+            logger.warn("Failed to fetch correlation matrix for cross-gamma, defaulting to zero: {}", e.message)
+            emptyMap()
+        }
     }
 }

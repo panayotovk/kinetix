@@ -108,6 +108,64 @@ class CrossGreekPnlAttributionServiceTest : FunSpec({
         pos.crossGammaPnl.compareTo(BigDecimal.ZERO) shouldBe 0
     }
 
+    test("cross_gamma_pnl is zero when no correlation matrix is provided") {
+        val inputs = listOf(
+            inputWith(instrumentId = "AAPL", totalPnl = "5.0", gamma = "0.1", priceChange = "10.0"),
+            inputWith(instrumentId = "GOOGL", totalPnl = "3.0", gamma = "0.05", priceChange = "8.0"),
+        )
+
+        val result = service.attribute(BookId("book-1"), inputs)
+        result.crossGammaPnl.compareTo(BigDecimal.ZERO) shouldBe 0
+    }
+
+    test("cross_gamma_pnl computed from correlation matrix for two correlated instruments") {
+        // AAPL: gamma=0.1, dS=10.0 => gamma_contribution = 0.1 * 10.0 = 1.0
+        // GOOGL: gamma=0.05, dS=8.0 => gamma_contribution = 0.05 * 8.0 = 0.4
+        // corr(AAPL, GOOGL) = 0.7
+        // cross_gamma_pnl = corr * gamma_i * dS_i * gamma_j * dS_j
+        //                 = 0.7 * 0.1 * 10.0 * 0.05 * 8.0 = 0.28
+        val inputs = listOf(
+            inputWith(instrumentId = "AAPL", totalPnl = "5.0", gamma = "0.1", priceChange = "10.0"),
+            inputWith(instrumentId = "GOOGL", totalPnl = "3.0", gamma = "0.05", priceChange = "8.0"),
+        )
+        val correlations = mapOf(
+            ("AAPL" to "GOOGL") to 0.7,
+            ("GOOGL" to "AAPL") to 0.7,
+        )
+
+        val result = service.attribute(BookId("book-1"), inputs, correlations = correlations)
+
+        // 0.7 * 0.1 * 10.0 * 0.05 * 8.0 = 0.28
+        result.crossGammaPnl.setScale(6, RoundingMode.HALF_UP) shouldBe bd("0.280000")
+    }
+
+    test("cross_gamma_pnl accounting identity holds with correlation matrix") {
+        val inputs = listOf(
+            inputWith(instrumentId = "AAPL", totalPnl = "50.0", gamma = "0.2", delta = "0.5",
+                priceChange = "15.0", volChange = "0.03", rateChange = "0.001",
+                vanna = "0.1", volga = "2.0", charm = "-0.02"),
+            inputWith(instrumentId = "MSFT", totalPnl = "30.0", gamma = "0.08", delta = "0.3",
+                priceChange = "12.0", volChange = "0.02", rateChange = "0.001",
+                vanna = "0.05", volga = "1.0", charm = "-0.01"),
+        )
+        val correlations = mapOf(
+            ("AAPL" to "MSFT") to 0.65,
+            ("MSFT" to "AAPL") to 0.65,
+        )
+
+        val result = service.attribute(BookId("book-1"), inputs, correlations = correlations)
+
+        // Identity: sum(all components) = totalPnl
+        val allComponents = result.deltaPnl + result.gammaPnl + result.vegaPnl +
+            result.thetaPnl + result.rhoPnl + result.vannaPnl + result.volgaPnl +
+            result.charmPnl + result.crossGammaPnl + result.unexplainedPnl
+        allComponents.setScale(10, RoundingMode.HALF_UP) shouldBe
+            result.totalPnl.setScale(10, RoundingMode.HALF_UP)
+
+        // Cross-gamma should be non-zero
+        result.crossGammaPnl.compareTo(BigDecimal.ZERO) shouldBe 1
+    }
+
     // ------------------------------------------------------------------
     // Accounting identity: sum(all terms) + unexplained = totalPnl
     // ------------------------------------------------------------------
