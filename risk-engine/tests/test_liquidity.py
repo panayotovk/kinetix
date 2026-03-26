@@ -280,33 +280,36 @@ def test_stressed_liquidation_per_asset_class_stress_factors():
 
 @pytest.mark.unit
 def test_concentration_flag_breached_when_position_exceeds_limit():
-    """Position > ADV concentration limit -> BREACHED status."""
+    """Position > hard_block_pct of ADV -> BREACHED status."""
     result = assess_concentration_flag(
-        market_value=6_000_000.0,
-        adv=10_000_000.0,
-        limit_pct=0.50,  # max 50% of ADV
+        market_value=1_200_000.0,
+        adv=10_000_000.0,   # position is 12% of ADV -> above 10% hard block
+        warning_pct=0.05,
+        hard_block_pct=0.10,
     )
     assert result.status == "BREACHED"
 
 
 @pytest.mark.unit
 def test_concentration_flag_warning_when_position_near_limit():
-    """Position at 80-100% of limit -> WARNING status."""
+    """Position between warning_pct and hard_block_pct of ADV -> WARNING."""
     result = assess_concentration_flag(
-        market_value=4_200_000.0,
-        adv=10_000_000.0,
-        limit_pct=0.50,  # limit is 5M; position is 4.2M = 84% of limit
+        market_value=700_000.0,
+        adv=10_000_000.0,   # position is 7% of ADV -> between 5% warning and 10% hard block
+        warning_pct=0.05,
+        hard_block_pct=0.10,
     )
     assert result.status == "WARNING"
 
 
 @pytest.mark.unit
 def test_concentration_flag_ok_when_position_well_below_limit():
-    """Position well below limit -> OK status."""
+    """Position below warning_pct of ADV -> OK."""
     result = assess_concentration_flag(
-        market_value=1_000_000.0,
-        adv=10_000_000.0,
-        limit_pct=0.50,  # limit is 5M; position is 1M = 20% of limit
+        market_value=300_000.0,
+        adv=10_000_000.0,   # position is 3% of ADV -> below 5% warning
+        warning_pct=0.05,
+        hard_block_pct=0.10,
     )
     assert result.status == "OK"
 
@@ -317,7 +320,8 @@ def test_concentration_flag_breached_when_no_adv_data():
     result = assess_concentration_flag(
         market_value=1_000_000.0,
         adv=None,
-        limit_pct=0.50,
+        warning_pct=0.05,
+        hard_block_pct=0.10,
     )
     assert result.status == "BREACHED"
     assert result.adv_missing is True
@@ -325,12 +329,13 @@ def test_concentration_flag_breached_when_no_adv_data():
 
 @pytest.mark.unit
 def test_concentration_flag_warning_when_adv_stale():
-    """Stale ADV (>2 days) -> WARNING, not BREACHED (unless also over limit)."""
+    """Stale ADV (>2 days) and within warning -> WARNING, not BREACHED."""
     result = assess_concentration_flag(
-        market_value=1_000_000.0,
-        adv=10_000_000.0,
+        market_value=300_000.0,
+        adv=10_000_000.0,   # 3% of ADV -> within warning threshold
         adv_staleness_days=3,
-        limit_pct=0.50,  # position is 10% of ADV -> well within limit
+        warning_pct=0.05,
+        hard_block_pct=0.10,
     )
     assert result.status == "WARNING"
     assert result.adv_stale is True
@@ -338,14 +343,39 @@ def test_concentration_flag_warning_when_adv_stale():
 
 @pytest.mark.unit
 def test_concentration_flag_current_value_and_limit_populated():
-    """Result carries current_value and limit_value for reporting."""
+    """Result carries current_pct and limit_pct (hard_block_pct) for reporting."""
     result = assess_concentration_flag(
-        market_value=3_000_000.0,
-        adv=10_000_000.0,
-        limit_pct=0.50,
+        market_value=300_000.0,
+        adv=10_000_000.0,   # 3% of ADV
+        warning_pct=0.05,
+        hard_block_pct=0.10,
     )
-    assert abs(result.current_pct - 0.30) < 1e-6  # 3M / 10M = 30%
-    assert abs(result.limit_pct - 0.50) < 1e-6
+    assert abs(result.current_pct - 0.03) < 1e-6   # 300K / 10M = 3%
+    assert abs(result.limit_pct - 0.10) < 1e-6     # limit_pct stores hard_block_pct
+
+
+@pytest.mark.unit
+def test_concentration_ok_at_4_99_pct_of_adv():
+    """Position just below warning_pct -> OK (boundary check)."""
+    result = assess_concentration_flag(
+        market_value=499_000.0,
+        adv=10_000_000.0,   # 4.99% of ADV -> below 5% warning
+        warning_pct=0.05,
+        hard_block_pct=0.10,
+    )
+    assert result.status == "OK"
+
+
+@pytest.mark.unit
+def test_concentration_breached_at_10_01_pct_of_adv():
+    """Position just above hard_block_pct -> BREACHED (boundary check)."""
+    result = assess_concentration_flag(
+        market_value=1_001_000.0,
+        adv=10_000_000.0,   # 10.01% of ADV -> above 10% hard block
+        warning_pct=0.05,
+        hard_block_pct=0.10,
+    )
+    assert result.status == "BREACHED"
 
 
 # ---------------------------------------------------------------------------

@@ -30,7 +30,6 @@ from kinetix_risk.models import AssetClass
 
 ILLIQUID_HORIZON_DAYS = 10
 ADV_MAX_STALENESS_DAYS = 2
-WARNING_THRESHOLD_PCT = 0.80
 
 # Fraction of ADV thresholds for tier classification
 _TIER_HIGH_LIQUID_MAX = 0.10   # < 10% of ADV
@@ -224,20 +223,24 @@ def compute_stressed_liquidation_value(
 def assess_concentration_flag(
     market_value: float,
     adv: float | None,
-    limit_pct: float,
+    warning_pct: float = 0.05,
+    hard_block_pct: float = 0.10,
     adv_staleness_days: int | None = None,
 ) -> ConcentrationCheckResult:
-    """Check whether a position breaches the ADV concentration limit.
+    """Check whether a position breaches the ADV concentration thresholds.
 
-    Fail-safe rules:
-      - No ADV data -> BREACHED (blocks trade).
-      - Stale ADV (>2 days) and within limit -> WARNING.
-      - Over limit regardless of staleness -> BREACHED.
+    Two-tier check with explicit warning and hard-block levels:
+      - No ADV data -> BREACHED (blocks trade; fail-safe).
+      - current_pct > hard_block_pct -> BREACHED.
+      - current_pct > warning_pct -> WARNING.
+      - Stale ADV (>2 days) and within warning -> WARNING.
+      - Otherwise -> OK.
 
     Args:
         market_value: absolute market value of the position.
         adv: average daily volume in the same units as market_value (or None).
-        limit_pct: maximum allowed fraction of ADV (e.g. 0.50 = 50%).
+        warning_pct: fraction of ADV that triggers a WARNING (default 5%).
+        hard_block_pct: fraction of ADV that triggers a BREACHED (default 10%).
         adv_staleness_days: age of the ADV data in days.
     """
     adv_missing = adv is None
@@ -250,19 +253,18 @@ def assess_concentration_flag(
         return ConcentrationCheckResult(
             status="BREACHED",
             current_pct=0.0,
-            limit_pct=limit_pct,
+            limit_pct=hard_block_pct,
             adv_missing=True,
             adv_stale=False,
         )
 
     current_pct = abs(market_value) / adv if adv > 0 else 1.0
 
-    if current_pct > limit_pct:
+    if current_pct > hard_block_pct:
         status = "BREACHED"
-    elif adv_stale:
-        # Stale data that is within limit -> WARNING
+    elif current_pct > warning_pct:
         status = "WARNING"
-    elif current_pct > limit_pct * WARNING_THRESHOLD_PCT:
+    elif adv_stale:
         status = "WARNING"
     else:
         status = "OK"
@@ -270,7 +272,7 @@ def assess_concentration_flag(
     return ConcentrationCheckResult(
         status=status,
         current_pct=current_pct,
-        limit_pct=limit_pct,
+        limit_pct=hard_block_pct,
         adv_missing=False,
         adv_stale=adv_stale,
     )

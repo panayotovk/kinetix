@@ -45,9 +45,10 @@ _DOMAIN_TIER_TO_PROTO: dict[LiquidityTier, int] = {
 # Status ordering for "worst" aggregation.
 _STATUS_ORDER = {"OK": 0, "WARNING": 1, "BREACHED": 2}
 
-# Default ADV concentration limit (50% of ADV); per-position limit can be
-# extended to use per-instrument limits fetched from reference-data.
-_DEFAULT_ADV_CONCENTRATION_LIMIT_PCT = 0.50
+# Two-tier ADV concentration thresholds.
+# Positions between 5% and 10% of ADV trigger a WARNING; above 10% are BREACHED.
+_WARNING_THRESHOLD_PCT = 0.05
+_HARD_BLOCK_PCT = 0.10
 
 
 def _proto_to_domain_asset_class(proto_ac: int) -> AssetClass:
@@ -141,7 +142,8 @@ class LiquidityAdjustedVaRServicer(
                 conc = assess_concentration_flag(
                     market_value=inp.market_value,
                     adv=inp.adv,
-                    limit_pct=_DEFAULT_ADV_CONCENTRATION_LIMIT_PCT,
+                    warning_pct=_WARNING_THRESHOLD_PCT,
+                    hard_block_pct=_HARD_BLOCK_PCT,
                     adv_staleness_days=inp.adv_staleness_days,
                 )
                 concentration_statuses.append(conc.status)
