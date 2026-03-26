@@ -22,7 +22,10 @@ export function useMarketRegime(): UseMarketRegimeResult {
       try {
         const result = await fetchCurrentRegime()
         if (!cancelled) {
-          setRegime(result)
+          setRegime((prev) => {
+            if (prev && prev.regime === result.regime && prev.detectedAt === result.detectedAt && prev.confidence === result.confidence) return prev
+            return result
+          })
           setError(null)
         }
       } catch (err) {

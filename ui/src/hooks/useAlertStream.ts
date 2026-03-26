@@ -99,7 +99,10 @@ export function useAlertStream(wsUrl?: string): UseAlertStreamResult {
   const loadAlerts = useCallback(async () => {
     try {
       const data = await fetchAlerts(50)
-      setAlerts(data)
+      setAlerts((prev) => {
+        if (prev.length === data.length && prev.every((a, i) => a.id === data[i].id && a.status === data[i].status)) return prev
+        return data
+      })
     } catch {
       // silently ignore
     }

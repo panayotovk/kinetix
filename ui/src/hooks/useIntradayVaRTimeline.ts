@@ -49,8 +49,14 @@ export function useIntradayVaRTimeline(
       fetchIntradayVaRTimeline(bookId!, from, to)
         .then((data) => {
           if (controller.signal.aborted) return
-          setVarPoints(data.varPoints)
-          setTradeAnnotations(data.tradeAnnotations)
+          setVarPoints((prev) => {
+            if (prev.length === data.varPoints.length && prev.length > 0 && prev[prev.length - 1].timestamp === data.varPoints[data.varPoints.length - 1].timestamp && prev[0].timestamp === data.varPoints[0].timestamp) return prev
+            return data.varPoints
+          })
+          setTradeAnnotations((prev) => {
+            if (prev.length === data.tradeAnnotations.length && JSON.stringify(prev) === JSON.stringify(data.tradeAnnotations)) return prev
+            return data.tradeAnnotations
+          })
         })
         .catch((err: unknown) => {
           if (controller.signal.aborted) return

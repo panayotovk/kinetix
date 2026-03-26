@@ -17,7 +17,10 @@ export function useSystemHealth(): UseSystemHealthResult {
   const load = useCallback(async () => {
     try {
       const data = await fetchSystemHealth()
-      setHealth(data)
+      setHealth((prev) => {
+        if (prev && prev.status === data.status && JSON.stringify(prev.services) === JSON.stringify(data.services)) return prev
+        return data
+      })
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))

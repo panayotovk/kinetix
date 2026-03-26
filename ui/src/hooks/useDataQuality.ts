@@ -22,7 +22,10 @@ export function useDataQuality(): UseDataQualityResult {
       try {
         const result = await fetchDataQualityStatus()
         if (!cancelled) {
-          setStatus(result)
+          setStatus((prev) => {
+            if (prev && prev.overall === result.overall && prev.checks.length === result.checks.length && JSON.stringify(prev.checks) === JSON.stringify(result.checks)) return prev
+            return result
+          })
           setError(null)
         }
       } catch (err) {

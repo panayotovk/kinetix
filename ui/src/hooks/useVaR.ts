@@ -111,6 +111,9 @@ export function useVaR(bookId: string | null, valuationDate: string | null = nul
           if (e.delta !== undefined && h.delta === undefined) return e
           return h
         })
+        // No new entries beyond what we already have — preserve reference to
+        // avoid cascading re-renders through filteredHistory → chart memos
+        if (historicalMap.size === 0) return prev
         return [...merged, ...historicalMap.values()].sort(
           (a, b) => new Date(a.calculatedAt).getTime() - new Date(b.calculatedAt).getTime(),
         )
