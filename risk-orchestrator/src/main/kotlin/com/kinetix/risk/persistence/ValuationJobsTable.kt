@@ -32,7 +32,7 @@ object ValuationJobsTable : Table("valuation_jobs") {
     val phases = jsonb<List<JobPhaseJson>>("phases", Json)
     val currentPhase = varchar("current_phase", 50).nullable()
     val error = text("error").nullable()
-    val triggeredBy = varchar("triggered_by", 255).nullable()
+    val triggeredBy = varchar("triggered_by", 255)
     val runLabel = varchar("run_label", 20).nullable()
     val promotedAt = timestampWithTimeZone("promoted_at").nullable()
     val promotedBy = varchar("promoted_by", 255).nullable()
