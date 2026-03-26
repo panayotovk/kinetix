@@ -25,6 +25,13 @@ class ExposedModelVersionRepository(private val db: Database? = null) : ModelVer
                 it[approvedAt] = modelVersion.approvedAt?.let { ts ->
                     OffsetDateTime.ofInstant(ts, ZoneOffset.UTC)
                 }
+                it[modelTier] = modelVersion.modelTier
+                it[validationReportUrl] = modelVersion.validationReportUrl
+                it[knownLimitations] = modelVersion.knownLimitations
+                it[approvedUseCases] = modelVersion.approvedUseCases
+                it[nextValidationDate] = modelVersion.nextValidationDate?.let { d ->
+                    kotlinx.datetime.LocalDate(d.year, d.monthValue, d.dayOfMonth)
+                }
             }
         } else {
             ModelVersionsTable.insert {
@@ -39,6 +46,13 @@ class ExposedModelVersionRepository(private val db: Database? = null) : ModelVer
                     OffsetDateTime.ofInstant(ts, ZoneOffset.UTC)
                 }
                 it[createdAt] = OffsetDateTime.ofInstant(modelVersion.createdAt, ZoneOffset.UTC)
+                it[modelTier] = modelVersion.modelTier
+                it[validationReportUrl] = modelVersion.validationReportUrl
+                it[knownLimitations] = modelVersion.knownLimitations
+                it[approvedUseCases] = modelVersion.approvedUseCases
+                it[nextValidationDate] = modelVersion.nextValidationDate?.let { d ->
+                    kotlinx.datetime.LocalDate(d.year, d.monthValue, d.dayOfMonth)
+                }
             }
         }
     }
@@ -68,5 +82,12 @@ class ExposedModelVersionRepository(private val db: Database? = null) : ModelVer
         approvedBy = this[ModelVersionsTable.approvedBy],
         approvedAt = this[ModelVersionsTable.approvedAt]?.toInstant(),
         createdAt = this[ModelVersionsTable.createdAt].toInstant(),
+        modelTier = this[ModelVersionsTable.modelTier],
+        validationReportUrl = this[ModelVersionsTable.validationReportUrl],
+        knownLimitations = this[ModelVersionsTable.knownLimitations],
+        approvedUseCases = this[ModelVersionsTable.approvedUseCases],
+        nextValidationDate = this[ModelVersionsTable.nextValidationDate]?.let { d ->
+            java.time.LocalDate.of(d.year, d.monthNumber, d.dayOfMonth)
+        },
     )
 }

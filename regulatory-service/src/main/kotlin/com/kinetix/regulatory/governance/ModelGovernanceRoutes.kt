@@ -11,6 +11,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.slf4j.LoggerFactory
+import java.time.LocalDate
 
 private val logger = LoggerFactory.getLogger("com.kinetix.regulatory.governance.ModelGovernanceRoutes")
 
@@ -35,6 +36,11 @@ fun Route.modelGovernanceRoutes(registry: ModelRegistry) {
                 version = request.version,
                 parameters = request.parameters,
                 registeredBy = request.registeredBy,
+                modelTier = request.modelTier,
+                validationReportUrl = request.validationReportUrl,
+                knownLimitations = request.knownLimitations,
+                approvedUseCases = request.approvedUseCases,
+                nextValidationDate = request.nextValidationDate?.let { LocalDate.parse(it) },
             )
             logger.info("Model registered: id={}, name={}, version={}", model.id, model.modelName, model.version)
             call.respond(HttpStatusCode.Created, model.toResponse())
@@ -69,4 +75,9 @@ private fun ModelVersion.toResponse() = ModelVersionResponse(
     approvedBy = approvedBy,
     approvedAt = approvedAt?.toString(),
     createdAt = createdAt.toString(),
+    modelTier = modelTier,
+    validationReportUrl = validationReportUrl,
+    knownLimitations = knownLimitations,
+    approvedUseCases = approvedUseCases,
+    nextValidationDate = nextValidationDate?.toString(),
 )

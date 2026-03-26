@@ -18,7 +18,17 @@ class ModelRegistry(
         ModelVersionStatus.RETIRED to emptySet(),
     )
 
-    suspend fun register(modelName: String, version: String, parameters: String, registeredBy: String): ModelVersion {
+    suspend fun register(
+        modelName: String,
+        version: String,
+        parameters: String,
+        registeredBy: String,
+        modelTier: String? = null,
+        validationReportUrl: String? = null,
+        knownLimitations: String? = null,
+        approvedUseCases: String? = null,
+        nextValidationDate: java.time.LocalDate? = null,
+    ): ModelVersion {
         val modelVersion = ModelVersion(
             id = UUID.randomUUID().toString(),
             modelName = modelName,
@@ -29,6 +39,11 @@ class ModelRegistry(
             approvedBy = null,
             approvedAt = null,
             createdAt = Instant.now(),
+            modelTier = modelTier,
+            validationReportUrl = validationReportUrl,
+            knownLimitations = knownLimitations,
+            approvedUseCases = approvedUseCases,
+            nextValidationDate = nextValidationDate,
         )
         repository.save(modelVersion)
         return modelVersion

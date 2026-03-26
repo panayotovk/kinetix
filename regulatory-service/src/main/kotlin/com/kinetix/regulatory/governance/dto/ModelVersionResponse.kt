@@ -13,4 +13,9 @@ data class ModelVersionResponse(
     val approvedBy: String?,
     val approvedAt: String?,
     val createdAt: String,
+    val modelTier: String? = null,
+    val validationReportUrl: String? = null,
+    val knownLimitations: String? = null,
+    val approvedUseCases: String? = null,
+    val nextValidationDate: String? = null,
 )

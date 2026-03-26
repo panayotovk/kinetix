@@ -4,6 +4,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.json.jsonb
+import org.jetbrains.exposed.sql.kotlin.datetime.date
 import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 
 object ModelVersionsTable : Table("model_versions") {
@@ -16,6 +17,11 @@ object ModelVersionsTable : Table("model_versions") {
     val approvedBy = varchar("approved_by", 255).nullable()
     val approvedAt = timestampWithTimeZone("approved_at").nullable()
     val createdAt = timestampWithTimeZone("created_at")
+    val modelTier = varchar("model_tier", 50).nullable()
+    val validationReportUrl = varchar("validation_report_url", 2048).nullable()
+    val knownLimitations = text("known_limitations").nullable()
+    val approvedUseCases = text("approved_use_cases").nullable()
+    val nextValidationDate = date("next_validation_date").nullable()
 
     override val primaryKey = PrimaryKey(id)
 }
