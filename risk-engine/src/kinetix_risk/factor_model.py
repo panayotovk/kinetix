@@ -16,7 +16,7 @@ Loadings:
 Factor VaR decomposition:
   1. exposure_f = sum_i(position_mv[i] * loading[i, f])
   2. systematic_variance = exposure^T @ factor_cov @ exposure
-  3. idiosyncratic_variance = total_variance - systematic_variance (clamped to >= 0)
+  3. idiosyncratic_variance = total_variance - systematic_variance (may be negative when systematic > total)
   4. Factor VaR per factor via Euler allocation
   5. r_squared = systematic_variance / total_variance
 
@@ -387,7 +387,7 @@ def decompose_factor_risk(
       2. Estimate factor covariance matrix (Ledoit-Wolf).
       3. systematic_variance = exposure^T @ Sigma @ exposure
       4. total_variance = total_var^2 (assumes VaR ~ 1.65 * sigma; we use variance proxy)
-      5. idiosyncratic_variance = total_variance - systematic_variance (clamped >= 0)
+      5. idiosyncratic_variance = total_variance - systematic_variance (may be negative: factor explains more than total)
       6. Euler allocation per factor: contribution_f = (Sigma @ exposure)_f * exposure_f / systematic_var
       7. r_squared = systematic_variance / total_variance
     """
@@ -447,7 +447,6 @@ def decompose_factor_risk(
 
     systematic_var_dollar = total_var * math.sqrt(max(0.0, r_squared))
     idiosyncratic_var_dollar = total_var - systematic_var_dollar
-    idiosyncratic_var_dollar = max(0.0, idiosyncratic_var_dollar)
 
     # Euler allocation: contribution_f = (Sigma @ exposure)_f * exposure_f
     sigma_times_exposure = factor_cov @ exposure

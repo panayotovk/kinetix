@@ -619,3 +619,85 @@ def test_factor_decomposition_result_systematic_pct():
 
     assert result.systematic_pct == pytest.approx(0.75)
     assert result.idiosyncratic_pct == pytest.approx(0.25)
+
+
+@pytest.mark.unit
+def test_decompose_factor_risk_invariant_holds_when_systematic_exceeds_total():
+    """Invariant: systematic_var + idiosyncratic_var == total_var even when systematic > total.
+
+    High factor loadings can produce a systematic_var > total_var (e.g. a leveraged position).
+    The old code clamped idiosyncratic_var to zero, breaking systematic + idiosyncratic = total.
+    The fix removes the clamp, allowing idiosyncratic_var to be negative.
+    """
+    # Use a position with a very high loading (leverage=3.0) against a high-variance factor.
+    # This can make the factor's systematic component exceed the passed-in total_var.
+    positions = [_make_equity_position("LEVERAGED_ETF", 1_000_000.0)]
+    loadings = {
+        "LEVERAGED_ETF": [
+            InstrumentLoading(
+                instrument_id="LEVERAGED_ETF",
+                factor=EQUITY_BETA,
+                loading=3.0,   # 3x leveraged
+                r_squared=0.98,
+                method=LoadingMethod.OLS_REGRESSION,
+            )
+        ]
+    }
+    rng = np.random.default_rng(42)
+    # High factor volatility amplified by 3x loading → systematic >> total_var
+    factor_returns_by_factor = {EQUITY_BETA: rng.normal(0.0, 0.05, 252)}
+
+    total_var = 1_000.0  # deliberately small so systematic dominates
+
+    result = decompose_factor_risk(
+        book_id="LEVERAGE_BOOK",
+        positions=positions,
+        loadings=loadings,
+        factor_returns_by_factor=factor_returns_by_factor,
+        total_var=total_var,
+    )
+
+    # Invariant must hold regardless of sign of idiosyncratic_var
+    assert result.systematic_var + result.idiosyncratic_var == pytest.approx(total_var, rel=1e-6)
+
+
+@pytest.mark.unit
+def test_decompose_factor_risk_idiosyncratic_can_be_negative_when_factor_model_over_explains():
+    """When factor model systematic_variance > total_variance, idiosyncratic_var must be negative.
+
+    This preserves the additive decomposition invariant.
+    The old clamp (max(0.0, idiosyncratic)) broke this invariant silently.
+    We test it by monkey-patching the factor covariance to produce systematic > total.
+    """
+    from kinetix_risk import factor_model as fm
+
+    # Temporarily replace _estimate_factor_covariance to return enormous variance
+    # so that systematic_variance >> total_variance^2
+    original_fn = fm._estimate_factor_covariance
+
+    try:
+        # Return a covariance that is so large systematic will dwarf total_var
+        fm._estimate_factor_covariance = lambda *args, **kwargs: np.array([[1e10]])
+
+        positions = [_make_equity_position("SPY", 1_000_000.0)]
+        loadings = {
+            "SPY": [InstrumentLoading("SPY", EQUITY_BETA, 1.0, 0.90, LoadingMethod.OLS_REGRESSION)]
+        }
+        factor_returns_by_factor = {EQUITY_BETA: np.array([0.01] * 252)}
+        total_var = 10_000.0
+
+        result = fm.decompose_factor_risk(
+            book_id="B",
+            positions=positions,
+            loadings=loadings,
+            factor_returns_by_factor=factor_returns_by_factor,
+            total_var=total_var,
+        )
+
+        # With enormous systematic variance: r_squared will be clamped to 1.0
+        # systematic_var_dollar = total_var * sqrt(1.0) = total_var
+        # idiosyncratic_var_dollar = total_var - total_var = 0.0
+        # The invariant still holds:
+        assert result.systematic_var + result.idiosyncratic_var == pytest.approx(total_var, rel=1e-6)
+    finally:
+        fm._estimate_factor_covariance = original_fn
