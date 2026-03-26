@@ -75,14 +75,67 @@ class PnlAttributionServiceTest : FunSpec({
         )
 
         val pos = result.positionAttributions[0]
-        val explained = pos.deltaPnl + pos.gammaPnl + pos.vegaPnl + pos.thetaPnl + pos.rhoPnl
+        val explained = pos.deltaPnl + pos.gammaPnl + pos.vegaPnl + pos.thetaPnl + pos.rhoPnl +
+            pos.vannaPnl + pos.volgaPnl + pos.charmPnl + pos.crossGammaPnl
         pos.unexplainedPnl.setScale(6, RoundingMode.HALF_UP) shouldBe
                 (bd("10.0") - explained).setScale(6, RoundingMode.HALF_UP)
 
         // Also verify the portfolio-level unexplained
-        val portfolioExplained = result.deltaPnl + result.gammaPnl + result.vegaPnl + result.thetaPnl + result.rhoPnl
+        val portfolioExplained = result.deltaPnl + result.gammaPnl + result.vegaPnl + result.thetaPnl + result.rhoPnl +
+            result.vannaPnl + result.volgaPnl + result.charmPnl + result.crossGammaPnl
         result.unexplainedPnl.setScale(6, RoundingMode.HALF_UP) shouldBe
                 (result.totalPnl - portfolioExplained).setScale(6, RoundingMode.HALF_UP)
+    }
+
+    test("sum of all components equals totalPnl to 10 decimal places (attribution identity)") {
+        // Property: for ANY set of Greeks and market moves,
+        // delta + gamma + vega + theta + rho + vanna + volga + charm + crossGamma + unexplained == totalPnl
+        val testCases = listOf(
+            // Large price move with cross-Greeks
+            PositionPnlInput(
+                instrumentId = InstrumentId("OPT-1"), assetClass = AssetClass.EQUITY,
+                totalPnl = bd("25000.00"),
+                delta = bd("0.65"), gamma = bd("0.03"), vega = bd("450.0"),
+                theta = bd("-120.0"), rho = bd("15.0"),
+                vanna = bd("0.02"), volga = bd("1.5"), charm = bd("-0.008"),
+                priceChange = bd("15.0"), volChange = bd("0.05"), rateChange = bd("0.002"),
+            ),
+            // Zero vol change — vanna/volga contribute nothing
+            PositionPnlInput(
+                instrumentId = InstrumentId("BOND-1"), assetClass = AssetClass.FIXED_INCOME,
+                totalPnl = bd("-500.00"),
+                delta = bd("-0.8"), gamma = bd("0.005"), vega = BigDecimal.ZERO,
+                theta = bd("-3.0"), rho = bd("85.0"),
+                vanna = BigDecimal.ZERO, volga = BigDecimal.ZERO, charm = BigDecimal.ZERO,
+                priceChange = bd("-2.5"), volChange = BigDecimal.ZERO, rateChange = bd("0.015"),
+            ),
+            // Extreme 15% price move
+            PositionPnlInput(
+                instrumentId = InstrumentId("OPT-2"), assetClass = AssetClass.EQUITY,
+                totalPnl = bd("100000.00"),
+                delta = bd("0.95"), gamma = bd("0.001"), vega = bd("8000.0"),
+                theta = bd("-500.0"), rho = bd("200.0"),
+                vanna = bd("0.15"), volga = bd("5.0"), charm = bd("-0.05"),
+                priceChange = bd("50.0"), volChange = bd("0.20"), rateChange = bd("-0.01"),
+            ),
+        )
+
+        for (input in testCases) {
+            val result = service.attribute(BookId("test"), listOf(input))
+            val pos = result.positionAttributions[0]
+            val allComponents = pos.deltaPnl + pos.gammaPnl + pos.vegaPnl + pos.thetaPnl + pos.rhoPnl +
+                pos.vannaPnl + pos.volgaPnl + pos.charmPnl + pos.crossGammaPnl + pos.unexplainedPnl
+            allComponents.setScale(10, RoundingMode.HALF_UP) shouldBe
+                pos.totalPnl.setScale(10, RoundingMode.HALF_UP)
+        }
+
+        // Also verify at portfolio level with all three positions combined
+        val result = service.attribute(BookId("multi"), testCases)
+        val portfolioComponents = result.deltaPnl + result.gammaPnl + result.vegaPnl + result.thetaPnl +
+            result.rhoPnl + result.vannaPnl + result.volgaPnl + result.charmPnl +
+            result.crossGammaPnl + result.unexplainedPnl
+        portfolioComponents.setScale(10, RoundingMode.HALF_UP) shouldBe
+            result.totalPnl.setScale(10, RoundingMode.HALF_UP)
     }
 
     test("with zero greeks all P&L goes to unexplained") {
