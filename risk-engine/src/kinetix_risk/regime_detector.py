@@ -250,23 +250,47 @@ class RegimeDetector:
         thresholds: RegimeThresholds = DEFAULT_THRESHOLDS,
         escalation_debounce: int = 3,
         de_escalation_debounce: int = 1,
+        historical_avg_correlation: Optional[np.ndarray] = None,
+        anomaly_score_threshold: float = 0.5,
     ) -> None:
         self._thresholds = thresholds
         self._escalation_debounce = escalation_debounce
         self._de_escalation_debounce = de_escalation_debounce
+        self._historical_avg_correlation = historical_avg_correlation
+        self._anomaly_score_threshold = anomaly_score_threshold
 
         self._confirmed_regime = MarketRegime.NORMAL
         self._pending_regime: Optional[MarketRegime] = None
         self._pending_count: int = 0
         self._prev_credit_spread: Optional[float] = None
 
-    def observe(self, signals: RegimeSignals) -> RegimeClassification:
+    def observe(
+        self,
+        signals: RegimeSignals,
+        current_correlation: Optional[np.ndarray] = None,
+    ) -> RegimeClassification:
         """Process one detection cycle and return the current classification state."""
         classified = classify_regime(signals, self._thresholds)
         degraded = signals.credit_spread_bps is None or signals.pnl_volatility is None
         early_warnings = detect_early_warnings(
             signals, self._thresholds, prev_credit_spread_bps=self._prev_credit_spread
         )
+        if current_correlation is not None and self._historical_avg_correlation is not None:
+            anomaly_score = compute_correlation_anomaly_score(
+                current_correlation, self._historical_avg_correlation
+            )
+            if anomaly_score > self._anomaly_score_threshold:
+                early_warnings.append(EarlyWarning(
+                    signal_name="correlation_anomaly",
+                    current_value=anomaly_score,
+                    threshold=self._anomaly_score_threshold,
+                    proximity_pct=(anomaly_score / self._anomaly_score_threshold) * 100.0,
+                    message=(
+                        f"Correlation structure anomaly detected: "
+                        f"Frobenius norm {anomaly_score:.4f} exceeds threshold "
+                        f"{self._anomaly_score_threshold:.4f}"
+                    ),
+                ))
         # Update previous credit spread for next cycle (only when a value is present)
         if signals.credit_spread_bps is not None:
             self._prev_credit_spread = signals.credit_spread_bps

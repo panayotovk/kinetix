@@ -640,3 +640,92 @@ def test_regime_classification_contains_all_fields():
     assert isinstance(result.is_confirmed, bool)
     assert isinstance(result.degraded_inputs, bool)
     assert isinstance(result.early_warnings, list)
+
+
+# ── Correlation anomaly wired into observe() (REG_D-05) ───────────────────────
+
+@pytest.mark.unit
+def test_fires_early_warning_when_anomaly_score_exceeds_threshold():
+    """When the Frobenius norm of current vs historical exceeds the threshold,
+    an EarlyWarning with signal_name='correlation_anomaly' must be appended."""
+    import numpy as np
+
+    historical = np.array([[1.0, 0.2], [0.2, 1.0]])
+    # current is far from historical — score will exceed default threshold of 0.5
+    current = np.array([[1.0, 0.9], [0.9, 1.0]])
+
+    detector = RegimeDetector(THRESHOLDS, historical_avg_correlation=historical)
+    result = detector.observe(normal_signals(), current_correlation=current)
+
+    signal_names = [w.signal_name for w in result.early_warnings]
+    assert "correlation_anomaly" in signal_names
+
+
+@pytest.mark.unit
+def test_no_warning_when_anomaly_score_below_threshold():
+    """When the anomaly score is below the threshold no correlation_anomaly warning fires."""
+    import numpy as np
+
+    historical = np.array([[1.0, 0.5], [0.5, 1.0]])
+    # current is almost identical to historical — score will be near zero
+    current = np.array([[1.0, 0.51], [0.51, 1.0]])
+
+    detector = RegimeDetector(THRESHOLDS, historical_avg_correlation=historical)
+    result = detector.observe(normal_signals(), current_correlation=current)
+
+    signal_names = [w.signal_name for w in result.early_warnings]
+    assert "correlation_anomaly" not in signal_names
+
+
+@pytest.mark.unit
+def test_correlation_anomaly_check_skipped_when_current_correlation_is_none():
+    """If observe() is called without a current_correlation matrix the check is silently skipped."""
+    import numpy as np
+
+    historical = np.array([[1.0, 0.2], [0.2, 1.0]])
+    detector = RegimeDetector(THRESHOLDS, historical_avg_correlation=historical)
+    result = detector.observe(normal_signals(), current_correlation=None)
+
+    signal_names = [w.signal_name for w in result.early_warnings]
+    assert "correlation_anomaly" not in signal_names
+
+
+@pytest.mark.unit
+def test_correlation_anomaly_check_skipped_when_no_historical_average():
+    """If the detector has no historical_avg_correlation the check is silently skipped."""
+    import numpy as np
+
+    current = np.array([[1.0, 0.9], [0.9, 1.0]])
+    detector = RegimeDetector(THRESHOLDS)  # no historical_avg_correlation
+    result = detector.observe(normal_signals(), current_correlation=current)
+
+    signal_names = [w.signal_name for w in result.early_warnings]
+    assert "correlation_anomaly" not in signal_names
+
+
+@pytest.mark.unit
+def test_correlation_anomaly_does_not_affect_regime_classification():
+    """A high anomaly score must not alter the NORMAL regime classification —
+    the correlation anomaly check is advisory only."""
+    import numpy as np
+
+    historical = np.array([[1.0, 0.2], [0.2, 1.0]])
+    current = np.array([[1.0, 0.9], [0.9, 1.0]])  # high anomaly score
+
+    detector = RegimeDetector(THRESHOLDS, historical_avg_correlation=historical)
+    result = detector.observe(normal_signals(), current_correlation=current)
+
+    assert result.regime == MarketRegime.NORMAL
+    assert result.is_confirmed is True
+
+
+@pytest.mark.unit
+def test_backwards_compatible_observe_without_correlation_param():
+    """Calling observe(signals) with no current_correlation argument must work
+    exactly as before — no TypeError, no correlation_anomaly warning."""
+    detector = RegimeDetector(THRESHOLDS)
+    result = detector.observe(normal_signals())
+
+    assert result.regime == MarketRegime.NORMAL
+    signal_names = [w.signal_name for w in result.early_warnings]
+    assert "correlation_anomaly" not in signal_names
