@@ -12,5 +12,6 @@ data class GovernanceAuditEvent(
     val limitId: String? = null,
     val submissionId: String? = null,
     val bookId: String? = null,
+    val alertId: String? = null,
     val details: String? = null,
 )

@@ -111,10 +111,11 @@ fun Application.module(
     rulesEngine: RulesEngine,
     inAppDelivery: InAppDeliveryService,
     ackRepository: AlertAcknowledgementRepository = InMemoryAlertAcknowledgementRepository(),
+    auditPublisher: com.kinetix.notification.audit.GovernanceAuditPublisher? = null,
 ) {
     module()
     routing {
-        notificationRoutes(rulesEngine, inAppDelivery, ackRepository)
+        notificationRoutes(rulesEngine, inAppDelivery, ackRepository, auditPublisher)
     }
 }
 
@@ -188,7 +189,16 @@ fun Application.moduleWithRoutes() {
     )
 
     val ackRepository = ExposedAlertAcknowledgementRepository(db)
-    module(rulesEngine, inAppDelivery, ackRepository)
+
+    val ackAuditProducerProps = Properties().apply {
+        put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+        put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
+        put(ProducerConfig.ACKS_CONFIG, "all")
+    }
+    val ackAuditPublisher = KafkaGovernanceAuditPublisher(KafkaProducer(ackAuditProducerProps))
+
+    module(rulesEngine, inAppDelivery, ackRepository, ackAuditPublisher)
 
     routing {
         get("/health/ready") {
@@ -294,6 +304,7 @@ fun Route.notificationRoutes(
     rulesEngine: RulesEngine,
     inAppDelivery: InAppDeliveryService,
     ackRepository: AlertAcknowledgementRepository = InMemoryAlertAcknowledgementRepository(),
+    auditPublisher: com.kinetix.notification.audit.GovernanceAuditPublisher? = null,
 ) {
     route("/api/v1/notifications") {
         get("/rules", {
@@ -422,6 +433,16 @@ fun Route.notificationRoutes(
                     acknowledgedBy = request.acknowledgedBy,
                     acknowledgedAt = now,
                     notes = request.notes,
+                ),
+            )
+
+            auditPublisher?.publish(
+                com.kinetix.common.audit.GovernanceAuditEvent(
+                    eventType = com.kinetix.common.audit.AuditEventType.ALERT_ACKNOWLEDGED,
+                    userId = request.acknowledgedBy,
+                    userRole = "UNKNOWN",
+                    alertId = alertId,
+                    details = "Alert $alertId acknowledged: ${request.notes ?: "no notes"}",
                 ),
             )
 
