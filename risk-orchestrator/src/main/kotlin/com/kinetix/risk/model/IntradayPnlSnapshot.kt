@@ -48,4 +48,9 @@ data class IntradayPnlSnapshot(
     // A non-empty list means the P&L figures used a 1:1 fallback for those currencies
     // and should be treated as approximate until rates are restored.
     val missingFxRates: List<String> = emptyList(),
+
+    // Non-null when |unexplainedPnl / totalPnl| > 0.20, indicating that Greek
+    // attribution cannot account for more than 20% of realised P&L.
+    // Operators should investigate model gaps or missing Greeks.
+    val dataQualityWarning: String? = null,
 )

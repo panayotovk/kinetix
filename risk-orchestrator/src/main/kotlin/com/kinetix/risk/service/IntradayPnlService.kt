@@ -121,6 +121,18 @@ class IntradayPnlService(
             )
         }
 
+        val unexplainedPnl = totalPnl - (attribution.deltaPnl + attribution.gammaPnl +
+            attribution.vegaPnl + attribution.thetaPnl + attribution.rhoPnl +
+            attribution.vannaPnl + attribution.volgaPnl + attribution.charmPnl + attribution.crossGammaPnl)
+
+        val dataQualityWarning = if (totalPnl.signum() != 0) {
+            val unexplainedRatio = unexplainedPnl.abs().toDouble() / totalPnl.abs().toDouble()
+            if (unexplainedRatio > 0.20) {
+                "High unexplained P&L: ${String.format("%.1f", unexplainedRatio * 100)}% of total " +
+                    "cannot be attributed to known Greeks — investigate model gaps or missing risk factors"
+            } else null
+        } else null
+
         val snapshot = IntradayPnlSnapshot(
             bookId = bookId,
             snapshotAt = Instant.now(),
@@ -138,13 +150,12 @@ class IntradayPnlService(
             volgaPnl = attribution.volgaPnl,
             charmPnl = attribution.charmPnl,
             crossGammaPnl = attribution.crossGammaPnl,
-            unexplainedPnl = totalPnl - (attribution.deltaPnl + attribution.gammaPnl +
-                attribution.vegaPnl + attribution.thetaPnl + attribution.rhoPnl +
-                attribution.vannaPnl + attribution.volgaPnl + attribution.charmPnl + attribution.crossGammaPnl),
+            unexplainedPnl = unexplainedPnl,
             highWaterMark = newHwm,
             instrumentPnl = instrumentPnl,
             correlationId = correlationId,
             missingFxRates = missingFxRates,
+            dataQualityWarning = dataQualityWarning,
         )
 
         intradayPnlRepository.save(snapshot)

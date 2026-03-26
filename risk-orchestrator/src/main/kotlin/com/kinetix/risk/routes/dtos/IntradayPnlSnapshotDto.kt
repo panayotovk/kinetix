@@ -25,4 +25,5 @@ data class IntradayPnlSnapshotDto(
     val highWaterMark: String,
     val instrumentPnl: List<InstrumentPnlBreakdownDto> = emptyList(),
     val correlationId: String? = null,
+    val dataQualityWarning: String? = null,
 )

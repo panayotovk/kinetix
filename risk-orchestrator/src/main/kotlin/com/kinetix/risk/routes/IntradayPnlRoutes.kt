@@ -107,4 +107,5 @@ private fun IntradayPnlSnapshot.toDto(): IntradayPnlSnapshotDto = IntradayPnlSna
         )
     },
     correlationId = correlationId,
+    dataQualityWarning = dataQualityWarning,
 )

@@ -19,6 +19,7 @@ import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -485,5 +486,68 @@ class IntradayPnlServiceTest : FunSpec({
         snapshot.shouldNotBeNull()
         coVerify(exactly = 0) { fxProvider.getRate(any(), any()) }
         snapshot.missingFxRates.shouldBeEmpty()
+    }
+
+    // --- UnexplainedPnlThreshold (IPNL-04) ---
+
+    test("sets data quality warning when unexplained P&L exceeds 20% of total") {
+        val f = TestFixtures()
+        coEvery { f.sodBaselineRepo.findByBookIdAndDate(BOOK, any()) } returns sodBaseline()
+        // delta=0.0 so attribution produces zero Greek P&L, leaving total entirely unexplained
+        coEvery { f.dailyRiskSnapshotRepo.findByBookIdAndDate(BOOK, TODAY) } returns listOf(
+            sodSnapshot("AAPL", quantity = "100", marketPrice = "100.00",
+                delta = 0.0, gamma = 0.0, vega = 0.0, theta = 0.0, rho = 0.0),
+        )
+        coEvery { f.positionProvider.getPositions(BOOK) } returns listOf(
+            position("AAPL", quantity = "100", avgCost = "90.00", marketPrice = "110.00"),
+        )
+        coEvery { f.pnlRepository.findLatest(BOOK) } returns null
+
+        val snapshot = f.service.recompute(BOOK, PnlTrigger.POSITION_CHANGE, correlationId = null)
+
+        snapshot.shouldNotBeNull()
+        // unexplained = totalPnl = 2000, ratio = 100% > 20%
+        snapshot.dataQualityWarning.shouldNotBeNull()
+        snapshot.dataQualityWarning!! shouldContain "unexplained"
+    }
+
+    test("no data quality warning when unexplained P&L is within 20% of total") {
+        val f = TestFixtures()
+        coEvery { f.sodBaselineRepo.findByBookIdAndDate(BOOK, any()) } returns sodBaseline()
+        // SOD marketPrice = 90.00, current = 110.00 → priceChange = 20
+        // dollar-delta = 100 (position-level, quantity * per-share delta)
+        // deltaPnl = 100 * 20 = 2000 = totalPnl → unexplained = 0
+        coEvery { f.dailyRiskSnapshotRepo.findByBookIdAndDate(BOOK, TODAY) } returns listOf(
+            sodSnapshot("AAPL", quantity = "100", marketPrice = "90.00",
+                delta = 100.0, gamma = 0.0, vega = 0.0, theta = 0.0, rho = 0.0),
+        )
+        coEvery { f.positionProvider.getPositions(BOOK) } returns listOf(
+            position("AAPL", quantity = "100", avgCost = "90.00", marketPrice = "110.00"),
+        )
+        coEvery { f.pnlRepository.findLatest(BOOK) } returns null
+
+        val snapshot = f.service.recompute(BOOK, PnlTrigger.POSITION_CHANGE, correlationId = null)
+
+        snapshot.shouldNotBeNull()
+        snapshot.dataQualityWarning.shouldBeNull()
+    }
+
+    test("no data quality warning when total P&L is zero (division guard)") {
+        val f = TestFixtures()
+        coEvery { f.sodBaselineRepo.findByBookIdAndDate(BOOK, any()) } returns sodBaseline()
+        coEvery { f.dailyRiskSnapshotRepo.findByBookIdAndDate(BOOK, TODAY) } returns listOf(
+            sodSnapshot("AAPL", quantity = "100", marketPrice = "100.00",
+                delta = 0.0, gamma = 0.0, vega = 0.0, theta = 0.0, rho = 0.0),
+        )
+        // marketPrice == avgCost → unrealised P&L = 0, totalPnl = 0
+        coEvery { f.positionProvider.getPositions(BOOK) } returns listOf(
+            position("AAPL", quantity = "100", avgCost = "100.00", marketPrice = "100.00"),
+        )
+        coEvery { f.pnlRepository.findLatest(BOOK) } returns null
+
+        val snapshot = f.service.recompute(BOOK, PnlTrigger.POSITION_CHANGE, correlationId = null)
+
+        snapshot.shouldNotBeNull()
+        snapshot.dataQualityWarning.shouldBeNull()
     }
 })
