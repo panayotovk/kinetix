@@ -8,4 +8,5 @@ import com.kinetix.common.model.DivisionId
 interface ReferenceDataServiceClient {
     suspend fun getDeskById(deskId: DeskId): Desk?
     suspend fun getDivisionById(divisionId: DivisionId): Division?
+    suspend fun getNettingAgreementsForCounterparty(counterpartyId: String): List<NettingAgreement>
 }

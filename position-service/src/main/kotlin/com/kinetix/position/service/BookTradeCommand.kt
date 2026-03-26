@@ -37,6 +37,7 @@ class TradeBookingService(
     private val transactional: TransactionalRunner,
     private val tradeEventPublisher: TradeEventPublisher,
     private val limitCheckService: PreTradeCheckService? = null,
+    private val nettingSetAssigner: NettingSetAssigner? = null,
 ) {
     private val logger = LoggerFactory.getLogger(TradeBookingService::class.java)
 
@@ -88,6 +89,10 @@ class TradeBookingService(
             tradeEventPublisher.publish(TradeEvent(trade = result.trade, userId = command.userId, userRole = command.userRole))
             logger.info("Trade booked: tradeId={}, book={}, newPosition={}",
                 result.trade.tradeId.value, result.trade.bookId.value, result.position.quantity)
+            nettingSetAssigner?.assignIfApplicable(
+                tradeId = result.trade.tradeId.value,
+                counterpartyId = command.counterpartyId,
+            )
         }
 
         return result

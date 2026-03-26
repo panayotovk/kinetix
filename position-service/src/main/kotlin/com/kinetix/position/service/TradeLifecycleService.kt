@@ -11,6 +11,7 @@ class TradeLifecycleService(
     private val positionRepository: PositionRepository,
     private val transactional: TransactionalRunner,
     private val tradeEventPublisher: TradeEventPublisher,
+    private val nettingSetAssigner: NettingSetAssigner? = null,
 ) {
     private val logger = LoggerFactory.getLogger(TradeLifecycleService::class.java)
 
@@ -58,6 +59,10 @@ class TradeLifecycleService(
 
         tradeEventPublisher.publish(TradeEvent(trade = result.trade, userId = command.userId, userRole = command.userRole))
         logger.info("Trade amended: originalTradeId={}, newTradeId={}", command.originalTradeId.value, command.newTradeId.value)
+        nettingSetAssigner?.assignIfApplicable(
+            tradeId = result.trade.tradeId.value,
+            counterpartyId = command.counterpartyId,
+        )
         return result
     }
 

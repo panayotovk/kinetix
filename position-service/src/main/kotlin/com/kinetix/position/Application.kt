@@ -53,6 +53,12 @@ import com.kinetix.position.service.PortfolioAggregationService
 import com.kinetix.position.service.LiveFxRateProvider
 import com.kinetix.position.service.StaticFxRateProvider
 import com.kinetix.position.service.TradeLifecycleService
+import com.kinetix.position.client.HttpReferenceDataServiceClient
+import com.kinetix.position.service.NettingSetAssigner
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
+import io.ktor.serialization.kotlinx.json.*
 import java.math.BigDecimal
 import java.util.Currency
 import io.github.smiley4.ktoropenapi.OpenApi
@@ -146,10 +152,19 @@ fun Application.moduleWithRoutes() {
     val kafkaProducer = KafkaProducer<String, String>(producerProps)
     val tradeEventPublisher = KafkaTradeEventPublisher(kafkaProducer)
 
+    val referenceDataBaseUrl = environment.config.config("referenceData").property("baseUrl").getString()
+    val referenceDataHttpClient = HttpClient(CIO) {
+        install(ClientContentNegotiation) { json() }
+    }
+    val referenceDataClient = HttpReferenceDataServiceClient(referenceDataHttpClient, referenceDataBaseUrl)
+
     val limitDefinitionRepo = ExposedLimitDefinitionRepository(db)
     val temporaryLimitIncreaseRepo = ExposedTemporaryLimitIncreaseRepository(db)
     val limitHierarchyService = LimitHierarchyService(limitDefinitionRepo, temporaryLimitIncreaseRepo)
     val preTradeCheckService = HierarchyBasedPreTradeCheckService(positionRepository, limitHierarchyService)
+
+    val nettingSetTradeRepository = ExposedNettingSetTradeRepository(db)
+    val nettingSetAssigner = NettingSetAssigner(referenceDataClient, nettingSetTradeRepository)
 
     val tradeBookingService = TradeBookingService(
         tradeEventRepository = tradeEventRepository,
@@ -157,6 +172,7 @@ fun Application.moduleWithRoutes() {
         transactional = transactionalRunner,
         tradeEventPublisher = tradeEventPublisher,
         limitCheckService = preTradeCheckService,
+        nettingSetAssigner = nettingSetAssigner,
     )
     val tradeStrategyRepository = ExposedTradeStrategyRepository(db)
     val tradeStrategyService = TradeStrategyService(tradeStrategyRepository)
@@ -167,6 +183,7 @@ fun Application.moduleWithRoutes() {
         positionRepository = positionRepository,
         transactional = transactionalRunner,
         tradeEventPublisher = tradeEventPublisher,
+        nettingSetAssigner = nettingSetAssigner,
     )
 
     val staticFxRateProvider = StaticFxRateProvider(
@@ -180,7 +197,6 @@ fun Application.moduleWithRoutes() {
         )
     )
     val liveFxRateProvider = LiveFxRateProvider(delegate = staticFxRateProvider)
-    val nettingSetTradeRepository = ExposedNettingSetTradeRepository(db)
     val counterpartyExposureService = CounterpartyExposureService(tradeEventRepository, nettingSetTradeRepository)
     val collateralBalanceRepository = ExposedCollateralBalanceRepository(db)
     val collateralTrackingService = CollateralTrackingService(collateralBalanceRepository)
