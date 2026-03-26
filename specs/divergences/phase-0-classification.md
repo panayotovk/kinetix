@@ -16,9 +16,9 @@
 | code-fix P2 | 22 | 22 | 0 |
 | decision-needed | 18 | 18 | 0 |
 | aspirational (Tier 1) | 7 | 7 | 0 |
-| aspirational (Tier 2) | 14 | 0 | 14 |
+| aspirational (Tier 2) | 14 | 14 | 0 |
 | aspirational (Tier 3) | 6 | 0 | 6 |
-| **Total** | **137** | **117** | **20** |
+| **Total** | **137** | **131** | **6** |
 
 ---
 
@@ -126,24 +126,26 @@ All 16 spec files updated to match code reality. Covered enums, field types, nam
 
 ---
 
-## Remaining: Aspirational Tier 2 (14 items)
+### Aspirational Tier 2 (14 items) — ALL IMPLEMENTED
 
-| ID | Feature | Where |
-|---|---|---|
-| RISK-07 | ReconcileTradeAudit daily scheduled job | risk-orchestrator |
-| CPTY-10 | Scheduled post-EOD counterparty risk batch | risk-orchestrator |
-| AUD-06 | Emit RISK_CALCULATION_COMPLETED governance events | risk-orchestrator |
-| AUD-07 | Emit RBAC_ACCESS_DENIED audit events on HTTP 403 | gateway |
-| AUD-08 | Emit REPORT_GENERATED audit events | regulatory-service |
-| FAC-01 | Persist FactorDefinition (currently hardcoded constants) | risk-engine + DB |
-| FAC-02 | Persist FactorReturn (currently transient request data) | risk-engine + DB |
-| FAC-03 | Persist InstrumentFactorLoading with staleness tracking | risk-engine + DB |
-| FAC-05 | Scheduled factor loading re-estimation and daily decomposition | risk-orchestrator |
-| FAC-06 | WarnOnFactorConcentration alert | risk-engine + notification |
-| SCEN-01 | Reverse stress test solver (DTOs exist, computation missing) | risk-engine |
-| REG-01 | ModelVersion 5 governance fields | regulatory-service |
-| LIQ-10 | AlertOnConcentration notification-service integration | notification-service |
-| LIQ-11 | RecomputeLiquidityOnTrade Kafka listener | risk-orchestrator |
+| ID | Feature |
+|---|---|
+| RISK-07 | ReconcileTradeAudit daily scheduled job |
+| CPTY-10 | Scheduled post-EOD counterparty risk batch |
+| AUD-06 | RISK_CALCULATION_COMPLETED events (already existed) |
+| AUD-07 | RBAC_ACCESS_DENIED events (already existed) |
+| AUD-08 | REPORT_GENERATED audit events |
+| FAC-01 | FactorDefinition persisted with seed data |
+| FAC-02 | FactorReturn persisted with upsert and date-range query |
+| FAC-03 | InstrumentFactorLoading with staleness tracking |
+| FAC-05 | Scheduled daily factor decomposition |
+| FAC-06 | FACTOR_CONCENTRATION alert on high exposure |
+| SCEN-01 | Reverse stress test solver |
+| REG-01 | ModelVersion 5 governance fields |
+| LIQ-10 | LIQUIDITY_CONCENTRATION alert on ADV concentration |
+| LIQ-11 | Liquidity recompute on significant trade events |
+
+---
 
 ## Remaining: Aspirational Tier 3 (6 items)
 
