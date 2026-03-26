@@ -195,3 +195,58 @@ groups:
         annotations:
           summary: "Risk engine gRPC P95 latency exceeds 60s"
           description: "VaR calculation P95 duration is {{ $value }}s"
+
+  - name: kinetix-pnl-attribution
+    rules:
+      - alert: PnlUnexplainedFractionHigh
+        expr: >
+          abs(pnl_attribution_unexplained_pnl)
+          /
+          (abs(pnl_attribution_total_pnl) > 0 or vector(1))
+          > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P&L unexplained fraction >5% for {{ $labels.book_id }}"
+          description: "Book {{ $labels.book_id }} has an unexplained P&L fraction of {{ $value | humanizePercentage }} for two consecutive calculations. Investigate stale Greeks or missing cross-Greek data."
+
+  - name: kinetix-krd
+    rules:
+      - alert: KrdIntradayChangeHigh
+        expr: >
+          abs(
+            krd_dv01_current{tenor=~".+"}
+            - krd_dv01_sod{tenor=~".+"}
+          )
+          /
+          (abs(krd_dv01_sod{tenor=~".+"}) > 0 or vector(1))
+          > 0.20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "KRD change >20% for {{ $labels.book_id }} at {{ $labels.tenor }}"
+          description: "DV01 for {{ $labels.book_id }} at tenor {{ $labels.tenor }} has changed by {{ $value | humanizePercentage }} intraday. May indicate large rate-sensitive trade or curve data issue."
+
+  - name: kinetix-timescaledb
+    rules:
+      - alert: ContinuousAggregateJobFailed
+        expr: increase(pg_stat_user_functions_calls{funcname=~".*policy_refresh_continuous_aggregate.*"}[1h]) == 0
+        for: 2h
+        labels:
+          severity: warning
+        annotations:
+          summary: "TimescaleDB continuous aggregate refresh not running"
+          description: "No continuous aggregate refresh has executed in the last 2 hours. Check TimescaleDB background worker health."
+
+  - name: kinetix-vol-surface
+    rules:
+      - alert: VolSurfaceStale
+        expr: vol_surface_staleness_seconds > 3600
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Vol surface stale for {{ $labels.instrument_id }}"
+          description: "Vol surface for {{ $labels.instrument_id }} has not been updated for {{ $value }}s. This is distinct from price staleness — vol surfaces may update on a different cadence."
