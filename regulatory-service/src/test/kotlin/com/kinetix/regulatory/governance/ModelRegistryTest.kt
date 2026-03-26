@@ -1,6 +1,7 @@
 package com.kinetix.regulatory.governance
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -10,6 +11,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 
 class ModelRegistryTest : FunSpec({
@@ -147,6 +149,55 @@ class ModelRegistryTest : FunSpec({
         result.status shouldBe ModelVersionStatus.APPROVED
         result.approvedBy shouldBe "risk-manager-1"
     }
+
+    // REG_D-06: CheckModelStaleness
+    test("checkStaleness returns approved models whose nextValidationDate has passed") {
+        val today = LocalDate.of(2026, 3, 26)
+        val staleModel = aModelVersion(
+            status = ModelVersionStatus.APPROVED,
+            nextValidationDate = LocalDate.of(2026, 1, 1), // already past
+        )
+        val freshModel = aModelVersion(
+            status = ModelVersionStatus.APPROVED,
+            nextValidationDate = LocalDate.of(2027, 1, 1), // future
+        )
+        val noDateModel = aModelVersion(
+            status = ModelVersionStatus.APPROVED,
+            nextValidationDate = null,
+        )
+        coEvery { repository.findAll() } returns listOf(staleModel, freshModel, noDateModel)
+
+        val stale = service.checkStaleness(asOf = today)
+
+        stale shouldHaveSize 1
+        stale[0].id shouldBe staleModel.id
+    }
+
+    test("checkStaleness excludes non-approved models even if past validation date") {
+        val today = LocalDate.of(2026, 3, 26)
+        val draftModel = aModelVersion(
+            status = ModelVersionStatus.DRAFT,
+            nextValidationDate = LocalDate.of(2026, 1, 1),
+        )
+        coEvery { repository.findAll() } returns listOf(draftModel)
+
+        val stale = service.checkStaleness(asOf = today)
+
+        stale.shouldBeEmpty()
+    }
+
+    test("checkStaleness returns empty list when no models are stale") {
+        val today = LocalDate.of(2026, 3, 26)
+        val freshModel = aModelVersion(
+            status = ModelVersionStatus.APPROVED,
+            nextValidationDate = LocalDate.of(2027, 1, 1),
+        )
+        coEvery { repository.findAll() } returns listOf(freshModel)
+
+        val stale = service.checkStaleness(asOf = today)
+
+        stale.shouldBeEmpty()
+    }
 })
 
 private fun aModelVersion(
@@ -159,6 +210,7 @@ private fun aModelVersion(
     approvedBy: String? = null,
     approvedAt: Instant? = null,
     createdAt: Instant = Instant.now(),
+    nextValidationDate: LocalDate? = null,
 ) = ModelVersion(
     id = id,
     modelName = modelName,
@@ -169,4 +221,5 @@ private fun aModelVersion(
     approvedBy = approvedBy,
     approvedAt = approvedAt,
     createdAt = createdAt,
+    nextValidationDate = nextValidationDate,
 )

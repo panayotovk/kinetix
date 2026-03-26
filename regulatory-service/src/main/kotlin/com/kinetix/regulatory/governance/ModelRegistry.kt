@@ -4,6 +4,7 @@ import com.kinetix.common.audit.AuditEventType
 import com.kinetix.common.audit.GovernanceAuditEvent
 import com.kinetix.regulatory.audit.GovernanceAuditPublisher
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 
 class ModelRegistry(
@@ -93,4 +94,17 @@ class ModelRegistry(
 
         return updated
     }
+
+    /**
+     * Returns all APPROVED models whose [ModelVersion.nextValidationDate] has passed
+     * relative to [asOf]. These are models that are overdue for revalidation.
+     *
+     * Models without a [ModelVersion.nextValidationDate] are not considered stale.
+     */
+    suspend fun checkStaleness(asOf: LocalDate = LocalDate.now()): List<ModelVersion> =
+        repository.findAll().filter { model ->
+            model.status == ModelVersionStatus.APPROVED &&
+                model.nextValidationDate != null &&
+                model.nextValidationDate < asOf
+        }
 }
