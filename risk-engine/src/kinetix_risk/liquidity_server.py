@@ -19,6 +19,7 @@ from kinetix_risk.liquidity import (
     assess_concentration_flag,
     compute_liquidation_horizon,
     compute_lvar,
+    compute_position_lvar,
     compute_stressed_liquidation_value,
 )
 from kinetix_risk.models import AssetClass
@@ -115,18 +116,19 @@ class LiquidityAdjustedVaRServicer(
             # Build per-position risk entries
             position_risks = []
             concentration_statuses = []
+            total_mv = sum(abs(i.market_value) for i in domain_inputs)
 
             for inp, h_result in zip(domain_inputs, horizon_results):
-                proto_ac = _proto_to_domain_asset_class(
-                    next(
-                        (pi.asset_class for pi in request.inputs if pi.instrument_id == inp.instrument_id),
-                        types_pb2.EQUITY,
-                    )
-                )
-                # LVaR contribution: position weight * portfolio LVaR
-                total_mv = sum(abs(i.market_value) for i in domain_inputs)
+                # Per-position LVaR contribution via scaled VaR + spread cost
                 position_weight = abs(inp.market_value) / total_mv if total_mv > 0 else 0.0
-                lvar_contribution = lvar_result.lvar_value * position_weight
+                var_contribution = request.base_var * position_weight
+                lvar_contribution = compute_position_lvar(
+                    var_contribution=var_contribution,
+                    liquidation_days=h_result.horizon_days,
+                    base_holding_period=request.base_holding_period,
+                    bid_ask_spread_bps=inp.bid_ask_spread_bps,
+                    position_notional=inp.market_value,
+                )
 
                 # Stressed liquidation value
                 ac_name = inp.asset_class.value

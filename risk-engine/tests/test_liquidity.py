@@ -16,6 +16,7 @@ from kinetix_risk.liquidity import (
     PositionLiquidityRisk,
     compute_liquidation_horizon,
     compute_lvar,
+    compute_position_lvar,
     compute_stressed_liquidation_value,
     assess_concentration_flag,
     ILLIQUID_HORIZON_DAYS,
@@ -197,6 +198,89 @@ def test_lvar_result_has_lvar_value():
     )
     assert result.lvar_value == pytest.approx(80_000.0 * math.sqrt(10), rel=1e-6)
     assert result.data_completeness == 1.0  # no inputs -> assume complete (no positions to check)
+
+
+# ---------------------------------------------------------------------------
+# compute_position_lvar (LIQ-07)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+def test_compute_position_lvar_zero_spread():
+    """With no bid-ask spread, per-position LVaR equals VaR * sqrt(T)."""
+    var_contribution = 100_000.0
+    result = compute_position_lvar(
+        var_contribution=var_contribution,
+        liquidation_days=10,
+        base_holding_period=1,
+        bid_ask_spread_bps=None,
+        position_notional=5_000_000.0,
+    )
+    assert result == pytest.approx(var_contribution * math.sqrt(10), rel=1e-6)
+
+
+@pytest.mark.unit
+def test_compute_position_lvar_with_spread_cost():
+    """LVaR = scaled VaR + 0.5 * spread_decimal * |notional|.
+
+    var_contribution=100_000, horizon=10, spread=20bps, notional=5_000_000:
+      scaled_var = 100_000 * sqrt(10) = 316_227.766...
+      spread_cost = 0.5 * 0.002 * 5_000_000 = 5_000
+      total = 321_227.766...
+    """
+    result = compute_position_lvar(
+        var_contribution=100_000.0,
+        liquidation_days=10,
+        base_holding_period=1,
+        bid_ask_spread_bps=20.0,
+        position_notional=5_000_000.0,
+    )
+    expected = 100_000.0 * math.sqrt(10) + 0.5 * 0.002 * 5_000_000.0
+    assert result == pytest.approx(expected, rel=1e-6)
+
+
+@pytest.mark.unit
+def test_compute_position_lvar_short_position_uses_abs_notional():
+    """Negative market value (short) produces a positive spread cost."""
+    result_long = compute_position_lvar(
+        var_contribution=50_000.0,
+        liquidation_days=5,
+        base_holding_period=1,
+        bid_ask_spread_bps=10.0,
+        position_notional=2_000_000.0,
+    )
+    result_short = compute_position_lvar(
+        var_contribution=50_000.0,
+        liquidation_days=5,
+        base_holding_period=1,
+        bid_ask_spread_bps=10.0,
+        position_notional=-2_000_000.0,
+    )
+    assert result_long == pytest.approx(result_short, rel=1e-6)
+    assert result_short > 0
+
+
+@pytest.mark.unit
+def test_lvar_exceeds_var_invariant():
+    """For any non-zero base_var and non-negative spread, LVaR >= base_var."""
+    inputs = [
+        LiquidityInput(
+            instrument_id="A",
+            market_value=1_000_000.0,
+            adv=20_000_000.0,   # HIGH_LIQUID -> 1-day horizon
+            adv_staleness_days=0,
+            asset_class=AssetClass.EQUITY,
+            bid_ask_spread_bps=5.0,
+        ),
+    ]
+    base_var = 50_000.0
+    result = compute_lvar(
+        base_var=base_var,
+        liquidation_horizon_days=1,
+        base_holding_period=1,
+        inputs=inputs,
+    )
+    assert result.lvar_value >= base_var
 
 
 # ---------------------------------------------------------------------------

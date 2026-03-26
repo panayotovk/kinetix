@@ -13,7 +13,7 @@ Key behavioural invariants:
     adv_missing=True. Fail safe for pre-trade checks.
   - Stale ADV (adv_staleness_days > ADV_MAX_STALENESS_DAYS) -> adv_stale=True.
     Concentration check returns WARNING (not BREACHED) unless also over limit.
-  - LVaR = base_var * sqrt(liquidation_days / base_holding_period).
+  - LVaR_i = VaR_i * sqrt(horizon_i / base_period) + 0.5 * spread_bps/10000 * |notional_i|
   - data_completeness = fraction of portfolio (by notional) with ADV data present.
 """
 from __future__ import annotations
@@ -66,6 +66,7 @@ class LiquidityInput:
     adv: float | None
     adv_staleness_days: int | None
     asset_class: AssetClass
+    bid_ask_spread_bps: float | None = None
 
 
 @dataclass(frozen=True)
@@ -167,27 +168,69 @@ def compute_liquidation_horizon(
 # ---------------------------------------------------------------------------
 
 
+def compute_position_lvar(
+    var_contribution: float,
+    liquidation_days: int,
+    base_holding_period: int,
+    bid_ask_spread_bps: float | None,
+    position_notional: float,
+) -> float:
+    """Per-position LVaR = scaled VaR + spread cost.
+
+    This is a linear model assuming constant participation rate and zero
+    market impact (Bangia et al., 1999). Almgren-Chriss is deferred.
+
+    spread_cost = 0.5 * (spread_bps / 10_000) * |notional|
+    """
+    scaled_var = var_contribution * math.sqrt(liquidation_days / base_holding_period)
+    spread_decimal = (bid_ask_spread_bps or 0.0) / 10_000
+    spread_cost = 0.5 * spread_decimal * abs(position_notional)
+    return scaled_var + spread_cost
+
+
 def compute_lvar(
     base_var: float,
     liquidation_horizon_days: int,
     base_holding_period: int = 1,
     inputs: list[LiquidityInput] | None = None,
 ) -> LVaRResult:
-    """Compute Liquidity-adjusted VaR using Basel sqrt(T) scaling.
+    """Compute Liquidity-adjusted VaR using per-position sqrt(T) scaling and spread cost.
 
-    lvar = base_var * sqrt(liquidation_horizon_days / base_holding_period)
+    When no inputs are provided, the simple Basel formula is used for backward
+    compatibility:
+        lvar = base_var * sqrt(liquidation_horizon_days / base_holding_period)
 
-    data_completeness: fraction of portfolio positions that have ADV data.
-    When no inputs are provided, data_completeness defaults to 1.0.
+    When inputs are provided, portfolio LVaR is the sum of per-position LVaRs,
+    each computed by compute_position_lvar using position-specific horizons and
+    bid-ask spread costs.
+
+    data_completeness: notional-weighted fraction of portfolio positions that have
+    ADV data. Defaults to 1.0 when no inputs are provided.
     """
-    lvar_value = base_var * math.sqrt(liquidation_horizon_days / base_holding_period)
-
     if not inputs:
-        data_completeness = 1.0
-    else:
-        total_notional = sum(abs(inp.market_value) for inp in inputs)
-        covered_notional = sum(abs(inp.market_value) for inp in inputs if inp.adv is not None)
-        data_completeness = covered_notional / total_notional if total_notional > 0 else 1.0
+        lvar_value = base_var * math.sqrt(liquidation_horizon_days / base_holding_period)
+        return LVaRResult(lvar_value=lvar_value, data_completeness=1.0)
+
+    total_mv = sum(abs(inp.market_value) for inp in inputs)
+    position_lvars = []
+    for inp in inputs:
+        weight = abs(inp.market_value) / total_mv if total_mv > 0 else 0.0
+        var_contribution = base_var * weight
+        horizon = compute_liquidation_horizon(inp.market_value, inp.adv, inp.adv_staleness_days)
+        pos_lvar = compute_position_lvar(
+            var_contribution=var_contribution,
+            liquidation_days=horizon.horizon_days,
+            base_holding_period=base_holding_period,
+            bid_ask_spread_bps=inp.bid_ask_spread_bps,
+            position_notional=inp.market_value,
+        )
+        position_lvars.append(pos_lvar)
+
+    lvar_value = sum(position_lvars)
+
+    total_notional = sum(abs(inp.market_value) for inp in inputs)
+    covered_notional = sum(abs(inp.market_value) for inp in inputs if inp.adv is not None)
+    data_completeness = covered_notional / total_notional if total_notional > 0 else 1.0
 
     return LVaRResult(lvar_value=lvar_value, data_completeness=data_completeness)
 
