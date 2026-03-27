@@ -382,6 +382,47 @@ fun Application.devModule() {
         pnlWebSocket(pnlBroadcaster, jwtConfig, wsJwkProvider)
         alertWebSocket(alertBroadcaster, jwtConfig, wsJwkProvider)
 
+        // System health is public so CI/k8s probes can reach it without a JWT.
+        get("/api/v1/system/health") {
+            val serviceUrls = mapOf(
+                "position-service" to positionUrl,
+                "price-service" to priceUrl,
+                "risk-orchestrator" to riskUrl,
+                "notification-service" to notificationUrl,
+                "rates-service" to ratesUrl,
+                "reference-data-service" to referenceDataUrl,
+                "volatility-service" to volatilityUrl,
+                "correlation-service" to correlationUrl,
+                "regulatory-service" to regulatoryUrl,
+                "audit-service" to auditUrl,
+            )
+            val results = coroutineScope {
+                serviceUrls.map { (name, url) ->
+                    name to async {
+                        try {
+                            val resp = withTimeoutOrNull(5000L) {
+                                httpClient.get("$url/health/ready")
+                            }
+                            if (resp != null && resp.status == HttpStatusCode.OK) "READY" else "NOT_READY"
+                        } catch (_: Exception) {
+                            "DOWN"
+                        }
+                    }
+                }.map { (name, deferred) -> name to deferred.await() }
+            }
+            val overall = if (results.all { it.second == "READY" }) "UP" else "DEGRADED"
+            val response = buildJsonObject {
+                put("status", overall)
+                putJsonObject("services") {
+                    putJsonObject("gateway") { put("status", "READY") }
+                    for ((name, status) in results) {
+                        putJsonObject(name) { put("status", status) }
+                    }
+                }
+            }
+            call.respond(response)
+        }
+
         // All HTTP API routes require a valid JWT
         authenticate("auth-jwt") {
             requirePermission(Permission.READ_PORTFOLIOS) {
@@ -447,47 +488,6 @@ fun Application.devModule() {
             requirePermission(Permission.READ_AUDIT) {
                 auditProxyRoutes(httpClient, auditUrl)
             }
-            // System health is public so infrastructure probes (CI, k8s) can reach it
-            // without authentication. It reveals service names and ready status only.
-            get("/api/v1/system/health") {
-                    val serviceUrls = mapOf(
-                        "position-service" to positionUrl,
-                        "price-service" to priceUrl,
-                        "risk-orchestrator" to riskUrl,
-                        "notification-service" to notificationUrl,
-                        "rates-service" to ratesUrl,
-                        "reference-data-service" to referenceDataUrl,
-                        "volatility-service" to volatilityUrl,
-                        "correlation-service" to correlationUrl,
-                        "regulatory-service" to regulatoryUrl,
-                        "audit-service" to auditUrl,
-                    )
-                    val results = coroutineScope {
-                        serviceUrls.map { (name, url) ->
-                            name to async {
-                                try {
-                                    val resp = withTimeoutOrNull(5000L) {
-                                        httpClient.get("$url/health/ready")
-                                    }
-                                    if (resp != null && resp.status == HttpStatusCode.OK) "READY" else "NOT_READY"
-                                } catch (_: Exception) {
-                                    "DOWN"
-                                }
-                            }
-                        }.map { (name, deferred) -> name to deferred.await() }
-                    }
-                    val overall = if (results.all { it.second == "READY" }) "UP" else "DEGRADED"
-                    val response = buildJsonObject {
-                        put("status", overall)
-                        putJsonObject("services") {
-                            putJsonObject("gateway") { put("status", "READY") }
-                            for ((name, status) in results) {
-                                putJsonObject(name) { put("status", status) }
-                            }
-                        }
-                    }
-                    call.respond(response)
-                }
         }
     }
 
