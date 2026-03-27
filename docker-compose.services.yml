@@ -469,10 +469,10 @@ services:
       - "80"
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://127.0.0.1:80/healthz"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
     depends_on:
       gateway:
