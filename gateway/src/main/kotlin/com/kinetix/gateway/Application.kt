@@ -424,16 +424,19 @@ fun Application.devModule() {
             call.respond(response)
         }
 
-        // All HTTP API routes require a valid JWT (unless auth is disabled for smoke tests)
+        // All HTTP API routes require a valid JWT (unless auth is disabled for smoke tests).
+        // authEnabled is threaded into requirePermission so that when auth is off the plugin
+        // is completely skipped — no AuthenticationChecked hook is installed, no principal
+        // extraction is attempted, and the request passes directly to the route handler.
         val apiRoutes: Route.() -> Unit = {
-            requirePermission(Permission.READ_PORTFOLIOS) {
+            requirePermission(Permission.READ_PORTFOLIOS, authEnabled = authEnabled) {
                 requireBookAccess(bookAccessService) {
                     positionRoutes(positionClient)
                     strategyProxyRoutes(httpClient, positionUrl)
                 }
                 priceRoutes(priceClient)
             }
-            requirePermission(Permission.CALCULATE_RISK) {
+            requirePermission(Permission.CALCULATE_RISK, authEnabled = authEnabled) {
                 requireBookAccess(bookAccessService) {
                     varRoutes(riskClient)
                     liquidityRiskRoutes(riskClient)
@@ -455,7 +458,7 @@ fun Application.devModule() {
                 riskBudgetRoutes(riskClient)
                 croReportRoutes(riskClient)
             }
-            requirePermission(Permission.READ_RISK) {
+            requirePermission(Permission.READ_RISK, authEnabled = authEnabled) {
                 requireBookAccess(bookAccessService) {
                     stressTestRoutes(riskClient)
                     jobHistoryRoutes(riskClient)
@@ -466,27 +469,27 @@ fun Application.devModule() {
                 counterpartyRiskRoutes(riskClient)
                 volSurfaceRoutes(volatilityClient)
             }
-            requirePermission(Permission.READ_REGULATORY) {
+            requirePermission(Permission.READ_REGULATORY, authEnabled = authEnabled) {
                 requireBookAccess(bookAccessService) {
                     regulatoryRoutes(riskClient)
                     eodTimelineRoutes(riskClient)
                 }
             }
-            requirePermission(Permission.READ_ALERTS) {
+            requirePermission(Permission.READ_ALERTS, authEnabled = authEnabled) {
                 notificationRoutes(notificationClient)
             }
-            requirePermission(Permission.MANAGE_SCENARIOS) {
+            requirePermission(Permission.MANAGE_SCENARIOS, authEnabled = authEnabled) {
                 stressScenarioRoutes(regulatoryClient)
                 backtestProxyRoutes(regulatoryClient)
             }
-            requirePermission(Permission.READ_POSITIONS) {
+            requirePermission(Permission.READ_POSITIONS, authEnabled = authEnabled) {
                 requireBookAccess(bookAccessService) {
                     executionProxyRoutes(httpClient, positionUrl)
                 }
                 instrumentRoutes(httpClient, referenceDataUrl)
                 dataQualityRoutes(httpClient, positionUrl)
             }
-            requirePermission(Permission.READ_AUDIT) {
+            requirePermission(Permission.READ_AUDIT, authEnabled = authEnabled) {
                 auditProxyRoutes(httpClient, auditUrl)
             }
         }

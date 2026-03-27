@@ -1,6 +1,6 @@
 package com.kinetix.gateway.routes
 
-import com.kinetix.gateway.auth.requireUserId
+import com.kinetix.gateway.auth.userIdOrDefault
 import com.kinetix.gateway.client.ApproveScenarioParams
 import com.kinetix.gateway.client.CreateScenarioParams
 import com.kinetix.gateway.client.RegulatoryServiceClient
@@ -37,7 +37,7 @@ fun Route.stressScenarioRoutes(client: RegulatoryServiceClient) {
             tags = listOf("Stress Scenarios")
         }) {
             val request = call.receive<CreateScenarioRequest>()
-            val createdBy = call.requireUserId()
+            val createdBy = call.userIdOrDefault()
             val params = CreateScenarioParams(
                 name = request.name,
                 description = request.description,
@@ -68,7 +68,7 @@ fun Route.stressScenarioRoutes(client: RegulatoryServiceClient) {
             }
         }) {
             val id = call.requirePathParam("id")
-            val approvedBy = call.requireUserId()
+            val approvedBy = call.userIdOrDefault()
             val params = ApproveScenarioParams(approvedBy = approvedBy)
             val scenario = client.approve(id, params)
             call.respond(scenario.toResponse())

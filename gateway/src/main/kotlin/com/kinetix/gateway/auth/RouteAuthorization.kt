@@ -13,30 +13,33 @@ import io.ktor.server.routing.*
 fun Route.requirePermission(
     permission: Permission,
     auditPublisher: GovernanceAuditPublisher? = null,
+    authEnabled: Boolean = true,
     build: Route.() -> Unit,
 ): Route {
     val route = createChild(object : RouteSelector() {
         override suspend fun evaluate(context: RoutingResolveContext, segmentIndex: Int) =
             RouteSelectorEvaluation.Transparent
     })
-    route.install(
-        createRouteScopedPlugin("PermissionCheck_${permission.name}") {
-            on(AuthenticationChecked) { call ->
-                val principal = call.principal<JwtUserPrincipal>()
-                if (principal != null && !principal.user.hasPermission(permission)) {
-                    auditPublisher?.publish(
-                        GovernanceAuditEvent(
-                            eventType = AuditEventType.RBAC_ACCESS_DENIED,
-                            userId = principal.user.userId,
-                            userRole = principal.user.roles.joinToString(",") { it.name },
-                            details = "Denied permission ${permission.name} for ${call.request.local.uri}",
+    if (authEnabled) {
+        route.install(
+            createRouteScopedPlugin("PermissionCheck_${permission.name}") {
+                on(AuthenticationChecked) { call ->
+                    val principal = call.principal<JwtUserPrincipal>()
+                    if (principal != null && !principal.user.hasPermission(permission)) {
+                        auditPublisher?.publish(
+                            GovernanceAuditEvent(
+                                eventType = AuditEventType.RBAC_ACCESS_DENIED,
+                                userId = principal.user.userId,
+                                userRole = principal.user.roles.joinToString(",") { it.name },
+                                details = "Denied permission ${permission.name} for ${call.request.local.uri}",
+                            )
                         )
-                    )
-                    call.respond(HttpStatusCode.Forbidden, mapOf("error" to "forbidden", "message" to "Insufficient permissions"))
+                        call.respond(HttpStatusCode.Forbidden, mapOf("error" to "forbidden", "message" to "Insufficient permissions"))
+                    }
                 }
-            }
-        },
-    )
+            },
+        )
+    }
     route.build()
     return route
 }
