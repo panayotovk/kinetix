@@ -468,11 +468,11 @@ services:
     expose:
       - "80"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/healthz"]
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:80/healthz"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 5s
+      start_period: 10s
     restart: unless-stopped
     depends_on:
       gateway:
