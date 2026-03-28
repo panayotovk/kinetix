@@ -105,7 +105,7 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
                 greeks_theta.labels(book_id=book_id).set(gr.theta)
                 greeks_rho.labels(book_id=book_id).set(gr.rho)
             except Exception:
-                logger.debug("Greeks calculation failed in CalculateVaR for book %s", book_id, exc_info=True)
+                logger.warning("Greeks calculation failed in CalculateVaR for book %s", book_id, exc_info=True)
 
             return var_result_to_proto_response(
                 result,
