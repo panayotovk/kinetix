@@ -448,6 +448,7 @@ fun Application.devModule() {
                     intradayVaRTimelineProxyRoutes(riskClient)
                     reportProxyRoutes(riskClient)
                     benchmarkAttributionRoutes(riskClient)
+                    keyRateDurationRoutes(riskClient)
                 }
                 // Cross-book routes use checkMultiBookAccess() inside handler (bookIds in body)
                 crossBookVaRRoutes(riskClient, bookAccessService)
@@ -465,6 +466,7 @@ fun Application.devModule() {
                 // Non-bookId routes
                 marketRegimeRoutes(riskClient)
                 counterpartyRiskRoutes(riskClient)
+                saCcrRoutes(riskClient)
                 volSurfaceRoutes(volatilityClient)
             }
             requirePermission(Permission.READ_REGULATORY, authEnabled = authEnabled) {

@@ -12,6 +12,7 @@ import com.kinetix.risk.service.HierarchyRiskService
 import com.kinetix.risk.service.VaRCalculationService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.supervisorScope
 import org.slf4j.LoggerFactory
 import kotlin.coroutines.coroutineContext
 
@@ -33,20 +34,24 @@ class ScheduledVaRCalculator(
                 val portfolios = bookIds()
                 for (bookId in portfolios) {
                     try {
-                        val result = varCalculationService.calculateVaR(
-                            VaRCalculationRequest(
-                                bookId = bookId,
-                                calculationType = CalculationType.PARAMETRIC,
-                                confidenceLevel = ConfidenceLevel.CL_95,
-                            ),
-                            triggerType = TriggerType.SCHEDULED,
-                            triggeredBy = "SYSTEM",
-                        )
-                        if (result != null) {
-                            varCache.put(bookId.value, result)
+                        // supervisorScope prevents a child coroutine failure (e.g. inside
+                        // newSuspendedTransaction) from cancelling the parent scheduler loop.
+                        supervisorScope {
+                            val result = varCalculationService.calculateVaR(
+                                VaRCalculationRequest(
+                                    bookId = bookId,
+                                    calculationType = CalculationType.PARAMETRIC,
+                                    confidenceLevel = ConfidenceLevel.CL_95,
+                                ),
+                                triggerType = TriggerType.SCHEDULED,
+                                triggeredBy = "SYSTEM",
+                            )
+                            if (result != null) {
+                                varCache.put(bookId.value, result)
 
-                            val totalVar = result.varValue ?: 0.0
-                            factorRiskService?.decomposeForBook(bookId, totalVar)
+                                val totalVar = result.varValue ?: 0.0
+                                factorRiskService?.decomposeForBook(bookId, totalVar)
+                            }
                         }
                     } catch (e: Exception) {
                         logger.error("Scheduled VaR calculation failed for portfolio {}", bookId.value, e)

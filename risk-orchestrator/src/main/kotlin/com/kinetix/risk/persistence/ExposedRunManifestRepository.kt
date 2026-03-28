@@ -55,7 +55,8 @@ class ExposedRunManifestRepository(private val db: Database? = null) : RunManife
         manifestId: UUID,
         refs: List<MarketDataRef>,
     ): Unit = newSuspendedTransaction(db = db) {
-        RunManifestMarketDataTable.batchInsert(refs) { ref ->
+        val deduplicated = refs.distinctBy { it.dataType to it.instrumentId }
+        RunManifestMarketDataTable.batchInsert(deduplicated) { ref ->
             this[RunManifestMarketDataTable.manifestId] = manifestId
             this[RunManifestMarketDataTable.contentHash] = ref.contentHash
             this[RunManifestMarketDataTable.dataType] = ref.dataType
