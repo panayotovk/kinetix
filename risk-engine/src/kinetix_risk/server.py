@@ -74,7 +74,7 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
 
             book_id = request.book_id.value
             ct = calc_type.value if hasattr(calc_type, "value") else str(calc_type)
-            cl = str(confidence)
+            cl = confidence.name
             risk_var_value.labels(book_id=book_id, calculation_type=ct, confidence_level=cl).set(result.var_value)
             risk_var_expected_shortfall.labels(book_id=book_id, calculation_type=ct, confidence_level=cl).set(result.expected_shortfall)
             for component in result.component_breakdown:
@@ -125,7 +125,7 @@ class RiskCalculationServicer(risk_calculation_pb2_grpc.RiskCalculationServiceSe
 
             book_id = request.book_id.value
             ct = calc_type.value if hasattr(calc_type, "value") else str(calc_type)
-            cl = str(confidence)
+            cl = confidence.name
 
             if result.var_result is not None:
                 risk_var_value.labels(book_id=book_id, calculation_type=ct, confidence_level=cl).set(result.var_result.var_value)

@@ -184,7 +184,7 @@
       "targets": [
         {
           "expr": "risk_var_component_contribution{book_id=~\"$book_id\"}",
-          "legendFormat": "{{asset_class}}",
+          "legendFormat": "{{book_id}} / {{asset_class}}",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
