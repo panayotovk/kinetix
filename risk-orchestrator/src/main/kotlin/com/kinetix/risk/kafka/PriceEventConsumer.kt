@@ -30,8 +30,10 @@ class PriceEventConsumer(
     private val intradayPnlService: IntradayPnlService? = null,
     private val topic: String = "price.updates",
     private val retryableConsumer: RetryableConsumer = RetryableConsumer(topic = topic),
+    private val cooldownMs: Long = 0,
 ) {
     private val logger = LoggerFactory.getLogger(PriceEventConsumer::class.java)
+    @Volatile private var lastProcessedAt: Long = 0
 
     suspend fun start() {
         withContext(Dispatchers.IO) {
@@ -43,6 +45,15 @@ class PriceEventConsumer(
                     consumer.poll(Duration.ofMillis(100))
                 }
                 if (records.isEmpty) continue
+
+                if (cooldownMs > 0) {
+                    val now = System.currentTimeMillis()
+                    if (now - lastProcessedAt < cooldownMs) {
+                        withContext(Dispatchers.IO) { consumer.commitSync() }
+                        continue
+                    }
+                    lastProcessedAt = now
+                }
 
                 val firstRecord = records.first()
                 val priceCorrelationId = try {

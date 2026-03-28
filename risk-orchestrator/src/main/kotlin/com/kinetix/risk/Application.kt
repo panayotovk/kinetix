@@ -598,6 +598,8 @@ fun Application.moduleWithRoutes() {
         dlqProducer = kafkaProducer,
         livenessTracker = pricesLivenessTracker,
     )
+    val priceEventCooldownMs = environment.config
+        .propertyOrNull("priceEventCooldownMs")?.getString()?.toLongOrNull() ?: 60_000L
     val priceEventConsumer = PriceEventConsumer(
         KafkaConsumer<String, String>(priceConsumerProps),
         varCalculationService,
@@ -608,6 +610,7 @@ fun Application.moduleWithRoutes() {
         varCache = varCache,
         intradayPnlService = intradayPnlService,
         retryableConsumer = priceRetryableConsumer,
+        cooldownMs = priceEventCooldownMs,
     )
 
     val readinessChecker = ReadinessChecker(
