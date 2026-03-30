@@ -37,6 +37,7 @@ import { useWorkspace } from './hooks/useWorkspace'
 import { useAuth } from './auth/useAuth'
 import { DEMO_MODE } from './auth/demoPersonas'
 import { PersonaSwitcher } from './components/PersonaSwitcher'
+import { DemoWelcomeStrip } from './components/DemoWelcomeStrip'
 
 type Tab = 'positions' | 'trades' | 'pnl' | 'risk' | 'eod' | 'scenarios' | 'regulatory' | 'counterparty-risk' | 'reports' | 'alerts' | 'system'
 
@@ -275,6 +276,8 @@ function App() {
           </button>
         ))}
       </nav>
+
+      <DemoWelcomeStrip />
 
       {exhausted && (
         <div
