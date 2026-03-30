@@ -336,7 +336,7 @@ fun Application.moduleWithRoutes() {
             limitCheckService = null,
         )
         launch {
-            DevDataSeeder(seederBookingService, positionRepository).seed()
+            DevDataSeeder(seederBookingService, positionRepository, limitDefinitionRepo).seed()
             seedDone.set(true)
         }
     } else {

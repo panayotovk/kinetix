@@ -1,6 +1,10 @@
 package com.kinetix.position.seed
 
 import com.kinetix.common.model.*
+import com.kinetix.position.model.LimitDefinition
+import com.kinetix.position.model.LimitLevel
+import com.kinetix.position.model.LimitType
+import com.kinetix.position.persistence.LimitDefinitionRepository
 import com.kinetix.position.persistence.PositionRepository
 import com.kinetix.position.service.BookTradeCommand
 import com.kinetix.position.service.TradeBookingService
@@ -13,6 +17,7 @@ import java.util.Currency
 class DevDataSeeder(
     private val tradeBookingService: TradeBookingService,
     private val positionRepository: PositionRepository,
+    private val limitDefinitionRepo: LimitDefinitionRepository? = null,
 ) {
     private val log = LoggerFactory.getLogger(DevDataSeeder::class.java)
 
@@ -33,6 +38,16 @@ class DevDataSeeder(
         for ((key, marketPrice) in MARKET_PRICES) {
             val position = positionRepository.findByKey(key.first, key.second) ?: continue
             positionRepository.save(position.markToMarket(marketPrice))
+        }
+
+        if (limitDefinitionRepo != null) {
+            val existingLimits = limitDefinitionRepo.findAll()
+            if (existingLimits.none { it.id.startsWith("seed-lim-") }) {
+                log.info("Seeding {} limit definitions", LIMIT_DEFINITIONS.size)
+                for (limit in LIMIT_DEFINITIONS) {
+                    limitDefinitionRepo.save(limit)
+                }
+            }
         }
 
         log.info("Dev data seeding complete")
@@ -568,6 +583,57 @@ class DevDataSeeder(
             Pair(BookId("derivatives-book"), InstrumentId("SPX-PUT-4500")) to usd("28.75"),
             Pair(BookId("derivatives-book"), InstrumentId("NVDA")) to usd("892.50"),
             Pair(BookId("derivatives-book"), InstrumentId("TSLA")) to usd("242.15"),
+        )
+
+        private fun limit(
+            id: String,
+            level: LimitLevel,
+            entityId: String,
+            type: LimitType,
+            value: String,
+            intraday: String? = null,
+            overnight: String? = null,
+        ) = LimitDefinition(
+            id = id,
+            level = level,
+            entityId = entityId,
+            limitType = type,
+            limitValue = BigDecimal(value),
+            intradayLimit = intraday?.let { BigDecimal(it) },
+            overnightLimit = overnight?.let { BigDecimal(it) },
+            active = true,
+        )
+
+        val LIMIT_DEFINITIONS: List<LimitDefinition> = listOf(
+            // ── FIRM level ──
+            limit("seed-lim-firm-notional", LimitLevel.FIRM, "FIRM", LimitType.NOTIONAL, "50000000"),
+            limit("seed-lim-firm-position", LimitLevel.FIRM, "FIRM", LimitType.POSITION, "2000000"),
+            limit("seed-lim-firm-concentration", LimitLevel.FIRM, "FIRM", LimitType.CONCENTRATION, "0.35"),
+
+            // ── DESK level ──
+            limit("seed-lim-desk-eq-notional", LimitLevel.DESK, "equity-growth", LimitType.NOTIONAL, "8000000"),
+            limit("seed-lim-desk-tech-notional", LimitLevel.DESK, "tech-momentum", LimitType.NOTIONAL, "6000000"),
+            limit("seed-lim-desk-fi-notional", LimitLevel.DESK, "rates-trading", LimitType.NOTIONAL, "12000000"),
+            limit("seed-lim-desk-ma-notional", LimitLevel.DESK, "multi-asset-strategies", LimitType.NOTIONAL, "10000000"),
+            limit("seed-lim-desk-mh-notional", LimitLevel.DESK, "macro-hedge", LimitType.NOTIONAL, "8500000"),
+            limit("seed-lim-desk-em-notional", LimitLevel.DESK, "emerging-markets", LimitType.NOTIONAL, "7000000"),
+            limit("seed-lim-desk-bi-notional", LimitLevel.DESK, "balanced-income", LimitType.NOTIONAL, "9000000"),
+            limit("seed-lim-desk-db-notional", LimitLevel.DESK, "derivatives-trading", LimitType.NOTIONAL, "5000000"),
+
+            // ── BOOK level — calibrated to produce visible utilisation on seed positions ──
+            limit("seed-lim-book-eq-notional", LimitLevel.BOOK, "equity-growth", LimitType.NOTIONAL, "500000",
+                intraday = "550000", overnight = "480000"),
+            limit("seed-lim-book-tech-notional", LimitLevel.BOOK, "tech-momentum", LimitType.NOTIONAL, "210000",
+                intraday = "230000", overnight = "200000"),
+            limit("seed-lim-book-tech-conc", LimitLevel.BOOK, "tech-momentum", LimitType.CONCENTRATION, "0.40"),
+            limit("seed-lim-book-em-notional", LimitLevel.BOOK, "emerging-markets", LimitType.NOTIONAL, "350000"),
+            limit("seed-lim-book-fi-notional", LimitLevel.BOOK, "fixed-income", LimitType.NOTIONAL, "500000"),
+            limit("seed-lim-book-ma-notional", LimitLevel.BOOK, "multi-asset", LimitType.NOTIONAL, "600000"),
+            limit("seed-lim-book-mh-notional", LimitLevel.BOOK, "macro-hedge", LimitType.NOTIONAL, "400000"),
+            limit("seed-lim-book-bi-notional", LimitLevel.BOOK, "balanced-income", LimitType.NOTIONAL, "350000"),
+            limit("seed-lim-book-db-notional", LimitLevel.BOOK, "derivatives-book", LimitType.NOTIONAL, "75000",
+                intraday = "85000", overnight = "60000"),
+            limit("seed-lim-book-db-conc", LimitLevel.BOOK, "derivatives-book", LimitType.CONCENTRATION, "0.40"),
         )
     }
 }
