@@ -67,6 +67,7 @@ import com.kinetix.risk.routes.counterpartyRiskRoutes
 import com.kinetix.risk.routes.reportRoutes
 import com.kinetix.risk.persistence.ExposedReportRepository
 import com.kinetix.risk.schedule.RiskPositionsFlatRefresher
+import com.kinetix.risk.schedule.ScheduledAutoCloseJob
 import com.kinetix.risk.service.JdbcReportQueryExecutor
 import com.kinetix.risk.service.ReportService
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -722,6 +723,20 @@ fun Application.moduleWithRoutes() {
                 is com.kinetix.risk.client.ClientResponse.Success -> r.value
                 is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
             } },
+            lock = distributedLock,
+        ).start()
+    }
+    val autoCloseTimeStr = environment.config.propertyOrNull("autoClose.time")?.getString() ?: "17:30"
+    launch {
+        ScheduledAutoCloseJob(
+            varCalculationService = varCalculationService,
+            eodPromotionService = eodPromotionService,
+            jobRecorder = jobRecorder,
+            bookIds = { when (val r = positionServiceClient.getDistinctBookIds()) {
+                is com.kinetix.risk.client.ClientResponse.Success -> r.value
+                is com.kinetix.risk.client.ClientResponse.NotFound -> emptyList()
+            } },
+            closeTime = java.time.LocalTime.parse(autoCloseTimeStr),
             lock = distributedLock,
         ).start()
     }

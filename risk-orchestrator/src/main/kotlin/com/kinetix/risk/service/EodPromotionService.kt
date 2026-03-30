@@ -27,29 +27,41 @@ class EodPromotionService(
     private val lastPromotionTimestamps = java.util.concurrent.ConcurrentHashMap<String, java.util.concurrent.atomic.AtomicLong>()
 
     suspend fun promoteToOfficialEod(jobId: UUID, promotedBy: String, force: Boolean = false): ValuationJob {
-        val job = jobRecorder.findByJobId(jobId)
-            ?: throw EodPromotionException.JobNotFound(jobId)
+        val sample = Timer.start(meterRegistry)
+        try {
+            val job = jobRecorder.findByJobId(jobId)
+                ?: throw EodPromotionException.JobNotFound(jobId)
 
-        if (job.triggeredBy == promotedBy) {
-            throw EodPromotionException.SelfPromotion(promotedBy)
+            if (job.triggeredBy == promotedBy) {
+                throw EodPromotionException.SelfPromotion(promotedBy)
+            }
+
+            return promoteCore(jobId, job, promotedBy, force, sample)
+        } catch (e: Exception) {
+            sample.stop(meterRegistry.timer("eod.promotion.duration"))
+            meterRegistry.counter("eod.promotion.requests", "result", "error").increment()
+            throw e
         }
-
-        return promoteCore(jobId, job, promotedBy, force)
     }
 
     suspend fun promoteToOfficialEodAutomatically(jobId: UUID): ValuationJob {
-        val job = jobRecorder.findByJobId(jobId)
-            ?: throw EodPromotionException.JobNotFound(jobId)
-
-        return promoteCore(jobId, job, promotedBy = "AUTO_CLOSE", force = false)
-    }
-
-    private suspend fun promoteCore(jobId: UUID, job: ValuationJob, promotedBy: String, force: Boolean): ValuationJob {
         val sample = Timer.start(meterRegistry)
         try {
-            if (job.status != RunStatus.COMPLETED) {
-                throw EodPromotionException.JobNotCompleted(jobId)
-            }
+            val job = jobRecorder.findByJobId(jobId)
+                ?: throw EodPromotionException.JobNotFound(jobId)
+
+            return promoteCore(jobId, job, promotedBy = "AUTO_CLOSE", force = false, sample)
+        } catch (e: Exception) {
+            sample.stop(meterRegistry.timer("eod.promotion.duration"))
+            meterRegistry.counter("eod.promotion.requests", "result", "error").increment()
+            throw e
+        }
+    }
+
+    private suspend fun promoteCore(jobId: UUID, job: ValuationJob, promotedBy: String, force: Boolean, sample: Timer.Sample): ValuationJob {
+        if (job.status != RunStatus.COMPLETED) {
+            throw EodPromotionException.JobNotCompleted(jobId)
+        }
 
             if (job.promotedAt != null) {
                 throw EodPromotionException.AlreadyPromoted(jobId)
@@ -145,11 +157,6 @@ class EodPromotionService(
             }
             lastTs.set(promoted.promotedAt!!.epochSecond)
             return promoted
-        } catch (e: Exception) {
-            sample.stop(meterRegistry.timer("eod.promotion.duration"))
-            meterRegistry.counter("eod.promotion.requests", "result", "error").increment()
-            throw e
-        }
     }
 
     suspend fun demoteFromOfficialEod(jobId: UUID, demotedBy: String): ValuationJob {
