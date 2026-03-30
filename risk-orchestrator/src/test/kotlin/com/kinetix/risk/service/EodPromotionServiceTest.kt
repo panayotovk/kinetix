@@ -389,4 +389,65 @@ class EodPromotionServiceTest : FunSpec({
             coVerify { jobRecorder.promoteToOfficialEod(JOB_ID, "user-b", any()) }
         }
     }
+
+    context("promoteToOfficialEodAutomatically") {
+        test("promotes without four-eyes check even when triggeredBy matches AUTO_CLOSE") {
+            val job = completedJob(triggeredBy = "AUTO_CLOSE")
+            val promoted = job.copy(
+                runLabel = RunLabel.OFFICIAL_EOD,
+                promotedAt = Instant.parse("2026-03-13T17:30:30Z"),
+                promotedBy = "AUTO_CLOSE",
+            )
+            coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
+            coEvery { jobRecorder.findOfficialEodByDate("port-1", VALUATION_DATE) } returns null
+            coEvery { jobRecorder.promoteToOfficialEod(JOB_ID, "AUTO_CLOSE", any()) } returns promoted
+            coEvery { eventPublisher.publish(any()) } just Runs
+
+            val result = service.promoteToOfficialEodAutomatically(JOB_ID)
+
+            result.promotedBy shouldBe "AUTO_CLOSE"
+            result.promotedAt shouldBe Instant.parse("2026-03-13T17:30:30Z")
+        }
+
+        test("publishes OfficialEodPromotedEvent on automatic promotion") {
+            val job = completedJob(triggeredBy = "AUTO_CLOSE")
+            val promoted = job.copy(
+                runLabel = RunLabel.OFFICIAL_EOD,
+                promotedAt = Instant.parse("2026-03-13T17:30:30Z"),
+                promotedBy = "AUTO_CLOSE",
+            )
+            coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
+            coEvery { jobRecorder.findOfficialEodByDate("port-1", VALUATION_DATE) } returns null
+            coEvery { jobRecorder.promoteToOfficialEod(JOB_ID, "AUTO_CLOSE", any()) } returns promoted
+            coEvery { eventPublisher.publish(any()) } just Runs
+
+            service.promoteToOfficialEodAutomatically(JOB_ID)
+
+            coVerify {
+                eventPublisher.publish(match<OfficialEodPromotedEvent> {
+                    it.promotedBy == "AUTO_CLOSE" && it.bookId == "port-1"
+                })
+            }
+        }
+
+        test("rejects automatic promotion when job is already promoted") {
+            val job = completedJob(
+                promotedAt = Instant.parse("2026-03-13T16:00:00Z"),
+                promotedBy = "user-a",
+            )
+            coEvery { jobRecorder.findByJobId(JOB_ID) } returns job
+
+            shouldThrow<EodPromotionException.AlreadyPromoted> {
+                service.promoteToOfficialEodAutomatically(JOB_ID)
+            }
+        }
+
+        test("rejects automatic promotion when job is not completed") {
+            coEvery { jobRecorder.findByJobId(JOB_ID) } returns runningJob()
+
+            shouldThrow<EodPromotionException.JobNotCompleted> {
+                service.promoteToOfficialEodAutomatically(JOB_ID)
+            }
+        }
+    }
 })

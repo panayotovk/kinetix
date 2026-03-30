@@ -264,4 +264,5 @@ private fun auditCapturingRecorder(sink: MutableList<ValuationJob>): ValuationJo
         override suspend fun supersedeOfficialEod(jobId: UUID): ValuationJob = throw UnsupportedOperationException()
         override suspend fun findChartData(bookId: String, from: Instant, to: Instant, bucketInterval: String): List<ChartBucketRow> = emptyList()
         override suspend fun resetOrphanedRunningJobs(): Int = 0
+        override suspend fun findByTriggeredBy(triggeredBy: String, limit: Int): List<ValuationJob> = emptyList()
     }

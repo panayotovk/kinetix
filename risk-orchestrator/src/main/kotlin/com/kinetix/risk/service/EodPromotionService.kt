@@ -27,21 +27,32 @@ class EodPromotionService(
     private val lastPromotionTimestamps = java.util.concurrent.ConcurrentHashMap<String, java.util.concurrent.atomic.AtomicLong>()
 
     suspend fun promoteToOfficialEod(jobId: UUID, promotedBy: String, force: Boolean = false): ValuationJob {
+        val job = jobRecorder.findByJobId(jobId)
+            ?: throw EodPromotionException.JobNotFound(jobId)
+
+        if (job.triggeredBy == promotedBy) {
+            throw EodPromotionException.SelfPromotion(promotedBy)
+        }
+
+        return promoteCore(jobId, job, promotedBy, force)
+    }
+
+    suspend fun promoteToOfficialEodAutomatically(jobId: UUID): ValuationJob {
+        val job = jobRecorder.findByJobId(jobId)
+            ?: throw EodPromotionException.JobNotFound(jobId)
+
+        return promoteCore(jobId, job, promotedBy = "AUTO_CLOSE", force = false)
+    }
+
+    private suspend fun promoteCore(jobId: UUID, job: ValuationJob, promotedBy: String, force: Boolean): ValuationJob {
         val sample = Timer.start(meterRegistry)
         try {
-            val job = jobRecorder.findByJobId(jobId)
-                ?: throw EodPromotionException.JobNotFound(jobId)
-
             if (job.status != RunStatus.COMPLETED) {
                 throw EodPromotionException.JobNotCompleted(jobId)
             }
 
             if (job.promotedAt != null) {
                 throw EodPromotionException.AlreadyPromoted(jobId)
-            }
-
-            if (job.triggeredBy == promotedBy) {
-                throw EodPromotionException.SelfPromotion(promotedBy)
             }
 
             // Market data completeness gate: reject promotion when any market data
@@ -111,7 +122,7 @@ class EodPromotionService(
                 GovernanceAuditEvent(
                     eventType = AuditEventType.EOD_PROMOTED,
                     userId = promotedBy,
-                    userRole = "EOD_OPERATOR",
+                    userRole = if (promotedBy == "AUTO_CLOSE") "AUTO_CLOSE" else "EOD_OPERATOR",
                     bookId = promoted.bookId,
                     details = "jobId=${promoted.jobId},valuationDate=${promoted.valuationDate}",
                 )
