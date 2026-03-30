@@ -10,4 +10,5 @@ interface AuditEventRepository {
     suspend fun findPage(afterId: Long, limit: Int): List<AuditEvent>
     suspend fun countAll(): Long
     suspend fun countSince(since: Instant): Long
+    suspend fun findByTradeId(tradeId: String): AuditEvent?
 }

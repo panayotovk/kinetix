@@ -12,9 +12,9 @@ class DevDataSeeder(
     private val log = LoggerFactory.getLogger(DevDataSeeder::class.java)
 
     suspend fun seed() {
-        val existing = repository.findAll()
-        if (existing.isNotEmpty()) {
-            log.info("Audit events already present ({} events), skipping seed", existing.size)
+        val anchor = repository.findByTradeId("seed-eq-aapl-001")
+        if (anchor != null) {
+            log.info("Audit seed anchor present, skipping seed")
             return
         }
 
@@ -38,6 +38,12 @@ class DevDataSeeder(
         private fun dayStr(n: Long): String = day(n).toString()
         private fun receivedAtDay(n: Long): Instant = receivedAfter(day(n))
 
+        // Demo persona identities for realistic audit trail
+        private const val TRADER_ID = "trader1"
+        private const val TRADER_ROLE = "TRADER"
+        private const val RISK_MGR_ID = "risk_mgr"
+        private const val RISK_MGR_ROLE = "RISK_MANAGER"
+
         val EVENTS: List<AuditEvent> = listOf(
             // ── equity-growth portfolio: 5 equity trades (existing) ──
             AuditEvent(
@@ -51,6 +57,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = TRADED_AT,
                 receivedAt = RECEIVED_AT,
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-eq-googl-001",
@@ -63,6 +71,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = TRADED_AT,
                 receivedAt = RECEIVED_AT,
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-eq-msft-001",
@@ -75,6 +85,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = TRADED_AT,
                 receivedAt = RECEIVED_AT,
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-eq-amzn-001",
@@ -87,6 +99,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = TRADED_AT,
                 receivedAt = RECEIVED_AT,
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-eq-tsla-001",
@@ -99,6 +113,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = TRADED_AT,
                 receivedAt = RECEIVED_AT,
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
 
             // ── multi-asset portfolio: 6 trades across asset classes (existing) ──
@@ -113,6 +129,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = TRADED_AT,
                 receivedAt = RECEIVED_AT,
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-ma-eurusd-001",
@@ -125,6 +143,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = TRADED_AT,
                 receivedAt = RECEIVED_AT,
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-ma-us10y-001",
@@ -137,6 +157,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = TRADED_AT,
                 receivedAt = RECEIVED_AT,
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-ma-gc-001",
@@ -149,6 +171,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = TRADED_AT,
                 receivedAt = RECEIVED_AT,
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-ma-spx-put-001",
@@ -161,6 +185,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = TRADED_AT,
                 receivedAt = RECEIVED_AT,
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-ma-msft-001",
@@ -173,6 +199,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = TRADED_AT,
                 receivedAt = RECEIVED_AT,
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
 
             // ── fixed-income portfolio: 3 fixed income trades (existing) ──
@@ -187,6 +215,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = TRADED_AT,
                 receivedAt = RECEIVED_AT,
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-fi-us10y-001",
@@ -199,6 +229,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = TRADED_AT,
                 receivedAt = RECEIVED_AT,
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-fi-us30y-001",
@@ -211,6 +243,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = TRADED_AT,
                 receivedAt = RECEIVED_AT,
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
 
             // ── emerging-markets portfolio: 5 positions + 1 sell ──
@@ -225,6 +259,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(1),
                 receivedAt = receivedAtDay(1),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-em-tsla-001",
@@ -237,6 +273,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(1),
                 receivedAt = receivedAtDay(1),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-em-eurusd-001",
@@ -249,6 +287,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(1),
                 receivedAt = receivedAtDay(1),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-em-gbpusd-001",
@@ -261,6 +301,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(2),
                 receivedAt = receivedAtDay(2),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-em-usdjpy-001",
@@ -273,6 +315,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(2),
                 receivedAt = receivedAtDay(2),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-em-baba-002",
@@ -285,6 +329,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(4),
                 receivedAt = receivedAtDay(4),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
 
             // ── macro-hedge portfolio: 6 positions + 1 sell ──
@@ -299,6 +345,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = TRADED_AT,
                 receivedAt = RECEIVED_AT,
+                userId = RISK_MGR_ID,
+                userRole = RISK_MGR_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-mh-gc-001",
@@ -311,6 +359,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = TRADED_AT,
                 receivedAt = RECEIVED_AT,
+                userId = RISK_MGR_ID,
+                userRole = RISK_MGR_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-mh-cl-001",
@@ -323,6 +373,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(1),
                 receivedAt = receivedAtDay(1),
+                userId = RISK_MGR_ID,
+                userRole = RISK_MGR_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-mh-si-001",
@@ -335,6 +387,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(1),
                 receivedAt = receivedAtDay(1),
+                userId = RISK_MGR_ID,
+                userRole = RISK_MGR_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-mh-de10y-001",
@@ -347,6 +401,8 @@ class DevDataSeeder(
                 priceCurrency = "EUR",
                 tradedAt = dayStr(2),
                 receivedAt = receivedAtDay(2),
+                userId = RISK_MGR_ID,
+                userRole = RISK_MGR_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-mh-spx-put-001",
@@ -359,6 +415,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(2),
                 receivedAt = receivedAtDay(2),
+                userId = RISK_MGR_ID,
+                userRole = RISK_MGR_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-mh-gc-002",
@@ -371,6 +429,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(4),
                 receivedAt = receivedAtDay(4),
+                userId = RISK_MGR_ID,
+                userRole = RISK_MGR_ROLE,
             ),
 
             // ── tech-momentum portfolio: 4 positions + 1 sell ──
@@ -385,6 +445,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(2),
                 receivedAt = receivedAtDay(2),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-tm-meta-001",
@@ -397,6 +459,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(2),
                 receivedAt = receivedAtDay(2),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-tm-msft-001",
@@ -409,6 +473,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(2),
                 receivedAt = receivedAtDay(2),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-tm-googl-001",
@@ -421,6 +487,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(2),
                 receivedAt = receivedAtDay(2),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-tm-meta-002",
@@ -433,6 +501,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(6),
                 receivedAt = receivedAtDay(6),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
 
             // ── balanced-income portfolio: 5 positions + 1 sell ──
@@ -447,6 +517,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(1),
                 receivedAt = receivedAtDay(1),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-bi-us30y-001",
@@ -459,6 +531,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(1),
                 receivedAt = receivedAtDay(1),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-bi-de10y-001",
@@ -471,6 +545,8 @@ class DevDataSeeder(
                 priceCurrency = "EUR",
                 tradedAt = dayStr(2),
                 receivedAt = receivedAtDay(2),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-bi-jpm-001",
@@ -483,6 +559,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(2),
                 receivedAt = receivedAtDay(2),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-bi-aapl-001",
@@ -495,6 +573,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(4),
                 receivedAt = receivedAtDay(4),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-bi-us30y-002",
@@ -507,6 +587,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(6),
                 receivedAt = receivedAtDay(6),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
 
             // ── derivatives-book portfolio: 5 positions + 1 sell ──
@@ -521,6 +603,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(1),
                 receivedAt = receivedAtDay(1),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-db-vix-put-001",
@@ -533,6 +617,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(1),
                 receivedAt = receivedAtDay(1),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-db-spx-put-001",
@@ -545,6 +631,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(2),
                 receivedAt = receivedAtDay(2),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-db-nvda-001",
@@ -557,6 +645,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(2),
                 receivedAt = receivedAtDay(2),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-db-tsla-001",
@@ -569,6 +659,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(4),
                 receivedAt = receivedAtDay(4),
+                userId = TRADER_ID,
+                userRole = TRADER_ROLE,
             ),
             AuditEvent(
                 tradeId = "seed-db-spx-call-002",
@@ -581,6 +673,8 @@ class DevDataSeeder(
                 priceCurrency = "USD",
                 tradedAt = dayStr(6),
                 receivedAt = receivedAtDay(6),
+                userId = RISK_MGR_ID,
+                userRole = RISK_MGR_ROLE,
             ),
         )
     }

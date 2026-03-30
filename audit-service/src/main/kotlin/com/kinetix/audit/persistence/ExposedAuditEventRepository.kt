@@ -98,6 +98,15 @@ class ExposedAuditEventRepository(private val db: Database? = null) : AuditEvent
             .count()
     }
 
+    override suspend fun findByTradeId(tradeId: String): AuditEvent? = newSuspendedTransaction(db = db) {
+        AuditEventsTable
+            .selectAll()
+            .where { AuditEventsTable.tradeId eq tradeId }
+            .limit(1)
+            .map { it.toAuditEvent() }
+            .firstOrNull()
+    }
+
     private fun ResultRow.toAuditEvent(): AuditEvent = AuditEvent(
         id = this[AuditEventsTable.id],
         tradeId = this[AuditEventsTable.tradeId],

@@ -15,8 +15,8 @@ class DevDataSeederTest : FunSpec({
         clearMocks(repository)
     }
 
-    test("seeds audit events when database is empty") {
-        coEvery { repository.findAll() } returns emptyList()
+    test("seeds audit events when anchor trade is absent") {
+        coEvery { repository.findByTradeId("seed-eq-aapl-001") } returns null
         coEvery { repository.save(any()) } just runs
 
         seeder.seed()
@@ -24,21 +24,19 @@ class DevDataSeederTest : FunSpec({
         coVerify(exactly = DevDataSeeder.EVENTS.size) { repository.save(any()) }
     }
 
-    test("skips seeding when events already exist") {
-        coEvery { repository.findAll() } returns listOf(
-            AuditEvent(
-                id = 1,
-                tradeId = "seed-eq-aapl-001",
-                bookId = "equity-growth",
-                instrumentId = "AAPL",
-                assetClass = "EQUITY",
-                side = "BUY",
-                quantity = "150",
-                priceAmount = "185.50",
-                priceCurrency = "USD",
-                tradedAt = "2026-02-21T14:00:00Z",
-                receivedAt = java.time.Instant.now(),
-            ),
+    test("skips seeding when anchor trade already exists") {
+        coEvery { repository.findByTradeId("seed-eq-aapl-001") } returns AuditEvent(
+            id = 1,
+            tradeId = "seed-eq-aapl-001",
+            bookId = "equity-growth",
+            instrumentId = "AAPL",
+            assetClass = "EQUITY",
+            side = "BUY",
+            quantity = "150",
+            priceAmount = "185.50",
+            priceCurrency = "USD",
+            tradedAt = "2026-02-21T14:00:00Z",
+            receivedAt = java.time.Instant.now(),
         )
 
         seeder.seed()
@@ -48,6 +46,15 @@ class DevDataSeederTest : FunSpec({
 
     test("event data has correct count") {
         DevDataSeeder.EVENTS.size shouldBe 44
+    }
+
+    test("all seed events have non-null userId and userRole") {
+        DevDataSeeder.EVENTS.all { it.userId != null && it.userRole != null } shouldBe true
+    }
+
+    test("seed events include at least two distinct userIds") {
+        val userIds = DevDataSeeder.EVENTS.mapNotNull { it.userId }.distinct()
+        (userIds.size >= 2) shouldBe true
     }
 
     test("all trade IDs are unique and match seed convention") {
