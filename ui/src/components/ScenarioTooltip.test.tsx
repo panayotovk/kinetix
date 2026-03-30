@@ -62,6 +62,40 @@ describe('ScenarioTooltip', () => {
     expect(screen.queryByTestId('scenario-tooltip')).not.toBeInTheDocument()
   })
 
+  it('should handle flat shocks format from governance API', () => {
+    const flatShocks = JSON.stringify({
+      equity: -0.1,
+      fx: -0.04,
+      commodity: -0.06,
+    })
+
+    render(
+      <ScenarioTooltip
+        scenarioName="GFC_2008"
+        description="Flat format"
+        shocks={flatShocks}
+      />,
+    )
+
+    fireEvent.mouseEnter(screen.getByText('GFC 2008'))
+
+    expect(screen.getByText('equity')).toBeInTheDocument()
+    expect(screen.getByText('-0.1x')).toBeInTheDocument()
+    expect(screen.getByText('-0.04x')).toBeInTheDocument()
+  })
+
+  it('should not crash when shocks is a flat map without volShocks/priceShocks', () => {
+    const flatShocks = JSON.stringify({ equity: -0.1 })
+
+    render(
+      <ScenarioTooltip scenarioName="TEST_SCENARIO" shocks={flatShocks} />,
+    )
+
+    fireEvent.mouseEnter(screen.getByText('TEST SCENARIO'))
+
+    expect(screen.getByTestId('scenario-tooltip')).toBeInTheDocument()
+  })
+
   it('should be accessible via keyboard focus', () => {
     render(<ScenarioTooltip {...defaultProps} />)
 

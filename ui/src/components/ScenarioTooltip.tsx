@@ -17,7 +17,18 @@ interface ParsedShocks {
 function parseShocks(shocks: string | undefined): ParsedShocks | null {
   if (!shocks) return null
   try {
-    return JSON.parse(shocks) as ParsedShocks
+    const raw = JSON.parse(shocks)
+    if (raw && typeof raw === 'object' && ('volShocks' in raw || 'priceShocks' in raw)) {
+      return {
+        volShocks: raw.volShocks ?? {},
+        priceShocks: raw.priceShocks ?? {},
+      }
+    }
+    // Flat map format: { equity: -0.1, fx: -0.04, ... } — treat as price shocks
+    if (raw && typeof raw === 'object') {
+      return { volShocks: {}, priceShocks: raw }
+    }
+    return null
   } catch {
     return null
   }
