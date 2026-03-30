@@ -6,4 +6,5 @@ enum class TriggerType {
     TRADE_EVENT,
     PRICE_EVENT,
     MODEL_COMPARISON,
+    AUTO_CLOSE,
 }
