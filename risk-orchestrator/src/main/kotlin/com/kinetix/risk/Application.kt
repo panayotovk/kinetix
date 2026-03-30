@@ -48,6 +48,7 @@ import com.kinetix.common.health.CheckResult
 import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.common.kafka.ConsumerLivenessTracker
 import com.kinetix.risk.routes.benchmarkAttributionRoutes
+import com.kinetix.risk.routes.demoResetRoutes
 import com.kinetix.risk.routes.crossBookVaRRoutes
 import com.kinetix.risk.routes.croReportRoutes
 import com.kinetix.risk.routes.hierarchyRiskRoutes
@@ -687,6 +688,11 @@ fun Application.moduleWithRoutes() {
         val reportService = ReportService(reportRepository, reportQueryExecutor)
         reportRoutes(reportService)
         benchmarkAttributionRoutes(benchmarkAttributionService)
+
+        val demoResetToken = System.getenv("DEMO_RESET_TOKEN")
+        if (demoResetToken != null) {
+            demoResetRoutes(riskDb, jobRecorder, demoResetToken)
+        }
     }
 
     launch {

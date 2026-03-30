@@ -9,6 +9,7 @@ import com.kinetix.audit.persistence.ExposedAuditEventRepository
 import com.kinetix.audit.persistence.ExposedVerificationCheckpointRepository
 import com.kinetix.audit.persistence.VerificationCheckpointRepository
 import com.kinetix.audit.routes.auditRoutes
+import com.kinetix.audit.routes.demoResetRoutes
 import com.kinetix.audit.routes.internalRoutes
 import com.kinetix.audit.seed.DevDataSeeder
 import io.github.smiley4.ktoropenapi.OpenApi
@@ -169,6 +170,11 @@ fun Application.moduleWithRoutes() {
     routing {
         auditRoutes(repository, checkpointRepository)
         internalRoutes(repository)
+
+        val demoResetToken = System.getenv("DEMO_RESET_TOKEN")
+        if (demoResetToken != null) {
+            demoResetRoutes(db, repository, demoResetToken)
+        }
     }
 
     launch {

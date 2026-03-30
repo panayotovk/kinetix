@@ -27,6 +27,7 @@ import com.kinetix.position.routes.collateralRoutes
 import com.kinetix.position.routes.counterpartyRoutes
 import com.kinetix.position.routes.executionRoutes
 import com.kinetix.position.routes.fixSessionRoutes
+import com.kinetix.position.routes.demoResetRoutes
 import com.kinetix.position.routes.internalRoutes
 import com.kinetix.position.routes.limitRoutes
 import com.kinetix.position.routes.orderRoutes
@@ -300,6 +301,14 @@ fun Application.moduleWithRoutes() {
         }
     }
 
+    val seederBookingService = TradeBookingService(
+        tradeEventRepository = tradeEventRepository,
+        positionRepository = positionRepository,
+        transactional = transactionalRunner,
+        tradeEventPublisher = tradeEventPublisher,
+        limitCheckService = null,
+    )
+
     routing {
         positionRoutes(positionRepository, positionQueryService, tradeBookingService, tradeEventRepository, tradeLifecycleService, portfolioAggregationService)
         strategyRoutes(tradeStrategyService, tradeBookingService)
@@ -312,6 +321,11 @@ fun Application.moduleWithRoutes() {
         executionRoutes(executionCostRepository, primeBrokerReconciliationRepository, primeBrokerReconciliationService, positionRepository)
         fixSessionRoutes(fixSessionRepository)
         orderRoutes(orderSubmissionService)
+
+        val demoResetToken = System.getenv("DEMO_RESET_TOKEN")
+        if (demoResetToken != null) {
+            demoResetRoutes(db, seederBookingService, positionRepository, limitDefinitionRepo, demoResetToken)
+        }
     }
 
     launch {
@@ -328,13 +342,6 @@ fun Application.moduleWithRoutes() {
 
     val seedEnabled = environment.config.propertyOrNull("seed.enabled")?.getString()?.toBoolean() ?: true
     if (seedEnabled) {
-        val seederBookingService = TradeBookingService(
-            tradeEventRepository = tradeEventRepository,
-            positionRepository = positionRepository,
-            transactional = transactionalRunner,
-            tradeEventPublisher = tradeEventPublisher,
-            limitCheckService = null,
-        )
         launch {
             DevDataSeeder(seederBookingService, positionRepository, limitDefinitionRepo).seed()
             seedDone.set(true)
