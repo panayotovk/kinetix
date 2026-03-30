@@ -3,6 +3,9 @@
 # --- Builder stage ---
 FROM node:22-alpine AS builder
 
+ARG VITE_DEMO_MODE=false
+ENV VITE_DEMO_MODE=$VITE_DEMO_MODE
+
 WORKDIR /app
 
 COPY ui/package.json ui/package-lock.json ./
