@@ -35,6 +35,8 @@ import { useMarketRegime } from './hooks/useMarketRegime'
 import { RegimeIndicator } from './components/RegimeIndicator'
 import { useWorkspace } from './hooks/useWorkspace'
 import { useAuth } from './auth/useAuth'
+import { DEMO_MODE } from './auth/demoPersonas'
+import { PersonaSwitcher } from './components/PersonaSwitcher'
 
 type Tab = 'positions' | 'trades' | 'pnl' | 'risk' | 'eod' | 'scenarios' | 'regulatory' | 'counterparty-risk' | 'reports' | 'alerts' | 'system'
 
@@ -164,18 +166,20 @@ function App() {
               : dataQuality.status}
             loading={dataQuality.loading}
           />
-          <button
-            data-testid="save-workspace-button"
-            onClick={() => {
-              workspace.updatePreference('defaultTab', activeTab)
-              workspace.updatePreference('defaultBook', bookId)
-            }}
-            className="p-1.5 rounded-md hover:bg-surface-800 transition-colors text-slate-300 hover:text-white"
-            aria-label="Save workspace"
-            title="Save current tab and book as defaults"
-          >
-            <Save className="h-4 w-4" />
-          </button>
+          {!DEMO_MODE && (
+            <button
+              data-testid="save-workspace-button"
+              onClick={() => {
+                workspace.updatePreference('defaultTab', activeTab)
+                workspace.updatePreference('defaultBook', bookId)
+              }}
+              className="p-1.5 rounded-md hover:bg-surface-800 transition-colors text-slate-300 hover:text-white"
+              aria-label="Save workspace"
+              title="Save current tab and book as defaults"
+            >
+              <Save className="h-4 w-4" />
+            </button>
+          )}
           <button
             data-testid="dark-mode-toggle"
             onClick={toggleTheme}
@@ -185,39 +189,43 @@ function App() {
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
           {auth.authenticated && (
-            <>
-              <div className="border-l border-surface-700 ml-1 pl-3 flex items-center gap-2">
-                <span
-                  data-testid="header-role-badge"
-                  aria-label={`Role: ${auth.roles[0] ?? 'UNKNOWN'}`}
-                  className={`px-2 py-0.5 text-xs font-medium rounded ${
-                    auth.roles.includes('ADMIN')
-                      ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300'
-                      : auth.roles.includes('RISK_MANAGER')
-                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
-                        : auth.roles.includes('TRADER')
-                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
-                          : auth.roles.includes('COMPLIANCE')
-                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
-                            : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'
-                  }`}
-                >
-                  {auth.roles[0]?.replace('_', ' ') ?? 'VIEWER'}
-                </span>
-                <span data-testid="header-username" className="text-sm text-slate-300">
-                  {auth.username}
-                </span>
-                <button
-                  data-testid="logout-button"
-                  onClick={auth.logout}
-                  className="p-1.5 rounded-md hover:bg-surface-800 transition-colors text-slate-300 hover:text-white"
-                  aria-label="Log out"
-                  title={`Log out ${auth.username}`}
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </div>
-            </>
+            <div className="border-l border-surface-700 ml-1 pl-3 flex items-center gap-2">
+              {DEMO_MODE ? (
+                <PersonaSwitcher />
+              ) : (
+                <>
+                  <span
+                    data-testid="header-role-badge"
+                    aria-label={`Role: ${auth.roles[0] ?? 'UNKNOWN'}`}
+                    className={`px-2 py-0.5 text-xs font-medium rounded ${
+                      auth.roles.includes('ADMIN')
+                        ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300'
+                        : auth.roles.includes('RISK_MANAGER')
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
+                          : auth.roles.includes('TRADER')
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                            : auth.roles.includes('COMPLIANCE')
+                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                              : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    {auth.roles[0]?.replace('_', ' ') ?? 'VIEWER'}
+                  </span>
+                  <span data-testid="header-username" className="text-sm text-slate-300">
+                    {auth.username}
+                  </span>
+                  <button
+                    data-testid="logout-button"
+                    onClick={auth.logout}
+                    className="p-1.5 rounded-md hover:bg-surface-800 transition-colors text-slate-300 hover:text-white"
+                    aria-label="Log out"
+                    title={`Log out ${auth.username}`}
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </button>
+                </>
+              )}
+            </div>
           )}
         </div>
       </header>
