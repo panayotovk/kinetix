@@ -146,7 +146,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-surface-50 dark:bg-surface-900 dark:text-slate-100 flex flex-col">
-      <header className="bg-surface-900 text-white px-6 py-3 flex items-center justify-between">
+      <header className="bg-surface-900 text-white px-4 md:px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Activity className="h-5 w-5 text-primary-500" />
           <h1 className="text-lg font-bold tracking-tight">Kinetix</h1>
@@ -183,7 +183,7 @@ function App() {
                 workspace.updatePreference('defaultTab', activeTab)
                 workspace.updatePreference('defaultBook', bookId)
               }}
-              className="p-1.5 rounded-md hover:bg-surface-800 transition-colors text-slate-300 hover:text-white"
+              className="hidden sm:block p-1.5 rounded-md hover:bg-surface-800 transition-colors text-slate-300 hover:text-white"
               aria-label="Save workspace"
               title="Save current tab and book as defaults"
             >
@@ -240,7 +240,7 @@ function App() {
         </div>
       </header>
 
-      <nav className="bg-surface-800 px-6 flex gap-1 border-b border-surface-700" data-testid="tab-bar" role="tablist" onKeyDown={handleTabKeyDown}>
+      <nav className="bg-surface-800 px-4 md:px-6 flex gap-1 border-b border-surface-700 overflow-x-auto" data-testid="tab-bar" role="tablist" onKeyDown={handleTabKeyDown}>
         {TABS.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
@@ -258,7 +258,7 @@ function App() {
             }`}
           >
             <Icon className="h-4 w-4" />
-            {label}
+            <span className="hidden md:inline">{label}</span>
             {key === 'alerts' && notifications.alerts.length > 0 && (
               <span
                 data-testid="alert-count-badge"
@@ -333,7 +333,7 @@ function App() {
         </div>
       )}
 
-      <main className="flex-1 p-6 dark:bg-surface-900" role="tabpanel" aria-labelledby={`tab-${activeTab}`}>
+      <main className="flex-1 p-4 md:p-6 dark:bg-surface-900" role="tabpanel" aria-labelledby={`tab-${activeTab}`}>
         {activeTab === 'system' ? (
           <SystemDashboard
             health={systemHealth.health}
