@@ -149,6 +149,15 @@ function App() {
         <div className="flex items-center gap-2">
           <Activity className="h-5 w-5 text-primary-500" />
           <h1 className="text-lg font-bold tracking-tight">Kinetix</h1>
+          {DEMO_MODE && (
+            <span
+              data-testid="demo-mode-badge"
+              className="px-1.5 py-0.5 text-[10px] font-semibold tracking-wider leading-none rounded bg-primary-500/20 text-primary-300 border border-primary-500/30 select-none self-center"
+              aria-label="Demo mode"
+            >
+              DEMO
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <HierarchySelector hierarchy={hierarchy} />

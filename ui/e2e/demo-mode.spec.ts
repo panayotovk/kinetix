@@ -100,4 +100,11 @@ test.describe('Demo mode', () => {
     await page.getByRole('tab', { name: 'Trades' }).click()
     await expect(page.getByRole('tab', { name: 'Trades' })).toHaveAttribute('aria-selected', 'true')
   })
+
+  test('shows DEMO badge next to logo', async ({ page }) => {
+    await page.goto('/')
+    const badge = page.getByTestId('demo-mode-badge')
+    await expect(badge).toBeVisible()
+    await expect(badge).toHaveText('DEMO')
+  })
 })
