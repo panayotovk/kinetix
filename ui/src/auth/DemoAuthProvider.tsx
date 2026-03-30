@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { AuthContext, type AuthState } from './useAuth'
 import { DEFAULT_PERSONA, type DemoPersona } from './demoPersonas'
 import { DemoPersonaContext } from './useDemoPersona'
+import { setDemoPersona } from './authFetch'
 
 interface DemoAuthProviderProps {
   children: ReactNode
@@ -9,6 +10,10 @@ interface DemoAuthProviderProps {
 
 export function DemoAuthProvider({ children }: DemoAuthProviderProps) {
   const [persona, setPersona] = useState<DemoPersona>(DEFAULT_PERSONA)
+
+  useEffect(() => {
+    setDemoPersona(persona.username, persona.role)
+  }, [persona])
 
   const authState: AuthState = {
     authenticated: true,

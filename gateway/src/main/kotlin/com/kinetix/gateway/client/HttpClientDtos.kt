@@ -76,6 +76,8 @@ data class BookTradeRequestDto(
     val priceAmount: String,
     val priceCurrency: String,
     val tradedAt: String,
+    val userId: String? = null,
+    val userRole: String? = null,
 )
 
 // --- Price Service DTOs ---

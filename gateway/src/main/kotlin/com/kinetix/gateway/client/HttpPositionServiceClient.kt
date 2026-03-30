@@ -32,6 +32,8 @@ class HttpPositionServiceClient(
                     priceAmount = command.price.amount.toPlainString(),
                     priceCurrency = command.price.currency.currencyCode,
                     tradedAt = command.tradedAt.toString(),
+                    userId = command.userId,
+                    userRole = command.userRole,
                 )
             )
         }

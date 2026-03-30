@@ -45,7 +45,12 @@ fun Route.positionRoutes(client: PositionServiceClient) {
                 }) {
                     val bookId = BookId(call.requirePathParam("bookId"))
                     val request = call.receive<BookTradeRequest>()
-                    val command = request.toCommand(bookId)
+                    val demoUserId = call.request.headers["X-Demo-User-Id"]
+                    val demoUserRole = call.request.headers["X-Demo-User-Role"]
+                    val command = request.toCommand(bookId).copy(
+                        userId = demoUserId,
+                        userRole = demoUserRole,
+                    )
                     val result = client.bookTrade(command)
                     call.respond(HttpStatusCode.Created, result.toResponse())
                 }
