@@ -29,3 +29,5 @@
 | [0025](0025-flyway-backward-compatible-migrations.md) | Flyway backward-compatible migration convention | Accepted |
 | [0026](0026-hpa-scaling-metrics.md) | HPA scaling metrics strategy | Proposed |
 | [0027](0027-database-migration-practices.md) | Database migration practices and constraints | Accepted |
+| [0028](0028-key-rate-duration-tenor-buckets.md) | Key rate duration — 4-tenor internal vs 12-tenor FRTB GIRR | Accepted |
+| [0029](0029-discovery-valuation-two-phase-contract.md) | Discovery-valuation two-phase contract | Accepted |
