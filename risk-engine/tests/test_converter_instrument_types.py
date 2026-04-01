@@ -285,3 +285,106 @@ class TestConverterSwapPosition:
         assert result[0].fixed_rate == 0.035
         assert result[0].float_index == "SOFR"
         assert result[0].pay_receive == "PAY_FIXED"
+
+
+@pytest.mark.unit
+class TestConverterInstrumentTypePreservation:
+    """Verify that instrument_type is preserved through proto → domain conversion."""
+
+    def test_cash_equity_preserves_instrument_type(self):
+        pos = _make_position(
+            instrument_id="AAPL",
+            asset_class=types_pb2.EQUITY,
+            instrument_type=types_pb2.CASH_EQUITY,
+        )
+        result = proto_positions_to_domain([pos])
+        assert result[0].instrument_type == "CASH_EQUITY"
+
+    def test_interest_rate_swap_preserves_instrument_type(self):
+        attrs = types_pb2.SwapAttributes(
+            notional=10_000_000.0,
+            fixed_rate=0.035,
+            maturity_date="2031-03-16",
+        )
+        pos = _make_position(
+            instrument_id="USD-SOFR-5Y",
+            asset_class=types_pb2.FIXED_INCOME,
+            instrument_type=types_pb2.INTEREST_RATE_SWAP,
+            swap_attrs=attrs,
+        )
+        result = proto_positions_to_domain([pos])
+        assert isinstance(result[0], SwapPosition)
+        assert result[0].instrument_type == "INTEREST_RATE_SWAP"
+
+    def test_equity_option_preserves_instrument_type(self):
+        attrs = types_pb2.OptionAttributes(
+            underlying_id="AAPL",
+            option_type="CALL",
+            strike=150.0,
+            contract_multiplier=100.0,
+        )
+        pos = _make_position(
+            instrument_type=types_pb2.EQUITY_OPTION,
+            option_attrs=attrs,
+        )
+        result = proto_positions_to_domain([pos])
+        assert isinstance(result[0], OptionPosition)
+        assert result[0].instrument_type == "EQUITY_OPTION"
+
+    def test_government_bond_preserves_instrument_type(self):
+        attrs = types_pb2.BondAttributes(face_value=1_000_000.0, coupon_rate=0.025)
+        pos = _make_position(
+            asset_class=types_pb2.FIXED_INCOME,
+            instrument_type=types_pb2.GOVERNMENT_BOND,
+            bond_attrs=attrs,
+        )
+        result = proto_positions_to_domain([pos])
+        assert isinstance(result[0], BondPosition)
+        assert result[0].instrument_type == "GOVERNMENT_BOND"
+
+    def test_corporate_bond_preserves_instrument_type(self):
+        attrs = types_pb2.BondAttributes(face_value=500_000.0, coupon_rate=0.045)
+        pos = _make_position(
+            asset_class=types_pb2.FIXED_INCOME,
+            instrument_type=types_pb2.CORPORATE_BOND,
+            bond_attrs=attrs,
+        )
+        result = proto_positions_to_domain([pos])
+        assert result[0].instrument_type == "CORPORATE_BOND"
+
+    def test_fx_spot_preserves_instrument_type(self):
+        attrs = types_pb2.FxAttributes(base_currency="EUR", quote_currency="USD")
+        pos = _make_position(
+            asset_class=types_pb2.FX,
+            instrument_type=types_pb2.FX_SPOT,
+            fx_attrs=attrs,
+        )
+        result = proto_positions_to_domain([pos])
+        assert result[0].instrument_type == "FX_SPOT"
+
+    def test_equity_future_preserves_instrument_type(self):
+        attrs = types_pb2.FutureAttributes(underlying_id="SPX", contract_size=50.0)
+        pos = _make_position(
+            instrument_type=types_pb2.EQUITY_FUTURE,
+            future_attrs=attrs,
+        )
+        result = proto_positions_to_domain([pos])
+        assert result[0].instrument_type == "EQUITY_FUTURE"
+
+    def test_unspecified_instrument_type_defaults_to_empty(self):
+        pos = _make_position(
+            instrument_type=types_pb2.INSTRUMENT_TYPE_UNSPECIFIED,
+        )
+        result = proto_positions_to_domain([pos])
+        assert result[0].instrument_type == ""
+
+    def test_all_11_instrument_types_have_mapping(self):
+        from kinetix_risk.converters import _PROTO_INSTRUMENT_TYPE_TO_NAME
+
+        expected_types = {
+            "CASH_EQUITY", "GOVERNMENT_BOND", "CORPORATE_BOND",
+            "FX_SPOT", "FX_FORWARD", "EQUITY_OPTION", "EQUITY_FUTURE",
+            "COMMODITY_FUTURE", "COMMODITY_OPTION", "FX_OPTION",
+            "INTEREST_RATE_SWAP",
+        }
+        assert set(_PROTO_INSTRUMENT_TYPE_TO_NAME.values()) == expected_types

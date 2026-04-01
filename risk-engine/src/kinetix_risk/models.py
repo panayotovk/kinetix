@@ -32,6 +32,7 @@ class OptionPosition:
     dividend_yield: float = 0.0
     contract_multiplier: float = 1.0
     asset_class: AssetClass = AssetClass.EQUITY
+    instrument_type: str = ""
 
 
 class CalculationType(Enum):
@@ -53,6 +54,7 @@ class PositionRisk:
     market_value: float
     currency: str
     credit_subtype: str | None = None  # "CREDIT_IG" or "CREDIT_HY" for SA-CCR supervisory factor lookup
+    instrument_type: str = ""  # e.g. "CASH_EQUITY", "INTEREST_RATE_SWAP"
 
 
 @dataclass(frozen=True)

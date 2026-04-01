@@ -56,6 +56,20 @@ _FX_INSTRUMENT_TYPES = {
     types_pb2.FX_FORWARD,
 }
 
+_PROTO_INSTRUMENT_TYPE_TO_NAME: dict[int, str] = {
+    types_pb2.CASH_EQUITY: "CASH_EQUITY",
+    types_pb2.GOVERNMENT_BOND: "GOVERNMENT_BOND",
+    types_pb2.CORPORATE_BOND: "CORPORATE_BOND",
+    types_pb2.FX_SPOT: "FX_SPOT",
+    types_pb2.FX_FORWARD: "FX_FORWARD",
+    types_pb2.EQUITY_OPTION: "EQUITY_OPTION",
+    types_pb2.EQUITY_FUTURE: "EQUITY_FUTURE",
+    types_pb2.COMMODITY_FUTURE: "COMMODITY_FUTURE",
+    types_pb2.COMMODITY_OPTION: "COMMODITY_OPTION",
+    types_pb2.FX_OPTION: "FX_OPTION",
+    types_pb2.INTEREST_RATE_SWAP: "INTEREST_RATE_SWAP",
+}
+
 
 def proto_positions_to_domain(proto_positions) -> list[PositionRisk]:
     result = []
@@ -68,6 +82,7 @@ def proto_positions_to_domain(proto_positions) -> list[PositionRisk]:
         instrument_id = p.instrument_id.value
 
         inst_type = p.instrument_type
+        instrument_type_name = _PROTO_INSTRUMENT_TYPE_TO_NAME.get(inst_type, "")
 
         if inst_type in _OPTION_INSTRUMENT_TYPES and p.HasField("option_attrs"):
             attrs = p.option_attrs
@@ -94,6 +109,7 @@ def proto_positions_to_domain(proto_positions) -> list[PositionRisk]:
                 dividend_yield=attrs.dividend_yield,
                 contract_multiplier=attrs.contract_multiplier if attrs.contract_multiplier > 0 else 1.0,
                 asset_class=asset_class,
+                instrument_type=instrument_type_name,
             ))
         elif inst_type in _BOND_INSTRUMENT_TYPES and p.HasField("bond_attrs"):
             attrs = p.bond_attrs
@@ -102,6 +118,7 @@ def proto_positions_to_domain(proto_positions) -> list[PositionRisk]:
                 asset_class=asset_class,
                 market_value=market_value,
                 currency=currency,
+                instrument_type=instrument_type_name,
                 face_value=attrs.face_value,
                 coupon_rate=attrs.coupon_rate,
                 coupon_frequency=attrs.coupon_frequency,
@@ -118,6 +135,7 @@ def proto_positions_to_domain(proto_positions) -> list[PositionRisk]:
                 asset_class=asset_class,
                 market_value=market_value,
                 currency=currency,
+                instrument_type=instrument_type_name,
                 underlying_id=attrs.underlying_id,
                 expiry_date=attrs.expiry_date,
                 contract_size=attrs.contract_size if attrs.contract_size > 0 else 1.0,
@@ -129,6 +147,7 @@ def proto_positions_to_domain(proto_positions) -> list[PositionRisk]:
                 asset_class=asset_class,
                 market_value=market_value,
                 currency=currency,
+                instrument_type=instrument_type_name,
                 base_currency=attrs.base_currency,
                 quote_currency=attrs.quote_currency,
                 delivery_date=attrs.delivery_date,
@@ -141,6 +160,7 @@ def proto_positions_to_domain(proto_positions) -> list[PositionRisk]:
                 asset_class=asset_class,
                 market_value=market_value,
                 currency=currency,
+                instrument_type=instrument_type_name,
                 notional=attrs.notional,
                 fixed_rate=attrs.fixed_rate,
                 float_index=attrs.float_index,
@@ -159,6 +179,7 @@ def proto_positions_to_domain(proto_positions) -> list[PositionRisk]:
                 asset_class=asset_class,
                 market_value=market_value,
                 currency=currency,
+                instrument_type=instrument_type_name,
             ))
     return result
 
