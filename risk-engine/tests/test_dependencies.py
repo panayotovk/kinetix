@@ -5,7 +5,16 @@ from kinetix_risk.dependencies import (
     MarketDataDependency,
     discover,
 )
-from kinetix_risk.models import AssetClass, PositionRisk
+from kinetix_risk.models import (
+    AssetClass,
+    BondPosition,
+    FuturePosition,
+    FxPosition,
+    OptionPosition,
+    OptionType,
+    PositionRisk,
+    SwapPosition,
+)
 
 
 def _pos(
@@ -267,3 +276,260 @@ class TestDiscover:
         assert len(cs) == 2
         instruments = {d.instrument_id for d in cs}
         assert instruments == {"BOND-1", "BOND-2"}
+
+
+class TestDiscoverInstrumentType:
+    """Tests for instrument-type-keyed dependency discovery."""
+
+    def test_interest_rate_swap_gets_yield_curve_only(self):
+        swap = SwapPosition(
+            instrument_id="USD-SOFR-5Y",
+            asset_class=AssetClass.DERIVATIVE,
+            market_value=0.0,
+            currency="USD",
+            instrument_type="INTEREST_RATE_SWAP",
+            notional=10_000_000.0,
+            fixed_rate=0.035,
+            maturity_date="2031-03-16",
+        )
+        result = discover([swap])
+        data_types = {d.data_type for d in result}
+        assert "YIELD_CURVE" in data_types
+        assert "SPOT_PRICE" not in data_types
+        assert "VOLATILITY_SURFACE" not in data_types
+        assert "RISK_FREE_RATE" not in data_types
+        assert "DIVIDEND_YIELD" not in data_types
+
+    def test_interest_rate_swap_yield_curve_keyed_on_currency(self):
+        swap = SwapPosition(
+            instrument_id="EUR-ESTR-5Y",
+            asset_class=AssetClass.DERIVATIVE,
+            market_value=0.0,
+            currency="EUR",
+            instrument_type="INTEREST_RATE_SWAP",
+            notional=10_000_000.0,
+        )
+        result = discover([swap])
+        yc = [d for d in result if d.data_type == "YIELD_CURVE"]
+        assert len(yc) == 1
+        assert yc[0].parameters == {"curveId": "EUR"}
+
+    def test_government_bond_no_credit_spread(self):
+        bond = BondPosition(
+            instrument_id="US10Y",
+            asset_class=AssetClass.FIXED_INCOME,
+            market_value=980_000.0,
+            currency="USD",
+            instrument_type="GOVERNMENT_BOND",
+            face_value=1_000_000.0,
+        )
+        result = discover([bond])
+        data_types = {d.data_type for d in result}
+        assert "YIELD_CURVE" in data_types
+        assert "CREDIT_SPREAD" not in data_types
+
+    def test_corporate_bond_gets_yield_curve_and_credit_spread(self):
+        bond = BondPosition(
+            instrument_id="JPM-5Y",
+            asset_class=AssetClass.FIXED_INCOME,
+            market_value=490_000.0,
+            currency="USD",
+            instrument_type="CORPORATE_BOND",
+            face_value=500_000.0,
+        )
+        result = discover([bond])
+        data_types = {d.data_type for d in result}
+        assert "YIELD_CURVE" in data_types
+        assert "CREDIT_SPREAD" in data_types
+
+    def test_equity_option_spot_keyed_on_underlying_id(self):
+        opt = OptionPosition(
+            instrument_id="AAPL-C-200-20260620",
+            underlying_id="AAPL",
+            option_type=OptionType.CALL,
+            strike=200.0,
+            expiry_days=90,
+            spot_price=0.0,
+            implied_vol=0.0,
+            currency="USD",
+            instrument_type="EQUITY_OPTION",
+        )
+        result = discover([opt])
+        spot = [d for d in result if d.data_type == "SPOT_PRICE"]
+        assert len(spot) == 1
+        assert spot[0].instrument_id == "AAPL"  # underlying, not option id
+
+    def test_equity_option_vol_surface_keyed_on_underlying_id(self):
+        opt = OptionPosition(
+            instrument_id="AAPL-C-200-20260620",
+            underlying_id="AAPL",
+            option_type=OptionType.CALL,
+            strike=200.0,
+            expiry_days=90,
+            spot_price=0.0,
+            implied_vol=0.0,
+            currency="USD",
+            instrument_type="EQUITY_OPTION",
+        )
+        result = discover([opt])
+        vol = [d for d in result if d.data_type == "VOLATILITY_SURFACE"]
+        assert len(vol) == 1
+        assert vol[0].instrument_id == "AAPL"
+
+    def test_equity_option_gets_risk_free_rate(self):
+        opt = OptionPosition(
+            instrument_id="AAPL-C-200",
+            underlying_id="AAPL",
+            option_type=OptionType.CALL,
+            strike=200.0,
+            expiry_days=90,
+            spot_price=0.0,
+            implied_vol=0.0,
+            currency="USD",
+            instrument_type="EQUITY_OPTION",
+        )
+        result = discover([opt])
+        rfr = [d for d in result if d.data_type == "RISK_FREE_RATE"]
+        assert len(rfr) == 1
+        assert rfr[0].parameters == {"currency": "USD"}
+
+    def test_fx_forward_gets_two_yield_curves(self):
+        fwd = FxPosition(
+            instrument_id="GBPUSD-3M",
+            asset_class=AssetClass.FX,
+            market_value=500_000.0,
+            currency="USD",
+            instrument_type="FX_FORWARD",
+            base_currency="GBP",
+            quote_currency="USD",
+        )
+        result = discover([fwd])
+        yc = [d for d in result if d.data_type == "YIELD_CURVE"]
+        assert len(yc) == 2
+        params = {frozenset(d.parameters.items()) for d in yc}
+        assert params == {
+            frozenset({("curveId", "GBP")}),
+            frozenset({("curveId", "USD")}),
+        }
+
+    def test_fx_option_gets_two_yield_curves_plus_vol_surface(self):
+        opt = OptionPosition(
+            instrument_id="EURUSD-C-1.10",
+            underlying_id="EURUSD",
+            option_type=OptionType.CALL,
+            strike=1.10,
+            expiry_days=60,
+            spot_price=0.0,
+            implied_vol=0.0,
+            currency="EUR",
+            instrument_type="FX_OPTION",
+        )
+        result = discover([opt])
+        data_types = {d.data_type for d in result}
+        assert "SPOT_PRICE" in data_types
+        assert "VOLATILITY_SURFACE" in data_types
+        assert "YIELD_CURVE" in data_types
+        assert "DIVIDEND_YIELD" not in data_types
+
+    def test_commodity_future_forward_curve_is_required(self):
+        fut = FuturePosition(
+            instrument_id="WTI-AUG26",
+            asset_class=AssetClass.COMMODITY,
+            market_value=100_000.0,
+            currency="USD",
+            instrument_type="COMMODITY_FUTURE",
+            underlying_id="WTI",
+        )
+        result = discover([fut])
+        fwd = [d for d in result if d.data_type == "FORWARD_CURVE"]
+        assert len(fwd) == 1
+        assert fwd[0].required is True
+
+    def test_commodity_option_gets_forward_curve_and_vol_surface(self):
+        opt = OptionPosition(
+            instrument_id="WTI-C-80",
+            underlying_id="WTI",
+            option_type=OptionType.CALL,
+            strike=80.0,
+            expiry_days=60,
+            spot_price=0.0,
+            implied_vol=0.0,
+            currency="USD",
+            instrument_type="COMMODITY_OPTION",
+        )
+        result = discover([opt])
+        data_types = {d.data_type for d in result}
+        assert "FORWARD_CURVE" in data_types
+        assert "VOLATILITY_SURFACE" in data_types
+        assert "RISK_FREE_RATE" in data_types
+
+    def test_cash_equity_unchanged(self):
+        pos = PositionRisk("AAPL", AssetClass.EQUITY, 100_000.0, "USD", instrument_type="CASH_EQUITY")
+        result = discover([pos])
+        data_types = {d.data_type for d in result}
+        assert "SPOT_PRICE" in data_types
+        assert "HISTORICAL_PRICES" in data_types
+
+    def test_fx_spot_unchanged(self):
+        pos = FxPosition(
+            instrument_id="EURUSD",
+            asset_class=AssetClass.FX,
+            market_value=1_000_000.0,
+            currency="USD",
+            instrument_type="FX_SPOT",
+            base_currency="EUR",
+            quote_currency="USD",
+        )
+        result = discover([pos])
+        data_types = {d.data_type for d in result}
+        assert "SPOT_PRICE" in data_types
+
+    def test_equity_future_gets_spot_of_underlying(self):
+        fut = FuturePosition(
+            instrument_id="SPX-SEP26",
+            asset_class=AssetClass.EQUITY,
+            market_value=250_000.0,
+            currency="USD",
+            instrument_type="EQUITY_FUTURE",
+            underlying_id="SPX",
+        )
+        result = discover([fut])
+        spot = [d for d in result if d.data_type == "SPOT_PRICE"]
+        assert len(spot) == 1
+        assert spot[0].instrument_id == "SPX"
+
+    def test_fallback_to_asset_class_when_instrument_type_empty(self):
+        pos = _pos("AAPL", AssetClass.EQUITY)
+        result = discover([pos])
+        data_types = {(d.data_type, d.instrument_id) for d in result}
+        assert ("SPOT_PRICE", "AAPL") in data_types
+        assert ("HISTORICAL_PRICES", "AAPL") in data_types
+
+    def test_fallback_to_asset_class_when_instrument_type_unknown(self):
+        pos = PositionRisk("X", AssetClass.EQUITY, 100_000.0, "USD", instrument_type="UNKNOWN_TYPE")
+        result = discover([pos])
+        data_types = {d.data_type for d in result}
+        assert "SPOT_PRICE" in data_types
+
+    def test_mixed_typed_and_untyped_portfolio(self):
+        """Typed and untyped positions in the same portfolio both produce correct deps."""
+        positions = [
+            SwapPosition(
+                instrument_id="USD-5Y",
+                asset_class=AssetClass.DERIVATIVE,
+                market_value=0.0,
+                currency="USD",
+                instrument_type="INTEREST_RATE_SWAP",
+                notional=10_000_000.0,
+            ),
+            _pos("AAPL", AssetClass.EQUITY),  # untyped fallback
+        ]
+        result = discover(positions)
+        data_types = {(d.data_type, d.instrument_id) for d in result}
+        # Swap gets yield curve
+        assert ("YIELD_CURVE", "") in data_types
+        # Equity gets spot
+        assert ("SPOT_PRICE", "AAPL") in data_types
+        # Multi-asset → correlation matrix
+        corr = [d for d in result if d.data_type == "CORRELATION_MATRIX"]
+        assert len(corr) == 1
