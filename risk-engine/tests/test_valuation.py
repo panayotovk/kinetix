@@ -1,5 +1,7 @@
 import pytest
 
+pytestmark = pytest.mark.unit
+
 from kinetix_risk.market_data_consumer import MarketDataBundle
 from kinetix_risk.market_data_models import YieldCurveData
 from kinetix_risk.models import (

@@ -1,5 +1,7 @@
 import pytest
 
+pytestmark = pytest.mark.unit
+
 from kinetix_risk.dependencies import (
     DEPENDENCIES_REGISTRY,
     MarketDataDependency,
