@@ -22,7 +22,7 @@ value PortfolioSummary {
     currency_breakdown: List<CurrencyExposure>
 }
 
-value NettingSetExposure {
+value NettingSetSummary {
     netting_set_id: String?
     net_exposure: Decimal
     position_count: Integer
@@ -33,7 +33,7 @@ value CounterpartyExposure {
     net_exposure: Decimal
     gross_exposure: Decimal
     position_count: Integer
-    netting_set_breakdown: List<NettingSetExposure>?
+    netting_set_breakdown: List<NettingSetSummary>?
 
     @guidance
         -- net_exposure is the sum of per-netting-set net exposures, each floored at zero.

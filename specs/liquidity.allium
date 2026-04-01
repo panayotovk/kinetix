@@ -102,34 +102,16 @@ external entity StressScenario {
     correlation_override: List<Decimal>?
 }
 
+external entity InstrumentLiquidity {
+    instrument_id: String,
+    adv: Decimal,
+    bid_ask_spread_bps: Decimal,
+    liquidity_tier: LiquidityTier
+}
+
 ------------------------------------------------------------
 -- Entities and Variants
 ------------------------------------------------------------
-
-entity InstrumentLiquidity {
-    instrument_id: String
-    as_of_date: String
-    adv_shares: Decimal?
-    adv_notional: Decimal?
-    bid_ask_spread_bps: Decimal?
-    market_depth_score: Decimal?
-    liquidity_tier: LiquidityTier
-    source: String
-
-    -- Derived
-    has_adv: adv_notional != null and adv_notional > 0
-
-    @guidance
-        -- Reference data, updated daily from market data providers.
-        -- Primary key: (instrument_id, as_of_date).
-        -- ADV is typically computed over a 20-day trailing window.
-        -- liquidity_tier classification:
-        --   TIER_1: adv_notional > $50M and spread < 5bps
-        --   TIER_2: adv_notional > $10M and spread < 20bps
-        --   TIER_3: adv_notional > $1M
-        --   ILLIQUID: everything else, or no ADV data
-        -- Instruments with no ADV data default to ILLIQUID.
-}
 
 entity PositionLiquidityMetrics {
     book_id: String
@@ -221,28 +203,29 @@ config {
 -- Instrument liquidity ingestion
 
 rule IngestInstrumentLiquidity {
-    when: InstrumentLiquidityReceived(instrument_id, adv_shares, adv_notional, bid_ask_spread_bps, market_depth_score, source)
+    when: InstrumentLiquidityReceived(instrument_id, adv, bid_ask_spread_bps, asset_class)
 
-    let tier = classify_tier(adv_notional, bid_ask_spread_bps)
+    let tier = classify_tier(adv, bid_ask_spread_bps)
 
     ensures: InstrumentLiquidity.created(
         instrument_id: instrument_id,
-        as_of_date: today,
-        adv_shares: adv_shares,
-        adv_notional: adv_notional,
+        adv: adv,
         bid_ask_spread_bps: bid_ask_spread_bps,
-        market_depth_score: market_depth_score,
+        asset_class: asset_class,
         liquidity_tier: tier,
-        source: source
+        adv_updated_at: now,
+        created_at: now,
+        updated_at: now
     )
 
     @guidance
         -- Triggered by daily batch ingestion job.
-        -- Upserts: if (instrument_id, as_of_date) already exists, replace.
+        -- Upserts: if instrument_id already exists, fields are updated
+        -- and updated_at is set to now.
         -- classify_tier uses the config thresholds:
-        --   adv_notional >= tier_1_adv_floor AND spread <= tier_1_spread_cap → TIER_1
-        --   adv_notional >= tier_2_adv_floor AND spread <= tier_2_spread_cap → TIER_2
-        --   adv_notional >= tier_3_adv_floor → TIER_3
+        --   adv >= tier_1_adv_floor AND spread <= tier_1_spread_cap → TIER_1
+        --   adv >= tier_2_adv_floor AND spread <= tier_2_spread_cap → TIER_2
+        --   adv >= tier_3_adv_floor → TIER_3
         --   else → ILLIQUID
         -- No ADV data → ILLIQUID.
 }
@@ -252,15 +235,15 @@ rule IngestInstrumentLiquidity {
 rule ComputePositionLiquidity {
     when: ComputePositionLiquidityRequested(book_id)
     for position in Positions where book_id = book_id:
-        let instrument_liq = InstrumentLiquidity{instrument_id: position.instrument_id, as_of_date: today}
-        let has_adv = instrument_liq != null and instrument_liq.has_adv
+        let instrument_liq = InstrumentLiquidity{instrument_id: position.instrument_id}
+        let has_adv = instrument_liq != null and instrument_liq.adv > 0
 
         let adv_pct = if has_adv:
-            abs(position.market_value) / instrument_liq.adv_notional
+            abs(position.market_value) / instrument_liq.adv
         else: null
 
         let liquidation_days = if has_adv:
-            abs(position.market_value) / (config.default_participation_rate * instrument_liq.adv_notional)
+            abs(position.market_value) / (config.default_participation_rate * instrument_liq.adv)
         else: config.default_no_adv_horizon
 
         let concentration_flagged = adv_pct != null and adv_pct > config.concentration_threshold
@@ -382,11 +365,11 @@ rule CheckADVConcentration {
     when: PreTradeLimitCheck(book_id, instrument_id, new_quantity, limit_type)
     requires: limit_type = adv_concentration
 
-    let instrument_liq = InstrumentLiquidity{instrument_id: instrument_id, as_of_date: today}
+    let instrument_liq = InstrumentLiquidity{instrument_id: instrument_id}
     let position = Position{book_id: book_id, instrument_id: instrument_id}
     let new_notional = abs(new_quantity * current_price(instrument_id))
-    let new_adv_pct = if instrument_liq != null and instrument_liq.has_adv:
-        new_notional / instrument_liq.adv_notional
+    let new_adv_pct = if instrument_liq != null and instrument_liq.adv > 0:
+        new_notional / instrument_liq.adv
     else: null
 
     @guidance
@@ -452,7 +435,7 @@ rule RecomputeLiquidityOnTrade {
 
 invariant NoADVDefaultsToIlliquid {
     for il in InstrumentLiquiditys:
-        not il.has_adv implies il.liquidity_tier = illiquid
+        not (il.adv > 0) implies il.liquidity_tier = illiquid
 }
 
 invariant ConcentrationFlagConsistency {

@@ -52,8 +52,6 @@ enum Permission {
     promote_eod_run | manage_scenarios
 }
 
-enum ScenarioType { parametric | historical_replay | reverse_stress }
-
 enum ScenarioCategory { regulatory_mandated | internal_approved | supervisory_requested }
 
 enum DataQualityFlag { full_attribution | price_only | stale_greeks }
@@ -120,7 +118,7 @@ enum TrafficLightZone { green | yellow | red }
         -- as ad-hoc String values ("GREEN", "YELLOW", "RED") in
         -- regulatory-service (BacktestRoutes.kt) and risk-orchestrator.
 
-enum FrtbRiskClass { girr | csr_non_sec | csr_sec_ctp | csr_sec_non_ctp | frtb_equity | frtb_commodity | frtb_fx }
+enum FrtbRiskClass { girr | csr_non_sec | csr_sec_ctp | csr_sec_non_ctp | equity | commodity | fx }
     @guidance
         -- No production Kotlin enum class exists. Defined as a proto enum in
         -- regulatory_reporting.proto (used by risk-orchestrator via generated code)

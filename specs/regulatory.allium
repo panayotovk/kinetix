@@ -3,6 +3,7 @@
 -- regulatory submissions with four-eyes approval, and FRTB storage.
 
 use "./core.allium" as core
+use "./scenarios.allium" as scenarios
 
 ------------------------------------------------------------
 -- Entities and Variants
@@ -108,7 +109,7 @@ entity GovernedStressScenario {
         terminal: retired
     }
 
-    scenario_type: core/ScenarioType
+    scenario_type: scenarios/ScenarioType
     category: core/ScenarioCategory
     version: Integer
     created_by: String
@@ -157,7 +158,7 @@ entity RegulatorySubmission {
 
 -- FRTB calculation records
 
-value RiskClassCharge {
+value StoredRiskClassCharge {
     risk_class: String
     delta_charge: Decimal
     vega_charge: Decimal
@@ -175,34 +176,15 @@ entity FrtbCalculationRecord {
     other_notional: Decimal
     total_rrao: Decimal
     total_capital_charge: Decimal
-    sbm_charges: List<RiskClassCharge>
+    sbm_charges: List<StoredRiskClassCharge>
     calculated_at: Timestamp
     stored_at: Timestamp
 }
 
--- Historical scenario periods and returns
+-- Historical scenario periods (authoritative declaration in scenarios.allium)
 
-entity HistoricalScenarioPeriod {
+external entity HistoricalScenarioPeriod {
     period_id: String
-    name: String
-    description: String?
-    start_date: String
-    end_date: String
-    asset_class_focus: String?
-    severity_label: String?
-}
-
-value HistoricalScenarioReturn {
-    period_id: String
-    instrument_id: String
-    return_date: String
-    daily_return: Decimal
-    source: String
-
-    @guidance
-        -- source defaults to "HISTORICAL". Each return represents a single
-        -- instrument's daily return observation within a historical period.
-        -- Returns are ordered by return_date within each instrument grouping.
 }
 
 ------------------------------------------------------------

@@ -174,8 +174,8 @@ value BacktestResult {
 entity StressScenario {
     name: String
     description: String?
-    vol_shocks: List<Decimal>
-    price_shocks: List<Decimal>
+    vol_shocks: Map<core/AssetClass, Decimal>
+    price_shocks: Map<core/AssetClass, Decimal>
     correlation_override: List<Decimal>?
     category: core/ScenarioCategory
 
