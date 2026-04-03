@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Download, Inbox } from 'lucide-react'
 import { useTradeHistory } from '../hooks/useTradeHistory'
 import { formatMoney, formatQuantity, formatTimestamp } from '../utils/format'
@@ -6,7 +6,7 @@ import { formatCompactCurrency } from '../utils/formatCompactCurrency'
 import { Card, EmptyState } from './ui'
 import type { TradeHistoryDto } from '../types'
 import { InstrumentTypeBadge } from './InstrumentTypeBadge'
-import { INSTRUMENT_TYPE_COLORS } from '../utils/instrumentTypes'
+import { INSTRUMENT_TYPE_OPTIONS, formatInstrumentTypeLabel } from '../utils/instrumentTypes'
 
 interface TradeBlotterProps {
   bookId: string | null
@@ -33,15 +33,50 @@ function exportToCsv(trades: TradeHistoryDto[]) {
   URL.revokeObjectURL(url)
 }
 
-const INSTRUMENT_TYPE_OPTIONS = Object.keys(INSTRUMENT_TYPE_COLORS)
-
 export function TradeBlotter({ bookId }: TradeBlotterProps) {
   const { trades, loading, error } = useTradeHistory(bookId)
   const [instrumentFilter, setInstrumentFilter] = useState('')
   const [sideFilter, setSideFilter] = useState<'' | 'BUY' | 'SELL'>('')
   const [instrumentTypeFilter, setInstrumentTypeFilter] = useState('')
+  const [filterResetNotice, setFilterResetNotice] = useState<string | null>(null)
   const [page, setPage] = useState(0)
   const PAGE_SIZE = 50
+
+  const instrumentTypeOptions = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const t of trades) {
+      if (t.instrumentType) {
+        counts.set(t.instrumentType, (counts.get(t.instrumentType) ?? 0) + 1)
+      }
+    }
+    const sorted = [...counts.keys()].sort((a, b) => {
+      const ai = INSTRUMENT_TYPE_OPTIONS.indexOf(a)
+      const bi = INSTRUMENT_TYPE_OPTIONS.indexOf(b)
+      return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi)
+    })
+    return sorted.map((type) => ({ value: type, label: formatInstrumentTypeLabel(type), count: counts.get(type)! }))
+  }, [trades])
+
+  const [prevTrades, setPrevTrades] = useState(trades)
+  if (trades !== prevTrades) {
+    setPrevTrades(trades)
+    if (instrumentTypeFilter) {
+      const stillValid = trades.some((t) => t.instrumentType === instrumentTypeFilter)
+      if (!stillValid) {
+        const label = formatInstrumentTypeLabel(instrumentTypeFilter)
+        setInstrumentTypeFilter('')
+        setPage(0)
+        setFilterResetNotice(`${label} filter removed (no matching trades)`)
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (filterResetNotice) {
+      const timer = setTimeout(() => setFilterResetNotice(null), 8000)
+      return () => clearTimeout(timer)
+    }
+  }, [filterResetNotice])
 
   const filtered = useMemo(() => {
     let result = [...trades]
@@ -123,17 +158,36 @@ export function TradeBlotter({ bookId }: TradeBlotterProps) {
           <option value="BUY">BUY</option>
           <option value="SELL">SELL</option>
         </select>
-        <select
-          data-testid="filter-instrument-type"
-          value={instrumentTypeFilter}
-          onChange={(e) => handleInstrumentTypeFilter(e.target.value)}
-          className="border border-slate-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-        >
-          <option value="">All Types</option>
-          {INSTRUMENT_TYPE_OPTIONS.map((type) => (
-            <option key={type} value={type}>{type.replace(/_/g, ' ')}</option>
-          ))}
-        </select>
+        {instrumentTypeOptions.length > 1 && (
+          <select
+            data-testid="filter-instrument-type"
+            aria-label="Filter by instrument type"
+            value={instrumentTypeFilter}
+            onChange={(e) => handleInstrumentTypeFilter(e.target.value)}
+            className="border border-slate-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          >
+            <option value="">All Types</option>
+            {instrumentTypeOptions.map(({ value, label, count }) => (
+              <option key={value} value={value}>{label} ({count})</option>
+            ))}
+          </select>
+        )}
+        {filterResetNotice && (
+          <span
+            role="status"
+            data-testid="filter-reset-notice"
+            className="text-sm text-amber-700 bg-amber-50 px-2 py-1 rounded"
+          >
+            {filterResetNotice}
+            <button
+              onClick={() => setFilterResetNotice(null)}
+              className="ml-2 text-amber-500 hover:text-amber-700"
+              aria-label="Dismiss notice"
+            >
+              &times;
+            </button>
+          </span>
+        )}
         <div className="flex-1" />
         <button
           data-testid="csv-export-button"

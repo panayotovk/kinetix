@@ -6,7 +6,7 @@ import { formatCompactCurrency } from '../utils/formatCompactCurrency'
 import { exportToCsv } from '../utils/exportCsv'
 import { Card, EmptyState } from './ui'
 import { InstrumentTypeBadge } from './InstrumentTypeBadge'
-import { INSTRUMENT_TYPE_COLORS } from '../utils/instrumentTypes'
+import { INSTRUMENT_TYPE_OPTIONS, formatInstrumentTypeLabel } from '../utils/instrumentTypes'
 import { buildStrategyGroups } from '../utils/strategyGrouping'
 import { StrategyGroupRow } from './StrategyGroupRow'
 
@@ -62,8 +62,6 @@ function loadColumnVisibility(): Record<string, boolean> {
   return {}
 }
 
-const INSTRUMENT_TYPE_OPTIONS = Object.keys(INSTRUMENT_TYPE_COLORS)
-
 export function PositionGrid({ positions, connected, reconnecting, lastConnectedAt, positionRisk, showBookColumn = false }: PositionGridProps) {
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
@@ -71,6 +69,7 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(loadColumnVisibility)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [instrumentTypeFilter, setInstrumentTypeFilter] = useState('')
+  const [filterResetNotice, setFilterResetNotice] = useState<string | null>(null)
   const settingsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -97,6 +96,42 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
     if (!positionRisk) return new Map<string, PositionRiskDto>()
     return new Map(positionRisk.map((r) => [r.instrumentId, r]))
   }, [positionRisk])
+
+  const instrumentTypeOptions = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const p of positions) {
+      if (p.instrumentType) {
+        counts.set(p.instrumentType, (counts.get(p.instrumentType) ?? 0) + 1)
+      }
+    }
+    const sorted = [...counts.keys()].sort((a, b) => {
+      const ai = INSTRUMENT_TYPE_OPTIONS.indexOf(a)
+      const bi = INSTRUMENT_TYPE_OPTIONS.indexOf(b)
+      return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi)
+    })
+    return sorted.map((type) => ({ value: type, label: formatInstrumentTypeLabel(type), count: counts.get(type)! }))
+  }, [positions])
+
+  const [prevPositions, setPrevPositions] = useState(positions)
+  if (positions !== prevPositions) {
+    setPrevPositions(positions)
+    if (instrumentTypeFilter) {
+      const stillValid = positions.some((p) => p.instrumentType === instrumentTypeFilter)
+      if (!stillValid) {
+        const label = formatInstrumentTypeLabel(instrumentTypeFilter)
+        setInstrumentTypeFilter('')
+        setCurrentPage(1)
+        setFilterResetNotice(`${label} filter removed (no matching positions)`)
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (filterResetNotice) {
+      const timer = setTimeout(() => setFilterResetNotice(null), 8000)
+      return () => clearTimeout(timer)
+    }
+  }, [filterResetNotice])
 
   const filteredPositions = useMemo(() => {
     if (!instrumentTypeFilter) return positions
@@ -285,17 +320,36 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
       </div>
 
       <div className="flex items-center gap-3 mb-3">
-        <select
-          data-testid="filter-instrument-type"
-          value={instrumentTypeFilter}
-          onChange={(e) => handleInstrumentTypeFilter(e.target.value)}
-          className="border border-slate-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-        >
-          <option value="">All Types</option>
-          {INSTRUMENT_TYPE_OPTIONS.map((type) => (
-            <option key={type} value={type}>{type.replace(/_/g, ' ')}</option>
-          ))}
-        </select>
+        {instrumentTypeOptions.length > 1 && (
+          <select
+            data-testid="filter-instrument-type"
+            aria-label="Filter by instrument type"
+            value={instrumentTypeFilter}
+            onChange={(e) => handleInstrumentTypeFilter(e.target.value)}
+            className="border border-slate-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          >
+            <option value="">All Types</option>
+            {instrumentTypeOptions.map(({ value, label, count }) => (
+              <option key={value} value={value}>{label} ({count})</option>
+            ))}
+          </select>
+        )}
+        {filterResetNotice && (
+          <span
+            role="status"
+            data-testid="filter-reset-notice"
+            className="text-sm text-amber-700 bg-amber-50 px-2 py-1 rounded"
+          >
+            {filterResetNotice}
+            <button
+              onClick={() => setFilterResetNotice(null)}
+              className="ml-2 text-amber-500 hover:text-amber-700"
+              aria-label="Dismiss notice"
+            >
+              &times;
+            </button>
+          </span>
+        )}
       </div>
 
       <div className="flex justify-end gap-2 mb-2">

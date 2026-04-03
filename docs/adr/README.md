@@ -31,3 +31,4 @@
 | [0027](0027-database-migration-practices.md) | Database migration practices and constraints | Accepted |
 | [0028](0028-key-rate-duration-tenor-buckets.md) | Key rate duration — 4-tenor internal vs 12-tenor FRTB GIRR | Accepted |
 | [0029](0029-discovery-valuation-two-phase-contract.md) | Discovery-valuation two-phase contract | Accepted |
+| [0030](0030-contextual-filter-dropdowns.md) | Contextual filter dropdowns for data-driven types | Accepted |
