@@ -15,6 +15,7 @@ const trades: TradeHistoryDto[] = [
     bookId: 'book-1',
     instrumentId: 'AAPL',
     assetClass: 'EQUITY',
+    instrumentType: 'CASH_EQUITY',
     side: 'BUY',
     quantity: '100',
     price: { amount: '150.00', currency: 'USD' },
@@ -25,6 +26,7 @@ const trades: TradeHistoryDto[] = [
     bookId: 'book-1',
     instrumentId: 'MSFT',
     assetClass: 'EQUITY',
+    instrumentType: 'CASH_EQUITY',
     side: 'SELL',
     quantity: '50',
     price: { amount: '300.00', currency: 'USD' },
@@ -35,6 +37,7 @@ const trades: TradeHistoryDto[] = [
     bookId: 'book-1',
     instrumentId: 'AAPL',
     assetClass: 'EQUITY',
+    instrumentType: 'CASH_EQUITY',
     side: 'BUY',
     quantity: '200',
     price: { amount: '148.00', currency: 'USD' },
@@ -266,6 +269,68 @@ describe('TradeBlotter', () => {
       expect(screen.getByText('Cash Equity')).toBeInTheDocument()
       expect(screen.getByText('Equity Option')).toBeInTheDocument()
       expect(screen.getByText('Government Bond')).toBeInTheDocument()
+    })
+
+    it('shows only instrument types present in the trade data', () => {
+      setupWithTypes()
+      render(<TradeBlotter bookId="book-1" />)
+
+      const select = screen.getByTestId('filter-instrument-type')
+      const optionValues = within(select).getAllByRole('option').map((o) => o.getAttribute('value'))
+      expect(optionValues).toEqual(['', 'CASH_EQUITY', 'EQUITY_OPTION', 'GOVERNMENT_BOND'])
+    })
+
+    it('displays counts next to each filter option', () => {
+      setupWithTypes()
+      render(<TradeBlotter bookId="book-1" />)
+
+      const select = screen.getByTestId('filter-instrument-type')
+      const options = within(select).getAllByRole('option')
+      expect(options[1].textContent).toBe('Cash Equity (1)')
+      expect(options[2].textContent).toBe('Equity Option (1)')
+      expect(options[3].textContent).toBe('Government Bond (1)')
+    })
+
+    it('hides the filter dropdown when only one instrument type exists', () => {
+      const singleTypeTrades: TradeHistoryDto[] = [
+        { ...tradesWithTypes[0], tradeId: 'st-1' },
+        { ...tradesWithTypes[0], tradeId: 'st-2', instrumentId: 'GOOGL' },
+      ]
+      mockUseTradeHistory.mockReturnValue({
+        trades: singleTypeTrades,
+        loading: false,
+        error: null,
+        refetch: vi.fn(),
+      })
+      render(<TradeBlotter bookId="book-1" />)
+
+      expect(screen.queryByTestId('filter-instrument-type')).not.toBeInTheDocument()
+    })
+
+    it('resets stale filter when trades change to a dataset without the selected type', () => {
+      setupWithTypes()
+      const { rerender } = render(<TradeBlotter bookId="book-1" />)
+
+      fireEvent.change(screen.getByTestId('filter-instrument-type'), { target: { value: 'EQUITY_OPTION' } })
+      expect(screen.getByTestId('trade-row-tx-2')).toBeInTheDocument()
+      expect(screen.queryByTestId('trade-row-tx-1')).not.toBeInTheDocument()
+
+      // Simulate book switch — new dataset has no EQUITY_OPTION
+      const newTrades: TradeHistoryDto[] = [
+        { ...tradesWithTypes[0], tradeId: 'nt-1' },
+        { ...tradesWithTypes[2], tradeId: 'nt-2' },
+      ]
+      mockUseTradeHistory.mockReturnValue({
+        trades: newTrades,
+        loading: false,
+        error: null,
+        refetch: vi.fn(),
+      })
+      rerender(<TradeBlotter bookId="book-2" />)
+
+      const rows = screen.getAllByTestId(/^trade-row-/)
+      expect(rows).toHaveLength(2)
+      expect(screen.getByTestId('filter-reset-notice')).toBeInTheDocument()
     })
   })
 })

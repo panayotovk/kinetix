@@ -607,13 +607,97 @@ describe('PositionGrid', () => {
       expect(rows).toHaveLength(3)
     })
 
-    it('shows empty state when filter matches no positions', async () => {
-      const user = userEvent.setup()
+    it('shows only instrument types present in the data', () => {
       render(<PositionGrid positions={positions} />)
 
-      await user.selectOptions(screen.getByTestId('filter-instrument-type'), 'FUTURES')
+      const select = screen.getByTestId('filter-instrument-type')
+      const options = within(select).getAllByRole('option')
+      const optionValues = options.map((o) => o.getAttribute('value'))
+      expect(optionValues).toEqual(['', 'CASH_EQUITY', 'EQUITY_OPTION', 'GOVERNMENT_BOND'])
+    })
 
-      expect(screen.getByText('No positions match the selected type.')).toBeInTheDocument()
+    it('does not show instrument types absent from the data', () => {
+      render(<PositionGrid positions={positions} />)
+
+      const select = screen.getByTestId('filter-instrument-type')
+      const optionTexts = within(select).getAllByRole('option').map((o) => o.textContent)
+      expect(optionTexts).not.toContain(expect.stringContaining('FX'))
+      expect(optionTexts).not.toContain(expect.stringContaining('Commodity'))
+    })
+
+    it('displays counts next to each filter option', () => {
+      const positionsWithDuplicates = [
+        ...positions,
+        makePosition({ instrumentId: 'GOOGL', instrumentType: 'CASH_EQUITY' }),
+      ]
+      render(<PositionGrid positions={positionsWithDuplicates} />)
+
+      const select = screen.getByTestId('filter-instrument-type')
+      const options = within(select).getAllByRole('option')
+      expect(options[1].textContent).toBe('Cash Equity (2)')
+      expect(options[2].textContent).toBe('Equity Option (1)')
+      expect(options[3].textContent).toBe('Government Bond (1)')
+    })
+
+    it('deduplicates instrument types in the dropdown', () => {
+      const manyPositions = [
+        ...Array.from({ length: 50 }, (_, i) =>
+          makePosition({ instrumentId: `STOCK-${i}`, instrumentType: 'CASH_EQUITY' }),
+        ),
+        makePosition({ instrumentId: 'US10Y', instrumentType: 'GOVERNMENT_BOND' }),
+      ]
+      render(<PositionGrid positions={manyPositions} />)
+
+      const select = screen.getByTestId('filter-instrument-type')
+      const options = within(select).getAllByRole('option')
+      // "All Types" + 2 unique types (not 51)
+      expect(options).toHaveLength(3)
+      expect(options[1].textContent).toBe('Cash Equity (50)')
+      expect(options[2].textContent).toBe('Government Bond (1)')
+    })
+
+    it('excludes positions with undefined instrumentType from filter options', () => {
+      const mixedPositions = [
+        makePosition({ instrumentId: 'AAPL', instrumentType: 'CASH_EQUITY' }),
+        makePosition({ instrumentId: 'UNKNOWN-1' }),
+        makePosition({ instrumentId: 'US10Y', instrumentType: 'GOVERNMENT_BOND' }),
+      ]
+      render(<PositionGrid positions={mixedPositions} />)
+
+      const select = screen.getByTestId('filter-instrument-type')
+      const optionValues = within(select).getAllByRole('option').map((o) => o.getAttribute('value'))
+      expect(optionValues).toEqual(['', 'CASH_EQUITY', 'GOVERNMENT_BOND'])
+    })
+
+    it('hides the filter dropdown when only one instrument type exists', () => {
+      const singleType = [
+        makePosition({ instrumentId: 'AAPL', instrumentType: 'CASH_EQUITY' }),
+        makePosition({ instrumentId: 'GOOGL', instrumentType: 'CASH_EQUITY' }),
+      ]
+      render(<PositionGrid positions={singleType} />)
+
+      expect(screen.queryByTestId('filter-instrument-type')).not.toBeInTheDocument()
+    })
+
+    it('resets stale filter when positions change to a dataset without the selected type', async () => {
+      const user = userEvent.setup()
+      const { rerender } = render(<PositionGrid positions={positions} />)
+
+      await user.selectOptions(screen.getByTestId('filter-instrument-type'), 'EQUITY_OPTION')
+      expect(screen.getByTestId('position-row-AAPL-OPT')).toBeInTheDocument()
+
+      // Simulate book switch — new dataset has no EQUITY_OPTION
+      const newPositions = [
+        makePosition({ instrumentId: 'US10Y', instrumentType: 'GOVERNMENT_BOND' }),
+        makePosition({ instrumentId: 'DE10Y', instrumentType: 'GOVERNMENT_BOND' }),
+        makePosition({ instrumentId: 'AAPL', instrumentType: 'CASH_EQUITY' }),
+      ]
+      rerender(<PositionGrid positions={newPositions} />)
+
+      // Filter should auto-reset — all new positions visible
+      const rows = screen.getAllByTestId(/^position-row-/)
+      expect(rows).toHaveLength(3)
+      expect(screen.getByTestId('filter-reset-notice')).toBeInTheDocument()
     })
 
     it('resets to page 1 when filter changes', async () => {

@@ -145,10 +145,20 @@ test.describe('PositionGrid - Instrument Type Filter', () => {
     await expect(page.locator('[data-testid^="position-row-"]')).toHaveCount(3)
   })
 
-  test('shows no-match message when filter matches nothing', async ({ page }) => {
-    await page.getByTestId('filter-instrument-type').selectOption('FUTURES')
+  test('only shows instrument types present in the data', async ({ page }) => {
+    const select = page.getByTestId('filter-instrument-type')
+    const options = select.locator('option')
+    const values = await options.evaluateAll((els) => els.map((el) => (el as HTMLOptionElement).value))
+    expect(values).toEqual(['', 'CASH_EQUITY', 'EQUITY_OPTION', 'GOVERNMENT_BOND'])
+  })
 
-    await expect(page.getByText('No positions match the selected type.')).toBeVisible()
+  test('displays counts next to each filter option', async ({ page }) => {
+    const select = page.getByTestId('filter-instrument-type')
+    const options = select.locator('option')
+    const texts = await options.evaluateAll((els) => els.map((el) => el.textContent))
+    expect(texts).toContain('Cash Equity (1)')
+    expect(texts).toContain('Equity Option (1)')
+    expect(texts).toContain('Government Bond (1)')
   })
 
   test('renders colored badges in the Type column', async ({ page }) => {
