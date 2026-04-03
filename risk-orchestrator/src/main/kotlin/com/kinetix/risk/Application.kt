@@ -299,6 +299,14 @@ fun Application.moduleWithRoutes() {
     } ?: correlationServiceClient
 
     val dependenciesDiscoverer = DependenciesDiscoverer(effectiveRiskEngineClient)
+
+    val marketDataCbConfig = CircuitBreakerConfig(failureThreshold = 5, resetTimeoutMs = 30_000, halfOpenMaxCalls = 2)
+    val priceServiceCircuitBreaker = CircuitBreaker(marketDataCbConfig.copy(name = "price-service"))
+    val ratesServiceCircuitBreaker = CircuitBreaker(marketDataCbConfig.copy(name = "rates-service"))
+    val referenceDataCircuitBreaker = CircuitBreaker(marketDataCbConfig.copy(name = "reference-data-service"))
+    val volatilityCircuitBreaker = CircuitBreaker(marketDataCbConfig.copy(name = "volatility-service"))
+    val correlationCircuitBreaker = CircuitBreaker(marketDataCbConfig.copy(name = "correlation-service"))
+
     val marketDataFetcher = MarketDataFetcher(
         effectivePriceServiceClient, effectiveRatesServiceClient, effectiveReferenceDataServiceClient,
         effectiveVolatilityServiceClient, effectiveCorrelationServiceClient,
@@ -307,6 +315,11 @@ fun Application.moduleWithRoutes() {
         referenceDataServiceBaseUrl = referenceDataServiceBaseUrl,
         volatilityServiceBaseUrl = volatilityServiceBaseUrl,
         correlationServiceBaseUrl = correlationServiceBaseUrl,
+        priceCircuitBreaker = priceServiceCircuitBreaker,
+        ratesCircuitBreaker = ratesServiceCircuitBreaker,
+        referenceDataCircuitBreaker = referenceDataCircuitBreaker,
+        volatilityCircuitBreaker = volatilityCircuitBreaker,
+        correlationCircuitBreaker = correlationCircuitBreaker,
     )
 
     val riskDbConfig = environment.config.config("riskDatabase")

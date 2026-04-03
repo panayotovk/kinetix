@@ -1,6 +1,8 @@
 package com.kinetix.risk.service
 
 import com.kinetix.common.model.InstrumentId
+import com.kinetix.common.resilience.CircuitBreaker
+import com.kinetix.common.resilience.CircuitBreakerOpenException
 import com.kinetix.risk.client.ClientResponse
 import com.kinetix.risk.client.PriceServiceClient
 import com.kinetix.risk.client.RatesServiceClient
@@ -35,16 +37,42 @@ class MarketDataFetcher(
     private val referenceDataServiceBaseUrl: String = "",
     private val volatilityServiceBaseUrl: String = "",
     private val correlationServiceBaseUrl: String = "",
+    private val priceCircuitBreaker: CircuitBreaker? = null,
+    private val ratesCircuitBreaker: CircuitBreaker? = null,
+    private val referenceDataCircuitBreaker: CircuitBreaker? = null,
+    private val volatilityCircuitBreaker: CircuitBreaker? = null,
+    private val correlationCircuitBreaker: CircuitBreaker? = null,
 ) {
     private val logger = LoggerFactory.getLogger(MarketDataFetcher::class.java)
+
+    private fun circuitBreakerFor(dataType: String): CircuitBreaker? = when (dataType) {
+        "SPOT_PRICE", "HISTORICAL_PRICES" -> priceCircuitBreaker
+        "YIELD_CURVE", "RISK_FREE_RATE", "FORWARD_CURVE" -> ratesCircuitBreaker
+        "DIVIDEND_YIELD", "CREDIT_SPREAD" -> referenceDataCircuitBreaker
+        "VOLATILITY_SURFACE" -> volatilityCircuitBreaker
+        "CORRELATION_MATRIX" -> correlationCircuitBreaker
+        else -> null
+    }
 
     suspend fun fetch(dependencies: List<DiscoveredDependency>): List<FetchResult> {
         val results = mutableListOf<FetchResult>()
 
         for (dep in dependencies) {
             val startTime = Instant.now()
+            val circuitBreaker = circuitBreakerFor(dep.dataType)
             try {
-                val result = fetchDependency(dep.dataType, dep.instrumentId, dep.assetClass, dep.parameters)
+                val result = if (circuitBreaker != null) {
+                    circuitBreaker.execute {
+                        val r = fetchDependency(dep.dataType, dep.instrumentId, dep.assetClass, dep.parameters)
+                        // Treat upstream error responses as failures so the circuit breaker tracks them
+                        if (r is ClientResponse.ServiceUnavailable || r is ClientResponse.UpstreamError || r is ClientResponse.NetworkError) {
+                            throw MarketDataFetchException(dep.dataType, r)
+                        }
+                        r
+                    }
+                } else {
+                    fetchDependency(dep.dataType, dep.instrumentId, dep.assetClass, dep.parameters)
+                }
                 val durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis()
                 when (result) {
                     is ClientResponse.Success -> results.add(FetchSuccess(dep, result.value))
@@ -123,6 +151,71 @@ class MarketDataFetcher(
                             )
                         )
                     }
+                }
+            } catch (e: CircuitBreakerOpenException) {
+                val durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis()
+                logger.debug("Circuit breaker open for {}, skipping fetch of {} for {}", e.circuitName, dep.dataType, dep.instrumentId)
+                results.add(
+                    FetchFailure(
+                        dependency = dep,
+                        reason = "CIRCUIT_OPEN",
+                        url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
+                        httpStatus = null,
+                        errorMessage = "Circuit breaker '${e.circuitName}' is open",
+                        service = resolveServiceName(dep.dataType),
+                        timestamp = startTime,
+                        durationMs = durationMs,
+                    )
+                )
+            } catch (e: MarketDataFetchException) {
+                val durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis()
+                when (val r = e.response) {
+                    is ClientResponse.ServiceUnavailable -> {
+                        logger.warn("Service unavailable fetching {} for {}", dep.dataType, dep.instrumentId)
+                        results.add(
+                            FetchFailure(
+                                dependency = dep,
+                                reason = "SERVICE_UNAVAILABLE",
+                                url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
+                                httpStatus = 503,
+                                errorMessage = null,
+                                service = resolveServiceName(dep.dataType),
+                                timestamp = startTime,
+                                durationMs = durationMs,
+                            )
+                        )
+                    }
+                    is ClientResponse.UpstreamError -> {
+                        logger.warn("Upstream error {} fetching {} for {}: {}", r.httpStatus, dep.dataType, dep.instrumentId, r.message)
+                        results.add(
+                            FetchFailure(
+                                dependency = dep,
+                                reason = "UPSTREAM_ERROR",
+                                url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
+                                httpStatus = r.httpStatus,
+                                errorMessage = r.message,
+                                service = resolveServiceName(dep.dataType),
+                                timestamp = startTime,
+                                durationMs = durationMs,
+                            )
+                        )
+                    }
+                    is ClientResponse.NetworkError -> {
+                        logger.warn("Network error fetching {} for {}", dep.dataType, dep.instrumentId, r.cause)
+                        results.add(
+                            FetchFailure(
+                                dependency = dep,
+                                reason = "NETWORK_ERROR",
+                                url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
+                                httpStatus = null,
+                                errorMessage = r.cause.message,
+                                service = resolveServiceName(dep.dataType),
+                                timestamp = startTime,
+                                durationMs = durationMs,
+                            )
+                        )
+                    }
+                    else -> {}
                 }
             } catch (e: Exception) {
                 val durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis()
