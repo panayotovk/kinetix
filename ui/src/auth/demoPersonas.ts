@@ -9,7 +9,7 @@ export interface DemoPersona {
 }
 
 export const DEMO_PERSONAS: DemoPersona[] = [
-  { key: 'risk_manager', username: 'risk_mgr', role: 'RISK_MANAGER', label: 'Risk Manager', description: 'VaR monitoring, stress testing, EOD workflows' },
+  { key: 'risk_manager', username: 'risk_manager1', role: 'RISK_MANAGER', label: 'Risk Manager', description: 'VaR monitoring, stress testing, EOD workflows' },
   { key: 'trader', username: 'trader1', role: 'TRADER', label: 'Trader', description: 'Trade booking, position management, real-time P&L' },
   { key: 'admin', username: 'admin', role: 'ADMIN', label: 'Admin', description: 'Full system access — instruments, limits, users' },
   { key: 'compliance', username: 'compliance1', role: 'COMPLIANCE', label: 'Compliance', description: 'Regulatory reporting, audit trail, model governance' },

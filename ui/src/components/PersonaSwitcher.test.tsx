@@ -16,7 +16,7 @@ describe('PersonaSwitcher', () => {
   it('renders toggle with default RISK_MANAGER persona', () => {
     renderSwitcher()
     expect(screen.getByTestId('header-role-badge')).toHaveTextContent('RISK MANAGER')
-    expect(screen.getByTestId('header-username')).toHaveTextContent('risk_mgr')
+    expect(screen.getByTestId('header-username')).toHaveTextContent('risk_manager1')
   })
 
   it('toggle has visible button shape with border styling', () => {

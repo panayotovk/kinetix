@@ -22,14 +22,14 @@ test.describe('Demo mode', () => {
   test('defaults to RISK_MANAGER persona', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByTestId('header-role-badge')).toHaveText('RISK MANAGER')
-    await expect(page.getByTestId('header-username')).toHaveText('risk_mgr')
+    await expect(page.getByTestId('header-username')).toHaveText('risk_manager1')
   })
 
   test('can switch to all 5 personas and badge/username update', async ({ page }) => {
     await page.goto('/')
 
     const personas = [
-      { key: 'risk_manager', badge: 'RISK MANAGER', username: 'risk_mgr' },
+      { key: 'risk_manager', badge: 'RISK MANAGER', username: 'risk_manager1' },
       { key: 'trader', badge: 'TRADER', username: 'trader1' },
       { key: 'admin', badge: 'ADMIN', username: 'admin' },
       { key: 'compliance', badge: 'COMPLIANCE', username: 'compliance1' },

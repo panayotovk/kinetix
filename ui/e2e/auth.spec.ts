@@ -42,10 +42,10 @@ test.describe('Role badge displays correctly for different roles', () => {
 
   test('RISK_MANAGER role shows blue badge', async ({ page }) => {
     await mockAllApiRoutes(page)
-    await mockKeycloakAuth(page, { username: 'risk_mgr', roles: ['RISK_MANAGER'] })
+    await mockKeycloakAuth(page, { username: 'risk_manager1', roles: ['RISK_MANAGER'] })
     await page.goto('/')
     await expect(page.getByTestId('header-role-badge')).toHaveText('RISK MANAGER')
-    await expect(page.getByTestId('header-username')).toHaveText('risk_mgr')
+    await expect(page.getByTestId('header-username')).toHaveText('risk_manager1')
   })
 
   test('COMPLIANCE role shows amber badge', async ({ page }) => {

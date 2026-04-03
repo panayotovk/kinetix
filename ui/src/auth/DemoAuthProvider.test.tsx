@@ -54,7 +54,7 @@ describe('DemoAuthProvider', () => {
       </DemoAuthProvider>,
     )
 
-    expect(screen.getByTestId('username')).toHaveTextContent('risk_mgr')
+    expect(screen.getByTestId('username')).toHaveTextContent('risk_manager1')
     expect(screen.getByTestId('roles')).toHaveTextContent('["RISK_MANAGER"]')
   })
 
@@ -66,7 +66,7 @@ describe('DemoAuthProvider', () => {
     )
 
     expect(screen.getByTestId('persona-key')).toHaveTextContent('risk_manager')
-    expect(screen.getByTestId('auth-username')).toHaveTextContent('risk_mgr')
+    expect(screen.getByTestId('auth-username')).toHaveTextContent('risk_manager1')
     expect(screen.getByTestId('auth-roles')).toHaveTextContent('["RISK_MANAGER"]')
 
     act(() => {
@@ -90,7 +90,7 @@ describe('DemoAuthProvider', () => {
     })
 
     expect(screen.getByTestId('authenticated')).toHaveTextContent('true')
-    expect(screen.getByTestId('username')).toHaveTextContent('risk_mgr')
+    expect(screen.getByTestId('username')).toHaveTextContent('risk_manager1')
   })
 
   it('does not call setAuthToken', () => {
