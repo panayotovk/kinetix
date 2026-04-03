@@ -54,6 +54,7 @@ export interface TradeHistoryDto {
   price: MoneyDto
   tradedAt: string
   instrumentType?: string
+  displayName?: string
 }
 
 export interface BookDto {

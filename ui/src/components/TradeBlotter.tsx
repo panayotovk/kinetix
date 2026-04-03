@@ -16,10 +16,11 @@ function notional(trade: TradeHistoryDto): number {
 }
 
 function exportToCsv(trades: TradeHistoryDto[]) {
-  const header = 'Time,Instrument,Side,Qty,Price,Currency,Notional,Status'
+  const header = 'Time,Instrument,Name,Type,Side,Qty,Price,Currency,Notional,Status'
   const rows = trades.map((t) => {
     const n = notional(t)
-    return `${t.tradedAt},${t.instrumentId},${t.side},${t.quantity},${t.price.amount},${t.price.currency},${n.toFixed(2)},FILLED`
+    const name = (t.displayName || t.instrumentId).replace(/,/g, ' ')
+    return `${t.tradedAt},${t.instrumentId},${name},${t.instrumentType || ''},${t.side},${t.quantity},${t.price.amount},${t.price.currency},${n.toFixed(2)},FILLED`
   })
   const csv = [header, ...rows].join('\n')
   const blob = new Blob([csv], { type: 'text/csv' })
@@ -150,6 +151,7 @@ export function TradeBlotter({ bookId }: TradeBlotterProps) {
               <tr className="bg-slate-50">
                 <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">Time</th>
                 <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">Instrument</th>
+                <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">Name</th>
                 <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">Type</th>
                 <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">Side</th>
                 <th className="px-4 py-2 text-right text-sm font-semibold text-slate-700">Qty</th>
@@ -161,7 +163,7 @@ export function TradeBlotter({ bookId }: TradeBlotterProps) {
             <tbody className="divide-y divide-slate-100">
               {paginatedTrades.length === 0 && filtered.length === 0 && trades.length > 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center">
+                  <td colSpan={9} className="px-4 py-8 text-center">
                     <EmptyState title="No trades match your filters." />
                   </td>
                 </tr>
@@ -176,6 +178,7 @@ export function TradeBlotter({ bookId }: TradeBlotterProps) {
                       {formatTimestamp(trade.tradedAt)}
                     </td>
                     <td className="px-4 py-2 text-sm font-medium">{trade.instrumentId}</td>
+                    <td className="px-4 py-2 text-sm text-slate-600">{trade.displayName || trade.instrumentId}</td>
                     <td className="px-4 py-2 text-sm">{trade.instrumentType ? <InstrumentTypeBadge instrumentType={trade.instrumentType} /> : '—'}</td>
                     <td
                       data-testid={`trade-side-${trade.tradeId}`}
