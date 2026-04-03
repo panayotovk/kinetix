@@ -218,9 +218,9 @@ test.describe('TradeBlotter - Instrument Type Filter', () => {
   })
 
   test('renders colored badges in the Type column of trade blotter', async ({ page }) => {
-    await expect(page.getByText('Cash Equity')).toBeVisible()
-    await expect(page.getByText('Equity Option')).toBeVisible()
-    await expect(page.getByText('Government Bond')).toBeVisible()
+    await expect(page.getByTestId('trade-row-trade-eq-1').getByText('Cash Equity')).toBeVisible()
+    await expect(page.getByTestId('trade-row-trade-opt-1').getByText('Equity Option')).toBeVisible()
+    await expect(page.getByTestId('trade-row-trade-bond-1').getByText('Government Bond')).toBeVisible()
   })
 })
 
