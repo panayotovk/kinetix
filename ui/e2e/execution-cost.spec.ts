@@ -107,4 +107,136 @@ test.describe('Execution Cost Panel', () => {
 
     await expect(page.getByTestId('slippage-ord-e2e-002')).toHaveClass(/text-green-600/)
   })
+
+  test('renders multiple rows with mixed positive and negative slippage', async ({ page }) => {
+    await mockAllApiRoutes(page)
+
+    await page.route('**/api/v1/execution/cost/**', (route: Route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            orderId: 'ord-mix-001',
+            bookId: 'port-1',
+            instrumentId: 'AAPL',
+            completedAt: '2026-02-21T14:03:00Z',
+            arrivalPrice: '185.25',
+            averageFillPrice: '185.50',
+            side: 'BUY',
+            totalQty: '150',
+            slippageBps: '13.4953',
+            marketImpactBps: '3.5000',
+            timingCostBps: '1.2000',
+            totalCostBps: '18.1953',
+          },
+          {
+            orderId: 'ord-mix-002',
+            bookId: 'port-1',
+            instrumentId: 'GOOGL',
+            completedAt: '2026-02-21T14:07:00Z',
+            arrivalPrice: '175.35',
+            averageFillPrice: '175.20',
+            side: 'BUY',
+            totalQty: '80',
+            slippageBps: '-8.5530',
+            marketImpactBps: null,
+            timingCostBps: null,
+            totalCostBps: '-8.5530',
+          },
+          {
+            orderId: 'ord-mix-003',
+            bookId: 'port-1',
+            instrumentId: 'MSFT',
+            completedAt: '2026-02-21T14:12:00Z',
+            arrivalPrice: '419.70',
+            averageFillPrice: '420.00',
+            side: 'BUY',
+            totalQty: '120',
+            slippageBps: '7.1480',
+            marketImpactBps: '2.8000',
+            timingCostBps: null,
+            totalCostBps: '9.9480',
+          },
+          {
+            orderId: 'ord-mix-004',
+            bookId: 'port-1',
+            instrumentId: 'BABA',
+            completedAt: '2026-02-25T14:11:00Z',
+            arrivalPrice: '86.70',
+            averageFillPrice: '86.50',
+            side: 'SELL',
+            totalQty: '100',
+            slippageBps: '23.0681',
+            marketImpactBps: null,
+            timingCostBps: null,
+            totalCostBps: '23.0681',
+          },
+        ]),
+      })
+    })
+
+    await page.goto('/')
+    await page.getByTestId('tab-trades').click()
+    await page.getByTestId('trades-subtab-cost').click()
+
+    // All 4 rows rendered
+    await expect(page.getByTestId('cost-row-ord-mix-001')).toBeVisible()
+    await expect(page.getByTestId('cost-row-ord-mix-002')).toBeVisible()
+    await expect(page.getByTestId('cost-row-ord-mix-003')).toBeVisible()
+    await expect(page.getByTestId('cost-row-ord-mix-004')).toBeVisible()
+
+    // Positive slippage rows have amber colour
+    await expect(page.getByTestId('slippage-ord-mix-001')).toHaveClass(/text-amber-600/)
+    await expect(page.getByTestId('slippage-ord-mix-003')).toHaveClass(/text-amber-600/)
+    await expect(page.getByTestId('slippage-ord-mix-004')).toHaveClass(/text-amber-600/)
+
+    // Negative slippage row has green colour
+    await expect(page.getByTestId('slippage-ord-mix-002')).toHaveClass(/text-green-600/)
+
+    // SELL side displayed in red, BUY in green
+    await expect(page.getByTestId('side-ord-mix-001')).toHaveText('BUY')
+    await expect(page.getByTestId('side-ord-mix-001')).toHaveClass(/text-green-600/)
+    await expect(page.getByTestId('side-ord-mix-004')).toHaveText('SELL')
+    await expect(page.getByTestId('side-ord-mix-004')).toHaveClass(/text-red-600/)
+  })
+
+  test('shows totalCostBps distinct from slippageBps when market impact is present', async ({ page }) => {
+    await mockAllApiRoutes(page)
+
+    await page.route('**/api/v1/execution/cost/**', (route: Route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            orderId: 'ord-impact-001',
+            bookId: 'port-1',
+            instrumentId: 'NVDA',
+            completedAt: '2026-02-23T14:09:00Z',
+            arrivalPrice: '883.50',
+            averageFillPrice: '885.00',
+            side: 'BUY',
+            totalQty: '90',
+            slippageBps: '16.9836',
+            marketImpactBps: '5.0000',
+            timingCostBps: '2.5000',
+            totalCostBps: '24.4836',
+          },
+        ]),
+      })
+    })
+
+    await page.goto('/')
+    await page.getByTestId('tab-trades').click()
+    await page.getByTestId('trades-subtab-cost').click()
+
+    const row = page.getByTestId('cost-row-ord-impact-001')
+    await expect(row).toBeVisible()
+
+    // Slippage and total cost columns show different values
+    await expect(page.getByTestId('slippage-ord-impact-001')).toContainText('16.98')
+    // Total cost includes market impact + timing cost so is higher
+    await expect(row.locator('td').nth(7)).toContainText('24.48')
+  })
 })
