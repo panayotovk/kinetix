@@ -83,6 +83,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("150"),
                 price = usd("185.50"),
                 tradedAt = BASE_TIME,
+                instrumentType = "CASH_EQUITY",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-eq-googl-001"),
@@ -93,6 +94,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("80"),
                 price = usd("175.20"),
                 tradedAt = BASE_TIME,
+                instrumentType = "CASH_EQUITY",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-eq-msft-001"),
@@ -103,6 +105,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("120"),
                 price = usd("420.00"),
                 tradedAt = BASE_TIME,
+                instrumentType = "CASH_EQUITY",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-eq-amzn-001"),
@@ -113,6 +116,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("100"),
                 price = usd("205.75"),
                 tradedAt = BASE_TIME,
+                instrumentType = "CASH_EQUITY",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-eq-tsla-001"),
@@ -123,6 +127,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("200"),
                 price = usd("248.30"),
                 tradedAt = BASE_TIME,
+                instrumentType = "CASH_EQUITY",
             ),
 
             // ── multi-asset book: 6 trades across asset classes ──
@@ -135,6 +140,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("50"),
                 price = usd("186.00"),
                 tradedAt = BASE_TIME,
+                instrumentType = "CASH_EQUITY",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-ma-eurusd-001"),
@@ -145,6 +151,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("100000"),
                 price = usd("1.0842"),
                 tradedAt = BASE_TIME,
+                instrumentType = "FX_SPOT",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-ma-us10y-001"),
@@ -155,6 +162,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("500"),
                 price = usd("96.75"),
                 tradedAt = BASE_TIME,
+                instrumentType = "GOVERNMENT_BOND",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-ma-gc-001"),
@@ -165,6 +173,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("10"),
                 price = usd("2045.60"),
                 tradedAt = BASE_TIME,
+                instrumentType = "COMMODITY_FUTURE",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-ma-spx-put-001"),
@@ -175,6 +184,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("25"),
                 price = usd("32.50"),
                 tradedAt = BASE_TIME,
+                instrumentType = "EQUITY_OPTION",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-ma-msft-001"),
@@ -185,6 +195,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("75"),
                 price = usd("418.50"),
                 tradedAt = BASE_TIME,
+                instrumentType = "CASH_EQUITY",
             ),
 
             // ── fixed-income book: 3 fixed income trades ──
@@ -197,6 +208,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("1000"),
                 price = usd("99.25"),
                 tradedAt = BASE_TIME,
+                instrumentType = "GOVERNMENT_BOND",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-fi-us10y-001"),
@@ -207,6 +219,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("800"),
                 price = usd("96.50"),
                 tradedAt = BASE_TIME,
+                instrumentType = "GOVERNMENT_BOND",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-fi-us30y-001"),
@@ -217,6 +230,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("500"),
                 price = usd("92.10"),
                 tradedAt = BASE_TIME,
+                instrumentType = "GOVERNMENT_BOND",
             ),
 
             // ── emerging-markets book: 5 positions (EM equities + FX) ──
@@ -229,6 +243,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("400"),
                 price = usd("83.20"),
                 tradedAt = day(1),
+                instrumentType = "CASH_EQUITY",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-em-tsla-001"),
@@ -239,6 +254,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("60"),
                 price = usd("250.10"),
                 tradedAt = day(1),
+                instrumentType = "CASH_EQUITY",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-em-eurusd-001"),
@@ -249,6 +265,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("75000"),
                 price = usd("1.0850"),
                 tradedAt = day(1),
+                instrumentType = "FX_SPOT",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-em-gbpusd-001"),
@@ -259,6 +276,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("50000"),
                 price = usd("1.2580"),
                 tradedAt = day(2),
+                instrumentType = "FX_SPOT",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-em-usdjpy-001"),
@@ -269,6 +287,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("80000"),
                 price = usd("150.20"),
                 tradedAt = day(2),
+                instrumentType = "FX_SPOT",
             ),
             // Partial sell after price rise
             BookTradeCommand(
@@ -280,6 +299,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("100"),
                 price = usd("86.50"),
                 tradedAt = day(4),
+                instrumentType = "CASH_EQUITY",
             ),
 
             // ── macro-hedge book: 6 positions (rates, commodities, FX) ──
@@ -292,6 +312,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("120000"),
                 price = usd("149.80"),
                 tradedAt = BASE_TIME,
+                instrumentType = "FX_SPOT",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-mh-gc-001"),
@@ -302,6 +323,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("15"),
                 price = usd("2040.00"),
                 tradedAt = BASE_TIME,
+                instrumentType = "COMMODITY_FUTURE",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-mh-cl-001"),
@@ -312,6 +334,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("50"),
                 price = usd("76.80"),
                 tradedAt = day(1),
+                instrumentType = "COMMODITY_FUTURE",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-mh-si-001"),
@@ -322,6 +345,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("200"),
                 price = usd("23.10"),
                 tradedAt = day(1),
+                instrumentType = "COMMODITY_FUTURE",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-mh-de10y-001"),
@@ -332,6 +356,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("300"),
                 price = eur("97.80"),
                 tradedAt = day(2),
+                instrumentType = "GOVERNMENT_BOND",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-mh-spx-put-001"),
@@ -342,6 +367,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("40"),
                 price = usd("31.20"),
                 tradedAt = day(2),
+                instrumentType = "EQUITY_OPTION",
             ),
             // Partial sell on gold after rally
             BookTradeCommand(
@@ -353,6 +379,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("5"),
                 price = usd("2060.50"),
                 tradedAt = day(4),
+                instrumentType = "COMMODITY_FUTURE",
             ),
 
             // ── tech-momentum book: 4 concentrated tech positions ──
@@ -365,6 +392,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("90"),
                 price = usd("885.00"),
                 tradedAt = day(2),
+                instrumentType = "CASH_EQUITY",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-tm-meta-001"),
@@ -375,6 +403,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("110"),
                 price = usd("502.30"),
                 tradedAt = day(2),
+                instrumentType = "CASH_EQUITY",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-tm-msft-001"),
@@ -385,6 +414,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("85"),
                 price = usd("421.50"),
                 tradedAt = day(2),
+                instrumentType = "CASH_EQUITY",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-tm-googl-001"),
@@ -395,6 +425,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("100"),
                 price = usd("176.80"),
                 tradedAt = day(2),
+                instrumentType = "CASH_EQUITY",
             ),
             // Partial sell on META after earnings
             BookTradeCommand(
@@ -406,6 +437,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("30"),
                 price = usd("510.00"),
                 tradedAt = day(6),
+                instrumentType = "CASH_EQUITY",
             ),
 
             // ── balanced-income book: 5 positions (bonds + dividend equities) ──
@@ -418,6 +450,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("600"),
                 price = usd("96.60"),
                 tradedAt = day(1),
+                instrumentType = "GOVERNMENT_BOND",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-bi-us30y-001"),
@@ -428,6 +461,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("400"),
                 price = usd("92.30"),
                 tradedAt = day(1),
+                instrumentType = "GOVERNMENT_BOND",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-bi-de10y-001"),
@@ -438,6 +472,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("250"),
                 price = eur("97.90"),
                 tradedAt = day(2),
+                instrumentType = "GOVERNMENT_BOND",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-bi-jpm-001"),
@@ -448,6 +483,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("150"),
                 price = usd("208.40"),
                 tradedAt = day(2),
+                instrumentType = "CASH_EQUITY",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-bi-aapl-001"),
@@ -458,6 +494,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("70"),
                 price = usd("187.20"),
                 tradedAt = day(4),
+                instrumentType = "CASH_EQUITY",
             ),
             // Sell some bonds to rebalance
             BookTradeCommand(
@@ -469,6 +506,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("100"),
                 price = usd("93.10"),
                 tradedAt = day(6),
+                instrumentType = "GOVERNMENT_BOND",
             ),
 
             // ── derivatives-book: 5 positions (options-heavy) ──
@@ -481,6 +519,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("100"),
                 price = usd("41.50"),
                 tradedAt = day(1),
+                instrumentType = "EQUITY_OPTION",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-db-vix-put-001"),
@@ -491,6 +530,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("200"),
                 price = usd("3.75"),
                 tradedAt = day(1),
+                instrumentType = "EQUITY_OPTION",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-db-spx-put-001"),
@@ -501,6 +541,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("75"),
                 price = usd("33.00"),
                 tradedAt = day(2),
+                instrumentType = "EQUITY_OPTION",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-db-nvda-001"),
@@ -511,6 +552,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("50"),
                 price = usd("888.00"),
                 tradedAt = day(2),
+                instrumentType = "CASH_EQUITY",
             ),
             BookTradeCommand(
                 tradeId = TradeId("seed-db-tsla-001"),
@@ -521,6 +563,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("80"),
                 price = usd("249.50"),
                 tradedAt = day(4),
+                instrumentType = "CASH_EQUITY",
             ),
             // Sell some calls to take profit
             BookTradeCommand(
@@ -532,6 +575,7 @@ class DevDataSeeder(
                 quantity = BigDecimal("40"),
                 price = usd("44.20"),
                 tradedAt = day(6),
+                instrumentType = "EQUITY_OPTION",
             ),
         )
 

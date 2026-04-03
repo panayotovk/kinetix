@@ -561,11 +561,11 @@ describe('WhatIfPanel', () => {
       expect(screen.queryByTestId('whatif-asset-class-0')).not.toBeInTheDocument()
     })
 
-    it('has exactly 11 instrument type options', () => {
+    it('has exactly 13 instrument type options', () => {
       render(<WhatIfPanel {...defaultProps} />)
 
       const select = screen.getByTestId('whatif-instrument-type-0') as HTMLSelectElement
-      expect(select.options.length).toBe(11)
+      expect(select.options.length).toBe(13)
     })
 
     it('defaults to CASH_EQUITY selection', () => {
@@ -598,12 +598,12 @@ describe('WhatIfPanel', () => {
       expect(onUpdateTrade).toHaveBeenCalledWith(0, 'assetClass', 'EQUITY')
     })
 
-    it('maps FUTURES to COMMODITY asset class', () => {
+    it('maps COMMODITY_FUTURE to COMMODITY asset class', () => {
       const onUpdateTrade = vi.fn()
       render(<WhatIfPanel {...defaultProps} onUpdateTrade={onUpdateTrade} />)
 
       fireEvent.change(screen.getByTestId('whatif-instrument-type-0'), {
-        target: { value: 'FUTURES' },
+        target: { value: 'COMMODITY_FUTURE' },
       })
 
       expect(onUpdateTrade).toHaveBeenCalledWith(0, 'assetClass', 'COMMODITY')

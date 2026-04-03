@@ -3,6 +3,8 @@ package com.kinetix.gateway.routes
 import com.kinetix.common.model.*
 import com.kinetix.gateway.client.BookTradeCommand
 import com.kinetix.gateway.client.BookTradeResult
+import com.kinetix.gateway.client.InstrumentServiceClient
+import com.kinetix.gateway.client.InstrumentSummary
 import com.kinetix.gateway.client.PortfolioSummary
 import com.kinetix.gateway.client.PositionServiceClient
 import com.kinetix.gateway.module
@@ -411,6 +413,101 @@ class PositionRoutesTest : FunSpec({
             application { module(positionClient) }
             val response = client.get("/health")
             response.status shouldBe HttpStatusCode.OK
+        }
+    }
+
+    // --- Instrument enrichment ---
+
+    test("GET /positions enriches positions with displayName and instrumentType from instrument service") {
+        val instrumentClient = mockk<InstrumentServiceClient>()
+        val position = Position(
+            bookId = BookId("port-1"),
+            instrumentId = InstrumentId("AAPL"),
+            assetClass = AssetClass.EQUITY,
+            quantity = BigDecimal("100"),
+            averageCost = usd("150.00"),
+            marketPrice = usd("155.00"),
+            instrumentType = "UNKNOWN",
+        )
+        coEvery { positionClient.getPositions(BookId("port-1")) } returns listOf(position)
+        coEvery { instrumentClient.fetchAll() } returns listOf(
+            InstrumentSummary("AAPL", "CASH_EQUITY", "Apple Inc."),
+        )
+
+        testApplication {
+            application { module(positionClient, instrumentClient) }
+            val response = client.get("/api/v1/books/port-1/positions")
+            response.status shouldBe HttpStatusCode.OK
+            val posObj = Json.parseToJsonElement(response.bodyAsText()).jsonArray[0].jsonObject
+            posObj["displayName"]?.jsonPrimitive?.content shouldBe "Apple Inc."
+            posObj["instrumentType"]?.jsonPrimitive?.content shouldBe "CASH_EQUITY"
+        }
+    }
+
+    test("GET /positions falls back to position instrumentType when instrument not in reference data") {
+        val instrumentClient = mockk<InstrumentServiceClient>()
+        val position = Position(
+            bookId = BookId("port-1"),
+            instrumentId = InstrumentId("CUSTOM-1"),
+            assetClass = AssetClass.EQUITY,
+            quantity = BigDecimal("50"),
+            averageCost = usd("100.00"),
+            marketPrice = usd("100.00"),
+            instrumentType = "CASH_EQUITY",
+        )
+        coEvery { positionClient.getPositions(BookId("port-1")) } returns listOf(position)
+        coEvery { instrumentClient.fetchAll() } returns emptyList()
+
+        testApplication {
+            application { module(positionClient, instrumentClient) }
+            val response = client.get("/api/v1/books/port-1/positions")
+            val posObj = Json.parseToJsonElement(response.bodyAsText()).jsonArray[0].jsonObject
+            posObj["instrumentType"]?.jsonPrimitive?.content shouldBe "CASH_EQUITY"
+            posObj["displayName"]?.jsonPrimitive?.contentOrNull shouldBe null
+        }
+    }
+
+    test("POST /trades passes instrumentType through to position service") {
+        val commandSlot = slot<BookTradeCommand>()
+        val trade = Trade(
+            tradeId = TradeId("t-1"),
+            bookId = BookId("port-1"),
+            instrumentId = InstrumentId("AAPL"),
+            assetClass = AssetClass.EQUITY,
+            side = Side.BUY,
+            quantity = BigDecimal("100"),
+            price = usd("150.00"),
+            tradedAt = Instant.parse("2025-01-15T10:00:00Z"),
+        )
+        val position = Position(
+            bookId = BookId("port-1"),
+            instrumentId = InstrumentId("AAPL"),
+            assetClass = AssetClass.EQUITY,
+            quantity = BigDecimal("100"),
+            averageCost = usd("150.00"),
+            marketPrice = usd("150.00"),
+        )
+        coEvery { positionClient.bookTrade(capture(commandSlot)) } returns BookTradeResult(trade, position)
+
+        testApplication {
+            application { module(positionClient) }
+            client.post("/api/v1/books/port-1/trades") {
+                contentType(ContentType.Application.Json)
+                setBody("""
+                    {
+                        "tradeId": "t-1",
+                        "instrumentId": "AAPL",
+                        "assetClass": "EQUITY",
+                        "side": "BUY",
+                        "quantity": "100",
+                        "priceAmount": "150.00",
+                        "priceCurrency": "USD",
+                        "tradedAt": "2025-01-15T10:00:00Z",
+                        "instrumentType": "CASH_EQUITY"
+                    }
+                """.trimIndent())
+            }
+            commandSlot.captured.instrumentType shouldBe "CASH_EQUITY"
         }
     }
 })

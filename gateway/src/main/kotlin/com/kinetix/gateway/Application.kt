@@ -11,7 +11,9 @@ import com.kinetix.gateway.auth.configureJwtAuth
 import com.kinetix.gateway.auth.requireBookAccess
 import com.kinetix.gateway.auth.requirePermission
 import com.kinetix.gateway.client.HttpNotificationServiceClient
+import com.kinetix.gateway.client.HttpInstrumentServiceClient
 import com.kinetix.gateway.client.HttpPositionServiceClient
+import com.kinetix.gateway.client.InstrumentServiceClient
 import com.kinetix.gateway.client.HttpPriceServiceClient
 import com.kinetix.gateway.client.HttpRegulatoryServiceClient
 import com.kinetix.gateway.client.HttpRiskServiceClient
@@ -183,10 +185,10 @@ fun Application.module() {
     }
 }
 
-fun Application.module(positionClient: PositionServiceClient) {
+fun Application.module(positionClient: PositionServiceClient, instrumentClient: InstrumentServiceClient? = null) {
     module()
     routing {
-        positionRoutes(positionClient)
+        positionRoutes(positionClient, instrumentClient)
     }
 }
 
@@ -358,6 +360,7 @@ fun Application.devModule() {
         .propertyOrNull("kafka.bootstrapServers")?.getString() ?: "localhost:9092"
 
     val positionClient = HttpPositionServiceClient(httpClient, positionUrl)
+    val instrumentClient = HttpInstrumentServiceClient(httpClient, referenceDataUrl)
     val priceClient = HttpPriceServiceClient(httpClient, priceUrl)
     val riskClient = HttpRiskServiceClient(httpClient, riskUrl)
     val notificationClient = HttpNotificationServiceClient(httpClient, notificationUrl)
@@ -430,7 +433,7 @@ fun Application.devModule() {
         val apiRoutes: Route.() -> Unit = {
             requirePermission(Permission.READ_PORTFOLIOS, authEnabled = authEnabled) {
                 requireBookAccess(bookAccessService) {
-                    positionRoutes(positionClient)
+                    positionRoutes(positionClient, instrumentClient)
                     strategyProxyRoutes(httpClient, positionUrl)
                 }
                 priceRoutes(priceClient)

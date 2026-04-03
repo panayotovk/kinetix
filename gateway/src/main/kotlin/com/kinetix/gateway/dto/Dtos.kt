@@ -10,6 +10,7 @@ import com.kinetix.gateway.client.ValuationJobSummaryItem
 import com.kinetix.gateway.client.JobPhaseItem
 import com.kinetix.gateway.client.BookTradeCommand
 import com.kinetix.gateway.client.BookTradeResult
+import com.kinetix.gateway.client.InstrumentSummary
 import com.kinetix.gateway.client.DataDependenciesSummary
 import com.kinetix.gateway.client.DependenciesParams
 import com.kinetix.gateway.client.MarketDataDependencyItem
@@ -62,6 +63,7 @@ data class BookTradeRequest(
     val priceAmount: String,
     val priceCurrency: String,
     val tradedAt: String,
+    val instrumentType: String? = null,
 )
 
 // --- Response DTOs ---
@@ -155,24 +157,32 @@ fun Trade.toResponse(): TradeResponse = TradeResponse(
     instrumentType = instrumentType,
 )
 
-fun Position.toResponse(): PositionResponse = PositionResponse(
-    bookId = bookId.value,
-    instrumentId = instrumentId.value,
-    assetClass = assetClass.name,
-    quantity = quantity.toPlainString(),
-    averageCost = averageCost.toDto(),
-    marketPrice = marketPrice.toDto(),
-    marketValue = marketValue.toDto(),
-    unrealizedPnl = unrealizedPnl.toDto(),
-    instrumentType = instrumentType,
-    strategyId = strategyId,
-    strategyType = strategyType,
-    strategyName = strategyName,
-)
+fun Position.toResponse(): PositionResponse = toResponse(emptyMap())
 
-fun BookTradeResult.toResponse(): BookTradeResponse = BookTradeResponse(
+fun Position.toResponse(instruments: Map<String, InstrumentSummary>): PositionResponse {
+    val instrument = instruments[instrumentId.value]
+    return PositionResponse(
+        bookId = bookId.value,
+        instrumentId = instrumentId.value,
+        assetClass = assetClass.name,
+        quantity = quantity.toPlainString(),
+        averageCost = averageCost.toDto(),
+        marketPrice = marketPrice.toDto(),
+        marketValue = marketValue.toDto(),
+        unrealizedPnl = unrealizedPnl.toDto(),
+        instrumentType = instrument?.instrumentType ?: instrumentType,
+        displayName = instrument?.displayName,
+        strategyId = strategyId,
+        strategyType = strategyType,
+        strategyName = strategyName,
+    )
+}
+
+fun BookTradeResult.toResponse(): BookTradeResponse = toResponse(emptyMap())
+
+fun BookTradeResult.toResponse(instruments: Map<String, InstrumentSummary>): BookTradeResponse = BookTradeResponse(
     trade = trade.toResponse(),
-    position = position.toResponse(),
+    position = position.toResponse(instruments),
 )
 
 fun PortfolioSummary.toResponse(): PortfolioSummaryResponse = PortfolioSummaryResponse(
@@ -210,6 +220,7 @@ fun BookTradeRequest.toCommand(bookId: BookId): BookTradeCommand {
         quantity = qty,
         price = Money(priceAmt, Currency.getInstance(priceCurrency)),
         tradedAt = Instant.parse(tradedAt),
+        instrumentType = instrumentType,
     )
 }
 

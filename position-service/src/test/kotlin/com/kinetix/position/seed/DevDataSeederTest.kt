@@ -9,6 +9,7 @@ import com.kinetix.position.service.BookTradeResult
 import com.kinetix.position.service.TradeBookingService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.mockk.*
 
 class DevDataSeederTest : FunSpec({
@@ -104,5 +105,11 @@ class DevDataSeederTest : FunSpec({
         val positionKeys = DevDataSeeder.TRADES.map { Pair(it.bookId, it.instrumentId) }.toSet()
         val marketPriceKeys = DevDataSeeder.MARKET_PRICES.keys
         positionKeys shouldBe marketPriceKeys
+    }
+
+    test("all seed trades have instrumentType set") {
+        DevDataSeeder.TRADES.forEach { trade ->
+            trade.instrumentType shouldNotBe null
+        }
     }
 })

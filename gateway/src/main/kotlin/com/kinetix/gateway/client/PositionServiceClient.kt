@@ -13,6 +13,7 @@ data class BookTradeCommand(
     val quantity: BigDecimal,
     val price: Money,
     val tradedAt: Instant,
+    val instrumentType: String? = null,
     val userId: String? = null,
     val userRole: String? = null,
 )

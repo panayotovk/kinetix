@@ -76,8 +76,18 @@ data class BookTradeRequestDto(
     val priceAmount: String,
     val priceCurrency: String,
     val tradedAt: String,
+    val instrumentType: String? = null,
     val userId: String? = null,
     val userRole: String? = null,
+)
+
+// --- Instrument Service DTOs ---
+
+@Serializable
+data class InstrumentDto(
+    val instrumentId: String,
+    val instrumentType: String,
+    val displayName: String,
 )
 
 // --- Price Service DTOs ---

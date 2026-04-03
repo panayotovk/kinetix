@@ -1,6 +1,8 @@
 package com.kinetix.gateway.routes
 
 import com.kinetix.common.model.BookId
+import com.kinetix.gateway.client.InstrumentServiceClient
+import com.kinetix.gateway.client.InstrumentSummary
 import com.kinetix.gateway.client.PositionServiceClient
 import com.kinetix.gateway.dto.*
 import io.github.smiley4.ktoropenapi.get
@@ -10,7 +12,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
-fun Route.positionRoutes(client: PositionServiceClient) {
+fun Route.positionRoutes(client: PositionServiceClient, instrumentClient: InstrumentServiceClient? = null) {
     route("/api/v1/books") {
 
         get({
@@ -52,7 +54,8 @@ fun Route.positionRoutes(client: PositionServiceClient) {
                         userRole = demoUserRole,
                     )
                     val result = client.bookTrade(command)
-                    call.respond(HttpStatusCode.Created, result.toResponse())
+                    val instrumentMap = fetchInstrumentMap(instrumentClient)
+                    call.respond(HttpStatusCode.Created, result.toResponse(instrumentMap))
                 }
             }
 
@@ -66,7 +69,8 @@ fun Route.positionRoutes(client: PositionServiceClient) {
                 }) {
                     val bookId = BookId(call.requirePathParam("bookId"))
                     val positions = client.getPositions(bookId)
-                    call.respond(positions.map { it.toResponse() })
+                    val instrumentMap = fetchInstrumentMap(instrumentClient)
+                    call.respond(positions.map { it.toResponse(instrumentMap) })
                 }
             }
 
@@ -89,5 +93,16 @@ fun Route.positionRoutes(client: PositionServiceClient) {
                 }
             }
         }
+    }
+}
+
+private suspend fun fetchInstrumentMap(
+    client: InstrumentServiceClient?,
+): Map<String, InstrumentSummary> {
+    if (client == null) return emptyMap()
+    return try {
+        client.fetchAll().associateBy { it.instrumentId }
+    } catch (_: Exception) {
+        emptyMap()
     }
 }

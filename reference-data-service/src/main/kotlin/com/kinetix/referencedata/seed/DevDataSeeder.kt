@@ -211,46 +211,133 @@ class DevDataSeeder(
                 CashEquity(currency = "USD", exchange = "NYSE", sector = "Index", countryCode = "US"),
                 "S&P 500 Index", "USD",
             ),
+            // ── Cash equities ──
             "AAPL" to InstrumentConfig(
                 CashEquity(currency = "USD", exchange = "NASDAQ", sector = "Technology", countryCode = "US"),
                 "Apple Inc.", "USD",
             ),
+            "GOOGL" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NASDAQ", sector = "Technology", countryCode = "US"),
+                "Alphabet Inc.", "USD",
+            ),
+            "MSFT" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NASDAQ", sector = "Technology", countryCode = "US"),
+                "Microsoft Corp.", "USD",
+            ),
+            "AMZN" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NASDAQ", sector = "Technology", countryCode = "US"),
+                "Amazon.com Inc.", "USD",
+            ),
+            "TSLA" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NASDAQ", sector = "Technology", countryCode = "US"),
+                "Tesla Inc.", "USD",
+            ),
+            "NVDA" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NASDAQ", sector = "Technology", countryCode = "US"),
+                "NVIDIA Corp.", "USD",
+            ),
+            "META" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NASDAQ", sector = "Technology", countryCode = "US"),
+                "Meta Platforms Inc.", "USD",
+            ),
+            "BABA" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NYSE", sector = "Technology", countryCode = "CN"),
+                "Alibaba Group", "USD",
+            ),
+            "JPM" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NYSE", sector = "Financials", countryCode = "US"),
+                "JPMorgan Chase & Co.", "USD",
+            ),
+            // ── Equity options ──
             "AAPL-C-200-20260620" to InstrumentConfig(
                 EquityOption(underlyingId = "AAPL", optionType = "CALL", strike = 200.0, expiryDate = "2026-06-20", exerciseStyle = "EUROPEAN", contractMultiplier = 100.0, dividendYield = 0.0055),
                 "AAPL Call 200 Jun2026", "USD",
             ),
+            "SPX-CALL-5000" to InstrumentConfig(
+                EquityOption(underlyingId = "IDX-SPX", optionType = "CALL", strike = 5000.0, expiryDate = "2026-09-18", exerciseStyle = "EUROPEAN", contractMultiplier = 100.0),
+                "SPX Call 5000 Sep2026", "USD",
+            ),
+            "SPX-PUT-4500" to InstrumentConfig(
+                EquityOption(underlyingId = "IDX-SPX", optionType = "PUT", strike = 4500.0, expiryDate = "2026-09-18", exerciseStyle = "EUROPEAN", contractMultiplier = 100.0),
+                "SPX Put 4500 Sep2026", "USD",
+            ),
+            "VIX-PUT-15" to InstrumentConfig(
+                EquityOption(underlyingId = "VIX", optionType = "PUT", strike = 15.0, expiryDate = "2026-09-18", exerciseStyle = "EUROPEAN", contractMultiplier = 100.0),
+                "VIX Put 15 Sep2026", "USD",
+            ),
+            // ── Equity futures ──
             "SPX-SEP26" to InstrumentConfig(
                 EquityFuture(underlyingId = "SPX", expiryDate = "2026-09-18", contractSize = 50.0, currency = "USD"),
                 "S&P 500 Sep2026 Future", "USD",
+            ),
+            // ── Government bonds ──
+            "US2Y" to InstrumentConfig(
+                GovernmentBond(currency = "USD", couponRate = 0.04, couponFrequency = 2, maturityDate = "2028-03-15", faceValue = 1000.0, dayCountConvention = "ACT/ACT"),
+                "US 2Y Treasury", "USD",
             ),
             "US10Y" to InstrumentConfig(
                 GovernmentBond(currency = "USD", couponRate = 0.025, couponFrequency = 2, maturityDate = "2036-05-15", faceValue = 1000.0, dayCountConvention = "ACT/ACT"),
                 "US 10Y Treasury", "USD",
             ),
+            "US30Y" to InstrumentConfig(
+                GovernmentBond(currency = "USD", couponRate = 0.03, couponFrequency = 2, maturityDate = "2056-05-15", faceValue = 1000.0, dayCountConvention = "ACT/ACT"),
+                "US 30Y Treasury", "USD",
+            ),
+            "DE10Y" to InstrumentConfig(
+                GovernmentBond(currency = "EUR", couponRate = 0.02, couponFrequency = 1, maturityDate = "2036-05-15", faceValue = 1000.0, dayCountConvention = "ACT/ACT"),
+                "German 10Y Bund", "EUR",
+            ),
+            // ── Corporate bonds ──
             "JPM-BOND-2031" to InstrumentConfig(
                 CorporateBond(currency = "USD", couponRate = 0.045, couponFrequency = 2, maturityDate = "2031-03-15", faceValue = 1000.0, issuer = "JPMorgan Chase", creditRating = "A+", seniority = "SENIOR_UNSECURED"),
                 "JPM 4.5% 2031", "USD",
             ),
+            // ── Interest rate swaps ──
             "USD-SOFR-5Y" to InstrumentConfig(
                 InterestRateSwap(notional = 10_000_000.0, currency = "USD", fixedRate = 0.035, floatIndex = "SOFR", maturityDate = "2031-03-16", effectiveDate = "2026-03-16", payReceive = "PAY_FIXED"),
                 "USD SOFR 5Y IRS", "USD",
             ),
+            // ── FX spot ──
             "EURUSD" to InstrumentConfig(
                 FxSpot(baseCurrency = "EUR", quoteCurrency = "USD"),
                 "EUR/USD Spot", "USD",
             ),
+            "GBPUSD" to InstrumentConfig(
+                FxSpot(baseCurrency = "GBP", quoteCurrency = "USD"),
+                "GBP/USD Spot", "USD",
+            ),
+            "USDJPY" to InstrumentConfig(
+                FxSpot(baseCurrency = "USD", quoteCurrency = "JPY"),
+                "USD/JPY Spot", "JPY",
+            ),
+            // ── FX forwards ──
             "GBPUSD-3M" to InstrumentConfig(
                 FxForward(baseCurrency = "GBP", quoteCurrency = "USD", deliveryDate = "2026-06-16", forwardRate = 1.28),
                 "GBP/USD 3M Forward", "USD",
             ),
+            // ── FX options ──
             "EURUSD-P-1.08-SEP26" to InstrumentConfig(
                 FxOption(baseCurrency = "EUR", quoteCurrency = "USD", optionType = "PUT", strike = 1.08, expiryDate = "2026-09-15"),
                 "EUR/USD Put 1.08 Sep2026", "USD",
+            ),
+            // ── Commodity futures ──
+            "GC" to InstrumentConfig(
+                CommodityFuture(commodity = "Gold", expiryDate = "2026-12-28", contractSize = 100.0, currency = "USD"),
+                "Gold Futures", "USD",
+            ),
+            "CL" to InstrumentConfig(
+                CommodityFuture(commodity = "WTI", expiryDate = "2026-08-20", contractSize = 1000.0, currency = "USD"),
+                "Crude Oil Futures", "USD",
+            ),
+            "SI" to InstrumentConfig(
+                CommodityFuture(commodity = "Silver", expiryDate = "2026-12-28", contractSize = 5000.0, currency = "USD"),
+                "Silver Futures", "USD",
             ),
             "WTI-AUG26" to InstrumentConfig(
                 CommodityFuture(commodity = "WTI", expiryDate = "2026-08-20", contractSize = 1000.0, currency = "USD"),
                 "WTI Crude Aug2026", "USD",
             ),
+            // ── Commodity options ──
             "GC-C-2200-DEC26" to InstrumentConfig(
                 CommodityOption(underlyingId = "GC", optionType = "CALL", strike = 2200.0, expiryDate = "2026-12-28", contractMultiplier = 100.0),
                 "Gold Call 2200 Dec2026", "USD",

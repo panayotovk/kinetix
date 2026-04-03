@@ -5,9 +5,7 @@ import type { TradeFormEntry, ValidationErrors } from '../hooks/useWhatIf'
 import { formatNum } from '../utils/format'
 import { changeColorClass } from '../utils/changeIndicators'
 import { Button, Card, Input } from './ui'
-import { INSTRUMENT_TYPE_COLORS, INSTRUMENT_TYPE_TO_ASSET_CLASS, formatInstrumentTypeLabel } from '../utils/instrumentTypes'
-
-const INSTRUMENT_TYPE_OPTIONS = Object.keys(INSTRUMENT_TYPE_COLORS)
+import { INSTRUMENT_TYPE_OPTIONS, INSTRUMENT_TYPE_TO_ASSET_CLASS, formatInstrumentTypeLabel } from '../utils/instrumentTypes'
 
 interface WhatIfPanelProps {
   open: boolean
