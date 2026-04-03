@@ -302,7 +302,7 @@ export function RiskTab({
           )}
           <div className="mt-4">
             <ErrorBoundary fallback={<SectionErrorCard name="Position Risk" />}>
-              <PositionRiskTable data={positionRisk} loading={positionRiskLoading} error={positionRiskError} />
+              <PositionRiskTable data={positionRisk} loading={positionRiskLoading} error={positionRiskError} onRetry={refreshPositionRisk} />
             </ErrorBoundary>
           </div>
           <div className="mt-4">
