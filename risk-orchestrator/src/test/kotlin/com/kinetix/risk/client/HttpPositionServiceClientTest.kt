@@ -1,6 +1,7 @@
 package com.kinetix.risk.client
 
 import com.kinetix.common.model.*
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
@@ -90,5 +91,54 @@ class HttpPositionServiceClientTest : FunSpec({
         success.value[0] shouldBe BookId("port-1")
         success.value[1] shouldBe BookId("port-2")
         success.value[2] shouldBe BookId("port-3")
+    }
+
+    test("should throw UpstreamServiceException on 503 from position-service") {
+        val httpClient = mockClient {
+            respond(
+                content = """{"code":"service_unavailable","message":"position-service restarting"}""",
+                status = HttpStatusCode.ServiceUnavailable,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        }
+        val client = HttpPositionServiceClient(httpClient, "http://localhost:8081")
+
+        val exception = shouldThrow<UpstreamServiceException> {
+            client.getPositions(BookId("port-1"))
+        }
+        exception.statusCode shouldBe 503
+        exception.message shouldBe "position-service restarting"
+    }
+
+    test("should throw UpstreamServiceException on 500 from position-service") {
+        val httpClient = mockClient {
+            respond(
+                content = """{"code":"internal_error","message":"DB connection failed"}""",
+                status = HttpStatusCode.InternalServerError,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        }
+        val client = HttpPositionServiceClient(httpClient, "http://localhost:8081")
+
+        val exception = shouldThrow<UpstreamServiceException> {
+            client.getDistinctBookIds()
+        }
+        exception.statusCode shouldBe 500
+        exception.message shouldBe "DB connection failed"
+    }
+
+    test("should return NotFound when position-service returns 404") {
+        val httpClient = mockClient {
+            respond(
+                content = "",
+                status = HttpStatusCode.NotFound,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        }
+        val client = HttpPositionServiceClient(httpClient, "http://localhost:8081")
+
+        val result = client.getPositions(BookId("unknown"))
+
+        result.shouldBeInstanceOf<ClientResponse.NotFound>()
     }
 })
