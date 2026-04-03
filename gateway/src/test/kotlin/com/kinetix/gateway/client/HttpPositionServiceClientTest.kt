@@ -1,6 +1,7 @@
 package com.kinetix.gateway.client
 
 import com.kinetix.common.model.*
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.*
@@ -174,5 +175,98 @@ class HttpPositionServiceClientTest : FunSpec({
         position.quantity shouldBe BigDecimal("150")
         position.averageCost shouldBe Money(BigDecimal("150.67"), Currency.getInstance("USD"))
         position.marketPrice shouldBe Money(BigDecimal("155.50"), Currency.getInstance("USD"))
+    }
+
+    test("listPortfolios throws ServiceUnavailableException on 503") {
+        val mockEngine = MockEngine {
+            respond(
+                content = """{"code":"service_unavailable","message":"position-service restarting"}""",
+                status = HttpStatusCode.ServiceUnavailable,
+                headers = headersOf(
+                    HttpHeaders.ContentType to listOf("application/json"),
+                    HttpHeaders.RetryAfter to listOf("30"),
+                ),
+            )
+        }
+        val client = HttpClient(mockEngine) {
+            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        }
+        val sut = HttpPositionServiceClient(client, "http://localhost")
+
+        val exception = shouldThrow<ServiceUnavailableException> {
+            sut.listPortfolios()
+        }
+        exception.retryAfterSeconds shouldBe 30
+        exception.message shouldBe "position-service restarting"
+    }
+
+    test("getPositions throws UpstreamErrorException on 500") {
+        val mockEngine = MockEngine {
+            respond(
+                content = """{"code":"internal_error","message":"DB connection failed"}""",
+                status = HttpStatusCode.InternalServerError,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val client = HttpClient(mockEngine) {
+            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        }
+        val sut = HttpPositionServiceClient(client, "http://localhost")
+
+        val exception = shouldThrow<UpstreamErrorException> {
+            sut.getPositions(BookId("port-1"))
+        }
+        exception.statusCode shouldBe 500
+        exception.message shouldBe "DB connection failed"
+    }
+
+    test("bookTrade throws UpstreamErrorException on 422 limit breach") {
+        val mockEngine = MockEngine {
+            respond(
+                content = """{"code":"limit_breach","message":"Position limit exceeded for AAPL"}""",
+                status = HttpStatusCode.UnprocessableEntity,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val client = HttpClient(mockEngine) {
+            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        }
+        val sut = HttpPositionServiceClient(client, "http://localhost")
+
+        val exception = shouldThrow<UpstreamErrorException> {
+            sut.bookTrade(
+                BookTradeCommand(
+                    tradeId = TradeId("trade-1"),
+                    bookId = BookId("port-1"),
+                    instrumentId = InstrumentId("AAPL"),
+                    assetClass = AssetClass.EQUITY,
+                    side = Side.BUY,
+                    quantity = BigDecimal("50"),
+                    price = Money(BigDecimal("152.00"), Currency.getInstance("USD")),
+                    tradedAt = Instant.parse("2025-03-15T14:30:00Z"),
+                )
+            )
+        }
+        exception.statusCode shouldBe 422
+        exception.message shouldBe "Position limit exceeded for AAPL"
+    }
+
+    test("getTradeHistory throws GatewayTimeoutException on 504") {
+        val mockEngine = MockEngine {
+            respond(
+                content = """{"code":"timeout","message":"position-service timed out"}""",
+                status = HttpStatusCode.GatewayTimeout,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val client = HttpClient(mockEngine) {
+            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        }
+        val sut = HttpPositionServiceClient(client, "http://localhost")
+
+        val exception = shouldThrow<GatewayTimeoutException> {
+            sut.getTradeHistory(BookId("port-1"))
+        }
+        exception.message shouldBe "position-service timed out"
     }
 })
