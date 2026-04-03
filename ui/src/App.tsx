@@ -165,16 +165,20 @@ function App() {
           <HierarchySelector hierarchy={hierarchy} />
           <RegimeIndicator regime={marketRegime.regime} loading={marketRegime.loading} />
           <DataQualityIndicator
-            status={reconnecting && dataQuality.status
-              ? {
-                  ...dataQuality.status,
-                  overall: 'WARNING',
+            status={(() => {
+              const baseStatus = dataQuality.status ?? dataQuality.syntheticStatus
+              if (reconnecting && baseStatus) {
+                return {
+                  ...baseStatus,
+                  overall: 'WARNING' as const,
                   checks: [
-                    { name: 'Price Feed', status: 'WARNING', message: 'WebSocket reconnecting', lastChecked: new Date().toISOString() },
-                    ...dataQuality.status.checks,
+                    { name: 'Price Feed', status: 'WARNING' as const, message: 'WebSocket reconnecting', lastChecked: new Date().toISOString() },
+                    ...baseStatus.checks,
                   ],
                 }
-              : dataQuality.status}
+              }
+              return baseStatus
+            })()}
             loading={dataQuality.loading}
           />
           {!DEMO_MODE && (

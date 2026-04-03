@@ -143,6 +143,7 @@ function setupDefaults() {
   })
   mockUseDataQuality.mockReturnValue({
     status: { overall: 'OK', checks: [] },
+    syntheticStatus: null,
     loading: false,
     error: null,
   })
