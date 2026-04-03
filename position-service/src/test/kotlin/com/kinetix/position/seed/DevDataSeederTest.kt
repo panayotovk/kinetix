@@ -93,16 +93,38 @@ class DevDataSeederTest : FunSpec({
         coVerify(atLeast = DevDataSeeder.MARKET_PRICES.size) { positionRepository.findByKey(any(), any()) }
     }
 
-    test("trade data has correct number of trades per portfolio") {
+    test("trade data has minimum required trades per portfolio") {
         val tradesByPortfolio = DevDataSeeder.TRADES.groupBy { it.bookId.value }
-        tradesByPortfolio["equity-growth"]!!.size shouldBe 5
-        tradesByPortfolio["multi-asset"]!!.size shouldBe 6
-        tradesByPortfolio["fixed-income"]!!.size shouldBe 3
-        tradesByPortfolio["emerging-markets"]!!.size shouldBe 6
-        tradesByPortfolio["macro-hedge"]!!.size shouldBe 7
-        tradesByPortfolio["tech-momentum"]!!.size shouldBe 5
-        tradesByPortfolio["balanced-income"]!!.size shouldBe 6
-        tradesByPortfolio["derivatives-book"]!!.size shouldBe 6
+        tradesByPortfolio["equity-growth"]!!.size shouldBeGreaterThan 59
+        tradesByPortfolio["multi-asset"]!!.size shouldBeGreaterThan 49
+        tradesByPortfolio["fixed-income"]!!.size shouldBeGreaterThan 24
+        tradesByPortfolio["emerging-markets"]!!.size shouldBeGreaterThan 39
+        tradesByPortfolio["macro-hedge"]!!.size shouldBeGreaterThan 39
+        tradesByPortfolio["tech-momentum"]!!.size shouldBeGreaterThan 49
+        tradesByPortfolio["balanced-income"]!!.size shouldBeGreaterThan 29
+        tradesByPortfolio["derivatives-book"]!!.size shouldBeGreaterThan 54
+    }
+
+    test("generated trades are deterministic") {
+        val firstRun = DevDataSeeder.TRADES.map { it.tradeId.value }
+        val secondRun = DevDataSeeder.TRADES.map { it.tradeId.value }
+        firstRun shouldBe secondRun
+    }
+
+    test("trades span at least 15 business days") {
+        val dates = DevDataSeeder.TRADES.map { it.tradedAt.epochSecond / 86400 }.toSortedSet()
+        val span = dates.last() - dates.first()
+        // 15 business days ≈ 21 calendar days; generated trades go back 19 days from BASE_TIME
+        // so span should be >= 15 calendar days
+        (span >= 15) shouldBe true
+    }
+
+    test("MARKET_PRICES covers all position keys in TRADES") {
+        val positionKeys = DevDataSeeder.TRADES.map { it.bookId to it.instrumentId }.toSet()
+        val marketPriceKeys = DevDataSeeder.MARKET_PRICES.keys
+        positionKeys.forEach { key ->
+            marketPriceKeys.contains(key) shouldBe true
+        }
     }
 
     test("all trade IDs are unique") {

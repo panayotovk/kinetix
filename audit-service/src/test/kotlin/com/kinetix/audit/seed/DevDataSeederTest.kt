@@ -3,6 +3,7 @@ package com.kinetix.audit.seed
 import com.kinetix.audit.model.AuditEvent
 import com.kinetix.audit.persistence.AuditEventRepository
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.mockk.*
 
@@ -44,17 +45,17 @@ class DevDataSeederTest : FunSpec({
         coVerify(exactly = 0) { repository.save(any()) }
     }
 
-    test("event data has correct count") {
-        DevDataSeeder.EVENTS.size shouldBe 44
+    test("event data has at least 300 events (core + generated)") {
+        DevDataSeeder.EVENTS.size shouldBeGreaterThan 299
     }
 
     test("all seed events have non-null userId and userRole") {
         DevDataSeeder.EVENTS.all { it.userId != null && it.userRole != null } shouldBe true
     }
 
-    test("seed events include at least two distinct userIds") {
+    test("seed events include at least 4 distinct userIds") {
         val userIds = DevDataSeeder.EVENTS.mapNotNull { it.userId }.distinct()
-        (userIds.size >= 2) shouldBe true
+        userIds.size shouldBeGreaterThan 3
     }
 
     test("all trade IDs are unique and match seed convention") {

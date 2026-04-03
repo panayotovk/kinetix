@@ -88,7 +88,335 @@ class DevDataSeeder(
         //   balanced-income   → desk: balanced-income     (div: multi-asset)
         //   derivatives-book  → desk: derivatives-trading (div: multi-asset)
 
-        val TRADES: List<BookTradeCommand> = listOf(
+        // ── Per-book instrument catalogue (reused by generator) ──────────────────
+        private data class InstrumentSpec(
+            val id: String,
+            val assetClass: AssetClass,
+            val instrumentType: String,
+            val currency: String,
+            val typicalPrice: String,
+            val typicalQtyMin: Int,
+            val typicalQtyMax: Int,
+        )
+
+        private val BOOK_INSTRUMENTS: Map<String, List<InstrumentSpec>> = mapOf(
+            "equity-growth" to listOf(
+                InstrumentSpec("AAPL",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "185.50",  500, 3000),
+                InstrumentSpec("GOOGL", AssetClass.EQUITY, "CASH_EQUITY", "USD", "175.20",  300, 2000),
+                InstrumentSpec("MSFT",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "420.00",  200, 1500),
+                InstrumentSpec("AMZN",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "205.75",  400, 2500),
+                InstrumentSpec("TSLA",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "248.30",  300, 2000),
+            ),
+            "tech-momentum" to listOf(
+                InstrumentSpec("NVDA",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "885.00",  100,  800),
+                InstrumentSpec("META",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "502.30",  200, 1500),
+                InstrumentSpec("MSFT",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "421.50",  150, 1200),
+                InstrumentSpec("GOOGL", AssetClass.EQUITY, "CASH_EQUITY", "USD", "176.80",  300, 2000),
+            ),
+            "emerging-markets" to listOf(
+                InstrumentSpec("BABA",   AssetClass.EQUITY,       "CASH_EQUITY",    "USD", "83.20",   500, 4000),
+                InstrumentSpec("TSLA",   AssetClass.EQUITY,       "CASH_EQUITY",    "USD", "250.10",  200, 1500),
+                InstrumentSpec("EURUSD", AssetClass.FX,           "FX_SPOT",        "USD", "1.0850",  500000, 3000000),
+                InstrumentSpec("GBPUSD", AssetClass.FX,           "FX_SPOT",        "USD", "1.2580",  300000, 2000000),
+                InstrumentSpec("USDJPY", AssetClass.FX,           "FX_SPOT",        "USD", "150.20",  500000, 3000000),
+            ),
+            "fixed-income" to listOf(
+                InstrumentSpec("US2Y",  AssetClass.FIXED_INCOME, "GOVERNMENT_BOND", "USD", "99.25",  5000, 20000),
+                InstrumentSpec("US10Y", AssetClass.FIXED_INCOME, "GOVERNMENT_BOND", "USD", "96.50",  3000, 15000),
+                InstrumentSpec("US30Y", AssetClass.FIXED_INCOME, "GOVERNMENT_BOND", "USD", "92.10",  2000, 10000),
+            ),
+            "multi-asset" to listOf(
+                InstrumentSpec("AAPL",        AssetClass.EQUITY,       "CASH_EQUITY",    "USD", "186.00",  200, 1500),
+                InstrumentSpec("EURUSD",      AssetClass.FX,           "FX_SPOT",        "USD", "1.0842",  500000, 2000000),
+                InstrumentSpec("US10Y",       AssetClass.FIXED_INCOME, "GOVERNMENT_BOND","USD", "96.75",   2000, 10000),
+                InstrumentSpec("GC",          AssetClass.COMMODITY,    "COMMODITY_FUTURE","USD","2045.60",  10,   80),
+                InstrumentSpec("SPX-PUT-4500",AssetClass.DERIVATIVE,   "EQUITY_OPTION",  "USD", "32.50",    50,  300),
+                InstrumentSpec("MSFT",        AssetClass.EQUITY,       "CASH_EQUITY",    "USD", "418.50",  200, 1500),
+            ),
+            "macro-hedge" to listOf(
+                InstrumentSpec("USDJPY",      AssetClass.FX,           "FX_SPOT",        "USD", "149.80",  500000, 2000000),
+                InstrumentSpec("GC",          AssetClass.COMMODITY,    "COMMODITY_FUTURE","USD","2040.00",   10,   60),
+                InstrumentSpec("CL",          AssetClass.COMMODITY,    "COMMODITY_FUTURE","USD",  "76.80",   30,  200),
+                InstrumentSpec("SI",          AssetClass.COMMODITY,    "COMMODITY_FUTURE","USD",  "23.10",   20,  150),
+                InstrumentSpec("DE10Y",       AssetClass.FIXED_INCOME, "GOVERNMENT_BOND", "EUR",  "97.80",  1000, 5000),
+                InstrumentSpec("SPX-PUT-4500",AssetClass.DERIVATIVE,   "EQUITY_OPTION",  "USD",  "31.20",   30,  200),
+            ),
+            "balanced-income" to listOf(
+                InstrumentSpec("US10Y", AssetClass.FIXED_INCOME, "GOVERNMENT_BOND", "USD", "96.60",  2000, 10000),
+                InstrumentSpec("US30Y", AssetClass.FIXED_INCOME, "GOVERNMENT_BOND", "USD", "92.30",  1000,  8000),
+                InstrumentSpec("DE10Y", AssetClass.FIXED_INCOME, "GOVERNMENT_BOND", "EUR", "97.90",  1000,  5000),
+                InstrumentSpec("JPM",   AssetClass.EQUITY,       "CASH_EQUITY",     "USD","208.40",   200,  1500),
+                InstrumentSpec("AAPL",  AssetClass.EQUITY,       "CASH_EQUITY",     "USD","187.20",   200,  1200),
+            ),
+            "derivatives-book" to listOf(
+                InstrumentSpec("SPX-CALL-5000", AssetClass.DERIVATIVE, "EQUITY_OPTION", "USD", "41.50",  100,  600),
+                InstrumentSpec("VIX-PUT-15",    AssetClass.DERIVATIVE, "EQUITY_OPTION", "USD",  "3.75",  200, 1500),
+                InstrumentSpec("SPX-PUT-4500",  AssetClass.DERIVATIVE, "EQUITY_OPTION", "USD", "33.00",   80,  500),
+                InstrumentSpec("NVDA",          AssetClass.EQUITY,     "CASH_EQUITY",   "USD","888.00",  100,  600),
+                InstrumentSpec("TSLA",          AssetClass.EQUITY,     "CASH_EQUITY",   "USD","249.50",  200, 1200),
+            ),
+        )
+
+        // Target count of generated trades per book
+        private val GENERATED_COUNT: Map<String, Int> = mapOf(
+            "equity-growth"    to 55,
+            "tech-momentum"    to 45,
+            "emerging-markets" to 34,
+            "fixed-income"     to 22,
+            "multi-asset"      to 44,
+            "macro-hedge"      to 33,
+            "balanced-income"  to 24,
+            "derivatives-book" to 49,
+        )
+
+        private fun buildGeneratedTrades(): List<BookTradeCommand> {
+            // LCG: Knuth/Newlib parameters — deterministic across all JVM versions
+            var lcgState = 0x5DEECE66DL
+            fun lcgNext(): Long {
+                lcgState = lcgState * 6364136223846793005L + 1442695040888963407L
+                return lcgState
+            }
+            fun nextInt(bound: Int): Int = ((lcgNext() ushr 17) % bound).toInt().let {
+                if (it < 0) it + bound else it
+            }
+            fun nextBoolean(trueProbability: Int): Boolean = nextInt(100) < trueProbability
+
+            // Intraday bucket → seconds offset from midnight UTC
+            // 09:30-10:30 ET = 14:30-15:30 UTC → 52200..56400 s
+            // 11:00-13:00 ET = 16:00-18:00 UTC → 57600..64800 s
+            // 13:00-15:00 ET = 18:00-20:00 UTC → 64800..72000 s
+            // 15:00-16:00 ET = 20:00-21:00 UTC → 72000..75600 s
+            // European hours  08:00-11:00 UTC   → 28800..39600 s
+            fun intradaySeconds(isEuropean: Boolean): Long {
+                return if (isEuropean) {
+                    // 08:00-11:00 UTC (10800 s window)
+                    28800L + nextInt(10800)
+                } else {
+                    val bucket = nextInt(100)
+                    when {
+                        bucket < 35 -> 52200L + nextInt(3600)   // 14:30-15:30 UTC
+                        bucket < 50 -> 57600L + nextInt(7200)   // 16:00-18:00 UTC
+                        bucket < 65 -> 64800L + nextInt(7200)   // 18:00-20:00 UTC
+                        else        -> 72000L + nextInt(3600)   // 20:00-21:00 UTC
+                    }
+                }
+            }
+
+            // Day index 0..19 maps to day offset -19..0 from BASE_TIME
+            fun tradedAt(dayIdx: Int, isEuropean: Boolean = false): Instant {
+                val dayOffset = (dayIdx - 19).toLong()
+                // BASE_TIME is 14:00 UTC; strip to start of that day and add intraday seconds
+                val dayStart = BASE_TIME.plus(dayOffset, ChronoUnit.DAYS)
+                    .truncatedTo(ChronoUnit.DAYS)
+                return dayStart.plusSeconds(intradaySeconds(isEuropean))
+            }
+
+            val result = mutableListOf<BookTradeCommand>()
+
+            // Track sequence numbers per (book, instrument) for ID generation
+            val seqCounters = mutableMapOf<Pair<String, String>, Int>()
+            fun nextSeq(book: String, instr: String): Int {
+                val key = book to instr
+                val seq = (seqCounters[key] ?: 0) + 1
+                seqCounters[key] = seq
+                return seq
+            }
+
+            val fxAndMacroBooks = setOf("macro-hedge", "emerging-markets", "multi-asset")
+
+            for ((bookId, count) in GENERATED_COUNT) {
+                val instruments = BOOK_INSTRUMENTS[bookId] ?: continue
+                val isFxOrMacro = bookId in fxAndMacroBooks
+
+                var i = 0
+                while (i < count) {
+                    val instrSpec = instruments[nextInt(instruments.size)]
+                    val dayIdx = nextInt(20)
+                    val isEuropean = isFxOrMacro && nextBoolean(30)
+                    val at = tradedAt(dayIdx, isEuropean)
+
+                    val isBuy = nextBoolean(70)
+                    val side = if (isBuy) Side.BUY else Side.SELL
+                    val qtyRange = instrSpec.typicalQtyMax - instrSpec.typicalQtyMin
+                    val qty = BigDecimal(instrSpec.typicalQtyMin + nextInt(qtyRange + 1))
+                    val price = if (instrSpec.currency == "EUR") eur(instrSpec.typicalPrice) else usd(instrSpec.typicalPrice)
+                    val seq = nextSeq(bookId, instrSpec.id)
+                    val bookAbbrev = bookId.replace("-", "").take(2)
+                    val instrAbbrev = instrSpec.id.lowercase().replace("-", "").take(6)
+                    val tradeId = "seed-gen-$bookAbbrev-$instrAbbrev-${seq.toString().padStart(3, '0')}"
+
+                    result += BookTradeCommand(
+                        tradeId = TradeId(tradeId),
+                        bookId = BookId(bookId),
+                        instrumentId = InstrumentId(instrSpec.id),
+                        assetClass = instrSpec.assetClass,
+                        side = side,
+                        quantity = qty,
+                        price = price,
+                        tradedAt = at,
+                        instrumentType = instrSpec.instrumentType,
+                    )
+                    i++
+                }
+            }
+
+            // ── Amend/cancel triplets (~15, ~5% of ~300 generated) ────────────
+            // Each triplet: original + cancel (opposite side, 2 min later) + amend (same side, 3 min later, ±5% qty)
+            data class TripletSpec(
+                val bookId: String,
+                val instrId: String,
+                val assetClass: AssetClass,
+                val instrType: String,
+                val currency: String,
+                val priceStr: String,
+                val qty: Int,
+                val side: Side,
+                val baseTime: Instant,
+            )
+
+            val tripletSpecs = listOf(
+                TripletSpec("equity-growth",    "AAPL",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "185.50",  1000, Side.BUY,  BASE_TIME.plus(-18, ChronoUnit.DAYS).plusSeconds(53000)),
+                TripletSpec("tech-momentum",    "NVDA",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "885.00",   200, Side.BUY,  BASE_TIME.plus(-15, ChronoUnit.DAYS).plusSeconds(55000)),
+                TripletSpec("emerging-markets", "BABA",  AssetClass.EQUITY, "CASH_EQUITY", "USD",  "83.20",  2000, Side.BUY,  BASE_TIME.plus(-12, ChronoUnit.DAYS).plusSeconds(60000)),
+                TripletSpec("fixed-income",     "US10Y", AssetClass.FIXED_INCOME, "GOVERNMENT_BOND", "USD", "96.50", 5000, Side.BUY, BASE_TIME.plus(-10, ChronoUnit.DAYS).plusSeconds(57600)),
+                TripletSpec("multi-asset",      "GC",    AssetClass.COMMODITY, "COMMODITY_FUTURE", "USD", "2045.60", 20, Side.BUY, BASE_TIME.plus(-8, ChronoUnit.DAYS).plusSeconds(63000)),
+                TripletSpec("macro-hedge",      "CL",    AssetClass.COMMODITY, "COMMODITY_FUTURE", "USD",  "76.80",  50, Side.SELL, BASE_TIME.plus(-6, ChronoUnit.DAYS).plusSeconds(64800)),
+                TripletSpec("balanced-income",  "JPM",   AssetClass.EQUITY, "CASH_EQUITY", "USD", "208.40",  300, Side.BUY,  BASE_TIME.plus(-14, ChronoUnit.DAYS).plusSeconds(54000)),
+                TripletSpec("derivatives-book", "TSLA",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "249.50",  400, Side.BUY,  BASE_TIME.plus(-11, ChronoUnit.DAYS).plusSeconds(59400)),
+                TripletSpec("equity-growth",    "MSFT",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "420.00",  500, Side.SELL, BASE_TIME.plus(-5, ChronoUnit.DAYS).plusSeconds(70000)),
+                TripletSpec("tech-momentum",    "META",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "502.30",  300, Side.BUY,  BASE_TIME.plus(-3, ChronoUnit.DAYS).plusSeconds(52500)),
+                TripletSpec("macro-hedge",      "GC",    AssetClass.COMMODITY, "COMMODITY_FUTURE", "USD", "2040.00", 10, Side.BUY, BASE_TIME.plus(-16, ChronoUnit.DAYS).plusSeconds(58000)),
+                TripletSpec("multi-asset",      "AAPL",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "186.00",  250, Side.BUY,  BASE_TIME.plus(-9, ChronoUnit.DAYS).plusSeconds(65000)),
+                TripletSpec("balanced-income",  "US30Y", AssetClass.FIXED_INCOME, "GOVERNMENT_BOND", "USD", "92.30", 3000, Side.BUY, BASE_TIME.plus(-7, ChronoUnit.DAYS).plusSeconds(56400)),
+                TripletSpec("derivatives-book", "SPX-CALL-5000", AssetClass.DERIVATIVE, "EQUITY_OPTION", "USD", "41.50", 100, Side.BUY, BASE_TIME.plus(-4, ChronoUnit.DAYS).plusSeconds(53800)),
+                TripletSpec("emerging-markets", "GBPUSD", AssetClass.FX, "FX_SPOT", "USD", "1.2580", 500000, Side.BUY, BASE_TIME.plus(-13, ChronoUnit.DAYS).plusSeconds(34200)),
+            )
+
+            tripletSpecs.forEachIndexed { idx, spec ->
+                val n = idx + 1
+                val bookAbbrev = spec.bookId.replace("-", "").take(2)
+                val instrAbbrev = spec.instrId.lowercase().replace("-", "").take(6)
+                val baseId = "seed-gen-ac-$bookAbbrev-$instrAbbrev-${n.toString().padStart(2, '0')}"
+                val price = if (spec.currency == "EUR") eur(spec.priceStr) else usd(spec.priceStr)
+                val amendQty = BigDecimal((spec.qty * 105 / 100))
+
+                result += BookTradeCommand(
+                    tradeId = TradeId(baseId),
+                    bookId = BookId(spec.bookId),
+                    instrumentId = InstrumentId(spec.instrId),
+                    assetClass = spec.assetClass,
+                    side = spec.side,
+                    quantity = BigDecimal(spec.qty),
+                    price = price,
+                    tradedAt = spec.baseTime,
+                    instrumentType = spec.instrType,
+                )
+                val cancelSide = if (spec.side == Side.BUY) Side.SELL else Side.BUY
+                result += BookTradeCommand(
+                    tradeId = TradeId("$baseId-cancel"),
+                    bookId = BookId(spec.bookId),
+                    instrumentId = InstrumentId(spec.instrId),
+                    assetClass = spec.assetClass,
+                    side = cancelSide,
+                    quantity = BigDecimal(spec.qty),
+                    price = price,
+                    tradedAt = spec.baseTime.plusSeconds(120),
+                    instrumentType = spec.instrType,
+                )
+                result += BookTradeCommand(
+                    tradeId = TradeId("$baseId-amend"),
+                    bookId = BookId(spec.bookId),
+                    instrumentId = InstrumentId(spec.instrId),
+                    assetClass = spec.assetClass,
+                    side = spec.side,
+                    quantity = amendQty,
+                    price = price,
+                    tradedAt = spec.baseTime.plusSeconds(180),
+                    instrumentType = spec.instrType,
+                )
+            }
+
+            // ── Day-trade round trips (2) ──────────────────────────────────────
+            // Trade 1: equity-growth AAPL — buy morning, sell afternoon
+            val dayTradeDay = BASE_TIME.plus(-2, ChronoUnit.DAYS)
+                .truncatedTo(ChronoUnit.DAYS)
+            result += BookTradeCommand(
+                tradeId = TradeId("seed-gen-dt-aapl-morn"),
+                bookId = BookId("equity-growth"),
+                instrumentId = InstrumentId("AAPL"),
+                assetClass = AssetClass.EQUITY,
+                side = Side.BUY,
+                quantity = BigDecimal("2000"),
+                price = usd("185.50"),
+                tradedAt = dayTradeDay.plusSeconds(53400),   // 14:50 UTC = 09:50 ET
+                instrumentType = "CASH_EQUITY",
+            )
+            result += BookTradeCommand(
+                tradeId = TradeId("seed-gen-dt-aapl-aftn"),
+                bookId = BookId("equity-growth"),
+                instrumentId = InstrumentId("AAPL"),
+                assetClass = AssetClass.EQUITY,
+                side = Side.SELL,
+                quantity = BigDecimal("2000"),
+                price = usd("186.80"),
+                tradedAt = dayTradeDay.plusSeconds(72600),   // 20:10 UTC = 15:10 ET
+                instrumentType = "CASH_EQUITY",
+            )
+            // Trade 2: tech-momentum NVDA — buy morning, sell afternoon
+            result += BookTradeCommand(
+                tradeId = TradeId("seed-gen-dt-nvda-morn"),
+                bookId = BookId("tech-momentum"),
+                instrumentId = InstrumentId("NVDA"),
+                assetClass = AssetClass.EQUITY,
+                side = Side.BUY,
+                quantity = BigDecimal("300"),
+                price = usd("885.00"),
+                tradedAt = dayTradeDay.plusSeconds(54600),   // 15:10 UTC = 10:10 ET
+                instrumentType = "CASH_EQUITY",
+            )
+            result += BookTradeCommand(
+                tradeId = TradeId("seed-gen-dt-nvda-aftn"),
+                bookId = BookId("tech-momentum"),
+                instrumentId = InstrumentId("NVDA"),
+                assetClass = AssetClass.EQUITY,
+                side = Side.SELL,
+                quantity = BigDecimal("300"),
+                price = usd("888.50"),
+                tradedAt = dayTradeDay.plusSeconds(73200),   // 20:20 UTC = 15:20 ET
+                instrumentType = "CASH_EQUITY",
+            )
+
+            // ── 2s10s flattener (rates curve trade) ───────────────────────────
+            val flatDay = BASE_TIME.plus(-7, ChronoUnit.DAYS)
+                .truncatedTo(ChronoUnit.DAYS)
+                .plusSeconds(57000)  // 15:50 UTC = 10:50 ET
+            result += BookTradeCommand(
+                tradeId = TradeId("seed-gen-fi-us2y-flat"),
+                bookId = BookId("fixed-income"),
+                instrumentId = InstrumentId("US2Y"),
+                assetClass = AssetClass.FIXED_INCOME,
+                side = Side.BUY,
+                quantity = BigDecimal("20000"),
+                price = usd("99.25"),
+                tradedAt = flatDay,
+                instrumentType = "GOVERNMENT_BOND",
+            )
+            result += BookTradeCommand(
+                tradeId = TradeId("seed-gen-fi-us10y-flat"),
+                bookId = BookId("fixed-income"),
+                instrumentId = InstrumentId("US10Y"),
+                assetClass = AssetClass.FIXED_INCOME,
+                side = Side.SELL,
+                quantity = BigDecimal("10000"),
+                price = usd("96.50"),
+                tradedAt = flatDay.plusSeconds(60),
+                instrumentType = "GOVERNMENT_BOND",
+            )
+
+            return result
+        }
+
+        val CORE_TRADES: List<BookTradeCommand> = listOf(
             // ── equity-growth book: 5 equity trades ──
             BookTradeCommand(
                 tradeId = TradeId("seed-eq-aapl-001"),
@@ -594,6 +922,8 @@ class DevDataSeeder(
                 instrumentType = "EQUITY_OPTION",
             ),
         )
+
+        val TRADES: List<BookTradeCommand> = CORE_TRADES + buildGeneratedTrades()
 
         val MARKET_PRICES: Map<Pair<BookId, InstrumentId>, Money> = mapOf(
             // equity-growth

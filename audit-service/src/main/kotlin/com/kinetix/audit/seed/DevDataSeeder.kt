@@ -44,7 +44,325 @@ class DevDataSeeder(
         private const val RISK_MGR_ID = "risk_mgr"
         private const val RISK_MGR_ROLE = "RISK_MANAGER"
 
-        val EVENTS: List<AuditEvent> = listOf(
+        // Instrument catalogue — mirrors position-service DevDataSeeder exactly
+        private data class InstrumentSpec(
+            val id: String,
+            val assetClass: String,
+            val instrumentType: String,
+            val currency: String,
+            val typicalPrice: String,
+            val typicalQtyMin: Int,
+            val typicalQtyMax: Int,
+        )
+
+        private val BOOK_INSTRUMENTS: Map<String, List<InstrumentSpec>> = mapOf(
+            "equity-growth" to listOf(
+                InstrumentSpec("AAPL",  "EQUITY", "CASH_EQUITY", "USD", "185.50",  500, 3000),
+                InstrumentSpec("GOOGL", "EQUITY", "CASH_EQUITY", "USD", "175.20",  300, 2000),
+                InstrumentSpec("MSFT",  "EQUITY", "CASH_EQUITY", "USD", "420.00",  200, 1500),
+                InstrumentSpec("AMZN",  "EQUITY", "CASH_EQUITY", "USD", "205.75",  400, 2500),
+                InstrumentSpec("TSLA",  "EQUITY", "CASH_EQUITY", "USD", "248.30",  300, 2000),
+            ),
+            "tech-momentum" to listOf(
+                InstrumentSpec("NVDA",  "EQUITY", "CASH_EQUITY", "USD", "885.00",  100,  800),
+                InstrumentSpec("META",  "EQUITY", "CASH_EQUITY", "USD", "502.30",  200, 1500),
+                InstrumentSpec("MSFT",  "EQUITY", "CASH_EQUITY", "USD", "421.50",  150, 1200),
+                InstrumentSpec("GOOGL", "EQUITY", "CASH_EQUITY", "USD", "176.80",  300, 2000),
+            ),
+            "emerging-markets" to listOf(
+                InstrumentSpec("BABA",   "EQUITY",       "CASH_EQUITY",     "USD", "83.20",   500, 4000),
+                InstrumentSpec("TSLA",   "EQUITY",       "CASH_EQUITY",     "USD", "250.10",  200, 1500),
+                InstrumentSpec("EURUSD", "FX",           "FX_SPOT",         "USD", "1.0850",  500000, 3000000),
+                InstrumentSpec("GBPUSD", "FX",           "FX_SPOT",         "USD", "1.2580",  300000, 2000000),
+                InstrumentSpec("USDJPY", "FX",           "FX_SPOT",         "USD", "150.20",  500000, 3000000),
+            ),
+            "fixed-income" to listOf(
+                InstrumentSpec("US2Y",  "FIXED_INCOME", "GOVERNMENT_BOND", "USD", "99.25",  5000, 20000),
+                InstrumentSpec("US10Y", "FIXED_INCOME", "GOVERNMENT_BOND", "USD", "96.50",  3000, 15000),
+                InstrumentSpec("US30Y", "FIXED_INCOME", "GOVERNMENT_BOND", "USD", "92.10",  2000, 10000),
+            ),
+            "multi-asset" to listOf(
+                InstrumentSpec("AAPL",        "EQUITY",       "CASH_EQUITY",     "USD", "186.00",  200, 1500),
+                InstrumentSpec("EURUSD",      "FX",           "FX_SPOT",         "USD", "1.0842",  500000, 2000000),
+                InstrumentSpec("US10Y",       "FIXED_INCOME", "GOVERNMENT_BOND", "USD", "96.75",   2000, 10000),
+                InstrumentSpec("GC",          "COMMODITY",    "COMMODITY_FUTURE","USD", "2045.60",  10,   80),
+                InstrumentSpec("SPX-PUT-4500","DERIVATIVE",   "EQUITY_OPTION",   "USD", "32.50",    50,  300),
+                InstrumentSpec("MSFT",        "EQUITY",       "CASH_EQUITY",     "USD", "418.50",  200, 1500),
+            ),
+            "macro-hedge" to listOf(
+                InstrumentSpec("USDJPY",      "FX",           "FX_SPOT",         "USD", "149.80",  500000, 2000000),
+                InstrumentSpec("GC",          "COMMODITY",    "COMMODITY_FUTURE","USD", "2040.00",   10,   60),
+                InstrumentSpec("CL",          "COMMODITY",    "COMMODITY_FUTURE","USD",   "76.80",   30,  200),
+                InstrumentSpec("SI",          "COMMODITY",    "COMMODITY_FUTURE","USD",   "23.10",   20,  150),
+                InstrumentSpec("DE10Y",       "FIXED_INCOME", "GOVERNMENT_BOND", "EUR",   "97.80",  1000, 5000),
+                InstrumentSpec("SPX-PUT-4500","DERIVATIVE",   "EQUITY_OPTION",   "USD",   "31.20",   30,  200),
+            ),
+            "balanced-income" to listOf(
+                InstrumentSpec("US10Y", "FIXED_INCOME", "GOVERNMENT_BOND", "USD", "96.60",  2000, 10000),
+                InstrumentSpec("US30Y", "FIXED_INCOME", "GOVERNMENT_BOND", "USD", "92.30",  1000,  8000),
+                InstrumentSpec("DE10Y", "FIXED_INCOME", "GOVERNMENT_BOND", "EUR", "97.90",  1000,  5000),
+                InstrumentSpec("JPM",   "EQUITY",       "CASH_EQUITY",     "USD","208.40",   200,  1500),
+                InstrumentSpec("AAPL",  "EQUITY",       "CASH_EQUITY",     "USD","187.20",   200,  1200),
+            ),
+            "derivatives-book" to listOf(
+                InstrumentSpec("SPX-CALL-5000", "DERIVATIVE", "EQUITY_OPTION", "USD", "41.50",  100,  600),
+                InstrumentSpec("VIX-PUT-15",    "DERIVATIVE", "EQUITY_OPTION", "USD",  "3.75",  200, 1500),
+                InstrumentSpec("SPX-PUT-4500",  "DERIVATIVE", "EQUITY_OPTION", "USD", "33.00",   80,  500),
+                InstrumentSpec("NVDA",          "EQUITY",     "CASH_EQUITY",   "USD","888.00",  100,  600),
+                InstrumentSpec("TSLA",          "EQUITY",     "CASH_EQUITY",   "USD","249.50",  200, 1200),
+            ),
+        )
+
+        private val GENERATED_COUNT: Map<String, Int> = mapOf(
+            "equity-growth"    to 55,
+            "tech-momentum"    to 45,
+            "emerging-markets" to 34,
+            "fixed-income"     to 22,
+            "multi-asset"      to 44,
+            "macro-hedge"      to 33,
+            "balanced-income"  to 24,
+            "derivatives-book" to 49,
+        )
+
+        private fun personaFor(bookId: String, assetClass: String, traderToggle: Boolean): Pair<String, String> {
+            return when {
+                bookId == "macro-hedge" -> "risk_mgr" to "RISK_MANAGER"
+                assetClass == "FX" || assetClass == "FIXED_INCOME" -> "pm1" to "PORTFOLIO_MANAGER"
+                traderToggle -> "trader1" to "TRADER"
+                else -> "trader2" to "TRADER"
+            }
+        }
+
+        private fun buildGeneratedAuditEvents(): List<AuditEvent> {
+            // LCG identical to position-service DevDataSeeder
+            var lcgState = 0x5DEECE66DL
+            fun lcgNext(): Long {
+                lcgState = lcgState * 6364136223846793005L + 1442695040888963407L
+                return lcgState
+            }
+            fun nextInt(bound: Int): Int = ((lcgNext() ushr 17) % bound).toInt().let {
+                if (it < 0) it + bound else it
+            }
+            fun nextBoolean(trueProbability: Int): Boolean = nextInt(100) < trueProbability
+
+            fun intradaySeconds(isEuropean: Boolean): Long {
+                return if (isEuropean) {
+                    28800L + nextInt(10800)
+                } else {
+                    val bucket = nextInt(100)
+                    when {
+                        bucket < 35 -> 52200L + nextInt(3600)
+                        bucket < 50 -> 57600L + nextInt(7200)
+                        bucket < 65 -> 64800L + nextInt(7200)
+                        else        -> 72000L + nextInt(3600)
+                    }
+                }
+            }
+
+            fun tradedAt(dayIdx: Int, isEuropean: Boolean = false): Instant {
+                val dayOffset = (dayIdx - 19).toLong()
+                val dayStart = BASE_TIME.plus(dayOffset, ChronoUnit.DAYS)
+                    .truncatedTo(ChronoUnit.DAYS)
+                return dayStart.plusSeconds(intradaySeconds(isEuropean))
+            }
+
+            val result = mutableListOf<AuditEvent>()
+            val seqCounters = mutableMapOf<Pair<String, String>, Int>()
+            fun nextSeq(book: String, instr: String): Int {
+                val key = book to instr
+                val seq = (seqCounters[key] ?: 0) + 1
+                seqCounters[key] = seq
+                return seq
+            }
+
+            val fxAndMacroBooks = setOf("macro-hedge", "emerging-markets", "multi-asset")
+            val traderToggles = mutableMapOf<String, Boolean>()
+
+            for ((bookId, count) in GENERATED_COUNT) {
+                val instruments = BOOK_INSTRUMENTS[bookId] ?: continue
+                val isFxOrMacro = bookId in fxAndMacroBooks
+
+                var i = 0
+                while (i < count) {
+                    val instrSpec = instruments[nextInt(instruments.size)]
+                    val dayIdx = nextInt(20)
+                    val isEuropean = isFxOrMacro && nextBoolean(30)
+                    val at = tradedAt(dayIdx, isEuropean)
+                    val isBuy = nextBoolean(70)
+                    val side = if (isBuy) "BUY" else "SELL"
+                    val qtyRange = instrSpec.typicalQtyMax - instrSpec.typicalQtyMin
+                    val qty = instrSpec.typicalQtyMin + nextInt(qtyRange + 1)
+                    val seq = nextSeq(bookId, instrSpec.id)
+                    val bookAbbrev = bookId.replace("-", "").take(2)
+                    val instrAbbrev = instrSpec.id.lowercase().replace("-", "").take(6)
+                    val tradeId = "seed-gen-$bookAbbrev-$instrAbbrev-${seq.toString().padStart(3, '0')}"
+
+                    val toggle = traderToggles[bookId] ?: true
+                    traderToggles[bookId] = !toggle
+                    val (userId, userRole) = personaFor(bookId, instrSpec.assetClass, toggle)
+
+                    result += AuditEvent(
+                        tradeId = tradeId,
+                        bookId = bookId,
+                        instrumentId = instrSpec.id,
+                        assetClass = instrSpec.assetClass,
+                        side = side,
+                        quantity = qty.toString(),
+                        priceAmount = instrSpec.typicalPrice,
+                        priceCurrency = instrSpec.currency,
+                        tradedAt = at.toString(),
+                        receivedAt = at.plusSeconds(1),
+                        userId = userId,
+                        userRole = userRole,
+                    )
+                    i++
+                }
+            }
+
+            // ── Amend/cancel triplets — identical specs to position-service ──
+            data class TripletSpec(
+                val bookId: String,
+                val instrId: String,
+                val assetClass: String,
+                val currency: String,
+                val priceStr: String,
+                val qty: Int,
+                val side: String,
+                val baseTime: Instant,
+            )
+
+            val tripletSpecs = listOf(
+                TripletSpec("equity-growth",    "AAPL",         "EQUITY",       "USD", "185.50",  1000, "BUY",  BASE_TIME.plus(-18, ChronoUnit.DAYS).plusSeconds(53000)),
+                TripletSpec("tech-momentum",    "NVDA",         "EQUITY",       "USD", "885.00",   200, "BUY",  BASE_TIME.plus(-15, ChronoUnit.DAYS).plusSeconds(55000)),
+                TripletSpec("emerging-markets", "BABA",         "EQUITY",       "USD",  "83.20",  2000, "BUY",  BASE_TIME.plus(-12, ChronoUnit.DAYS).plusSeconds(60000)),
+                TripletSpec("fixed-income",     "US10Y",        "FIXED_INCOME", "USD",  "96.50",  5000, "BUY",  BASE_TIME.plus(-10, ChronoUnit.DAYS).plusSeconds(57600)),
+                TripletSpec("multi-asset",      "GC",           "COMMODITY",    "USD","2045.60",    20, "BUY",  BASE_TIME.plus(-8,  ChronoUnit.DAYS).plusSeconds(63000)),
+                TripletSpec("macro-hedge",      "CL",           "COMMODITY",    "USD",  "76.80",   50, "SELL", BASE_TIME.plus(-6,  ChronoUnit.DAYS).plusSeconds(64800)),
+                TripletSpec("balanced-income",  "JPM",          "EQUITY",       "USD", "208.40",  300, "BUY",  BASE_TIME.plus(-14, ChronoUnit.DAYS).plusSeconds(54000)),
+                TripletSpec("derivatives-book", "TSLA",         "EQUITY",       "USD", "249.50",  400, "BUY",  BASE_TIME.plus(-11, ChronoUnit.DAYS).plusSeconds(59400)),
+                TripletSpec("equity-growth",    "MSFT",         "EQUITY",       "USD", "420.00",  500, "SELL", BASE_TIME.plus(-5,  ChronoUnit.DAYS).plusSeconds(70000)),
+                TripletSpec("tech-momentum",    "META",         "EQUITY",       "USD", "502.30",  300, "BUY",  BASE_TIME.plus(-3,  ChronoUnit.DAYS).plusSeconds(52500)),
+                TripletSpec("macro-hedge",      "GC",           "COMMODITY",    "USD","2040.00",   10, "BUY",  BASE_TIME.plus(-16, ChronoUnit.DAYS).plusSeconds(58000)),
+                TripletSpec("multi-asset",      "AAPL",         "EQUITY",       "USD", "186.00",  250, "BUY",  BASE_TIME.plus(-9,  ChronoUnit.DAYS).plusSeconds(65000)),
+                TripletSpec("balanced-income",  "US30Y",        "FIXED_INCOME", "USD",  "92.30", 3000, "BUY",  BASE_TIME.plus(-7,  ChronoUnit.DAYS).plusSeconds(56400)),
+                TripletSpec("derivatives-book", "SPX-CALL-5000","DERIVATIVE",   "USD",  "41.50",  100, "BUY",  BASE_TIME.plus(-4,  ChronoUnit.DAYS).plusSeconds(53800)),
+                TripletSpec("emerging-markets", "GBPUSD",       "FX",           "USD",  "1.2580",500000,"BUY", BASE_TIME.plus(-13, ChronoUnit.DAYS).plusSeconds(34200)),
+            )
+
+            tripletSpecs.forEachIndexed { idx, spec ->
+                val n = idx + 1
+                val bookAbbrev = spec.bookId.replace("-", "").take(2)
+                val instrAbbrev = spec.instrId.lowercase().replace("-", "").take(6)
+                val baseId = "seed-gen-ac-$bookAbbrev-$instrAbbrev-${n.toString().padStart(2, '0')}"
+                val amendQty = (spec.qty * 105 / 100)
+                val cancelSide = if (spec.side == "BUY") "SELL" else "BUY"
+
+                val (userId, userRole) = personaFor(spec.bookId, spec.assetClass, idx % 2 == 0)
+
+                result += AuditEvent(
+                    tradeId = baseId,
+                    bookId = spec.bookId,
+                    instrumentId = spec.instrId,
+                    assetClass = spec.assetClass,
+                    side = spec.side,
+                    quantity = spec.qty.toString(),
+                    priceAmount = spec.priceStr,
+                    priceCurrency = spec.currency,
+                    tradedAt = spec.baseTime.toString(),
+                    receivedAt = spec.baseTime.plusSeconds(1),
+                    userId = userId,
+                    userRole = userRole,
+                )
+                result += AuditEvent(
+                    tradeId = "$baseId-cancel",
+                    bookId = spec.bookId,
+                    instrumentId = spec.instrId,
+                    assetClass = spec.assetClass,
+                    side = cancelSide,
+                    quantity = spec.qty.toString(),
+                    priceAmount = spec.priceStr,
+                    priceCurrency = spec.currency,
+                    tradedAt = spec.baseTime.plusSeconds(120).toString(),
+                    receivedAt = spec.baseTime.plusSeconds(121),
+                    userId = userId,
+                    userRole = userRole,
+                )
+                result += AuditEvent(
+                    tradeId = "$baseId-amend",
+                    bookId = spec.bookId,
+                    instrumentId = spec.instrId,
+                    assetClass = spec.assetClass,
+                    side = spec.side,
+                    quantity = amendQty.toString(),
+                    priceAmount = spec.priceStr,
+                    priceCurrency = spec.currency,
+                    tradedAt = spec.baseTime.plusSeconds(180).toString(),
+                    receivedAt = spec.baseTime.plusSeconds(181),
+                    userId = userId,
+                    userRole = userRole,
+                )
+            }
+
+            // ── Day-trade round trips ──
+            val dayTradeDay = BASE_TIME.plus(-2, ChronoUnit.DAYS)
+                .truncatedTo(ChronoUnit.DAYS)
+            val aaplMorn = dayTradeDay.plusSeconds(53400)
+            val aaplAftn = dayTradeDay.plusSeconds(72600)
+            val nvdaMorn = dayTradeDay.plusSeconds(54600)
+            val nvdaAftn = dayTradeDay.plusSeconds(73200)
+
+            result += AuditEvent(
+                tradeId = "seed-gen-dt-aapl-morn",
+                bookId = "equity-growth", instrumentId = "AAPL", assetClass = "EQUITY",
+                side = "BUY", quantity = "2000", priceAmount = "185.50", priceCurrency = "USD",
+                tradedAt = aaplMorn.toString(), receivedAt = aaplMorn.plusSeconds(1),
+                userId = "trader1", userRole = "TRADER",
+            )
+            result += AuditEvent(
+                tradeId = "seed-gen-dt-aapl-aftn",
+                bookId = "equity-growth", instrumentId = "AAPL", assetClass = "EQUITY",
+                side = "SELL", quantity = "2000", priceAmount = "186.80", priceCurrency = "USD",
+                tradedAt = aaplAftn.toString(), receivedAt = aaplAftn.plusSeconds(1),
+                userId = "trader1", userRole = "TRADER",
+            )
+            result += AuditEvent(
+                tradeId = "seed-gen-dt-nvda-morn",
+                bookId = "tech-momentum", instrumentId = "NVDA", assetClass = "EQUITY",
+                side = "BUY", quantity = "300", priceAmount = "885.00", priceCurrency = "USD",
+                tradedAt = nvdaMorn.toString(), receivedAt = nvdaMorn.plusSeconds(1),
+                userId = "trader2", userRole = "TRADER",
+            )
+            result += AuditEvent(
+                tradeId = "seed-gen-dt-nvda-aftn",
+                bookId = "tech-momentum", instrumentId = "NVDA", assetClass = "EQUITY",
+                side = "SELL", quantity = "300", priceAmount = "888.50", priceCurrency = "USD",
+                tradedAt = nvdaAftn.toString(), receivedAt = nvdaAftn.plusSeconds(1),
+                userId = "trader2", userRole = "TRADER",
+            )
+
+            // ── 2s10s flattener ──
+            val flatDay = BASE_TIME.plus(-7, ChronoUnit.DAYS)
+                .truncatedTo(ChronoUnit.DAYS)
+                .plusSeconds(57000)
+            result += AuditEvent(
+                tradeId = "seed-gen-fi-us2y-flat",
+                bookId = "fixed-income", instrumentId = "US2Y", assetClass = "FIXED_INCOME",
+                side = "BUY", quantity = "20000", priceAmount = "99.25", priceCurrency = "USD",
+                tradedAt = flatDay.toString(), receivedAt = flatDay.plusSeconds(1),
+                userId = "pm1", userRole = "PORTFOLIO_MANAGER",
+            )
+            result += AuditEvent(
+                tradeId = "seed-gen-fi-us10y-flat",
+                bookId = "fixed-income", instrumentId = "US10Y", assetClass = "FIXED_INCOME",
+                side = "SELL", quantity = "10000", priceAmount = "96.50", priceCurrency = "USD",
+                tradedAt = flatDay.plusSeconds(60).toString(), receivedAt = flatDay.plusSeconds(61),
+                userId = "pm1", userRole = "PORTFOLIO_MANAGER",
+            )
+
+            return result
+        }
+
+        val CORE_EVENTS: List<AuditEvent> = listOf(
             // ── equity-growth portfolio: 5 equity trades ──
             AuditEvent(
                 tradeId = "seed-eq-aapl-001",
@@ -677,5 +995,7 @@ class DevDataSeeder(
                 userRole = RISK_MGR_ROLE,
             ),
         )
+
+        val EVENTS: List<AuditEvent> = CORE_EVENTS + buildGeneratedAuditEvents()
     }
 }
