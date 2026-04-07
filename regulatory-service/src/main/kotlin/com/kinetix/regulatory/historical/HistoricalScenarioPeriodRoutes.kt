@@ -1,7 +1,7 @@
 package com.kinetix.regulatory.historical
 
-import com.kinetix.regulatory.historical.dto.HistoricalScenarioPeriodResponse
-import com.kinetix.regulatory.historical.dto.ReplayRequest
+import com.kinetix.regulatory.historical.dtos.HistoricalScenarioPeriodResponse
+import com.kinetix.regulatory.historical.dtos.ReplayRequest
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*

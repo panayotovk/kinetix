@@ -1,8 +1,8 @@
 package com.kinetix.regulatory.client
 
-import com.kinetix.regulatory.dto.FrtbResultResponse
-import com.kinetix.regulatory.historical.dto.ReplayResultResponse
-import com.kinetix.regulatory.stress.dto.ReverseStressResultResponse
+import com.kinetix.regulatory.dtos.FrtbResultResponse
+import com.kinetix.regulatory.historical.dtos.ReplayResultResponse
+import com.kinetix.regulatory.stress.dtos.ReverseStressResultResponse
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*

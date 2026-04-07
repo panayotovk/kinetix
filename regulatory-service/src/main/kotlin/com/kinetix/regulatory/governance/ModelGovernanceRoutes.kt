@@ -1,8 +1,8 @@
 package com.kinetix.regulatory.governance
 
-import com.kinetix.regulatory.governance.dto.ModelVersionResponse
-import com.kinetix.regulatory.governance.dto.RegisterModelRequest
-import com.kinetix.regulatory.governance.dto.TransitionStatusRequest
+import com.kinetix.regulatory.governance.dtos.ModelVersionResponse
+import com.kinetix.regulatory.governance.dtos.RegisterModelRequest
+import com.kinetix.regulatory.governance.dtos.TransitionStatusRequest
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.patch
 import io.github.smiley4.ktoropenapi.post

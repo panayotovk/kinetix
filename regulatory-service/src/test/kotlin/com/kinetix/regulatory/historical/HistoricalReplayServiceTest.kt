@@ -1,9 +1,9 @@
 package com.kinetix.regulatory.historical
 
 import com.kinetix.regulatory.client.RiskOrchestratorClient
-import com.kinetix.regulatory.historical.dto.PositionReplayImpact
-import com.kinetix.regulatory.historical.dto.ReplayRequest
-import com.kinetix.regulatory.historical.dto.ReplayResultResponse
+import com.kinetix.regulatory.historical.dtos.PositionReplayImpact
+import com.kinetix.regulatory.historical.dtos.ReplayRequest
+import com.kinetix.regulatory.historical.dtos.ReplayResultResponse
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize

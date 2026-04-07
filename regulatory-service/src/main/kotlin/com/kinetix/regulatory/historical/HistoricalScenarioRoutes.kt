@@ -1,6 +1,6 @@
 package com.kinetix.regulatory.historical
 
-import com.kinetix.regulatory.historical.dto.CustomReplayRequest
+import com.kinetix.regulatory.historical.dtos.CustomReplayRequest
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
 import io.ktor.server.request.*

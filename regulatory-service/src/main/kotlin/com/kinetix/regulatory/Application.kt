@@ -3,7 +3,7 @@ package com.kinetix.regulatory
 import com.kinetix.common.health.ReadinessChecker
 import com.kinetix.regulatory.audit.GovernanceAuditPublisher
 import com.kinetix.regulatory.client.RiskOrchestratorClient
-import com.kinetix.regulatory.dto.ErrorResponse
+import com.kinetix.regulatory.dtos.ErrorResponse
 import com.kinetix.regulatory.client.CorrelationServiceClient
 import com.kinetix.regulatory.client.PriceServiceClient
 import com.kinetix.regulatory.historical.HistoricalReplayService

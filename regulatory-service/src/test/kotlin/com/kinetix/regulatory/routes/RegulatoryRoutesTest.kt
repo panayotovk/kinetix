@@ -1,8 +1,8 @@
 package com.kinetix.regulatory.routes
 
 import com.kinetix.regulatory.client.RiskOrchestratorClient
-import com.kinetix.regulatory.dto.FrtbResultResponse
-import com.kinetix.regulatory.dto.RiskClassChargeDto
+import com.kinetix.regulatory.dtos.FrtbResultResponse
+import com.kinetix.regulatory.dtos.RiskClassChargeDto
 import com.kinetix.regulatory.model.FrtbCalculationRecord
 import com.kinetix.regulatory.model.RiskClassCharge
 import com.kinetix.regulatory.module

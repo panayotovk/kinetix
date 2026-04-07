@@ -4,8 +4,8 @@ import com.kinetix.common.audit.AuditEventType
 import com.kinetix.common.audit.GovernanceAuditEvent
 import com.kinetix.regulatory.audit.GovernanceAuditPublisher
 import com.kinetix.regulatory.client.RiskOrchestratorClient
-import com.kinetix.regulatory.dto.FrtbResultResponse
-import com.kinetix.regulatory.dto.RiskClassChargeDto
+import com.kinetix.regulatory.dtos.FrtbResultResponse
+import com.kinetix.regulatory.dtos.RiskClassChargeDto
 import com.kinetix.regulatory.module
 import com.kinetix.regulatory.persistence.BacktestResultRepository
 import com.kinetix.regulatory.persistence.FrtbCalculationRepository

@@ -4,9 +4,9 @@ import com.kinetix.common.audit.AuditEventType
 import com.kinetix.common.audit.GovernanceAuditEvent
 import com.kinetix.regulatory.audit.GovernanceAuditPublisher
 import com.kinetix.regulatory.client.RiskOrchestratorClient
-import com.kinetix.regulatory.dto.FrtbCalculationResponse
-import com.kinetix.regulatory.dto.FrtbHistoryResponse
-import com.kinetix.regulatory.dto.RiskClassChargeDto
+import com.kinetix.regulatory.dtos.FrtbCalculationResponse
+import com.kinetix.regulatory.dtos.FrtbHistoryResponse
+import com.kinetix.regulatory.dtos.RiskClassChargeDto
 import com.kinetix.regulatory.model.FrtbCalculationRecord
 import com.kinetix.regulatory.model.RiskClassCharge
 import com.kinetix.regulatory.persistence.FrtbCalculationRepository
@@ -147,7 +147,7 @@ private fun FrtbCalculationRecord.toResponse() = FrtbCalculationResponse(
             curvatureCharge = "%.2f".format(it.curvatureCharge),
             totalCharge = "%.2f".format(it.totalCharge),
             tenorCharges = it.tenorCharges?.map { tc ->
-                com.kinetix.regulatory.dto.TenorChargeDto(
+                com.kinetix.regulatory.dtos.TenorChargeDto(
                     tenorLabel = tc.tenorLabel,
                     sensitivity = "%.2f".format(tc.sensitivity),
                     riskWeight = "%.4f".format(tc.riskWeight),

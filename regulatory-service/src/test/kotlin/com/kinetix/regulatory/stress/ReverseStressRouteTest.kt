@@ -3,8 +3,8 @@ package com.kinetix.regulatory.stress
 import com.kinetix.regulatory.client.RiskOrchestratorClient
 import com.kinetix.regulatory.module
 import com.kinetix.regulatory.persistence.FrtbCalculationRepository
-import com.kinetix.regulatory.stress.dto.InstrumentShock
-import com.kinetix.regulatory.stress.dto.ReverseStressResultResponse
+import com.kinetix.regulatory.stress.dtos.InstrumentShock
+import com.kinetix.regulatory.stress.dtos.ReverseStressResultResponse
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain

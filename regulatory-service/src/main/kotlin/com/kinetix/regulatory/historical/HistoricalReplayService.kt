@@ -2,8 +2,8 @@ package com.kinetix.regulatory.historical
 
 import com.kinetix.regulatory.client.PriceServiceClient
 import com.kinetix.regulatory.client.RiskOrchestratorClient
-import com.kinetix.regulatory.historical.dto.ReplayRequest
-import com.kinetix.regulatory.historical.dto.ReplayResultResponse
+import com.kinetix.regulatory.historical.dtos.ReplayRequest
+import com.kinetix.regulatory.historical.dtos.ReplayResultResponse
 import kotlin.math.ln
 
 /**
@@ -43,7 +43,7 @@ class HistoricalReplayService(
             bookId = request.bookId,
             totalPnlImpact = result.totalPnlImpact,
             positionImpacts = result.positionImpacts.map { impact ->
-                com.kinetix.regulatory.historical.dto.PositionReplayImpact(
+                com.kinetix.regulatory.historical.dtos.PositionReplayImpact(
                     instrumentId = impact.instrumentId,
                     assetClass = impact.assetClass,
                     marketValue = impact.marketValue,

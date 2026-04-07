@@ -1,8 +1,8 @@
 package com.kinetix.regulatory.historical
 
 import com.kinetix.regulatory.client.RiskOrchestratorClient
-import com.kinetix.regulatory.historical.dto.PositionReplayImpact
-import com.kinetix.regulatory.historical.dto.ReplayResultResponse
+import com.kinetix.regulatory.historical.dtos.PositionReplayImpact
+import com.kinetix.regulatory.historical.dtos.ReplayResultResponse
 import com.kinetix.regulatory.module
 import com.kinetix.regulatory.persistence.FrtbCalculationRepository
 import io.kotest.core.spec.style.FunSpec

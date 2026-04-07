@@ -1,8 +1,8 @@
 package com.kinetix.regulatory.submission
 
-import com.kinetix.regulatory.submission.dto.ApproveSubmissionRequest
-import com.kinetix.regulatory.submission.dto.CreateSubmissionRequest
-import com.kinetix.regulatory.submission.dto.SubmissionResponse
+import com.kinetix.regulatory.submission.dtos.ApproveSubmissionRequest
+import com.kinetix.regulatory.submission.dtos.CreateSubmissionRequest
+import com.kinetix.regulatory.submission.dtos.SubmissionResponse
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.patch
 import io.github.smiley4.ktoropenapi.post

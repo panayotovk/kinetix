@@ -3,10 +3,10 @@ package com.kinetix.regulatory.routes
 import com.kinetix.common.audit.AuditEventType
 import com.kinetix.common.audit.GovernanceAuditEvent
 import com.kinetix.regulatory.audit.GovernanceAuditPublisher
-import com.kinetix.regulatory.dto.BacktestComparisonResponse
-import com.kinetix.regulatory.dto.BacktestHistoryResponse
-import com.kinetix.regulatory.dto.BacktestRequest
-import com.kinetix.regulatory.dto.BacktestResultResponse
+import com.kinetix.regulatory.dtos.BacktestComparisonResponse
+import com.kinetix.regulatory.dtos.BacktestHistoryResponse
+import com.kinetix.regulatory.dtos.BacktestRequest
+import com.kinetix.regulatory.dtos.BacktestResultResponse
 import com.kinetix.regulatory.model.BacktestComparison
 import com.kinetix.regulatory.model.BacktestResultRecord
 import com.kinetix.regulatory.persistence.BacktestResultRepository
