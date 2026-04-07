@@ -100,6 +100,18 @@ class RealizedPnlTest : FunSpec({
         position.quantity.compareTo(BigDecimal.ZERO) shouldBe 0
     }
 
+    test("position flip computes realized PnL only on the closed portion") {
+        val position = emptyPosition()
+            .applyTrade(buyTrade("100", "50.00"))
+            .applyTrade(sellTrade("150", "55.00"))
+
+        // Closed 100 units of the long at (55 - 50) * 100 = 500 realized P&L
+        // New short of 50 units does not contribute to realized P&L
+        position.realizedPnl.amount.compareTo(BigDecimal("500")) shouldBe 0
+        position.quantity.compareTo(BigDecimal("-50")) shouldBe 0
+        position.averageCost shouldBe usd("55.00")
+    }
+
     test("realized PnL on short position covering") {
         // Start with a short by selling first
         val position = emptyPosition()

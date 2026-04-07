@@ -106,6 +106,42 @@ class TestTrafficLightZones:
         assert result.traffic_light_zone == TrafficLightZone.RED
 
 
+class TestTrafficLightBoundaryValues:
+    """Boundary tests for the exact cutoff values: 4/5 (GREEN/YELLOW) and 9/10 (YELLOW/RED)."""
+
+    def _run_with_n_violations(self, n_violations: int) -> BacktestResult:
+        n_days = 250
+        daily_var = [100.0] * n_days
+        daily_pnl = [-50.0] * n_days
+        for i in range(n_violations):
+            daily_pnl[i * (n_days // max(n_violations, 1))] = -150.0
+        return run_backtest(daily_var, daily_pnl, confidence_level=0.99)
+
+    def test_exactly_4_violations_is_green(self):
+        """4 violations is the last GREEN value (boundary: <= 4)."""
+        result = self._run_with_n_violations(4)
+        assert result.violation_count == 4
+        assert result.traffic_light_zone == TrafficLightZone.GREEN
+
+    def test_exactly_5_violations_is_yellow(self):
+        """5 violations is the first YELLOW value (boundary: 5-9)."""
+        result = self._run_with_n_violations(5)
+        assert result.violation_count == 5
+        assert result.traffic_light_zone == TrafficLightZone.YELLOW
+
+    def test_exactly_9_violations_is_yellow(self):
+        """9 violations is the last YELLOW value (boundary: 5-9)."""
+        result = self._run_with_n_violations(9)
+        assert result.violation_count == 9
+        assert result.traffic_light_zone == TrafficLightZone.YELLOW
+
+    def test_exactly_10_violations_is_red(self):
+        """10 violations is the first RED value (boundary: >= 10)."""
+        result = self._run_with_n_violations(10)
+        assert result.violation_count == 10
+        assert result.traffic_light_zone == TrafficLightZone.RED
+
+
 class TestBacktestResultCompleteness:
     def test_backtest_result_contains_all_metrics(self):
         n_days = 250

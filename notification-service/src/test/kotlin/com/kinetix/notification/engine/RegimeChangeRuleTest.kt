@@ -108,6 +108,14 @@ class RegimeChangeRuleTest : FunSpec({
         alert.correlationId shouldBe "corr-abc"
     }
 
+    test("returns null when regime stays NORMAL (no-op transition suppressed)") {
+        val rule = RegimeChangeRule()
+
+        val alert = rule.evaluate(regimeEvent("NORMAL", previousRegime = "NORMAL"))
+
+        alert.shouldBeNull()
+    }
+
     test("alert bookId is set to 'GLOBAL' since regime is portfolio-wide") {
         val rule = RegimeChangeRule()
 

@@ -206,6 +206,14 @@ class PositionTest : FunSpec({
         updated.averageCost shouldBe usd("55.00")
     }
 
+    test("apply SELL trade that flips long to short computes realized P&L only on closed portion") {
+        val pos = position(quantity = "100", averageCost = "50.00", marketPrice = "55.00")
+        val updated = pos.applyTrade(sellTrade(quantity = "150", price = "55.00"))
+        // Closed 100 units at (55 - 50) * 100 = 500 realized P&L
+        // Remaining -50 units at cost 55 generate no realized P&L
+        updated.realizedPnl shouldBe usd("500.00")
+    }
+
     // Validation
 
     test("apply trade with mismatched bookId throws IllegalArgumentException") {
