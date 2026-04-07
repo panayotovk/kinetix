@@ -70,7 +70,7 @@ export function EodDrillPanel({
         {/* Header */}
         <div className="flex items-start justify-between px-5 py-4 border-b border-slate-200 dark:border-surface-700 flex-shrink-0">
           <div>
-            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+            <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
               EOD — {entry.valuationDate}
             </h2>
             <div className="mt-1 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">

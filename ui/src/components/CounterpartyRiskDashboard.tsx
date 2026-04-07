@@ -215,7 +215,7 @@ function DetailPanel({ exposure, computing, onComputePFE, onComputeCVA }: Detail
             data-testid="compute-pfe-button"
             onClick={onComputePFE}
             disabled={computing}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-md transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-md transition-colors"
           >
             {computing ? <Spinner size="sm" /> : <Activity className="h-3.5 w-3.5" />}
             Compute PFE

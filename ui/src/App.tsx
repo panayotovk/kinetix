@@ -1,7 +1,6 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Activity, BarChart3, ScrollText, TrendingUp, Shield, FlaskConical, Scale, Bell, Server, FlaskRound, Sun, Moon, Save, CalendarDays, Users, FileText, LogOut } from 'lucide-react'
 import { ErrorBoundary, SectionErrorCard } from './components/ErrorBoundary'
-import { SubTabs } from './components/ui/SubTabs'
 import { PositionGrid } from './components/PositionGrid'
 import { TradeBlotter } from './components/TradeBlotter'
 import { ExecutionCostPanel } from './components/ExecutionCostPanel'
@@ -246,51 +245,47 @@ function App() {
         </div>
       </header>
 
-      <nav className="bg-surface-800 px-4 md:px-6 flex items-center gap-1 border-b border-surface-700 overflow-x-auto" data-testid="tab-bar" role="tablist" onKeyDown={handleTabKeyDown}>
+      <nav className="bg-surface-800 px-4 md:px-6 flex gap-1 border-b border-surface-700 overflow-x-auto" data-testid="tab-bar" role="tablist" onKeyDown={handleTabKeyDown}>
         {TABS.map(({ key, label, icon: Icon }) => (
-          <Fragment key={key}>
-            {(key === 'scenarios' || key === 'reports') && (
-              <div className="w-px h-5 bg-surface-700 mx-1 flex-shrink-0" aria-hidden="true" />
+          <button
+            key={key}
+            id={`tab-${key}`}
+            data-testid={`tab-${key}`}
+            ref={(el) => { if (el) tabRefs.current.set(key, el) }}
+            role="tab"
+            aria-selected={activeTab === key}
+            tabIndex={activeTab === key ? 0 : -1}
+            onClick={() => setActiveTab(key)}
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === key
+                ? 'border-primary-500 text-white'
+                : 'border-transparent text-slate-400 hover:text-white'
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            <span className="hidden md:inline">{label}</span>
+            {key === 'alerts' && notifications.error && (
+              <span
+                data-testid="alerts-error-dot"
+                className="ml-1 inline-block h-2 w-2 rounded-full bg-amber-400"
+                title="Alert monitoring unavailable"
+              />
             )}
-            <button
-              id={`tab-${key}`}
-              data-testid={`tab-${key}`}
-              ref={(el) => { if (el) tabRefs.current.set(key, el) }}
-              role="tab"
-              aria-selected={activeTab === key}
-              tabIndex={activeTab === key ? 0 : -1}
-              onClick={() => setActiveTab(key)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                activeTab === key
-                  ? 'border-primary-500 text-white'
-                  : 'border-transparent text-slate-400 hover:text-white'
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              <span className="hidden md:inline">{label}</span>
-              {key === 'alerts' && notifications.error && (
-                <span
-                  data-testid="alerts-error-dot"
-                  className="ml-1 inline-block h-2 w-2 rounded-full bg-amber-400"
-                  title="Alert monitoring unavailable"
-                />
-              )}
-              {key === 'alerts' && !notifications.error && notifications.alerts.length > 0 && (
-                <span
-                  data-testid="alert-count-badge"
-                  className="ml-1 px-1.5 py-0.5 bg-primary-500 text-white text-xs rounded-full"
-                >
-                  {notifications.alerts.length}
-                </span>
-              )}
-              {key === 'system' && systemHealth.health?.status === 'DEGRADED' && (
-                <span
-                  data-testid="system-degraded-dot"
-                  className="ml-1 inline-block h-2 w-2 rounded-full bg-red-500"
-                />
-              )}
-            </button>
-          </Fragment>
+            {key === 'alerts' && !notifications.error && notifications.alerts.length > 0 && (
+              <span
+                data-testid="alert-count-badge"
+                className="ml-1 px-1.5 py-0.5 bg-primary-500 text-white text-xs rounded-full"
+              >
+                {notifications.alerts.length}
+              </span>
+            )}
+            {key === 'system' && systemHealth.health?.status === 'DEGRADED' && (
+              <span
+                data-testid="system-degraded-dot"
+                className="ml-1 inline-block h-2 w-2 rounded-full bg-red-500"
+              />
+            )}
+          </button>
         ))}
       </nav>
 
@@ -399,7 +394,7 @@ function App() {
                       <button
                         data-testid="whatif-open-button"
                         onClick={() => setWhatIfOpen(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 border border-primary-300 dark:border-primary-700 rounded-md hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-indigo-600 border border-indigo-300 rounded-md hover:bg-indigo-50 transition-colors"
                       >
                         <FlaskRound className="h-4 w-4" />
                         What-If
@@ -429,17 +424,26 @@ function App() {
 
             {activeTab === 'trades' && (
                   <div>
-                    <SubTabs
-                      tabs={[
-                        { key: 'blotter' as const, label: 'Trade Blotter' },
-                        { key: 'cost' as const, label: 'Execution Cost' },
-                        { key: 'reconciliation' as const, label: 'Reconciliation' },
-                      ]}
-                      activeTab={tradesSubTab}
-                      onTabChange={setTradesSubTab}
-                      testIdPrefix="trades-subtab"
-                      aria-label="Trades sections"
-                    />
+                    <div className="flex gap-1 mb-4 border-b border-slate-200" role="tablist" aria-label="Trades sections">
+                      {(['blotter', 'cost', 'reconciliation'] as const).map((subTab) => (
+                        <button
+                          key={subTab}
+                          role="tab"
+                          aria-selected={tradesSubTab === subTab}
+                          data-testid={`trades-subtab-${subTab}`}
+                          onClick={() => setTradesSubTab(subTab)}
+                          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                            tradesSubTab === subTab
+                              ? 'border-primary-500 text-primary-600'
+                              : 'border-transparent text-slate-500 hover:text-slate-700'
+                          }`}
+                        >
+                          {subTab === 'blotter' && 'Trade Blotter'}
+                          {subTab === 'cost' && 'Execution Cost'}
+                          {subTab === 'reconciliation' && 'Reconciliation'}
+                        </button>
+                      ))}
+                    </div>
                     {tradesSubTab === 'blotter' && <TradeBlotter bookId={bookId} />}
                     {tradesSubTab === 'cost' && <ExecutionCostPanel bookId={bookId} />}
                     {tradesSubTab === 'reconciliation' && <ReconciliationPanel bookId={bookId} />}

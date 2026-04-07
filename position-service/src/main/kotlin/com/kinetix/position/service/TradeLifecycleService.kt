@@ -21,6 +21,18 @@ class TradeLifecycleService(
 
         val originalTrade = tradeEventRepository.findByTradeId(command.originalTradeId)
             ?: throw TradeNotFoundException(command.originalTradeId.value)
+
+        if (originalTrade.status == TradeStatus.AMENDED) {
+            val existingAmend = tradeEventRepository.findByTradeId(command.newTradeId)
+            if (existingAmend != null) {
+                logger.info("Trade already amended (idempotent): originalTradeId={}, newTradeId={}",
+                    command.originalTradeId.value, command.newTradeId.value)
+                val currentPosition = positionRepository.findByKey(originalTrade.bookId, originalTrade.instrumentId)
+                    ?: Position.empty(originalTrade.bookId, originalTrade.instrumentId, originalTrade.assetClass, originalTrade.price.currency)
+                return BookTradeResult(existingAmend, currentPosition)
+            }
+            throw InvalidTradeStateException(command.originalTradeId.value, originalTrade.status, "amend")
+        }
         if (originalTrade.status != TradeStatus.LIVE) {
             throw InvalidTradeStateException(command.originalTradeId.value, originalTrade.status, "amend")
         }
@@ -72,6 +84,13 @@ class TradeLifecycleService(
 
         val trade = tradeEventRepository.findByTradeId(command.tradeId)
             ?: throw TradeNotFoundException(command.tradeId.value)
+
+        if (trade.status == TradeStatus.CANCELLED) {
+            logger.info("Trade already cancelled (idempotent): tradeId={}", command.tradeId.value)
+            val currentPosition = positionRepository.findByKey(trade.bookId, trade.instrumentId)
+                ?: Position.empty(trade.bookId, trade.instrumentId, trade.assetClass, trade.price.currency)
+            return BookTradeResult(trade, currentPosition)
+        }
         if (trade.status != TradeStatus.LIVE) {
             throw InvalidTradeStateException(command.tradeId.value, trade.status, "cancel")
         }

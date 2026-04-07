@@ -63,7 +63,7 @@ export function AlertDrillDownPanel({ alert, onClose }: AlertDrillDownPanelProps
       {/* Header */}
       <div className="p-4 border-b border-slate-200 dark:border-slate-700">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-800 dark:text-slate-200">Alert Investigation</h2>
+          <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Alert Investigation</h2>
           <button
             ref={closeRef}
             data-testid="drill-down-close"

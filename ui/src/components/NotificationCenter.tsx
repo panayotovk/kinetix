@@ -185,7 +185,7 @@ export function NotificationCenter({
       </div>
 
       {/* Alert Rules Table */}
-      <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200 mb-2">Alert Rules</h3>
+      <h3 className="text-sm font-semibold text-slate-700 mb-2">Alert Rules</h3>
       <table data-testid="rules-table" className="w-full text-sm mb-4">
         <thead>
           <tr className="border-b text-left text-slate-600">
@@ -226,7 +226,7 @@ export function NotificationCenter({
       {/* Recent Alerts */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">Recent Alerts</h3>
+          <h3 className="text-sm font-semibold text-slate-700">Recent Alerts</h3>
           <div data-testid="alert-status-filters" className="flex gap-1">
             {(['ALL', 'TRIGGERED', 'ACKNOWLEDGED', 'ESCALATED', 'RESOLVED'] as StatusFilter[]).map((s) => (
               <button

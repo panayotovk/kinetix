@@ -5,13 +5,7 @@ import com.kinetix.position.kafka.TradeEventPublisher
 import com.kinetix.position.persistence.DatabaseTestSetup
 import com.kinetix.position.persistence.ExposedPositionRepository
 import com.kinetix.position.persistence.ExposedTradeEventRepository
-import com.kinetix.position.service.AmendTradeCommand
-import com.kinetix.position.service.BookTradeCommand
-import com.kinetix.position.service.CancelTradeCommand
-import com.kinetix.position.service.ExposedTransactionalRunner
-import com.kinetix.position.service.InvalidTradeStateException
-import com.kinetix.position.service.TradeBookingService
-import com.kinetix.position.service.TradeLifecycleService
+import com.kinetix.position.service.*
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -37,7 +31,7 @@ class TradeLifecycleGuardAcceptanceTest : FunSpec({
         }
     }
 
-    test("rejects cancel on already-cancelled trade with InvalidTradeStateException") {
+    test("cancelling an already-cancelled trade returns existing result idempotently") {
         val publisher = mockk<TradeEventPublisher>(relaxed = true)
         val booking = TradeBookingService(tradeRepo, positionRepo, transactional, publisher)
         val lifecycle = TradeLifecycleService(tradeRepo, positionRepo, transactional, publisher)
@@ -54,17 +48,16 @@ class TradeLifecycleGuardAcceptanceTest : FunSpec({
                 tradedAt = tradedAt,
             ),
         )
-        lifecycle.handleCancel(
+        val firstResult = lifecycle.handleCancel(
             CancelTradeCommand(TradeId("t-cancel-twice"), BookId("port-cancel-2")),
         )
 
-        val ex = shouldThrow<InvalidTradeStateException> {
-            lifecycle.handleCancel(
-                CancelTradeCommand(TradeId("t-cancel-twice"), BookId("port-cancel-2")),
-            )
-        }
-        ex.currentStatus shouldBe TradeStatus.CANCELLED
-        ex.attemptedAction shouldBe "cancel"
+        val secondResult = lifecycle.handleCancel(
+            CancelTradeCommand(TradeId("t-cancel-twice"), BookId("port-cancel-2")),
+        )
+
+        secondResult.trade.status shouldBe TradeStatus.CANCELLED
+        secondResult.position.quantity.compareTo(firstResult.position.quantity) shouldBe 0
     }
 
     test("rejects amend on cancelled trade with InvalidTradeStateException") {

@@ -118,7 +118,7 @@ export function ScenarioComparisonTable({
                         onToggleCheck?.(r.scenarioName)
                       }}
                       onClick={(e) => e.stopPropagation()}
-                      className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                     />
                   </td>
                 )}

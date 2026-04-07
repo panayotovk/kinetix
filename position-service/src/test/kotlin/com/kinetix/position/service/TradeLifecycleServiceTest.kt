@@ -176,18 +176,76 @@ class TradeLifecycleServiceTest : FunSpec({
         coVerify { tradeRepo.updateStatus(TradeId("t-1"), TradeStatus.CANCELLED) }
     }
 
-    test("cancelling an already cancelled trade should fail") {
+    test("cancelling an already cancelled trade returns existing result idempotently") {
         val cancelledTrade = trade(tradeId = "t-1", status = TradeStatus.CANCELLED)
+        val existingPosition = position(quantity = "0", averageCost = "0")
 
         coEvery { tradeRepo.findByTradeId(TradeId("t-1")) } returns cancelledTrade
+        coEvery { positionRepo.findByKey(PORTFOLIO, AAPL) } returns existingPosition
 
         val command = CancelTradeCommand(
             tradeId = TradeId("t-1"),
             bookId = PORTFOLIO,
         )
 
+        val result = service.handleCancel(command)
+        result.trade.status shouldBe TradeStatus.CANCELLED
+        result.position shouldBe existingPosition
+        coVerify(exactly = 0) { tradeRepo.updateStatus(any(), any()) }
+        coVerify(exactly = 0) { positionRepo.save(any()) }
+        coVerify(exactly = 0) { publisher.publish(any()) }
+    }
+
+    test("amending an already amended trade with same newTradeId returns existing result idempotently") {
+        val amendedOriginal = trade(tradeId = "t-1", status = TradeStatus.AMENDED)
+        val existingAmendTrade = trade(tradeId = "t-1-amend", eventType = TradeEventType.AMEND)
+        val existingPosition = position(quantity = "200", averageCost = "160.00")
+
+        coEvery { tradeRepo.findByTradeId(TradeId("t-1")) } returns amendedOriginal
+        coEvery { tradeRepo.findByTradeId(TradeId("t-1-amend")) } returns existingAmendTrade
+        coEvery { positionRepo.findByKey(PORTFOLIO, AAPL) } returns existingPosition
+
+        val command = AmendTradeCommand(
+            originalTradeId = TradeId("t-1"),
+            newTradeId = TradeId("t-1-amend"),
+            bookId = PORTFOLIO,
+            instrumentId = AAPL,
+            assetClass = AssetClass.EQUITY,
+            side = Side.BUY,
+            quantity = BigDecimal("200"),
+            price = usd("160.00"),
+            tradedAt = Instant.parse("2025-01-15T11:00:00Z"),
+        )
+
+        val result = service.handleAmend(command)
+        result.trade shouldBe existingAmendTrade
+        result.position shouldBe existingPosition
+        coVerify(exactly = 0) { tradeRepo.updateStatus(any(), any()) }
+        coVerify(exactly = 0) { tradeRepo.save(any()) }
+        coVerify(exactly = 0) { positionRepo.save(any()) }
+        coVerify(exactly = 0) { publisher.publish(any()) }
+    }
+
+    test("amending an already amended trade with different newTradeId should fail") {
+        val amendedOriginal = trade(tradeId = "t-1", status = TradeStatus.AMENDED)
+
+        coEvery { tradeRepo.findByTradeId(TradeId("t-1")) } returns amendedOriginal
+        coEvery { tradeRepo.findByTradeId(TradeId("t-1-different")) } returns null
+
+        val command = AmendTradeCommand(
+            originalTradeId = TradeId("t-1"),
+            newTradeId = TradeId("t-1-different"),
+            bookId = PORTFOLIO,
+            instrumentId = AAPL,
+            assetClass = AssetClass.EQUITY,
+            side = Side.BUY,
+            quantity = BigDecimal("200"),
+            price = usd("160.00"),
+            tradedAt = Instant.parse("2025-01-15T11:00:00Z"),
+        )
+
         shouldThrow<InvalidTradeStateException> {
-            service.handleCancel(command)
+            service.handleAmend(command)
         }
     }
 
@@ -195,6 +253,7 @@ class TradeLifecycleServiceTest : FunSpec({
         val cancelledTrade = trade(tradeId = "t-1", status = TradeStatus.CANCELLED)
 
         coEvery { tradeRepo.findByTradeId(TradeId("t-1")) } returns cancelledTrade
+        coEvery { tradeRepo.findByTradeId(TradeId("t-1-amend")) } returns null
 
         val command = AmendTradeCommand(
             originalTradeId = TradeId("t-1"),

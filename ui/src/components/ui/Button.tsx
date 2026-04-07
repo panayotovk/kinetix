@@ -2,12 +2,10 @@ import { type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { Loader2 } from 'lucide-react'
 
 const variants = {
-  primary: 'bg-primary-600 hover:bg-primary-700 text-white focus:ring-primary-500',
+  primary: 'bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-500',
   danger: 'bg-red-500 hover:bg-red-600 text-white focus:ring-red-400',
   success: 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500',
-  secondary: 'border border-slate-300 dark:border-surface-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-surface-700 focus:ring-slate-400',
-  ghost: 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-surface-700 focus:ring-slate-400',
-  link: 'text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 underline-offset-2 hover:underline focus:ring-primary-500',
+  secondary: 'border border-slate-300 text-slate-700 hover:bg-slate-50 focus:ring-slate-400',
 } as const
 
 const sizes = {

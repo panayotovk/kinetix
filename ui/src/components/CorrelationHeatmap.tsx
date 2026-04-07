@@ -58,7 +58,7 @@ export function CorrelationHeatmap({ assetClasses }: CorrelationHeatmapProps) {
 
   return (
     <div data-testid="correlation-heatmap" className="rounded-lg border border-slate-200 bg-white p-4">
-      <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200 mb-3">Correlation Matrix</h3>
+      <h3 className="text-sm font-semibold text-slate-700 mb-3">Correlation Matrix</h3>
       <svg width={svgWidth} height={svgHeight} style={{ display: 'block' }}>
         {/* Column header labels */}
         {classes.map((col, colIdx) => (

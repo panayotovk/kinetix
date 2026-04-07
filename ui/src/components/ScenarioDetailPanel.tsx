@@ -33,7 +33,7 @@ export function ScenarioDetailPanel({ result }: ScenarioDetailPanelProps) {
           data-testid="view-toggle-asset-class"
           className={`px-3 py-1.5 text-sm font-medium rounded-l-md transition-colors ${
             view === 'asset-class'
-              ? 'bg-primary-600 text-white'
+              ? 'bg-indigo-600 text-white'
               : 'bg-white dark:bg-surface-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
           }`}
           onClick={() => setView('asset-class')}
@@ -44,7 +44,7 @@ export function ScenarioDetailPanel({ result }: ScenarioDetailPanelProps) {
           data-testid="view-toggle-positions"
           className={`-ml-px px-3 py-1.5 text-sm font-medium border-l border-slate-300 dark:border-slate-600 transition-colors ${
             view === 'positions'
-              ? 'bg-primary-600 text-white'
+              ? 'bg-indigo-600 text-white'
               : 'bg-white dark:bg-surface-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
           }`}
           onClick={() => setView('positions')}
@@ -55,7 +55,7 @@ export function ScenarioDetailPanel({ result }: ScenarioDetailPanelProps) {
           data-testid="view-toggle-greeks"
           className={`-ml-px px-3 py-1.5 text-sm font-medium rounded-r-md border-l border-slate-300 dark:border-slate-600 transition-colors ${
             view === 'greeks'
-              ? 'bg-primary-600 text-white'
+              ? 'bg-indigo-600 text-white'
               : 'bg-white dark:bg-surface-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
           }`}
           onClick={() => setView('greeks')}
