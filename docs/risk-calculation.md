@@ -109,7 +109,7 @@ Each risk calculation is tracked as a **Valuation Job** — a pipeline of discre
 1. **FETCH_POSITIONS** — Load portfolio positions
 2. **DISCOVER_DEPENDENCIES** — Determine required market data per asset class
 3. **FETCH_MARKET_DATA** — Retrieve data from Price, Rates, Volatility, Correlation services
-4. **CALCULATE_VAR** — Run the selected VaR method and compute Greeks (if requested)
+4. **VALUATION** — Run the selected VaR method and compute Greeks (if requested)
 5. **PUBLISH_RESULT** — Publish to Kafka `risk.results`
 
 The UI displays job history with a zoomable timechart, search, pagination, and step-by-step pipeline visualization showing duration, status, and market data details per phase.
@@ -169,5 +169,6 @@ Rho   = (VaR(sigma_rates+1bp) - VaR(sigma)) / 0.0001
 - Equity-FX: 0.30
 - Commodity-Derivative: 0.35
 - Fixed Income-FX: -0.10
+- Fixed Income-Commodity: -0.05 (slight diversification)
 
 > When the Correlation Service is available, it computes dynamic correlation matrices from historical returns, replacing these static defaults.

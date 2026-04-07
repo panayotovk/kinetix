@@ -290,7 +290,7 @@ ScenariosTab (rewritten)
 - Tests: `StressLimitCheckServiceTest.kt` -- unit tests for breach evaluation logic.
 
 **3b. Position-Service**
-- `routes/PositionRoutes.kt`: Add `GET /api/v1/portfolios/{portfolioId}/limits` endpoint to expose current limit definitions and their values.
+- `routes/PositionRoutes.kt`: Add `GET /api/v1/books/{bookId}/limits` endpoint to expose current limit definitions and their values.
 - `routes/dtos/LimitDefinitionResponse.kt` (new): DTO for limit type, level, value.
 - Tests: Acceptance test for the new limits endpoint.
 

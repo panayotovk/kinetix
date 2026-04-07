@@ -67,6 +67,7 @@ Kinetix is a real-time portfolio risk management platform built as a polyglot mo
     │              Observability                    │
     │  Prometheus :9090  │  Grafana :3000           │
     │  Loki :3100        │  Tempo :3200             │
+    │  Alertmanager :9093                           │
     │  OTel Collector :4317/:4318                   │
     └──────────────────────────────────────────────┘
 
@@ -88,7 +89,7 @@ Kinetix is a real-time portfolio risk management platform built as a polyglot mo
 | Regulatory Service | 8085 | Kotlin | FRTB regulatory reporting |
 | Notification Service | 8086 | Kotlin | Risk alerts and anomaly notifications |
 | Rates Service | 8088 | Kotlin | Yield curves, risk-free rates, forward curves |
-| Reference Data Service | 8089 | Kotlin | Dividend yields, credit spreads |
+| Reference Data Service | 8089 | Kotlin | Instruments (11 types), divisions, desks, counterparties, dividend yields, credit spreads, liquidity data, benchmarks |
 | Volatility Service | 8090 | Kotlin | Volatility surfaces for options pricing |
 | Correlation Service | 8091 | Kotlin | Correlation matrices for portfolio risk |
 | Risk Engine | 50051 (gRPC), 9091 (metrics) | Python | VaR, Monte Carlo, Greeks, ML models |
@@ -103,6 +104,7 @@ Kinetix is a real-time portfolio risk management platform built as a polyglot mo
 | Kotlin | 2.1.20 | All backend services (JVM 21) |
 | Python | >= 3.12 | Risk Engine |
 | TypeScript | ~5.9.3 | React UI |
+| Node.js | 22 | React UI build and dev |
 | Proto3 | — | gRPC service definitions |
 
 ---
@@ -188,7 +190,7 @@ A single PostgreSQL instance (TimescaleDB image) hosts per-service databases.
 | kinetix_notification | Notification Service | — |
 | kinetix_regulatory | Regulatory Service | — |
 | kinetix_rates | Rates Service | yield_curves, yield_curve_points, risk_free_rates, forward_curves, forward_curve_points |
-| kinetix_reference_data | Reference Data Service | dividend_yields, credit_spreads |
+| kinetix_reference_data | Reference Data Service | instruments, dividend_yields, credit_spreads, divisions, desks, counterparties, liquidity_data, benchmarks |
 | kinetix_volatility | Volatility Service | volatility_surfaces, volatility_surface_data |
 | kinetix_correlation | Correlation Service | correlation_matrices |
 
@@ -223,6 +225,13 @@ Runs in KRaft mode (no ZooKeeper). All topics have 3 partitions and replication 
 | `reference-data.credit-spreads` | Reference Data Service | Risk Orchestrator | Credit spread updates |
 | `volatility.surfaces` | Volatility Service | Risk Orchestrator | Volatility surface snapshots |
 | `correlation.matrices` | Correlation Service | Risk Orchestrator | Correlation matrix updates |
+| `risk.anomalies` | Risk Orchestrator | Notification Service | Anomaly detection alerts |
+| `risk.audit` | Risk Orchestrator | Audit Service | Risk calculation audit events |
+| `risk.pnl.intraday` | Risk Orchestrator | Notification Service | Intraday P&L streaming |
+| `risk.regime.changes` | Risk Orchestrator | Notification Service | Market regime transition events |
+| `governance.audit` | Regulatory Service | Audit Service | Model governance events |
+
+Dead letter queues (`*.dlq`) exist for: `trades.lifecycle`, `price.updates`, `risk.results`, `risk.anomalies`, `governance.audit`.
 
 ---
 
@@ -307,9 +316,9 @@ Runs in dev mode with realm auto-import. Client: `kinetix-api` (public, direct a
 
 | Route | Permission |
 |-------|-----------|
-| `GET /api/v1/portfolios` | READ_PORTFOLIOS |
-| `POST /api/v1/portfolios/{id}/trades` | WRITE_TRADES |
-| `GET /api/v1/portfolios/{id}/positions` | READ_POSITIONS |
+| `GET /api/v1/books` | READ_PORTFOLIOS |
+| `POST /api/v1/books/{id}/trades` | WRITE_TRADES |
+| `GET /api/v1/books/{id}/positions` | READ_POSITIONS |
 | `GET /api/v1/risk/var/*` | CALCULATE_RISK |
 | Stress test routes | READ_RISK |
 | Regulatory routes | READ_REGULATORY |
@@ -382,11 +391,21 @@ Services (Ktor/Python)
 
 ### Grafana Dashboards
 
-| Dashboard | Focus |
-|-----------|-------|
-| system-health.json | Service status, JVM metrics, response times |
-| risk-overview.json | VaR values, calculation latency, risk breaches |
-| market-data.json | Price staleness, ingestion rates |
+| Category | Dashboard | Focus |
+|----------|-----------|-------|
+| Overview | system-health.json | Service status, JVM metrics, response times |
+| Overview | service-overview.json | Per-service request rates, error rates, latency |
+| Overview | service-logs.json | Aggregated log viewer across all services |
+| Risk | risk-overview.json | VaR values, calculation latency, risk breaches |
+| Risk | risk-engine.json | Python risk engine gRPC performance and throughput |
+| Risk | risk-orchestrator.json | Orchestrator job phases, queue depth, cache hits |
+| Risk | greeks.json | Greeks computation times and distribution |
+| Risk | limit-utilisation.json | Limit usage across hierarchy levels |
+| Trading | price.json | Price staleness, ingestion rates, data freshness |
+| Trading | pnl.json | P&L attribution, intraday P&L streaming |
+| Trading | trade-flow.json | Trade booking rates, amendment/cancel ratios |
+| Infrastructure | database-health.json | Connection pool, query latency, replication lag |
+| Infrastructure | kafka-health.json | Consumer lag, partition balance, throughput |
 
 ### Prometheus Alert Rules
 
@@ -457,7 +476,7 @@ Three compose files in `infra/` for local development.
 | File | Services | Key Ports |
 |------|----------|-----------|
 | `docker-compose.infra.yml` | PostgreSQL/TimescaleDB, Kafka (KRaft), Redis | 5432, 9092, 6379 |
-| `docker-compose.observability.yml` | Prometheus, Grafana, Loki, Tempo, OTel Collector | 9090, 3000, 3100, 3200, 4317/4318 |
+| `docker-compose.observability.yml` | Prometheus, Grafana, Loki, Tempo, Alertmanager, OTel Collector | 9090, 3000, 3100, 3200, 9093, 4317/4318 |
 | `docker-compose.auth.yml` | Keycloak | 8180 |
 
 ### Startup Commands
@@ -486,7 +505,7 @@ kinetix/
 ├── position-service/             # Trade booking and positions
 ├── price-service/                # Price ingestion and caching
 ├── rates-service/                # Yield curves, risk-free rates, forwards
-├── reference-data-service/       # Dividend yields, credit spreads
+├── reference-data-service/       # Instruments, divisions, desks, counterparties, dividends, credit spreads
 ├── volatility-service/           # Volatility surfaces
 ├── correlation-service/          # Correlation matrices
 ├── risk-orchestrator/            # Risk calculation coordinator

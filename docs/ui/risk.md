@@ -145,11 +145,11 @@ Risk Sensitivities (Greeks) render inline within the VaR Dashboard grid when Gre
 
 | Route | Method | Purpose |
 |-------|--------|---------|
-| `/api/v1/risk/var/{portfolioId}` | POST | Trigger VaR calculation (uses unified Valuate RPC) |
-| `/api/v1/risk/var/{portfolioId}` | GET | Fetch cached latest VaR result |
-| `/api/v1/risk/greeks/{portfolioId}` | POST | Calculate Greeks (uses unified Valuate RPC) |
-| `/api/v1/risk/dependencies/{portfolioId}` | POST | Discover market data dependencies |
-| `/api/v1/risk/jobs/{portfolioId}` | GET | List valuation jobs (pagination + date range) |
+| `/api/v1/risk/var/{bookId}` | POST | Trigger VaR calculation (uses unified Valuate RPC) |
+| `/api/v1/risk/var/{bookId}` | GET | Fetch cached latest VaR result |
+| `/api/v1/risk/greeks/{bookId}` | POST | Calculate Greeks (uses unified Valuate RPC) |
+| `/api/v1/risk/dependencies/{bookId}` | POST | Discover market data dependencies |
+| `/api/v1/risk/jobs/{bookId}` | GET | List valuation jobs (pagination + date range) |
 | `/api/v1/risk/jobs/detail/{jobId}` | GET | Job execution details |
 
 ---

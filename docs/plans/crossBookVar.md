@@ -30,7 +30,7 @@ No new service is needed.
 - **Phase two:** Division and firm-level roll-up
 - **Later:** Custom ad-hoc groups, legal entity grouping
 
-The `LimitHierarchyService` already walks this hierarchy for limit checks. The `desks` and `divisions` tables exist in reference-data-service. The gap is that `PositionsTable` stores `portfolioId` as a bare string with no FK to desks — the book-to-desk mapping must be fetched from reference-data-service.
+The `LimitHierarchyService` already walks this hierarchy for limit checks. The `desks` and `divisions` tables exist in reference-data-service. The gap is that `PositionsTable` stores `bookId` as a bare string with no FK to desks — the book-to-desk mapping must be fetched from reference-data-service.
 
 ### Standalone VaR sourcing
 
@@ -50,7 +50,7 @@ The current engine groups positions by asset class and applies a correlation mat
 
 **Decision:** New topic `risk.cross-book-results` rather than overloading `risk.results`.
 
-The existing topic is keyed by single `portfolioId`. Cross-book results belong to a group, not a book. Separate topics avoid schema compatibility issues (the `schema-tests/` suite validates the existing topic schema) and prevent downstream consumers from receiving events they can't deserialise.
+The existing topic is keyed by single `bookId`. Cross-book results belong to a group, not a book. Separate topics avoid schema compatibility issues (the `schema-tests/` suite validates the existing topic schema) and prevent downstream consumers from receiving events they can't deserialise.
 
 ---
 
@@ -265,7 +265,7 @@ GET /api/v1/risk/var/cross-book/{portfolioGroupId}
 
 **Tests:**
 - Gateway contract acceptance test for the new endpoint
-- Regression test: existing `GET /api/v1/risk/var/{portfolioId}` returns identical response shape after changes
+- Regression test: existing `GET /api/v1/risk/var/{bookId}` returns identical response shape after changes
 - Validation: empty `bookIds` returns 400, single bookId is valid
 
 ### Step 7: UI — types and hooks

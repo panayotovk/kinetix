@@ -308,7 +308,7 @@ GET /api/v1/audit/events?bookId={bookId}&limit=1000
 GET /api/v1/audit/events?afterId={lastId}&limit=1000
 ```
 
-Fields include tradeId, portfolioId, instrumentId, side, quantity, price, tradedAt, userId, userRole, eventType, receivedAt, recordHash, and previousHash.
+Fields include tradeId, bookId, instrumentId, side, quantity, price, tradedAt, userId, userRole, eventType, receivedAt, recordHash, and previousHash.
 
 ---
 

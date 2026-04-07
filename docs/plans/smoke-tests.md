@@ -94,11 +94,11 @@ Trigger a risk calculation for the smoke test book and verify a result arrives w
 curl -sf -X POST "$KINETIX_HOST/api/risk/calculate" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"portfolioId": "SMOKE", "calculationType": "VAR"}'
+  -d '{"bookId": "SMOKE", "calculationType": "VAR"}'
 
 # Poll for result (up to 30s)
 for i in $(seq 1 30); do
-  RESULT=$(curl -sf "$KINETIX_HOST/api/risk/latest?portfolioId=SMOKE" \
+  RESULT=$(curl -sf "$KINETIX_HOST/api/risk/latest?bookId=SMOKE" \
     -H "Authorization: Bearer $TOKEN" | jq '.varResult // empty')
   if [ -n "$RESULT" ]; then
     echo "VaR result: $RESULT"

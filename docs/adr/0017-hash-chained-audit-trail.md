@@ -10,7 +10,7 @@ Financial regulations require an immutable, tamper-evident audit trail for all t
 Implement a hash-chained audit trail in the audit-service. Each audit event record includes a `record_hash` (SHA-256 of the event data concatenated with the previous record's hash) and a `previous_hash` (link to the prior record), forming a blockchain-like chain.
 
 `AuditHasher` (`audit-service/.../persistence/AuditHasher.kt`) provides:
-- `computeHash(event, previousHash)` — SHA-256 of all event fields (receivedAt, tradeId, portfolioId, instrumentId, assetClass, side, quantity, priceAmount, priceCurrency, tradedAt, userId, userRole, eventType) concatenated with the previous hash
+- `computeHash(event, previousHash)` — SHA-256 of all event fields (receivedAt, tradeId, bookId, instrumentId, assetClass, side, quantity, priceAmount, priceCurrency, tradedAt, userId, userRole, eventType) concatenated with the previous hash
 - `verifyChain(events)` — validates the entire chain from genesis
 - `verifyChainIncremental(events, startingPreviousHash)` — validates a segment of the chain, enabling pagination
 

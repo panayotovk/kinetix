@@ -219,7 +219,7 @@ private suspend fun loadInputChanges(baseJobId: UUID, targetJobId: UUID): InputC
 Location: `risk-orchestrator/src/main/kotlin/com/kinetix/risk/routes/RunComparisonRoutes.kt`
 
 ```
-GET /api/v1/risk/compare/{portfolioId}/input-changes/{baseJobId}/{targetJobId}/market-data-quant
+GET /api/v1/risk/compare/{bookId}/input-changes/{baseJobId}/{targetJobId}/market-data-quant
     ?dataType=SPOT_PRICE&instrumentId=AAPL
 ```
 
@@ -417,7 +417,7 @@ Do **not** cache the full diff result. Instead:
 
 **Metrics to add:**
 ```
-manifest_diff_requests_total          (counter, labels: portfolioId, comparison_type)
+manifest_diff_requests_total          (counter, labels: bookId, comparison_type)
 manifest_diff_duration_seconds        (histogram, buckets: 0.1, 0.5, 1, 5, 10)
 manifest_blob_fetch_duration_seconds  (histogram)
 manifest_blob_size_bytes              (histogram)
@@ -450,7 +450,7 @@ manifest_diff_cache_hits_total        (counter)
 | PARTIAL manifest (some fetches failed) | Surface MISSING items as "unavailable in run X", not as "changed" |
 | Empty-string contentHash (FetchFailure sentinel) | Classify as `UNCHANGED_MISSING`, not `UNCHANGED_FETCHED` |
 | Orphaned blob (hash in manifest, blob deleted) | Return structured "data unavailable" error, not 500 |
-| Different portfolios in comparison | Validate both jobs share same portfolioId, return 400 if not |
+| Different portfolios in comparison | Validate both jobs share same bookId, return 400 if not |
 | Weekend/holiday target date | Return 404 with message, not 500 |
 | Position quantity = 0 in base | Guard against divide-by-zero in percentage calculation |
 

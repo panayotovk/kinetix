@@ -10,7 +10,7 @@ Risk managers and auditors need to understand exactly what inputs produced a giv
 Capture a `RunManifest` for every risk calculation run. The manifest records all inputs and outputs needed to reproduce the result:
 
 **Input capture (before calculation):**
-- `jobId`, `portfolioId`, `valuationDate`
+- `jobId`, `bookId`, `valuationDate`
 - `calculationType`, `confidenceLevel`, `timeHorizonDays`, `numSimulations`
 - `monteCarloSeed` — deterministic seed for MC runs (0 = unseeded)
 - `positionCount`, `positionDigest` — SHA-256 hash of serialized positions

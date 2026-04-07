@@ -108,8 +108,8 @@ UI (StressTestPanel)
 | Route | Method | Purpose |
 |-------|--------|---------|
 | `/api/v1/risk/stress/scenarios` | GET | List available stress scenarios |
-| `/api/v1/risk/stress/{portfolioId}` | POST | Run stress test for a portfolio |
-| `/api/v1/risk/greeks/{portfolioId}` | POST | Calculate Greeks (uses unified Valuate RPC) |
+| `/api/v1/risk/stress/{bookId}` | POST | Run stress test for a portfolio |
+| `/api/v1/risk/greeks/{bookId}` | POST | Calculate Greeks (uses unified Valuate RPC) |
 
 ---
 

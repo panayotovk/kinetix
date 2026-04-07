@@ -86,16 +86,16 @@ The heavy calculation lives in the Python risk engine (`risk-engine/src/kinetix_
 
 | Route | Method | Purpose |
 |-------|--------|---------|
-| `/api/v1/regulatory/frtb/{portfolioId}` | POST | Calculates FRTB using gRPC call to risk-engine |
-| `/api/v1/regulatory/report/{portfolioId}` | POST | Generates CSV/XBRL reports |
+| `/api/v1/regulatory/frtb/{bookId}` | POST | Calculates FRTB using gRPC call to risk-engine |
+| `/api/v1/regulatory/report/{bookId}` | POST | Generates CSV/XBRL reports |
 
 ### Regulatory Service
 
 | Route | Method | Purpose |
 |-------|--------|---------|
-| `/api/v1/regulatory/frtb/{portfolioId}/calculate` | POST | Calls risk-orchestrator, stores result in database |
-| `/api/v1/regulatory/frtb/{portfolioId}/history` | GET | Retrieves paginated calculation history |
-| `/api/v1/regulatory/frtb/{portfolioId}/latest` | GET | Gets most recent calculation |
+| `/api/v1/regulatory/frtb/{bookId}/calculate` | POST | Calls risk-orchestrator, stores result in database |
+| `/api/v1/regulatory/frtb/{bookId}/history` | GET | Retrieves paginated calculation history |
+| `/api/v1/regulatory/frtb/{bookId}/latest` | GET | Gets most recent calculation |
 
 ---
 

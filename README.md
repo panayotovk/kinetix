@@ -7,10 +7,10 @@ A production-grade system covering the full risk lifecycle: trade capture, posit
 ## Platform at a Glance
 
 ```
- 173K lines of code    13 Kotlin services     20 behavioural specs (Allium v3)
- 470+ test files       1 Python risk engine    27 architecture decisions (ADRs)
- 58% test coverage     1 React dashboard       245 database migrations
- 1,180 commits         19 Kafka topics         63 CI jobs per push
+ 233K lines of code    13 Kotlin services     24 behavioural specs (Allium v3)
+ 745 test files        1 Python risk engine    30 architecture decisions (ADRs)
+ 58% test coverage     1 React dashboard       302 database migrations
+ 1,534 commits         20 Kafka topics         65 CI jobs per push
 ```
 
 ## Architecture
@@ -106,7 +106,7 @@ Each service owns its database schema, communicates asynchronously via Kafka, an
 | Risk engine | NumPy, SciPy, PyTorch, scikit-learn |
 | Frontend | React 19, Tailwind CSS 4, Vite 7, Recharts |
 | Database | PostgreSQL 17 / TimescaleDB (hypertables, continuous aggregates, retention policies) |
-| Messaging | Apache Kafka 3.9 (KRaft mode), 19 topics including DLQs |
+| Messaging | Apache Kafka 3.9 (KRaft mode), 20 topics including DLQs |
 | Caching | Redis 7 (Lettuce client) |
 | Inter-service | gRPC 1.70 / Protobuf 4.29 |
 | Auth | Keycloak 24 (OAuth2/OIDC, role-based access) |
@@ -136,7 +136,7 @@ Each service owns its database schema, communicates asynchronously via Kafka, an
 
 ## Behavioural Specifications
 
-The platform's intended behaviour is formally documented in 20 [Allium v3](https://github.com/juxt/allium) specification files covering every domain: trading, positions, risk, alerts, audit, limits, market data, scenarios, regulatory, execution, hedge recommendations, counterparty risk, hierarchy risk, regime detection, intraday P&L, liquidity, factor model, and risk models.
+The platform's intended behaviour is formally documented in 24 [Allium v3](https://github.com/juxt/allium) specification files covering every domain: trading, positions, risk, alerts, audit, limits, market data, scenarios, regulatory, execution, hedge recommendations, counterparty risk, hierarchy risk, regime detection, intraday P&L, liquidity, factor model, and risk models.
 
 Each spec declares entities with lifecycle transition graphs, state-dependent field presence, rules with pre/post-conditions, and invariants — serving as both design documentation and a verifiable contract between the spec and the implementation.
 
@@ -238,6 +238,6 @@ See the [project wiki](../../wiki) for detailed documentation:
 - [Risk Engine](../../wiki/Risk-Engine) — quantitative models, pricing, VaR methodology
 - [API Reference](../../wiki/API-Reference) — complete endpoint reference
 - [Data Model](../../wiki/Data-Model) — database schemas and Protobuf contracts
-- [ADRs](../../wiki/ADRs) — 27 architecture decision records
+- [ADRs](../../wiki/ADRs) — 30 architecture decision records
 - [CI/CD](../../wiki/CI-CD) — pipeline structure, test strategy, deployment
 - [Observability](../../wiki/Observability) — metrics, logging, tracing, dashboards

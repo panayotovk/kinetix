@@ -59,14 +59,14 @@ The Positions tab is the primary view for traders, showing live portfolio holdin
 
 ```
 UI (PositionGrid)
-  ├── REST: GET /api/v1/portfolios/{id}/positions  →  Gateway  →  Position Service  →  PostgreSQL
+  ├── REST: GET /api/v1/books/{id}/positions  →  Gateway  →  Position Service  →  PostgreSQL
   └── WebSocket: /ws/prices  →  Gateway (PriceBroadcaster)  →  live price ticks
 ```
 
 ### Trade booking flow
 
 ```
-POST /api/v1/portfolios/{id}/trades
+POST /api/v1/books/{id}/trades
   → Gateway
     → Position Service
       1. Idempotency check (duplicate trade returns existing state)
@@ -120,9 +120,9 @@ Kafka / market data source
 
 | Route | Method | Purpose |
 |-------|--------|---------|
-| `/api/v1/portfolios` | GET | List all portfolio IDs |
-| `/api/v1/portfolios/{portfolioId}/positions` | GET | Fetch positions for a portfolio |
-| `/api/v1/portfolios/{portfolioId}/trades` | POST | Book a new trade |
+| `/api/v1/books` | GET | List all book IDs |
+| `/api/v1/books/{bookId}/positions` | GET | Fetch positions for a portfolio |
+| `/api/v1/books/{bookId}/trades` | POST | Book a new trade |
 
 ### Gateway (WebSocket)
 
