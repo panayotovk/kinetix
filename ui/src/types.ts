@@ -12,6 +12,7 @@ export interface PositionDto {
   marketPrice: MoneyDto
   marketValue: MoneyDto
   unrealizedPnl: MoneyDto
+  realizedPnl?: MoneyDto
   instrumentType?: string
   displayName?: string
   strategyId?: string

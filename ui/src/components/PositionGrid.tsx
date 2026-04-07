@@ -52,6 +52,7 @@ const POSITION_COLUMNS: ColumnDef[] = [
   { key: 'marketPrice', label: 'Market Price', align: 'right' },
   { key: 'marketValue', label: 'Market Value', align: 'right' },
   { key: 'unrealizedPnl', label: 'Unrealized P&L', align: 'right' },
+  { key: 'realizedPnl', label: 'Realized P&L', align: 'right' },
 ]
 
 function loadColumnVisibility(): Record<string, boolean> {
@@ -237,6 +238,7 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
         marketPrice: pos.marketPrice.amount,
         marketValue: pos.marketValue.amount,
         unrealizedPnl: pos.unrealizedPnl.amount,
+        realizedPnl: pos.realizedPnl?.amount ?? '0',
       }
       const row = visiblePositionCols.map((c) => cellValues[c.key])
       if (hasRisk) {
@@ -493,6 +495,14 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
                       className={`px-4 py-2 text-sm text-right ${pnlColorClass(pos.unrealizedPnl.amount)} ${reconnecting ? 'opacity-60' : ''}`}
                     >
                       {formatMoney(pos.unrealizedPnl.amount, pos.unrealizedPnl.currency)}
+                    </td>
+                  ),
+                  realizedPnl: (
+                    <td
+                      key="realizedPnl"
+                      className={`px-4 py-2 text-sm text-right ${pnlColorClass(pos.realizedPnl?.amount ?? '0')}`}
+                    >
+                      {formatMoney(pos.realizedPnl?.amount ?? '0', pos.realizedPnl?.currency ?? pos.unrealizedPnl.currency)}
                     </td>
                   ),
                 }
