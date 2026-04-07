@@ -54,6 +54,9 @@ def calculate_valuation(
     computed = []
 
     if need_var:
+        historical_returns = market_data_bundle.historical_returns if market_data_bundle else None
+        if calculation_type == CalculationType.HISTORICAL and historical_returns is None:
+            degradation_flags.append("HISTORICAL_RETURNS_UNAVAILABLE")
         var_result = calculate_book_var(
             positions=resolved,
             calculation_type=calculation_type,
@@ -62,6 +65,7 @@ def calculate_valuation(
             num_simulations=num_simulations,
             volatility_provider=volatility_provider or VolatilityProvider.static(),
             correlation_matrix=correlation_matrix,
+            historical_returns=historical_returns,
             seed=seed,
         )
         if "VAR" in outputs:
