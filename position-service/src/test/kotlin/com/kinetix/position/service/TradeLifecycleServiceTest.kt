@@ -253,6 +253,57 @@ class TradeLifecycleServiceTest : FunSpec({
         coVerify(exactly = 1) { publisher.publish(match { it.trade.eventType == TradeEventType.AMEND }) }
     }
 
+    test("amend trade preserves instrumentType from original trade") {
+        val originalTrade = trade(tradeId = "t-1", side = Side.BUY, quantity = "100", price = "150.00")
+            .copy(instrumentType = "CASH_EQUITY")
+        val existingPosition = position(quantity = "100", averageCost = "150.00")
+            .copy(instrumentType = "CASH_EQUITY")
+
+        coEvery { tradeRepo.findByTradeId(TradeId("t-1")) } returns originalTrade
+        coEvery { tradeRepo.save(any()) } just runs
+        coEvery { tradeRepo.updateStatus(TradeId("t-1"), TradeStatus.AMENDED) } just runs
+        coEvery { positionRepo.findByKey(PORTFOLIO, AAPL) } returns existingPosition
+        coEvery { positionRepo.save(any()) } just runs
+
+        val command = AmendTradeCommand(
+            originalTradeId = TradeId("t-1"),
+            newTradeId = TradeId("t-1-amend"),
+            bookId = PORTFOLIO,
+            instrumentId = AAPL,
+            assetClass = AssetClass.EQUITY,
+            side = Side.BUY,
+            quantity = BigDecimal("200"),
+            price = usd("160.00"),
+            tradedAt = Instant.parse("2025-01-15T11:00:00Z"),
+        )
+
+        val result = service.handleAmend(command)
+
+        result.trade.instrumentType shouldBe "CASH_EQUITY"
+        result.position.instrumentType shouldBe "CASH_EQUITY"
+    }
+
+    test("cancel trade preserves instrumentType on position") {
+        val originalTrade = trade(tradeId = "t-1", side = Side.BUY, quantity = "100", price = "150.00")
+            .copy(instrumentType = "EQUITY_OPTION")
+        val existingPosition = position(quantity = "100", averageCost = "150.00")
+            .copy(instrumentType = "EQUITY_OPTION")
+
+        coEvery { tradeRepo.findByTradeId(TradeId("t-1")) } returns originalTrade
+        coEvery { tradeRepo.updateStatus(TradeId("t-1"), TradeStatus.CANCELLED) } just runs
+        coEvery { positionRepo.findByKey(PORTFOLIO, AAPL) } returns existingPosition
+        coEvery { positionRepo.save(any()) } just runs
+
+        val command = CancelTradeCommand(
+            tradeId = TradeId("t-1"),
+            bookId = PORTFOLIO,
+        )
+
+        val result = service.handleCancel(command)
+
+        result.position.instrumentType shouldBe "EQUITY_OPTION"
+    }
+
     test("cancel publishes trade event for the cancelled trade") {
         val originalTrade = trade(tradeId = "t-1", side = Side.BUY, quantity = "100", price = "150.00")
         val existingPosition = position(quantity = "100", averageCost = "150.00")
