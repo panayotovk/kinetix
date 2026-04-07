@@ -7,6 +7,7 @@ import com.kinetix.notification.audit.KafkaGovernanceAuditPublisher
 import com.kinetix.notification.delivery.DeliveryRouter
 import com.kinetix.notification.delivery.EmailDeliveryService
 import com.kinetix.notification.delivery.InAppDeliveryService
+import com.kinetix.notification.delivery.PagerDutyDeliveryService
 import com.kinetix.notification.delivery.WebhookDeliveryService
 import com.kinetix.notification.engine.AlertEscalationService
 import com.kinetix.notification.engine.RulesEngine
@@ -135,7 +136,8 @@ fun Application.moduleWithRoutes() {
     val inAppDelivery = InAppDeliveryService(eventRepository)
     val emailDelivery = EmailDeliveryService()
     val webhookDelivery = WebhookDeliveryService()
-    val deliveryRouter = DeliveryRouter(listOf(inAppDelivery, emailDelivery, webhookDelivery))
+    val pagerDutyDelivery = PagerDutyDeliveryService()
+    val deliveryRouter = DeliveryRouter(listOf(inAppDelivery, emailDelivery, webhookDelivery, pagerDutyDelivery))
 
     val kafkaConfig = environment.config.config("kafka")
     val bootstrapServers = kafkaConfig.property("bootstrapServers").getString()
