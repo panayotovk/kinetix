@@ -95,14 +95,14 @@ class DevDataSeederTest : FunSpec({
 
     test("trade data has minimum required trades per portfolio") {
         val tradesByPortfolio = DevDataSeeder.TRADES.groupBy { it.bookId.value }
-        tradesByPortfolio["equity-growth"]!!.size shouldBeGreaterThan 59
-        tradesByPortfolio["multi-asset"]!!.size shouldBeGreaterThan 49
-        tradesByPortfolio["fixed-income"]!!.size shouldBeGreaterThan 24
-        tradesByPortfolio["emerging-markets"]!!.size shouldBeGreaterThan 39
-        tradesByPortfolio["macro-hedge"]!!.size shouldBeGreaterThan 39
-        tradesByPortfolio["tech-momentum"]!!.size shouldBeGreaterThan 49
-        tradesByPortfolio["balanced-income"]!!.size shouldBeGreaterThan 29
-        tradesByPortfolio["derivatives-book"]!!.size shouldBeGreaterThan 54
+        tradesByPortfolio["equity-growth"]!!.size shouldBeGreaterThan 84
+        tradesByPortfolio["multi-asset"]!!.size shouldBeGreaterThan 74
+        tradesByPortfolio["fixed-income"]!!.size shouldBeGreaterThan 42
+        tradesByPortfolio["emerging-markets"]!!.size shouldBeGreaterThan 59
+        tradesByPortfolio["macro-hedge"]!!.size shouldBeGreaterThan 59
+        tradesByPortfolio["tech-momentum"]!!.size shouldBeGreaterThan 69
+        tradesByPortfolio["balanced-income"]!!.size shouldBeGreaterThan 44
+        tradesByPortfolio["derivatives-book"]!!.size shouldBeGreaterThan 84
     }
 
     test("generated trades are deterministic") {

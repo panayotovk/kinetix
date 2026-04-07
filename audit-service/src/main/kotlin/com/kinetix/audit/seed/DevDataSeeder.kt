@@ -62,12 +62,21 @@ class DevDataSeeder(
                 InstrumentSpec("MSFT",  "EQUITY", "CASH_EQUITY", "USD", "420.00",  200, 1500),
                 InstrumentSpec("AMZN",  "EQUITY", "CASH_EQUITY", "USD", "205.75",  400, 2500),
                 InstrumentSpec("TSLA",  "EQUITY", "CASH_EQUITY", "USD", "248.30",  300, 2000),
+                InstrumentSpec("NVDA",  "EQUITY", "CASH_EQUITY", "USD", "888.00",  100, 600),
+                InstrumentSpec("META",  "EQUITY", "CASH_EQUITY", "USD", "505.00",  200, 1200),
+                InstrumentSpec("JPM",   "EQUITY", "CASH_EQUITY", "USD", "209.00",  300, 1500),
+                InstrumentSpec("AAPL-C-200-20260620", "DERIVATIVE", "EQUITY_OPTION", "USD", "8.50", 50, 400),
+                InstrumentSpec("AAPL-P-180-20260620", "DERIVATIVE", "EQUITY_OPTION", "USD", "6.20", 50, 400),
             ),
             "tech-momentum" to listOf(
                 InstrumentSpec("NVDA",  "EQUITY", "CASH_EQUITY", "USD", "885.00",  100,  800),
                 InstrumentSpec("META",  "EQUITY", "CASH_EQUITY", "USD", "502.30",  200, 1500),
                 InstrumentSpec("MSFT",  "EQUITY", "CASH_EQUITY", "USD", "421.50",  150, 1200),
                 InstrumentSpec("GOOGL", "EQUITY", "CASH_EQUITY", "USD", "176.80",  300, 2000),
+                InstrumentSpec("TSLA",  "EQUITY", "CASH_EQUITY", "USD", "249.50",  200, 1200),
+                InstrumentSpec("AMZN",  "EQUITY", "CASH_EQUITY", "USD", "206.00",  300, 1800),
+                InstrumentSpec("NVDA-C-950-20260620", "DERIVATIVE", "EQUITY_OPTION", "USD", "28.50", 50, 300),
+                InstrumentSpec("NVDA-P-800-20260620", "DERIVATIVE", "EQUITY_OPTION", "USD", "35.20", 50, 300),
             ),
             "emerging-markets" to listOf(
                 InstrumentSpec("BABA",   "EQUITY",       "CASH_EQUITY",     "USD", "83.20",   500, 4000),
@@ -75,11 +84,20 @@ class DevDataSeeder(
                 InstrumentSpec("EURUSD", "FX",           "FX_SPOT",         "USD", "1.0850",  500000, 3000000),
                 InstrumentSpec("GBPUSD", "FX",           "FX_SPOT",         "USD", "1.2580",  300000, 2000000),
                 InstrumentSpec("USDJPY", "FX",           "FX_SPOT",         "USD", "150.20",  500000, 3000000),
+                InstrumentSpec("EURUSD-P-1.08-SEP26", "DERIVATIVE", "FX_OPTION", "USD", "2.15", 500, 3000),
+                InstrumentSpec("GBPUSD-3M", "FX",        "FX_FORWARD",      "USD", "1.2800",  200000, 1500000),
+                InstrumentSpec("META",   "EQUITY",       "CASH_EQUITY",     "USD", "503.00",  200, 1200),
+                InstrumentSpec("JPM",    "EQUITY",       "CASH_EQUITY",     "USD", "209.00",  300, 1500),
             ),
             "fixed-income" to listOf(
                 InstrumentSpec("US2Y",  "FIXED_INCOME", "GOVERNMENT_BOND", "USD", "99.25",  5000, 20000),
                 InstrumentSpec("US10Y", "FIXED_INCOME", "GOVERNMENT_BOND", "USD", "96.50",  3000, 15000),
                 InstrumentSpec("US30Y", "FIXED_INCOME", "GOVERNMENT_BOND", "USD", "92.10",  2000, 10000),
+                InstrumentSpec("DE10Y", "FIXED_INCOME", "GOVERNMENT_BOND", "EUR", "97.80",  1000, 5000),
+                InstrumentSpec("JPM-BOND-2031", "FIXED_INCOME", "CORPORATE_BOND", "USD", "101.50", 2000, 10000),
+                InstrumentSpec("USD-SOFR-5Y", "FIXED_INCOME", "INTEREST_RATE_SWAP", "USD", "99.80", 1000, 5000),
+                InstrumentSpec("JPM",   "EQUITY",       "CASH_EQUITY",     "USD", "209.00",  200, 1000),
+                InstrumentSpec("AAPL",  "EQUITY",       "CASH_EQUITY",     "USD", "186.00",  200, 1000),
             ),
             "multi-asset" to listOf(
                 InstrumentSpec("AAPL",        "EQUITY",       "CASH_EQUITY",     "USD", "186.00",  200, 1500),
@@ -88,6 +106,12 @@ class DevDataSeeder(
                 InstrumentSpec("GC",          "COMMODITY",    "COMMODITY_FUTURE","USD", "2045.60",  10,   80),
                 InstrumentSpec("SPX-PUT-4500","DERIVATIVE",   "EQUITY_OPTION",   "USD", "32.50",    50,  300),
                 InstrumentSpec("MSFT",        "EQUITY",       "CASH_EQUITY",     "USD", "418.50",  200, 1500),
+                InstrumentSpec("NVDA",        "EQUITY",       "CASH_EQUITY",     "USD", "888.00",   50, 400),
+                InstrumentSpec("TSLA",        "EQUITY",       "CASH_EQUITY",     "USD", "249.00",  100, 800),
+                InstrumentSpec("SPX-CALL-5000","DERIVATIVE",  "EQUITY_OPTION",   "USD", "41.50",    30, 200),
+                InstrumentSpec("GBPUSD",      "FX",           "FX_SPOT",         "USD", "1.2600",  300000, 1500000),
+                InstrumentSpec("CL",          "COMMODITY",    "COMMODITY_FUTURE","USD", "76.80",    20, 150),
+                InstrumentSpec("JPM-BOND-2031","FIXED_INCOME","CORPORATE_BOND",  "USD","101.50",  1000, 5000),
             ),
             "macro-hedge" to listOf(
                 InstrumentSpec("USDJPY",      "FX",           "FX_SPOT",         "USD", "149.80",  500000, 2000000),
@@ -96,6 +120,12 @@ class DevDataSeeder(
                 InstrumentSpec("SI",          "COMMODITY",    "COMMODITY_FUTURE","USD",   "23.10",   20,  150),
                 InstrumentSpec("DE10Y",       "FIXED_INCOME", "GOVERNMENT_BOND", "EUR",   "97.80",  1000, 5000),
                 InstrumentSpec("SPX-PUT-4500","DERIVATIVE",   "EQUITY_OPTION",   "USD",   "31.20",   30,  200),
+                InstrumentSpec("GBPUSD-3M",   "FX",           "FX_FORWARD",      "USD", "1.2800",  200000, 1000000),
+                InstrumentSpec("WTI-AUG26",   "COMMODITY",    "COMMODITY_FUTURE","USD", "75.50",    30, 200),
+                InstrumentSpec("GC-C-2200-DEC26","COMMODITY", "COMMODITY_OPTION","USD", "45.80",    20, 150),
+                InstrumentSpec("US10Y",       "FIXED_INCOME", "GOVERNMENT_BOND", "USD",  "96.50",  1000, 5000),
+                InstrumentSpec("EURUSD",      "FX",           "FX_SPOT",         "USD", "1.0850",  300000, 2000000),
+                InstrumentSpec("SPX-SEP26",   "DERIVATIVE",   "EQUITY_FUTURE",   "USD","5020.00",   10,  80),
             ),
             "balanced-income" to listOf(
                 InstrumentSpec("US10Y", "FIXED_INCOME", "GOVERNMENT_BOND", "USD", "96.60",  2000, 10000),
@@ -103,6 +133,11 @@ class DevDataSeeder(
                 InstrumentSpec("DE10Y", "FIXED_INCOME", "GOVERNMENT_BOND", "EUR", "97.90",  1000,  5000),
                 InstrumentSpec("JPM",   "EQUITY",       "CASH_EQUITY",     "USD","208.40",   200,  1500),
                 InstrumentSpec("AAPL",  "EQUITY",       "CASH_EQUITY",     "USD","187.20",   200,  1200),
+                InstrumentSpec("JPM-BOND-2031","FIXED_INCOME","CORPORATE_BOND","USD","101.50", 1000, 5000),
+                InstrumentSpec("USD-SOFR-5Y", "FIXED_INCOME", "INTEREST_RATE_SWAP","USD","99.80", 500, 3000),
+                InstrumentSpec("EURUSD",      "FX",           "FX_SPOT",       "USD", "1.0860", 300000, 1500000),
+                InstrumentSpec("MSFT",        "EQUITY",       "CASH_EQUITY",   "USD","420.00",   150, 1000),
+                InstrumentSpec("AAPL-C-200-20260620", "DERIVATIVE", "EQUITY_OPTION","USD","8.50", 30, 200),
             ),
             "derivatives-book" to listOf(
                 InstrumentSpec("SPX-CALL-5000", "DERIVATIVE", "EQUITY_OPTION", "USD", "41.50",  100,  600),
@@ -110,18 +145,25 @@ class DevDataSeeder(
                 InstrumentSpec("SPX-PUT-4500",  "DERIVATIVE", "EQUITY_OPTION", "USD", "33.00",   80,  500),
                 InstrumentSpec("NVDA",          "EQUITY",     "CASH_EQUITY",   "USD","888.00",  100,  600),
                 InstrumentSpec("TSLA",          "EQUITY",     "CASH_EQUITY",   "USD","249.50",  200, 1200),
+                InstrumentSpec("SPX-PUT-4800",  "DERIVATIVE", "EQUITY_OPTION", "USD", "55.40",   50, 400),
+                InstrumentSpec("SPX-CALL-5200", "DERIVATIVE", "EQUITY_OPTION", "USD", "22.30",   50, 400),
+                InstrumentSpec("NVDA-C-950-20260620", "DERIVATIVE", "EQUITY_OPTION","USD","28.50", 50, 300),
+                InstrumentSpec("NVDA-P-800-20260620", "DERIVATIVE", "EQUITY_OPTION","USD","35.20", 50, 300),
+                InstrumentSpec("AAPL-C-200-20260620", "DERIVATIVE", "EQUITY_OPTION","USD","8.50",  50, 300),
+                InstrumentSpec("AAPL-P-180-20260620", "DERIVATIVE", "EQUITY_OPTION","USD","6.20",  50, 300),
+                InstrumentSpec("SPX-SEP26",     "DERIVATIVE", "EQUITY_FUTURE", "USD","5020.00",   20, 150),
             ),
         )
 
         private val GENERATED_COUNT: Map<String, Int> = mapOf(
-            "equity-growth"    to 55,
-            "tech-momentum"    to 45,
-            "emerging-markets" to 34,
-            "fixed-income"     to 22,
-            "multi-asset"      to 44,
-            "macro-hedge"      to 33,
-            "balanced-income"  to 24,
-            "derivatives-book" to 49,
+            "equity-growth"    to 80,
+            "tech-momentum"    to 65,
+            "emerging-markets" to 55,
+            "fixed-income"     to 40,
+            "multi-asset"      to 70,
+            "macro-hedge"      to 55,
+            "balanced-income"  to 40,
+            "derivatives-book" to 80,
         )
 
         private fun personaFor(bookId: String, assetClass: String, traderToggle: Boolean): Pair<String, String> {
@@ -194,7 +236,7 @@ class DevDataSeeder(
                     val qty = instrSpec.typicalQtyMin + nextInt(qtyRange + 1)
                     val seq = nextSeq(bookId, instrSpec.id)
                     val bookAbbrev = bookId.replace("-", "").take(2)
-                    val instrAbbrev = instrSpec.id.lowercase().replace("-", "").take(6)
+                    val instrAbbrev = instrSpec.id.lowercase().replace("-", "").take(10)
                     val tradeId = "seed-gen-$bookAbbrev-$instrAbbrev-${seq.toString().padStart(3, '0')}"
 
                     val toggle = traderToggles[bookId] ?: true
@@ -252,7 +294,7 @@ class DevDataSeeder(
             tripletSpecs.forEachIndexed { idx, spec ->
                 val n = idx + 1
                 val bookAbbrev = spec.bookId.replace("-", "").take(2)
-                val instrAbbrev = spec.instrId.lowercase().replace("-", "").take(6)
+                val instrAbbrev = spec.instrId.lowercase().replace("-", "").take(10)
                 val baseId = "seed-gen-ac-$bookAbbrev-$instrAbbrev-${n.toString().padStart(2, '0')}"
                 val amendQty = (spec.qty * 105 / 100)
                 val cancelSide = if (spec.side == "BUY") "SELL" else "BUY"

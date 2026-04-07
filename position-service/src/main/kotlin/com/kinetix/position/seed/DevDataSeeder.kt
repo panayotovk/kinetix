@@ -106,12 +106,21 @@ class DevDataSeeder(
                 InstrumentSpec("MSFT",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "420.00",  200, 1500),
                 InstrumentSpec("AMZN",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "205.75",  400, 2500),
                 InstrumentSpec("TSLA",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "248.30",  300, 2000),
+                InstrumentSpec("NVDA",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "888.00",  100, 600),
+                InstrumentSpec("META",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "505.00",  200, 1200),
+                InstrumentSpec("JPM",   AssetClass.EQUITY, "CASH_EQUITY", "USD", "209.00",  300, 1500),
+                InstrumentSpec("AAPL-C-200-20260620", AssetClass.DERIVATIVE, "EQUITY_OPTION", "USD", "8.50", 50, 400),
+                InstrumentSpec("AAPL-P-180-20260620", AssetClass.DERIVATIVE, "EQUITY_OPTION", "USD", "6.20", 50, 400),
             ),
             "tech-momentum" to listOf(
                 InstrumentSpec("NVDA",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "885.00",  100,  800),
                 InstrumentSpec("META",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "502.30",  200, 1500),
                 InstrumentSpec("MSFT",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "421.50",  150, 1200),
                 InstrumentSpec("GOOGL", AssetClass.EQUITY, "CASH_EQUITY", "USD", "176.80",  300, 2000),
+                InstrumentSpec("TSLA",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "249.50",  200, 1200),
+                InstrumentSpec("AMZN",  AssetClass.EQUITY, "CASH_EQUITY", "USD", "206.00",  300, 1800),
+                InstrumentSpec("NVDA-C-950-20260620", AssetClass.DERIVATIVE, "EQUITY_OPTION", "USD", "28.50", 50, 300),
+                InstrumentSpec("NVDA-P-800-20260620", AssetClass.DERIVATIVE, "EQUITY_OPTION", "USD", "35.20", 50, 300),
             ),
             "emerging-markets" to listOf(
                 InstrumentSpec("BABA",   AssetClass.EQUITY,       "CASH_EQUITY",    "USD", "83.20",   500, 4000),
@@ -119,11 +128,20 @@ class DevDataSeeder(
                 InstrumentSpec("EURUSD", AssetClass.FX,           "FX_SPOT",        "USD", "1.0850",  500000, 3000000),
                 InstrumentSpec("GBPUSD", AssetClass.FX,           "FX_SPOT",        "USD", "1.2580",  300000, 2000000),
                 InstrumentSpec("USDJPY", AssetClass.FX,           "FX_SPOT",        "USD", "150.20",  500000, 3000000),
+                InstrumentSpec("EURUSD-P-1.08-SEP26", AssetClass.DERIVATIVE, "FX_OPTION", "USD", "2.15", 500, 3000),
+                InstrumentSpec("GBPUSD-3M", AssetClass.FX,        "FX_FORWARD",     "USD", "1.2800",  200000, 1500000),
+                InstrumentSpec("META",   AssetClass.EQUITY,       "CASH_EQUITY",    "USD", "503.00",  200, 1200),
+                InstrumentSpec("JPM",    AssetClass.EQUITY,       "CASH_EQUITY",    "USD", "209.00",  300, 1500),
             ),
             "fixed-income" to listOf(
                 InstrumentSpec("US2Y",  AssetClass.FIXED_INCOME, "GOVERNMENT_BOND", "USD", "99.25",  5000, 20000),
                 InstrumentSpec("US10Y", AssetClass.FIXED_INCOME, "GOVERNMENT_BOND", "USD", "96.50",  3000, 15000),
                 InstrumentSpec("US30Y", AssetClass.FIXED_INCOME, "GOVERNMENT_BOND", "USD", "92.10",  2000, 10000),
+                InstrumentSpec("DE10Y", AssetClass.FIXED_INCOME, "GOVERNMENT_BOND", "EUR", "97.80",  1000, 5000),
+                InstrumentSpec("JPM-BOND-2031", AssetClass.FIXED_INCOME, "CORPORATE_BOND", "USD", "101.50", 2000, 10000),
+                InstrumentSpec("USD-SOFR-5Y", AssetClass.FIXED_INCOME, "INTEREST_RATE_SWAP", "USD", "99.80", 1000, 5000),
+                InstrumentSpec("JPM",   AssetClass.EQUITY,       "CASH_EQUITY",     "USD", "209.00",  200, 1000),
+                InstrumentSpec("AAPL",  AssetClass.EQUITY,       "CASH_EQUITY",     "USD", "186.00",  200, 1000),
             ),
             "multi-asset" to listOf(
                 InstrumentSpec("AAPL",        AssetClass.EQUITY,       "CASH_EQUITY",    "USD", "186.00",  200, 1500),
@@ -132,6 +150,12 @@ class DevDataSeeder(
                 InstrumentSpec("GC",          AssetClass.COMMODITY,    "COMMODITY_FUTURE","USD","2045.60",  10,   80),
                 InstrumentSpec("SPX-PUT-4500",AssetClass.DERIVATIVE,   "EQUITY_OPTION",  "USD", "32.50",    50,  300),
                 InstrumentSpec("MSFT",        AssetClass.EQUITY,       "CASH_EQUITY",    "USD", "418.50",  200, 1500),
+                InstrumentSpec("NVDA",        AssetClass.EQUITY,       "CASH_EQUITY",    "USD", "888.00",   50, 400),
+                InstrumentSpec("TSLA",        AssetClass.EQUITY,       "CASH_EQUITY",    "USD", "249.00",  100, 800),
+                InstrumentSpec("SPX-CALL-5000",AssetClass.DERIVATIVE,  "EQUITY_OPTION",  "USD", "41.50",    30, 200),
+                InstrumentSpec("GBPUSD",      AssetClass.FX,           "FX_SPOT",        "USD", "1.2600",  300000, 1500000),
+                InstrumentSpec("CL",          AssetClass.COMMODITY,    "COMMODITY_FUTURE","USD", "76.80",    20, 150),
+                InstrumentSpec("JPM-BOND-2031",AssetClass.FIXED_INCOME,"CORPORATE_BOND", "USD","101.50",  1000, 5000),
             ),
             "macro-hedge" to listOf(
                 InstrumentSpec("USDJPY",      AssetClass.FX,           "FX_SPOT",        "USD", "149.80",  500000, 2000000),
@@ -140,6 +164,12 @@ class DevDataSeeder(
                 InstrumentSpec("SI",          AssetClass.COMMODITY,    "COMMODITY_FUTURE","USD",  "23.10",   20,  150),
                 InstrumentSpec("DE10Y",       AssetClass.FIXED_INCOME, "GOVERNMENT_BOND", "EUR",  "97.80",  1000, 5000),
                 InstrumentSpec("SPX-PUT-4500",AssetClass.DERIVATIVE,   "EQUITY_OPTION",  "USD",  "31.20",   30,  200),
+                InstrumentSpec("GBPUSD-3M",   AssetClass.FX,           "FX_FORWARD",     "USD", "1.2800",  200000, 1000000),
+                InstrumentSpec("WTI-AUG26",   AssetClass.COMMODITY,    "COMMODITY_FUTURE","USD", "75.50",    30, 200),
+                InstrumentSpec("GC-C-2200-DEC26",AssetClass.COMMODITY, "COMMODITY_OPTION","USD", "45.80",    20, 150),
+                InstrumentSpec("US10Y",       AssetClass.FIXED_INCOME, "GOVERNMENT_BOND","USD",  "96.50",  1000, 5000),
+                InstrumentSpec("EURUSD",      AssetClass.FX,           "FX_SPOT",        "USD", "1.0850",  300000, 2000000),
+                InstrumentSpec("SPX-SEP26",   AssetClass.DERIVATIVE,   "EQUITY_FUTURE",  "USD","5020.00",   10,  80),
             ),
             "balanced-income" to listOf(
                 InstrumentSpec("US10Y", AssetClass.FIXED_INCOME, "GOVERNMENT_BOND", "USD", "96.60",  2000, 10000),
@@ -147,6 +177,11 @@ class DevDataSeeder(
                 InstrumentSpec("DE10Y", AssetClass.FIXED_INCOME, "GOVERNMENT_BOND", "EUR", "97.90",  1000,  5000),
                 InstrumentSpec("JPM",   AssetClass.EQUITY,       "CASH_EQUITY",     "USD","208.40",   200,  1500),
                 InstrumentSpec("AAPL",  AssetClass.EQUITY,       "CASH_EQUITY",     "USD","187.20",   200,  1200),
+                InstrumentSpec("JPM-BOND-2031",AssetClass.FIXED_INCOME,"CORPORATE_BOND","USD","101.50", 1000, 5000),
+                InstrumentSpec("USD-SOFR-5Y", AssetClass.FIXED_INCOME, "INTEREST_RATE_SWAP","USD","99.80", 500, 3000),
+                InstrumentSpec("EURUSD",      AssetClass.FX,           "FX_SPOT",       "USD", "1.0860", 300000, 1500000),
+                InstrumentSpec("MSFT",        AssetClass.EQUITY,       "CASH_EQUITY",   "USD","420.00",   150, 1000),
+                InstrumentSpec("AAPL-C-200-20260620", AssetClass.DERIVATIVE, "EQUITY_OPTION","USD","8.50", 30, 200),
             ),
             "derivatives-book" to listOf(
                 InstrumentSpec("SPX-CALL-5000", AssetClass.DERIVATIVE, "EQUITY_OPTION", "USD", "41.50",  100,  600),
@@ -154,19 +189,26 @@ class DevDataSeeder(
                 InstrumentSpec("SPX-PUT-4500",  AssetClass.DERIVATIVE, "EQUITY_OPTION", "USD", "33.00",   80,  500),
                 InstrumentSpec("NVDA",          AssetClass.EQUITY,     "CASH_EQUITY",   "USD","888.00",  100,  600),
                 InstrumentSpec("TSLA",          AssetClass.EQUITY,     "CASH_EQUITY",   "USD","249.50",  200, 1200),
+                InstrumentSpec("SPX-PUT-4800",  AssetClass.DERIVATIVE, "EQUITY_OPTION", "USD", "55.40",   50, 400),
+                InstrumentSpec("SPX-CALL-5200", AssetClass.DERIVATIVE, "EQUITY_OPTION", "USD", "22.30",   50, 400),
+                InstrumentSpec("NVDA-C-950-20260620", AssetClass.DERIVATIVE, "EQUITY_OPTION","USD","28.50", 50, 300),
+                InstrumentSpec("NVDA-P-800-20260620", AssetClass.DERIVATIVE, "EQUITY_OPTION","USD","35.20", 50, 300),
+                InstrumentSpec("AAPL-C-200-20260620", AssetClass.DERIVATIVE, "EQUITY_OPTION","USD","8.50",  50, 300),
+                InstrumentSpec("AAPL-P-180-20260620", AssetClass.DERIVATIVE, "EQUITY_OPTION","USD","6.20",  50, 300),
+                InstrumentSpec("SPX-SEP26",     AssetClass.DERIVATIVE, "EQUITY_FUTURE", "USD","5020.00",   20, 150),
             ),
         )
 
         // Target count of generated trades per book
         private val GENERATED_COUNT: Map<String, Int> = mapOf(
-            "equity-growth"    to 55,
-            "tech-momentum"    to 45,
-            "emerging-markets" to 34,
-            "fixed-income"     to 22,
-            "multi-asset"      to 44,
-            "macro-hedge"      to 33,
-            "balanced-income"  to 24,
-            "derivatives-book" to 49,
+            "equity-growth"    to 80,
+            "tech-momentum"    to 65,
+            "emerging-markets" to 55,
+            "fixed-income"     to 40,
+            "multi-asset"      to 70,
+            "macro-hedge"      to 55,
+            "balanced-income"  to 40,
+            "derivatives-book" to 80,
         )
 
         private fun buildGeneratedTrades(): List<BookTradeCommand> {
@@ -242,7 +284,7 @@ class DevDataSeeder(
                     val price = if (instrSpec.currency == "EUR") eur(instrSpec.typicalPrice) else usd(instrSpec.typicalPrice)
                     val seq = nextSeq(bookId, instrSpec.id)
                     val bookAbbrev = bookId.replace("-", "").take(2)
-                    val instrAbbrev = instrSpec.id.lowercase().replace("-", "").take(6)
+                    val instrAbbrev = instrSpec.id.lowercase().replace("-", "").take(10)
                     val tradeId = "seed-gen-$bookAbbrev-$instrAbbrev-${seq.toString().padStart(3, '0')}"
 
                     result += BookTradeCommand(
@@ -295,7 +337,7 @@ class DevDataSeeder(
             tripletSpecs.forEachIndexed { idx, spec ->
                 val n = idx + 1
                 val bookAbbrev = spec.bookId.replace("-", "").take(2)
-                val instrAbbrev = spec.instrId.lowercase().replace("-", "").take(6)
+                val instrAbbrev = spec.instrId.lowercase().replace("-", "").take(10)
                 val baseId = "seed-gen-ac-$bookAbbrev-$instrAbbrev-${n.toString().padStart(2, '0')}"
                 val price = if (spec.currency == "EUR") eur(spec.priceStr) else usd(spec.priceStr)
                 val amendQty = BigDecimal((spec.qty * 105 / 100))
@@ -1109,6 +1151,39 @@ class DevDataSeeder(
             Pair(BookId("equity-growth"), InstrumentId("MSFT")) to usd("425.60"),
             Pair(BookId("equity-growth"), InstrumentId("AMZN")) to usd("210.30"),
             Pair(BookId("equity-growth"), InstrumentId("TSLA")) to usd("242.15"),
+            Pair(BookId("equity-growth"), InstrumentId("NVDA")) to usd("892.50"),
+            Pair(BookId("equity-growth"), InstrumentId("META")) to usd("508.40"),
+            Pair(BookId("equity-growth"), InstrumentId("JPM")) to usd("211.80"),
+            Pair(BookId("equity-growth"), InstrumentId("AAPL-C-200-20260620")) to usd("7.80"),
+            Pair(BookId("equity-growth"), InstrumentId("AAPL-P-180-20260620")) to usd("6.80"),
+            // tech-momentum
+            Pair(BookId("tech-momentum"), InstrumentId("NVDA")) to usd("892.50"),
+            Pair(BookId("tech-momentum"), InstrumentId("META")) to usd("508.40"),
+            Pair(BookId("tech-momentum"), InstrumentId("MSFT")) to usd("425.60"),
+            Pair(BookId("tech-momentum"), InstrumentId("GOOGL")) to usd("178.90"),
+            Pair(BookId("tech-momentum"), InstrumentId("TSLA")) to usd("242.15"),
+            Pair(BookId("tech-momentum"), InstrumentId("AMZN")) to usd("210.30"),
+            Pair(BookId("tech-momentum"), InstrumentId("NVDA-C-950-20260620")) to usd("26.80"),
+            Pair(BookId("tech-momentum"), InstrumentId("NVDA-P-800-20260620")) to usd("37.50"),
+            // emerging-markets
+            Pair(BookId("emerging-markets"), InstrumentId("BABA")) to usd("86.10"),
+            Pair(BookId("emerging-markets"), InstrumentId("TSLA")) to usd("242.15"),
+            Pair(BookId("emerging-markets"), InstrumentId("EURUSD")) to usd("1.0856"),
+            Pair(BookId("emerging-markets"), InstrumentId("GBPUSD")) to usd("1.2620"),
+            Pair(BookId("emerging-markets"), InstrumentId("USDJPY")) to usd("150.80"),
+            Pair(BookId("emerging-markets"), InstrumentId("EURUSD-P-1.08-SEP26")) to usd("1.95"),
+            Pair(BookId("emerging-markets"), InstrumentId("GBPUSD-3M")) to usd("1.2800"),
+            Pair(BookId("emerging-markets"), InstrumentId("META")) to usd("508.40"),
+            Pair(BookId("emerging-markets"), InstrumentId("JPM")) to usd("211.80"),
+            // fixed-income
+            Pair(BookId("fixed-income"), InstrumentId("US2Y")) to usd("99.40"),
+            Pair(BookId("fixed-income"), InstrumentId("US10Y")) to usd("97.10"),
+            Pair(BookId("fixed-income"), InstrumentId("US30Y")) to usd("93.25"),
+            Pair(BookId("fixed-income"), InstrumentId("DE10Y")) to eur("98.20"),
+            Pair(BookId("fixed-income"), InstrumentId("JPM-BOND-2031")) to usd("102.30"),
+            Pair(BookId("fixed-income"), InstrumentId("USD-SOFR-5Y")) to usd("99.95"),
+            Pair(BookId("fixed-income"), InstrumentId("JPM")) to usd("211.80"),
+            Pair(BookId("fixed-income"), InstrumentId("AAPL")) to usd("189.25"),
             // multi-asset
             Pair(BookId("multi-asset"), InstrumentId("AAPL")) to usd("189.25"),
             Pair(BookId("multi-asset"), InstrumentId("EURUSD")) to usd("1.0856"),
@@ -1116,16 +1191,12 @@ class DevDataSeeder(
             Pair(BookId("multi-asset"), InstrumentId("GC")) to usd("2058.40"),
             Pair(BookId("multi-asset"), InstrumentId("SPX-PUT-4500")) to usd("28.75"),
             Pair(BookId("multi-asset"), InstrumentId("MSFT")) to usd("425.60"),
-            // fixed-income
-            Pair(BookId("fixed-income"), InstrumentId("US2Y")) to usd("99.40"),
-            Pair(BookId("fixed-income"), InstrumentId("US10Y")) to usd("97.10"),
-            Pair(BookId("fixed-income"), InstrumentId("US30Y")) to usd("93.25"),
-            // emerging-markets
-            Pair(BookId("emerging-markets"), InstrumentId("BABA")) to usd("86.10"),
-            Pair(BookId("emerging-markets"), InstrumentId("TSLA")) to usd("242.15"),
-            Pair(BookId("emerging-markets"), InstrumentId("EURUSD")) to usd("1.0856"),
-            Pair(BookId("emerging-markets"), InstrumentId("GBPUSD")) to usd("1.2620"),
-            Pair(BookId("emerging-markets"), InstrumentId("USDJPY")) to usd("150.80"),
+            Pair(BookId("multi-asset"), InstrumentId("NVDA")) to usd("892.50"),
+            Pair(BookId("multi-asset"), InstrumentId("TSLA")) to usd("242.15"),
+            Pair(BookId("multi-asset"), InstrumentId("SPX-CALL-5000")) to usd("43.80"),
+            Pair(BookId("multi-asset"), InstrumentId("GBPUSD")) to usd("1.2620"),
+            Pair(BookId("multi-asset"), InstrumentId("CL")) to usd("78.30"),
+            Pair(BookId("multi-asset"), InstrumentId("JPM-BOND-2031")) to usd("102.30"),
             // macro-hedge
             Pair(BookId("macro-hedge"), InstrumentId("USDJPY")) to usd("150.80"),
             Pair(BookId("macro-hedge"), InstrumentId("GC")) to usd("2058.40"),
@@ -1133,38 +1204,36 @@ class DevDataSeeder(
             Pair(BookId("macro-hedge"), InstrumentId("SI")) to usd("23.65"),
             Pair(BookId("macro-hedge"), InstrumentId("DE10Y")) to eur("98.20"),
             Pair(BookId("macro-hedge"), InstrumentId("SPX-PUT-4500")) to usd("28.75"),
-            // tech-momentum
-            Pair(BookId("tech-momentum"), InstrumentId("NVDA")) to usd("892.50"),
-            Pair(BookId("tech-momentum"), InstrumentId("META")) to usd("508.40"),
-            Pair(BookId("tech-momentum"), InstrumentId("MSFT")) to usd("425.60"),
-            Pair(BookId("tech-momentum"), InstrumentId("GOOGL")) to usd("178.90"),
+            Pair(BookId("macro-hedge"), InstrumentId("GBPUSD-3M")) to usd("1.2800"),
+            Pair(BookId("macro-hedge"), InstrumentId("WTI-AUG26")) to usd("76.20"),
+            Pair(BookId("macro-hedge"), InstrumentId("GC-C-2200-DEC26")) to usd("48.50"),
+            Pair(BookId("macro-hedge"), InstrumentId("US10Y")) to usd("97.10"),
+            Pair(BookId("macro-hedge"), InstrumentId("EURUSD")) to usd("1.0856"),
+            Pair(BookId("macro-hedge"), InstrumentId("SPX-SEP26")) to usd("5035.00"),
             // balanced-income
             Pair(BookId("balanced-income"), InstrumentId("US10Y")) to usd("97.10"),
             Pair(BookId("balanced-income"), InstrumentId("US30Y")) to usd("93.25"),
             Pair(BookId("balanced-income"), InstrumentId("DE10Y")) to eur("98.20"),
             Pair(BookId("balanced-income"), InstrumentId("JPM")) to usd("211.80"),
             Pair(BookId("balanced-income"), InstrumentId("AAPL")) to usd("189.25"),
+            Pair(BookId("balanced-income"), InstrumentId("JPM-BOND-2031")) to usd("102.30"),
+            Pair(BookId("balanced-income"), InstrumentId("USD-SOFR-5Y")) to usd("99.95"),
+            Pair(BookId("balanced-income"), InstrumentId("EURUSD")) to usd("1.0856"),
+            Pair(BookId("balanced-income"), InstrumentId("MSFT")) to usd("425.60"),
+            Pair(BookId("balanced-income"), InstrumentId("AAPL-C-200-20260620")) to usd("7.80"),
             // derivatives-book
             Pair(BookId("derivatives-book"), InstrumentId("SPX-CALL-5000")) to usd("43.80"),
             Pair(BookId("derivatives-book"), InstrumentId("VIX-PUT-15")) to usd("3.60"),
             Pair(BookId("derivatives-book"), InstrumentId("SPX-PUT-4500")) to usd("28.75"),
             Pair(BookId("derivatives-book"), InstrumentId("NVDA")) to usd("892.50"),
             Pair(BookId("derivatives-book"), InstrumentId("TSLA")) to usd("242.15"),
-            // new instruments added in Phase 3d/3e/3f
-            Pair(BookId("fixed-income"), InstrumentId("JPM-BOND-2031")) to usd("102.30"),
-            Pair(BookId("fixed-income"), InstrumentId("USD-SOFR-5Y")) to usd("99.95"),
-            Pair(BookId("macro-hedge"), InstrumentId("GBPUSD-3M")) to usd("1.2800"),
-            Pair(BookId("macro-hedge"), InstrumentId("WTI-AUG26")) to usd("76.20"),
-            Pair(BookId("macro-hedge"), InstrumentId("GC-C-2200-DEC26")) to usd("48.50"),
-            Pair(BookId("emerging-markets"), InstrumentId("EURUSD-P-1.08-SEP26")) to usd("1.95"),
-            Pair(BookId("equity-growth"), InstrumentId("AAPL-C-200-20260620")) to usd("7.80"),
-            Pair(BookId("equity-growth"), InstrumentId("AAPL-P-180-20260620")) to usd("6.80"),
-            Pair(BookId("derivatives-book"), InstrumentId("SPX-CALL-5200")) to usd("23.50"),
             Pair(BookId("derivatives-book"), InstrumentId("SPX-PUT-4800")) to usd("58.20"),
-            Pair(BookId("derivatives-book"), InstrumentId("NVDA-P-800-20260620")) to usd("37.50"),
+            Pair(BookId("derivatives-book"), InstrumentId("SPX-CALL-5200")) to usd("23.50"),
             Pair(BookId("derivatives-book"), InstrumentId("NVDA-C-950-20260620")) to usd("26.80"),
+            Pair(BookId("derivatives-book"), InstrumentId("NVDA-P-800-20260620")) to usd("37.50"),
+            Pair(BookId("derivatives-book"), InstrumentId("AAPL-C-200-20260620")) to usd("7.80"),
+            Pair(BookId("derivatives-book"), InstrumentId("AAPL-P-180-20260620")) to usd("6.80"),
             Pair(BookId("derivatives-book"), InstrumentId("SPX-SEP26")) to usd("5035.00"),
-            Pair(BookId("balanced-income"), InstrumentId("EURUSD")) to usd("1.0856"),
         )
 
         private fun limit(
@@ -1188,37 +1257,36 @@ class DevDataSeeder(
 
         val LIMIT_DEFINITIONS: List<LimitDefinition> = listOf(
             // ── FIRM level ──
-            limit("seed-lim-firm-notional", LimitLevel.FIRM, "FIRM", LimitType.NOTIONAL, "500000000"),
+            limit("seed-lim-firm-notional", LimitLevel.FIRM, "FIRM", LimitType.NOTIONAL, "600000000"),
             limit("seed-lim-firm-position", LimitLevel.FIRM, "FIRM", LimitType.POSITION, "50000000"),
             limit("seed-lim-firm-concentration", LimitLevel.FIRM, "FIRM", LimitType.CONCENTRATION, "0.35"),
 
             // ── DESK level ──
-            limit("seed-lim-desk-eq-notional", LimitLevel.DESK, "equity-growth", LimitType.NOTIONAL, "80000000"),
-            limit("seed-lim-desk-tech-notional", LimitLevel.DESK, "tech-momentum", LimitType.NOTIONAL, "60000000"),
-            limit("seed-lim-desk-fi-notional", LimitLevel.DESK, "rates-trading", LimitType.NOTIONAL, "120000000"),
-            limit("seed-lim-desk-ma-notional", LimitLevel.DESK, "multi-asset-strategies", LimitType.NOTIONAL, "100000000"),
-            limit("seed-lim-desk-mh-notional", LimitLevel.DESK, "macro-hedge", LimitType.NOTIONAL, "85000000"),
-            limit("seed-lim-desk-em-notional", LimitLevel.DESK, "emerging-markets", LimitType.NOTIONAL, "70000000"),
-            limit("seed-lim-desk-bi-notional", LimitLevel.DESK, "balanced-income", LimitType.NOTIONAL, "90000000"),
-            limit("seed-lim-desk-db-notional", LimitLevel.DESK, "derivatives-trading", LimitType.NOTIONAL, "50000000"),
+            limit("seed-lim-desk-eq-notional", LimitLevel.DESK, "equity-growth", LimitType.NOTIONAL, "100000000"),
+            limit("seed-lim-desk-tech-notional", LimitLevel.DESK, "tech-momentum", LimitType.NOTIONAL, "80000000"),
+            limit("seed-lim-desk-fi-notional", LimitLevel.DESK, "rates-trading", LimitType.NOTIONAL, "150000000"),
+            limit("seed-lim-desk-ma-notional", LimitLevel.DESK, "multi-asset-strategies", LimitType.NOTIONAL, "130000000"),
+            limit("seed-lim-desk-mh-notional", LimitLevel.DESK, "macro-hedge", LimitType.NOTIONAL, "110000000"),
+            limit("seed-lim-desk-em-notional", LimitLevel.DESK, "emerging-markets", LimitType.NOTIONAL, "90000000"),
+            limit("seed-lim-desk-bi-notional", LimitLevel.DESK, "balanced-income", LimitType.NOTIONAL, "110000000"),
+            limit("seed-lim-desk-db-notional", LimitLevel.DESK, "derivatives-trading", LimitType.NOTIONAL, "70000000"),
 
             // ── BOOK level — calibrated to produce interesting limit utilisation ──
-            // tech-momentum concentration: NVDA $4.5M of ~$12M book = ~37%, limit 32% → BREACHED ~116%
-            // derivatives-book notional: ~$18.8M actual, limit $18M → BREACHED ~104%
-            // macro-hedge notional: ~$75M actual, limit $85M → 88% utilised
-            // equity-growth VaR: approaching 90% with institutional positions
-            limit("seed-lim-book-eq-notional", LimitLevel.BOOK, "equity-growth", LimitType.NOTIONAL, "18000000",
-                intraday = "20000000", overnight = "17000000"),
-            limit("seed-lim-book-tech-notional", LimitLevel.BOOK, "tech-momentum", LimitType.NOTIONAL, "15000000",
-                intraday = "17000000", overnight = "14000000"),
-            limit("seed-lim-book-tech-conc", LimitLevel.BOOK, "tech-momentum", LimitType.CONCENTRATION, "0.32"),
-            limit("seed-lim-book-em-notional", LimitLevel.BOOK, "emerging-markets", LimitType.NOTIONAL, "35000000"),
-            limit("seed-lim-book-fi-notional", LimitLevel.BOOK, "fixed-income", LimitType.NOTIONAL, "30000000"),
-            limit("seed-lim-book-ma-notional", LimitLevel.BOOK, "multi-asset", LimitType.NOTIONAL, "55000000"),
-            limit("seed-lim-book-mh-notional", LimitLevel.BOOK, "macro-hedge", LimitType.NOTIONAL, "85000000"),
-            limit("seed-lim-book-bi-notional", LimitLevel.BOOK, "balanced-income", LimitType.NOTIONAL, "20000000"),
-            limit("seed-lim-book-db-notional", LimitLevel.BOOK, "derivatives-book", LimitType.NOTIONAL, "18000000",
+            // tech-momentum concentration: NVDA heavy, limit 32% → BREACHED
+            // derivatives-book notional: limit set to trigger breach with expanded portfolio
+            // macro-hedge notional: high utilisation ~88%
+            limit("seed-lim-book-eq-notional", LimitLevel.BOOK, "equity-growth", LimitType.NOTIONAL, "25000000",
+                intraday = "28000000", overnight = "23000000"),
+            limit("seed-lim-book-tech-notional", LimitLevel.BOOK, "tech-momentum", LimitType.NOTIONAL, "18000000",
                 intraday = "20000000", overnight = "16000000"),
+            limit("seed-lim-book-tech-conc", LimitLevel.BOOK, "tech-momentum", LimitType.CONCENTRATION, "0.32"),
+            limit("seed-lim-book-em-notional", LimitLevel.BOOK, "emerging-markets", LimitType.NOTIONAL, "45000000"),
+            limit("seed-lim-book-fi-notional", LimitLevel.BOOK, "fixed-income", LimitType.NOTIONAL, "35000000"),
+            limit("seed-lim-book-ma-notional", LimitLevel.BOOK, "multi-asset", LimitType.NOTIONAL, "65000000"),
+            limit("seed-lim-book-mh-notional", LimitLevel.BOOK, "macro-hedge", LimitType.NOTIONAL, "95000000"),
+            limit("seed-lim-book-bi-notional", LimitLevel.BOOK, "balanced-income", LimitType.NOTIONAL, "28000000"),
+            limit("seed-lim-book-db-notional", LimitLevel.BOOK, "derivatives-book", LimitType.NOTIONAL, "25000000",
+                intraday = "28000000", overnight = "22000000"),
             limit("seed-lim-book-db-conc", LimitLevel.BOOK, "derivatives-book", LimitType.CONCENTRATION, "0.40"),
         )
 
