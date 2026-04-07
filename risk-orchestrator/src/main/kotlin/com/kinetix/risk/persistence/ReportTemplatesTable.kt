@@ -5,12 +5,14 @@ import org.jetbrains.exposed.sql.json.jsonb
 import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 import kotlinx.serialization.json.Json
 
+private val lenientJson = Json { ignoreUnknownKeys = true }
+
 object ReportTemplatesTable : Table("report_templates") {
     val templateId = varchar("template_id", 36)
     val name = varchar("name", 255)
     val templateType = varchar("template_type", 50)
     val ownerUserId = varchar("owner_user_id", 255)
-    val definition = jsonb<ReportDefinitionJson>("definition", Json)
+    val definition = jsonb<ReportDefinitionJson>("definition", lenientJson)
     val createdAt = timestampWithTimeZone("created_at")
     val updatedAt = timestampWithTimeZone("updated_at")
 
