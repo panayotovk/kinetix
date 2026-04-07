@@ -83,17 +83,15 @@ class HttpPositionServiceClient(
         from: Instant,
         to: Instant,
     ): ClientResponse<List<TradeDto>> = try {
-        val response = httpClient.get("$baseUrl/api/v1/books/${bookId.value}/trades")
+        val response = httpClient.get("$baseUrl/api/v1/books/${bookId.value}/trades") {
+            url {
+                parameters.append("from", from.toString())
+                parameters.append("to", to.toString())
+            }
+        }
         when {
             response.status == HttpStatusCode.NotFound -> ClientResponse.NotFound(response.status.value)
-            response.status.isSuccess() -> {
-                val allTrades: List<TradeDto> = response.body()
-                val filtered = allTrades.filter { dto ->
-                    val tradedAt = Instant.parse(dto.tradedAt)
-                    !tradedAt.isBefore(from) && !tradedAt.isAfter(to)
-                }
-                ClientResponse.Success(filtered)
-            }
+            response.status.isSuccess() -> ClientResponse.Success(response.body())
             else -> errorResponseFor(response)
         }
     } catch (e: Exception) {

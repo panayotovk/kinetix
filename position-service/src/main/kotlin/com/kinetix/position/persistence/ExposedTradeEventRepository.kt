@@ -2,6 +2,7 @@ package com.kinetix.position.persistence
 
 import com.kinetix.common.model.*
 import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
@@ -47,6 +48,18 @@ class ExposedTradeEventRepository(private val db: Database? = null) : TradeEvent
         TradeEventsTable
             .selectAll()
             .where { TradeEventsTable.bookId eq bookId.value }
+            .orderBy(TradeEventsTable.tradedAt)
+            .map { it.toTrade() }
+    }
+
+    override suspend fun findByBookIdInRange(bookId: BookId, from: Instant, to: Instant): List<Trade> = newSuspendedTransaction(db = db) {
+        TradeEventsTable
+            .selectAll()
+            .where {
+                (TradeEventsTable.bookId eq bookId.value) and
+                    (TradeEventsTable.tradedAt greaterEq from.atOffset(ZoneOffset.UTC)) and
+                    (TradeEventsTable.tradedAt lessEq to.atOffset(ZoneOffset.UTC))
+            }
             .orderBy(TradeEventsTable.tradedAt)
             .map { it.toTrade() }
     }

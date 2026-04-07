@@ -235,13 +235,27 @@ fun Route.positionRoutes(
                     tags = listOf("Trades")
                     request {
                         pathParameter<String>("bookId") { description = "Book identifier" }
+                        queryParameter<String>("from") {
+                            description = "Start of date range (ISO-8601 instant, inclusive)"
+                            required = false
+                        }
+                        queryParameter<String>("to") {
+                            description = "End of date range (ISO-8601 instant, inclusive)"
+                            required = false
+                        }
                     }
                     response {
                         code(HttpStatusCode.OK) { body<List<TradeResponse>>() }
                     }
                 }) {
                     val bookId = BookId(call.requirePathParam("bookId"))
-                    val trades = tradeEventRepository.findByBookId(bookId)
+                    val from = call.request.queryParameters["from"]?.let { Instant.parse(it) }
+                    val to = call.request.queryParameters["to"]?.let { Instant.parse(it) }
+                    val trades = if (from != null && to != null) {
+                        tradeEventRepository.findByBookIdInRange(bookId, from, to)
+                    } else {
+                        tradeEventRepository.findByBookId(bookId)
+                    }
                     call.respond(trades.map { it.toResponse() })
                 }
 
