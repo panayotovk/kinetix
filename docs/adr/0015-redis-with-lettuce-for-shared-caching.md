@@ -8,13 +8,13 @@ VaR calculations are expensive (seconds per portfolio). When the UI polls for la
 
 ## Decision
 Use Redis (via Lettuce 6.5.3 client) as a shared cache for VaR results and quant diff snapshots. Cache access is abstracted behind interfaces:
-- `VaRCache` — caches `ValuationResult` by portfolio ID with configurable TTL (default 300s)
+- `VaRCache` — caches `ValuationResult` by book ID with configurable TTL (default 300s)
 - `QuantDiffCache` — caches quantitative diff snapshots for run comparison
 
 Implementations:
 - `RedisVaRCache` / `RedisQuantDiffCache` — production implementations using Lettuce synchronous commands with `SetArgs.ex()` for TTL
 - `InMemoryVaRCache` / `InMemoryQuantDiffCache` — in-memory fallbacks for local development and testing
-- `LatestVaRCache` — keeps only the most recent result per portfolio in memory
+- `LatestVaRCache` — keeps only the most recent result per book in memory
 
 Cached values are serialized to JSON via `kotlinx.serialization` with dedicated `Cached*` DTOs to handle type conversion (BigDecimal ↔ String, Instant ↔ String, UUID ↔ String).
 
@@ -33,5 +33,7 @@ Cached values are serialized to JSON via `kotlinx.serialization` with dedicated 
 
 ### Alternatives Considered
 - **In-process cache (Caffeine)**: No infrastructure dependency, but cache is per-instance — not shared across gateway replicas.
-- **PostgreSQL materialized views**: Too slow for per-request reads. Suitable for aggregates (used separately for daily summaries) but not for individual portfolio lookups.
+
+**Note (updated 2026-04-07):** Terminology updated to reflect the portfolio→book rename (V34).
+- **PostgreSQL materialized views**: Too slow for per-request reads. Suitable for aggregates (used separately for daily summaries) but not for individual book lookups.
 - **Hazelcast**: Embedded distributed cache, but heavier than Redis and less familiar operationally.

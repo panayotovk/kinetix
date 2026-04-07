@@ -8,10 +8,11 @@ The Risk tab is the analytical heart of Kinetix, providing Value at Risk (VaR) c
 
 ### VaR Dashboard (4-column grid layout)
 
-1. **VaR Gauge** (1 column) — Normal distribution curve with shaded regions:
-   - Blue fill at the confidence level (95% or 99%) showing VaR
-   - Red fill in the tail showing Expected Shortfall (CVaR)
-   - Numeric VaR and ES values displayed side-by-side
+1. **VaR Gauge** (1 column) — Semicircular arc gauge:
+   - Arc color transitions from green (safe) to amber (approaching limit) to red (at or above limit)
+   - Numeric VaR and ES values with a delta indicator showing change from prior run
+   - Confidence level toggle (95% / 97.5% / 99%) inline on the gauge
+   - Optional diversification benefit summary when viewing multi-book aggregates
 
 2. **Risk Sensitivities** (2 columns) — Inline Greeks display:
    - **PV (Portfolio Value)** — displayed when available
@@ -22,19 +23,24 @@ The Risk tab is the analytical heart of Kinetix, providing Value at Risk (VaR) c
    - EQUITY (blue), FIXED_INCOME (green), COMMODITY (amber), FX (purple)
    - Absolute dollar contribution and percentage of total per class
    - Sorted by percentage descending
+   - Toggle between **Asset Class** and **Instrument Type** breakdown modes when instrument-type data is available
 
 ### VaR Trend
 
 Grafana-style line chart with zoomable time range, pre-populated with VaR history on load. Plots both the **VaR line** (indigo) and the **ES (Expected Shortfall) line** (orange) with area fills. Hover shows both values. Legend toggles each line.
 
-**Metadata bar** shows calculation type (PARAMETRIC / HISTORICAL / MONTE_CARLO) and timestamp. A **Run VaR** button triggers a fresh computation.
+A **VaR/ES | Greeks** chart toggle switches the trend view between the VaR/ES time series and a Greeks trend chart (Delta, Gamma, Vega over time).
+
+**Metadata bar** shows calculation type (PARAMETRIC / HISTORICAL / MONTE_CARLO) with an expandable tooltip explaining each method, plus the calculation timestamp. A **Refresh** button triggers a fresh computation.
 
 ### Job History
 
-- Always visible below the VaR Dashboard (non-collapsible)
+- Collapsible panel below the VaR Dashboard (collapse state persisted to localStorage under `kinetix:job-history-expanded`)
 - Tables and timeline views of past calculation jobs
 - Shows status, duration, calculation type, results, and step-by-step execution details
-- Pagination bar with total job count
+- Pagination with configurable page size and total job count
+- Search filter and EOD-only toggle
+- Two-job selection for side-by-side comparison
 
 ---
 

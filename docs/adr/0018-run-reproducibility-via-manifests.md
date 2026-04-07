@@ -11,6 +11,8 @@ Capture a `RunManifest` for every risk calculation run. The manifest records all
 
 **Input capture (before calculation):**
 - `jobId`, `bookId`, `valuationDate`
+
+**Note (updated 2026-04-07):** Field names updated to reflect the portfolio→book rename (V34). The manifest field was originally `portfolioId`; it is now `bookId`.
 - `calculationType`, `confidenceLevel`, `timeHorizonDays`, `numSimulations`
 - `monteCarloSeed` — deterministic seed for MC runs (0 = unseeded)
 - `positionCount`, `positionDigest` — SHA-256 hash of serialized positions

@@ -10,7 +10,7 @@ The Alerts tab provides a rules-based alerting system that monitors risk metrics
 
 Allows users to define new monitoring rules with:
 - **Rule name** — descriptive label
-- **Rule type** — `VAR_BREACH`, `PNL_THRESHOLD`, or `RISK_LIMIT`
+- **Rule type** — `VAR_BREACH`, `PNL_THRESHOLD`, `RISK_LIMIT`, `DELTA_BREACH`, `VEGA_BREACH`, `CONCENTRATION`, or `MARGIN_BREACH`
 - **Threshold** — numeric trigger value
 - **Operator** — `GREATER_THAN`, `LESS_THAN`, or `EQUALS`
 - **Severity** — `CRITICAL` (red), `WARNING` (yellow), or `INFO` (blue)
@@ -26,7 +26,7 @@ Displays triggered alert events sorted by recency, then severity:
 - **Severity icon** — AlertCircle (CRITICAL), AlertTriangle (WARNING), Info (INFO)
 - **Color-coded border** — red, yellow, or blue
 - **Alert message** — describes what triggered and at what value
-- **Portfolio ID** — which portfolio triggered the alert
+- **Book** — which book triggered the alert
 - **Relative time** — e.g. "2h ago"
 
 An **alert count badge** appears on the tab header when alerts exist.
@@ -40,6 +40,10 @@ An **alert count badge** appears on the tab header when alerts exist.
 | **VAR_BREACH** | VaR exceeds a limit | `varValue` from risk calculation |
 | **PNL_THRESHOLD** | P&L crosses a threshold | `expectedShortfall` from risk calculation |
 | **RISK_LIMIT** | General risk limit monitoring | `varValue` from risk calculation |
+| **DELTA_BREACH** | Portfolio delta exceeds a threshold | `delta` from Greeks calculation |
+| **VEGA_BREACH** | Portfolio vega exceeds a threshold | `vega` from Greeks calculation |
+| **CONCENTRATION** | Asset class concentration exceeds a limit | concentration metric from risk calculation |
+| **MARGIN_BREACH** | Margin utilisation exceeds a threshold | margin estimate |
 
 ---
 
@@ -76,7 +80,7 @@ A second consumer listens to `risk.anomalies` for ML-detected anomalies:
 3. **Tiered severity** — CRITICAL alerts for immediate action (VaR breach), WARNING for attention needed (approaching limits), INFO for awareness.
 4. **Multi-channel delivery** — In-app for the trading desk, email for management, webhooks for integration with Slack/PagerDuty/other systems.
 5. **Customisable rules** — Each desk can define their own thresholds and operators to match their risk appetite and mandate.
-6. **Audit trail** — Every triggered alert is persisted with timestamp, current value, threshold, and portfolio, creating a compliance record.
+6. **Audit trail** — Every triggered alert is persisted with timestamp, current value, threshold, and book, creating a compliance record.
 
 ---
 
@@ -165,6 +169,6 @@ severity      VARCHAR(50)
 message       TEXT
 current_value NUMERIC(28,12)
 threshold     NUMERIC(28,12)
-portfolio_id  VARCHAR(255)    indexed
+book_id       VARCHAR(255)    indexed
 triggered_at  TIMESTAMPTZ     indexed DESC
 ```

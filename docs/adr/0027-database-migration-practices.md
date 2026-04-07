@@ -27,14 +27,14 @@ V{N}__{description}.sql
 |---|---|---|
 | position-service | `db/position/` | V9 |
 | price-service | `db/price/` | V5 |
-| rates-service | `db/rates/` | V1 |
-| volatility-service | `db/volatility/` | V2 |
-| correlation-service | `db/correlation/` | V2 |
-| reference-data-service | `db/referencedata/` | V5 |
-| risk-orchestrator | `db/risk/` | V28 |
-| regulatory-service | `db/regulatory/` | V6 |
-| notification-service | `db/notification/` | V7 |
-| audit-service | `db/audit/` | V7 |
+| rates-service | `db/rates/` | V2 |
+| volatility-service | `db/volatility/` | V3 |
+| correlation-service | `db/correlation/` | V4 |
+| reference-data-service | `db/referencedata/` | V9 |
+| risk-orchestrator | `db/risk/` | V64 |
+| regulatory-service | `db/regulatory/` | V9 |
+| notification-service | `db/notification/` | V8 |
+| audit-service | `db/audit/` | V11 |
 
 ### Transaction constraints
 

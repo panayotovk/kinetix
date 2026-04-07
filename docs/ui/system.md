@@ -23,9 +23,9 @@ A 3-column grid of cards for 9 monitored services:
 | Correlation Service | Git Merge | 8091 |
 
 Each card shows:
-- **Status dot** — green (UP) with pulse animation, or red (DOWN)
+- **Status dot** — green (READY) with pulse animation, or red (DOWN)
 - **Service name and icon**
-- **Status text** — "UP" or "DOWN"
+- **Status text** — "READY" or "DOWN" (the raw status string from the health check response)
 - **Grafana link** — direct link to that service's dashboard
 
 ### Overall Status Banner
@@ -39,9 +39,13 @@ Each card shows:
 | Link | Description | URL |
 |------|-------------|-----|
 | System Health | Request rate, error rate, latency, JVM, Kafka lag | Grafana dashboard |
+| Service Overview | Per-service request rate, errors, latency | Grafana dashboard |
 | Risk Overview | VaR gauge, ES, component breakdown | Grafana dashboard |
+| Trade Flow | Trade lifecycle, booking rate, amends & cancels | Grafana dashboard |
+| Database Health | Connection pools, query latency, table sizes | Grafana dashboard |
+| Kafka Health | Consumer lag, partition health, throughput | Grafana dashboard |
 | Service Logs | Log volume, errors, warnings, full log lines | Grafana/Loki dashboard |
-| Prometheus | Raw metrics & alert rules | `localhost:9090` |
+| Prometheus | Raw metrics & alert rules | `localhost:9090` (dev only) |
 | Grafana | All dashboards | `localhost:3000` |
 
 ---

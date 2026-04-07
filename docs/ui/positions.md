@@ -6,10 +6,12 @@ The Positions tab is the primary view for traders, showing live portfolio holdin
 
 ## What it displays
 
-**Portfolio Summary Bar** (3 cards):
+**Portfolio Summary Bar** (3 cards, expands to 5 when risk data is available):
 - **Position Count** — number of open positions
 - **Total Market Value** — sum of all position market values
 - **Total Unrealized P&L** — aggregate unrealized profit/loss, color-coded green (profit) or red (loss)
+- **Book Delta** — sum of position-level deltas (visible when risk data is loaded)
+- **Book VaR** — aggregate VaR for the book (visible when risk data is loaded)
 
 **Position Table** with columns:
 
@@ -121,8 +123,11 @@ Kafka / market data source
 | Route | Method | Purpose |
 |-------|--------|---------|
 | `/api/v1/books` | GET | List all book IDs |
-| `/api/v1/books/{bookId}/positions` | GET | Fetch positions for a portfolio |
+| `/api/v1/books/{bookId}/positions` | GET | Fetch positions for a book |
+| `/api/v1/books/{bookId}/trades` | GET | Trade history for a book |
 | `/api/v1/books/{bookId}/trades` | POST | Book a new trade |
+| `/api/v1/books/{bookId}/trades/{tradeId}` | PUT | Amend a trade (quantity or price) |
+| `/api/v1/books/{bookId}/trades/{tradeId}` | DELETE | Cancel a trade |
 
 ### Gateway (WebSocket)
 
@@ -145,7 +150,7 @@ Kafka / market data source
 
 ### positions table
 ```
-portfolio_id        VARCHAR(255)    PK (composite)
+book_id             VARCHAR(255)    PK (composite)
 instrument_id       VARCHAR(255)    PK (composite)
 asset_class         VARCHAR(50)
 quantity            NUMERIC(28,12)
@@ -158,7 +163,7 @@ updated_at          TIMESTAMPTZ
 ### trade_events table
 ```
 trade_id       VARCHAR(255)    PK
-portfolio_id   VARCHAR(255)    indexed
+book_id        VARCHAR(255)    indexed
 instrument_id  VARCHAR(255)
 asset_class    VARCHAR(50)
 side           VARCHAR(10)

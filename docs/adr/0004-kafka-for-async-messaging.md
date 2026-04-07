@@ -23,7 +23,7 @@ Use Apache Kafka 3.9.0 in KRaft mode (no ZooKeeper dependency).
 - Higher latency for individual messages compared to RabbitMQ (milliseconds vs microseconds) — acceptable for our use cases
 - Heavier resource footprint in local dev
 
-### Kafka Topics (16 total)
+### Kafka Topics (20 total)
 
 **Core:**
 - `trades.lifecycle` — Trade events (consumers: risk-orchestrator, audit-service)
@@ -32,7 +32,9 @@ Use Apache Kafka 3.9.0 in KRaft mode (no ZooKeeper dependency).
 
 **Risk:**
 - `risk.anomalies` — Anomaly detection events (consumers: notification-service)
-- `risk.audit` — Risk run audit events
+- `risk.audit` — Risk run audit events (provisioned via `infra/kafka/create-topics.sh`)
+- `risk.pnl.intraday` — Intraday P&L events
+- `risk.regime.changes` — Market regime change events
 
 **Rates:**
 - `rates.yield-curves` — Yield curve snapshots
@@ -47,11 +49,15 @@ Use Apache Kafka 3.9.0 in KRaft mode (no ZooKeeper dependency).
 - `volatility.surfaces` — Volatility surface snapshots
 - `correlation.matrices` — Correlation matrix snapshots
 
+**Governance:**
+- `governance.audit` — Governance and approval workflow audit events
+
 **Dead-letter queues:**
 - `trades.lifecycle.dlq`
 - `price.updates.dlq`
 - `risk.results.dlq`
 - `risk.anomalies.dlq`
+- `governance.audit.dlq`
 
 ### Alternatives Considered
 - **RabbitMQ**: Lower latency per message, simpler operations, but lacks replay capability. Audit trail and reprocessing require durable streams.

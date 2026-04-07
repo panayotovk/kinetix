@@ -23,8 +23,13 @@ Use TimescaleDB (latest for PostgreSQL 17) as a PostgreSQL extension for time-se
 - Extension must be enabled in PostgreSQL — requires a custom Docker image or the official TimescaleDB image
 
 ### Stored Time-Series Data
-- `market_data` — Price ticks, bid/ask, volume per instrument
-- `risk_results` — VaR values, expected shortfall, component breakdown per portfolio/calculation type
+- `market_data` — Price ticks, bid/ask, volume per instrument (price-service)
+- `valuation_jobs` — VaR values, expected shortfall, component breakdown per book/calculation type (risk-orchestrator)
+- `audit_events` — Tamper-evident audit trail with hash chain (audit-service)
+- `alert_events` — Triggered alert history (notification-service)
+- Regulatory submission and scenario result tables (regulatory-service)
+
+TimescaleDB is now used by 5 databases: price-service, risk-orchestrator, audit-service, notification-service, and regulatory-service. All share the same operational model (TimescaleDB extension, hypertables, retention policies).
 
 ### Alternatives Considered
 - **QuestDB**: Faster for pure analytical queries and high-frequency ingestion, but introduces a separate database technology with its own query language, driver, and operational model. Not worth the complexity for our throughput needs.

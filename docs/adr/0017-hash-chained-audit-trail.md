@@ -11,6 +11,8 @@ Implement a hash-chained audit trail in the audit-service. Each audit event reco
 
 `AuditHasher` (`audit-service/.../persistence/AuditHasher.kt`) provides:
 - `computeHash(event, previousHash)` — SHA-256 of all event fields (receivedAt, tradeId, bookId, instrumentId, assetClass, side, quantity, priceAmount, priceCurrency, tradedAt, userId, userRole, eventType) concatenated with the previous hash
+
+**Note (updated 2026-04-07):** Field names updated to reflect the portfolio→book rename (V34). The field `portfolioId` was renamed to `bookId` in the hash input — existing chains use the new name.
 - `verifyChain(events)` — validates the entire chain from genesis
 - `verifyChainIncremental(events, startingPreviousHash)` — validates a segment of the chain, enabling pagination
 
