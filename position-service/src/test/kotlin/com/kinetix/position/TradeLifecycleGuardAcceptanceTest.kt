@@ -106,4 +106,38 @@ class TradeLifecycleGuardAcceptanceTest : FunSpec({
         ex.currentStatus shouldBe TradeStatus.CANCELLED
         ex.attemptedAction shouldBe "amend"
     }
+
+    test("cancelling a non-existent trade throws TradeNotFoundException") {
+        val publisher = mockk<TradeEventPublisher>(relaxed = true)
+        val lifecycle = TradeLifecycleService(tradeRepo, positionRepo, transactional, publisher)
+
+        val ex = shouldThrow<TradeNotFoundException> {
+            lifecycle.handleCancel(
+                CancelTradeCommand(TradeId("does-not-exist"), BookId("any-book")),
+            )
+        }
+        ex.tradeId shouldBe "does-not-exist"
+    }
+
+    test("amending a non-existent trade throws TradeNotFoundException") {
+        val publisher = mockk<TradeEventPublisher>(relaxed = true)
+        val lifecycle = TradeLifecycleService(tradeRepo, positionRepo, transactional, publisher)
+
+        val ex = shouldThrow<TradeNotFoundException> {
+            lifecycle.handleAmend(
+                AmendTradeCommand(
+                    originalTradeId = TradeId("does-not-exist"),
+                    newTradeId = TradeId("does-not-exist-amend"),
+                    bookId = BookId("any-book"),
+                    instrumentId = InstrumentId("AAPL"),
+                    assetClass = AssetClass.EQUITY,
+                    side = Side.BUY,
+                    quantity = BigDecimal("100"),
+                    price = Money(BigDecimal("150.00"), usd),
+                    tradedAt = tradedAt,
+                ),
+            )
+        }
+        ex.tradeId shouldBe "does-not-exist"
+    }
 })

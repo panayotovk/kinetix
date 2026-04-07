@@ -68,6 +68,12 @@ private fun Application.configureTestApp(
 ) {
     install(ContentNegotiation) { json() }
     install(StatusPages) {
+        exception<com.kinetix.position.service.TradeNotFoundException> { call, cause ->
+            call.respond(
+                HttpStatusCode.NotFound,
+                ErrorBody("trade_not_found", cause.message ?: "Trade not found"),
+            )
+        }
         exception<IllegalArgumentException> { call, cause ->
             call.respond(
                 HttpStatusCode.BadRequest,

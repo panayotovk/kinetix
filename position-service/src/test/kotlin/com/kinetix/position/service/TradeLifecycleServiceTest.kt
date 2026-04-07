@@ -213,7 +213,7 @@ class TradeLifecycleServiceTest : FunSpec({
         }
     }
 
-    test("cancelling a non-existent trade should fail") {
+    test("cancelling a non-existent trade throws TradeNotFoundException") {
         coEvery { tradeRepo.findByTradeId(TradeId("unknown")) } returns null
 
         val command = CancelTradeCommand(
@@ -221,9 +221,31 @@ class TradeLifecycleServiceTest : FunSpec({
             bookId = PORTFOLIO,
         )
 
-        shouldThrow<IllegalArgumentException> {
+        val ex = shouldThrow<TradeNotFoundException> {
             service.handleCancel(command)
         }
+        ex.tradeId shouldBe "unknown"
+    }
+
+    test("amending a non-existent trade throws TradeNotFoundException") {
+        coEvery { tradeRepo.findByTradeId(TradeId("unknown")) } returns null
+
+        val command = AmendTradeCommand(
+            originalTradeId = TradeId("unknown"),
+            newTradeId = TradeId("unknown-amend"),
+            bookId = PORTFOLIO,
+            instrumentId = AAPL,
+            assetClass = AssetClass.EQUITY,
+            side = Side.BUY,
+            quantity = BigDecimal("100"),
+            price = usd("150.00"),
+            tradedAt = Instant.parse("2025-01-15T10:00:00Z"),
+        )
+
+        val ex = shouldThrow<TradeNotFoundException> {
+            service.handleAmend(command)
+        }
+        ex.tradeId shouldBe "unknown"
     }
 
     test("amend publishes trade event") {

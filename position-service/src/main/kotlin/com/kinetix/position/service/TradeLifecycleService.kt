@@ -20,7 +20,7 @@ class TradeLifecycleService(
             command.originalTradeId.value, command.newTradeId.value, command.bookId.value)
 
         val originalTrade = tradeEventRepository.findByTradeId(command.originalTradeId)
-            ?: throw IllegalArgumentException("Trade not found: ${command.originalTradeId.value}")
+            ?: throw TradeNotFoundException(command.originalTradeId.value)
         if (originalTrade.status != TradeStatus.LIVE) {
             throw InvalidTradeStateException(command.originalTradeId.value, originalTrade.status, "amend")
         }
@@ -71,7 +71,7 @@ class TradeLifecycleService(
         logger.info("Cancelling trade: tradeId={}", command.tradeId.value)
 
         val trade = tradeEventRepository.findByTradeId(command.tradeId)
-            ?: throw IllegalArgumentException("Trade not found: ${command.tradeId.value}")
+            ?: throw TradeNotFoundException(command.tradeId.value)
         if (trade.status != TradeStatus.LIVE) {
             throw InvalidTradeStateException(command.tradeId.value, trade.status, "cancel")
         }

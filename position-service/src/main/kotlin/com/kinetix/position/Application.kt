@@ -286,6 +286,12 @@ fun Application.moduleWithRoutes() {
                 ErrorBody("conflict", cause.message ?: "Invalid state"),
             )
         }
+        exception<com.kinetix.position.service.TradeNotFoundException> { call, cause ->
+            call.respond(
+                HttpStatusCode.NotFound,
+                ErrorBody("trade_not_found", cause.message ?: "Trade not found"),
+            )
+        }
         exception<com.kinetix.position.service.InvalidTradeStateException> { call, cause ->
             call.respond(
                 HttpStatusCode.Conflict,

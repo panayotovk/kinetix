@@ -355,6 +355,7 @@ fun Route.positionRoutes(
                     response {
                         code(HttpStatusCode.OK) { body<BookTradeResponse>() }
                         code(HttpStatusCode.BadRequest) { body<ErrorResponse>() }
+                        code(HttpStatusCode.NotFound) { body<ErrorResponse>() }
                         code(HttpStatusCode.Conflict) { body<ErrorResponse>() }
                     }
                 }) {
@@ -406,6 +407,7 @@ fun Route.positionRoutes(
                     response {
                         code(HttpStatusCode.OK) { body<BookTradeResponse>() }
                         code(HttpStatusCode.BadRequest) { body<ErrorResponse>() }
+                        code(HttpStatusCode.NotFound) { body<ErrorResponse>() }
                         code(HttpStatusCode.Conflict) { body<ErrorResponse>() }
                     }
                 }) {
