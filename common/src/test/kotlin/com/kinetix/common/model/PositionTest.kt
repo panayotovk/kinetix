@@ -222,6 +222,29 @@ class PositionTest : FunSpec({
         }
     }
 
+    // Instrument type propagation
+
+    test("apply trade propagates instrumentType to position without one") {
+        val pos = Position.empty(BOOK, AAPL, AssetClass.EQUITY, USD)
+        val trade = buyTrade(quantity = "100", price = "50.00").copy(instrumentType = "CASH_EQUITY")
+        val updated = pos.applyTrade(trade)
+        updated.instrumentType shouldBe "CASH_EQUITY"
+    }
+
+    test("apply trade does not overwrite existing instrumentType") {
+        val pos = position().copy(instrumentType = "EQUITY_OPTION")
+        val trade = buyTrade(quantity = "50", price = "55.00").copy(instrumentType = "CASH_EQUITY")
+        val updated = pos.applyTrade(trade)
+        updated.instrumentType shouldBe "EQUITY_OPTION"
+    }
+
+    test("apply trade with null instrumentType preserves existing position type") {
+        val pos = position().copy(instrumentType = "CASH_EQUITY")
+        val trade = buyTrade(quantity = "50", price = "55.00")
+        val updated = pos.applyTrade(trade)
+        updated.instrumentType shouldBe "CASH_EQUITY"
+    }
+
     // Factory
 
     test("Position.empty creates flat position with zero values") {

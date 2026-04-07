@@ -85,6 +85,7 @@ data class Position(
             quantity = newQuantity,
             averageCost = newAverageCost,
             realizedPnl = realizedPnl + Money(tradeRealizedPnl, currency),
+            instrumentType = instrumentType ?: trade.instrumentType,
         )
     }
 
