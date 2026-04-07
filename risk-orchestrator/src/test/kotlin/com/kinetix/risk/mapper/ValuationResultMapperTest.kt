@@ -10,6 +10,7 @@ import com.kinetix.proto.common.AssetClass as ProtoAssetClass
 import com.kinetix.proto.risk.ConfidenceLevel as ProtoConfidenceLevel
 import com.kinetix.proto.risk.GreekValues as ProtoGreekValues
 import com.kinetix.proto.risk.GreeksSummary
+import com.kinetix.proto.risk.PositionGreek as ProtoPositionGreek
 import com.kinetix.proto.risk.RiskCalculationType
 import com.kinetix.proto.risk.VaRComponentBreakdown
 import com.kinetix.proto.risk.ValuationResponse
@@ -17,6 +18,7 @@ import com.kinetix.proto.risk.ValuationOutput as ProtoValuationOutput
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -157,5 +159,74 @@ class ValuationResultMapperTest : FunSpec({
         result.greeks!!.assetClassGreeks shouldHaveSize 2
         result.greeks!!.assetClassGreeks[0].assetClass shouldBe AssetClass.EQUITY
         result.greeks!!.assetClassGreeks[1].assetClass shouldBe AssetClass.FIXED_INCOME
+    }
+
+    test("maps position_greeks from proto response to domain positionGreeks") {
+        val now = Timestamp.newBuilder().setSeconds(1700000000).build()
+        val response = ValuationResponse.newBuilder()
+            .setBookId(com.kinetix.proto.common.BookId.newBuilder().setValue("port-opts"))
+            .setCalculationType(RiskCalculationType.PARAMETRIC)
+            .setConfidenceLevel(ProtoConfidenceLevel.CL_95)
+            .setVarValue(10000.0)
+            .setExpectedShortfall(13000.0)
+            .addPositionGreeks(
+                ProtoPositionGreek.newBuilder()
+                    .setInstrumentId("AAPL-OPT-JAN25-150C")
+                    .setDelta(0.65)
+                    .setGamma(0.03)
+                    .setVega(125.4)
+                    .setTheta(-8.2)
+                    .setRho(12.1)
+            )
+            .addPositionGreeks(
+                ProtoPositionGreek.newBuilder()
+                    .setInstrumentId("MSFT-OPT-FEB25-400P")
+                    .setDelta(-0.35)
+                    .setGamma(0.02)
+                    .setVega(98.7)
+                    .setTheta(-5.6)
+                    .setRho(-7.3)
+            )
+            .addComputedOutputs(ProtoValuationOutput.VAR)
+            .addComputedOutputs(ProtoValuationOutput.GREEKS)
+            .setCalculatedAt(now)
+            .build()
+
+        val result = response.toDomainValuation()
+
+        result.positionGreeks shouldHaveSize 2
+
+        val first = result.positionGreeks[0]
+        first.instrumentId shouldBe "AAPL-OPT-JAN25-150C"
+        first.delta shouldBe 0.65
+        first.gamma shouldBe 0.03
+        first.vega shouldBe 125.4
+        first.theta shouldBe -8.2
+        first.rho shouldBe 12.1
+
+        val second = result.positionGreeks[1]
+        second.instrumentId shouldBe "MSFT-OPT-FEB25-400P"
+        second.delta shouldBe -0.35
+        second.gamma shouldBe 0.02
+        second.vega shouldBe 98.7
+        second.theta shouldBe -5.6
+        second.rho shouldBe -7.3
+    }
+
+    test("positionGreeks is empty list when proto response has no position_greeks") {
+        val now = Timestamp.newBuilder().setSeconds(1700000000).build()
+        val response = ValuationResponse.newBuilder()
+            .setBookId(com.kinetix.proto.common.BookId.newBuilder().setValue("port-no-opts"))
+            .setCalculationType(RiskCalculationType.PARAMETRIC)
+            .setConfidenceLevel(ProtoConfidenceLevel.CL_95)
+            .setVarValue(5000.0)
+            .setExpectedShortfall(6500.0)
+            .addComputedOutputs(ProtoValuationOutput.VAR)
+            .setCalculatedAt(now)
+            .build()
+
+        val result = response.toDomainValuation()
+
+        result.positionGreeks.shouldBeEmpty()
     }
 })

@@ -6,6 +6,7 @@ import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ComponentBreakdown
 import com.kinetix.risk.model.ConfidenceLevel
 import com.kinetix.risk.model.GreeksResult
+import com.kinetix.risk.model.PositionGreek
 import com.kinetix.risk.model.ValuationOutput
 import com.kinetix.risk.model.ValuationResult
 import com.kinetix.proto.common.AssetClass as ProtoAssetClass
@@ -83,5 +84,15 @@ fun ValuationResponse.toDomainValuation(): ValuationResult {
         pvValue = if (pvValue != 0.0) pvValue else null,
         modelVersion = modelVersion.ifEmpty { null },
         monteCarloSeed = monteCarloSeed,
+        positionGreeks = positionGreeksList.map { pg ->
+            PositionGreek(
+                instrumentId = pg.instrumentId,
+                delta = pg.delta,
+                gamma = pg.gamma,
+                vega = pg.vega,
+                theta = pg.theta,
+                rho = pg.rho,
+            )
+        },
     )
 }

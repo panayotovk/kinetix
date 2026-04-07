@@ -18,4 +18,5 @@ data class VaRResultResponse(
     val valuationDate: String? = null,
     val marketDataComplete: Boolean = true,
     val stale: Boolean? = null,
+    val positionGreeks: List<PositionGreekDto>? = null,
 )

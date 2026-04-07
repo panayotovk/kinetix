@@ -22,6 +22,7 @@ import com.kinetix.risk.routes.dtos.GreeksChangeDto
 import com.kinetix.risk.routes.dtos.GreeksResponse
 import com.kinetix.risk.routes.dtos.HypotheticalTradeDto
 import com.kinetix.risk.routes.dtos.PnlAttributionResponse
+import com.kinetix.risk.routes.dtos.PositionGreekDto
 import com.kinetix.risk.routes.dtos.PositionPnlAttributionDto
 import com.kinetix.risk.routes.dtos.PositionRiskDto
 import com.kinetix.risk.routes.dtos.RebalancingTradeDto
@@ -71,6 +72,16 @@ internal fun ValuationResult.toResponse() = VaRResultResponse(
     positionRisk = positionRisk.takeIf { it.isNotEmpty() }?.map { it.toDto() },
     valuationDate = valuationDate?.toString(),
     marketDataComplete = marketDataComplete,
+    positionGreeks = positionGreeks.takeIf { it.isNotEmpty() }?.map { pg ->
+        PositionGreekDto(
+            instrumentId = pg.instrumentId,
+            delta = "%.6f".format(pg.delta),
+            gamma = "%.6f".format(pg.gamma),
+            vega = "%.6f".format(pg.vega),
+            theta = "%.6f".format(pg.theta),
+            rho = "%.6f".format(pg.rho),
+        )
+    },
 )
 
 internal fun PositionRisk.toDto() = PositionRiskDto(

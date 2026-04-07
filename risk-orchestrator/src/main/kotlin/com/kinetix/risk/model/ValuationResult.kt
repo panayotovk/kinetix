@@ -22,4 +22,5 @@ data class ValuationResult(
     val valuationDate: LocalDate? = null,
     val monteCarloSeed: Long = 0,
     val marketDataComplete: Boolean = true,
+    val positionGreeks: List<PositionGreek> = emptyList(),
 )
