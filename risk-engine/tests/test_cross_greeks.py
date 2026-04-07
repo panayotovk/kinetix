@@ -72,20 +72,24 @@ class TestCharm:
 
 
 class TestPutCharmFormula:
-    def test_put_charm_uses_dividend_yield_not_risk_free_rate(self):
-        """Put charm = charm_call + q*exp(-q*T), not r*exp(-r*T)."""
+    def test_put_charm_uses_dividend_yield_correction(self):
+        """Put charm = charm_call - q*exp(-q*T) from put-call parity on delta."""
         S, K, T, r, sigma, q = 100.0, 100.0, 0.5, 0.05, 0.20, 0.02
 
         charm_call = calculate_charm(S, K, T, r, sigma, OptionType.CALL, q)
         charm_put = calculate_charm(S, K, T, r, sigma, OptionType.PUT, q)
 
-        # Put-call parity for charm with dividends: charm_put = charm_call + q*exp(-q*T)
-        expected_put = charm_call + q * math.exp(-q * T)
+        # Put-call parity for charm with dividends: charm_put = charm_call - q*exp(-q*T)
+        expected_put = charm_call - q * math.exp(-q * T)
         assert charm_put == pytest.approx(expected_put, abs=1e-10)
 
-        # Verify it does NOT equal the wrong formula (r instead of q)
-        wrong_put = charm_call + r * math.exp(-r * T)
-        assert charm_put != pytest.approx(wrong_put, abs=1e-6)
+    def test_put_charm_equals_call_charm_when_no_dividend(self):
+        """With q=0, put charm equals call charm (correction term vanishes)."""
+        S, K, T, r, sigma = 100.0, 100.0, 0.5, 0.05, 0.20
+
+        charm_call = calculate_charm(S, K, T, r, sigma, OptionType.CALL, q=0.0)
+        charm_put = calculate_charm(S, K, T, r, sigma, OptionType.PUT, q=0.0)
+        assert charm_put == pytest.approx(charm_call, abs=1e-10)
 
 
 class TestCrossGreeksAtExpiry:

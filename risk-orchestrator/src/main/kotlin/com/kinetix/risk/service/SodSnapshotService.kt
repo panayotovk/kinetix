@@ -58,8 +58,8 @@ class SodSnapshotService(
                 delta = risk.delta,
                 gamma = risk.gamma,
                 vega = risk.vega,
-                theta = result.greeks?.theta,
-                rho = result.greeks?.rho,
+                theta = null,
+                rho = null,
                 sodVol = sodVol,
                 sodRate = sodRate,
             )

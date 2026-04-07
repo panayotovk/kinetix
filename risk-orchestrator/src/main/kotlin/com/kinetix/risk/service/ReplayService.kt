@@ -140,7 +140,7 @@ class ReplayService(
                     manifestId = manifest.manifestId,
                     originalJobId = jobId,
                     replayedAt = replayedAt,
-                    triggeredBy = "system",
+                    triggeredBy = "SYSTEM",
                     replayVarValue = result.varValue,
                     replayExpectedShortfall = result.expectedShortfall,
                     replayModelVersion = result.modelVersion,

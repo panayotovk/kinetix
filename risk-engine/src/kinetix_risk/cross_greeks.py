@@ -85,7 +85,7 @@ def calculate_charm(
     For a call:
         charm = -norm.pdf(d1) * (2*r*T - d2*sigma*sqrt(T)) / (2*T*sigma*sqrt(T))
 
-    For a put, charm_put = charm_call + r*exp(-r*T)  (from put-call parity).
+    For a put, charm_put = charm_call - q*exp(-q*T)  (from put-call parity on delta).
     """
     if T <= 0:
         return 0.0
@@ -99,4 +99,4 @@ def calculate_charm(
     if option_type == OptionType.CALL:
         return float(charm_call)
     else:
-        return float(charm_call + q * math.exp(-q * T))
+        return float(charm_call - q * math.exp(-q * T))
