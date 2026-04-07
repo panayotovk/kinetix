@@ -312,6 +312,41 @@ class PositionRoutesTest : FunSpec({
         }
     }
 
+    test("GET /trades response includes status field reflecting trade lifecycle state") {
+        val liveTrade = Trade(
+            tradeId = TradeId("t-live"),
+            bookId = BookId("port-1"),
+            instrumentId = InstrumentId("AAPL"),
+            assetClass = AssetClass.EQUITY,
+            side = Side.BUY,
+            quantity = BigDecimal("100"),
+            price = usd("150.00"),
+            tradedAt = Instant.parse("2025-01-15T10:00:00Z"),
+            status = TradeStatus.LIVE,
+        )
+        val cancelledTrade = Trade(
+            tradeId = TradeId("t-cancelled"),
+            bookId = BookId("port-1"),
+            instrumentId = InstrumentId("MSFT"),
+            assetClass = AssetClass.EQUITY,
+            side = Side.SELL,
+            quantity = BigDecimal("50"),
+            price = usd("300.00"),
+            tradedAt = Instant.parse("2025-01-15T11:00:00Z"),
+            status = TradeStatus.CANCELLED,
+        )
+        coEvery { positionClient.getTradeHistory(BookId("port-1")) } returns listOf(liveTrade, cancelledTrade)
+
+        testApplication {
+            application { module(positionClient) }
+            val response = client.get("/api/v1/books/port-1/trades")
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
+            body[0].jsonObject["status"]?.jsonPrimitive?.content shouldBe "LIVE"
+            body[1].jsonObject["status"]?.jsonPrimitive?.content shouldBe "CANCELLED"
+        }
+    }
+
     // --- GET /api/v1/books/{bookId}/positions ---
 
     test("GET /positions returns 200 with position list") {

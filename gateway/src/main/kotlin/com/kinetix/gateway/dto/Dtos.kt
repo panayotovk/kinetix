@@ -84,6 +84,7 @@ data class TradeResponse(
     val quantity: String,
     val price: MoneyDto,
     val tradedAt: String,
+    val status: String,
     val instrumentType: String? = null,
     val displayName: String? = null,
 )
@@ -159,6 +160,7 @@ fun Trade.toResponse(instruments: Map<String, InstrumentSummary>): TradeResponse
         quantity = quantity.toPlainString(),
         price = price.toDto(),
         tradedAt = tradedAt.toString(),
+        status = status.name,
         instrumentType = instrument?.instrumentType ?: instrumentType,
         displayName = instrument?.displayName,
     )
