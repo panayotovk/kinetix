@@ -12,6 +12,14 @@ SELECT 'CREATE DATABASE kinetix_reference_data' WHERE NOT EXISTS (SELECT FROM pg
 SELECT 'CREATE DATABASE kinetix_volatility' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'kinetix_volatility')\gexec
 SELECT 'CREATE DATABASE kinetix_correlation' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'kinetix_correlation')\gexec
 
--- Enable TimescaleDB on price database (time-series hypertables)
+-- Enable TimescaleDB on all databases that use hypertables
 \c kinetix_price
+CREATE EXTENSION IF NOT EXISTS timescaledb;
+\c kinetix_risk
+CREATE EXTENSION IF NOT EXISTS timescaledb;
+\c kinetix_audit
+CREATE EXTENSION IF NOT EXISTS timescaledb;
+\c kinetix_notification
+CREATE EXTENSION IF NOT EXISTS timescaledb;
+\c kinetix_regulatory
 CREATE EXTENSION IF NOT EXISTS timescaledb;

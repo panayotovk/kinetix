@@ -34,16 +34,8 @@ echo "    Databases ready."
 # ── Phase 2: Kafka topics ───────────────────────────────────────────────────
 
 echo "==> Creating Kafka topics..."
-topics=("trades.lifecycle" "price.updates" "risk.results" "rates.yield-curves" "rates.risk-free" "rates.forwards" "reference-data.dividends" "reference-data.credit-spreads" "volatility.surfaces" "correlation.matrices")
-for topic in "${topics[@]}"; do
-  docker exec kinetix-kafka /opt/kafka/bin/kafka-topics.sh \
-    --bootstrap-server localhost:9092 \
-    --create --if-not-exists \
-    --topic "$topic" \
-    --partitions 3 \
-    --replication-factor 1 >/dev/null 2>&1
-  echo "    Created topic: $topic"
-done
+docker cp "$ROOT_DIR/infra/kafka/create-topics.sh" kinetix-kafka:/tmp/create-topics.sh
+docker exec kinetix-kafka /bin/bash /tmp/create-topics.sh 2>&1 | sed 's/^/    /'
 
 # ── Phase 3: Application services ───────────────────────────────────────────
 
