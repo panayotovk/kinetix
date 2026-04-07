@@ -124,6 +124,7 @@ import com.kinetix.risk.routes.keyRateDurationRoutes
 import com.kinetix.risk.client.GrpcRiskEngineKrdClient
 import com.kinetix.risk.service.KeyRateDurationService
 import com.kinetix.risk.simulation.*
+import com.kinetix.risk.resilience.CircuitBreakerMetrics
 import io.lettuce.core.RedisClient
 import io.grpc.ManagedChannelBuilder
 import io.grpc.TlsChannelCredentials
@@ -223,12 +224,17 @@ fun Application.moduleWithRoutes() {
             .build()
     }
 
+    val meterRegistry = attributes.getOrNull(MeterRegistryKey) ?: io.micrometer.core.instrument.simple.SimpleMeterRegistry()
+
     val dependenciesStub = MarketDataDependenciesServiceGrpcKt.MarketDataDependenciesServiceCoroutineStub(channel)
     val grpcRiskEngineClient = GrpcRiskEngineClient(
         RiskCalculationServiceGrpcKt.RiskCalculationServiceCoroutineStub(channel),
         dependenciesStub,
     )
-    val circuitBreaker = CircuitBreaker(CircuitBreakerConfig(failureThreshold = 3, resetTimeoutMs = 15_000, halfOpenMaxCalls = 2, name = "risk-engine"))
+    val circuitBreaker = CircuitBreaker(
+        CircuitBreakerConfig(failureThreshold = 3, resetTimeoutMs = 15_000, halfOpenMaxCalls = 2, name = "risk-engine"),
+        onStateChange = CircuitBreakerMetrics.onStateChange("risk-engine", meterRegistry),
+    )
     val riskEngineClient = ResilientRiskEngineClient(grpcRiskEngineClient, circuitBreaker)
 
     val priceServiceBaseUrl = environment.config
@@ -301,11 +307,26 @@ fun Application.moduleWithRoutes() {
     val dependenciesDiscoverer = DependenciesDiscoverer(effectiveRiskEngineClient)
 
     val marketDataCbConfig = CircuitBreakerConfig(failureThreshold = 5, resetTimeoutMs = 30_000, halfOpenMaxCalls = 2)
-    val priceServiceCircuitBreaker = CircuitBreaker(marketDataCbConfig.copy(name = "price-service"))
-    val ratesServiceCircuitBreaker = CircuitBreaker(marketDataCbConfig.copy(name = "rates-service"))
-    val referenceDataCircuitBreaker = CircuitBreaker(marketDataCbConfig.copy(name = "reference-data-service"))
-    val volatilityCircuitBreaker = CircuitBreaker(marketDataCbConfig.copy(name = "volatility-service"))
-    val correlationCircuitBreaker = CircuitBreaker(marketDataCbConfig.copy(name = "correlation-service"))
+    val priceServiceCircuitBreaker = CircuitBreaker(
+        marketDataCbConfig.copy(name = "price-service"),
+        onStateChange = CircuitBreakerMetrics.onStateChange("price-service", meterRegistry),
+    )
+    val ratesServiceCircuitBreaker = CircuitBreaker(
+        marketDataCbConfig.copy(name = "rates-service"),
+        onStateChange = CircuitBreakerMetrics.onStateChange("rates-service", meterRegistry),
+    )
+    val referenceDataCircuitBreaker = CircuitBreaker(
+        marketDataCbConfig.copy(name = "reference-data-service"),
+        onStateChange = CircuitBreakerMetrics.onStateChange("reference-data-service", meterRegistry),
+    )
+    val volatilityCircuitBreaker = CircuitBreaker(
+        marketDataCbConfig.copy(name = "volatility-service"),
+        onStateChange = CircuitBreakerMetrics.onStateChange("volatility-service", meterRegistry),
+    )
+    val correlationCircuitBreaker = CircuitBreaker(
+        marketDataCbConfig.copy(name = "correlation-service"),
+        onStateChange = CircuitBreakerMetrics.onStateChange("correlation-service", meterRegistry),
+    )
 
     val marketDataFetcher = MarketDataFetcher(
         effectivePriceServiceClient, effectiveRatesServiceClient, effectiveReferenceDataServiceClient,
@@ -395,7 +416,6 @@ fun Application.moduleWithRoutes() {
     val kafkaProducer = KafkaProducer<String, String>(producerProps)
     val resultPublisher = KafkaRiskResultPublisher(kafkaProducer)
     val eodEventPublisher = com.kinetix.risk.kafka.KafkaOfficialEodPublisher(kafkaProducer)
-    val meterRegistry = attributes.getOrNull(MeterRegistryKey) ?: io.micrometer.core.instrument.simple.SimpleMeterRegistry()
     val eodPromotionService = com.kinetix.risk.service.EodPromotionService(
         jobRecorder = jobRecorder,
         eventPublisher = eodEventPublisher,
