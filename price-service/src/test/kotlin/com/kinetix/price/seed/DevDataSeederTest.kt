@@ -23,10 +23,10 @@ class DevDataSeederTest : FunSpec({
 
         seeder.seed()
 
-        // 35 instruments × 169 hourly points
-        // + 35 instruments × 253 daily closes (day 252 downTo 0, inclusive)
+        // 83 instruments × 169 hourly points
+        // + 83 instruments × 253 daily closes (day 252 downTo 0, inclusive)
         // + 301 daily prices for IDX-SPX benchmark (day 300 downTo 0, inclusive)
-        val expectedSaves = 35 * 169 + 35 * 253 + 301
+        val expectedSaves = 83 * 169 + 83 * 253 + 301
         coVerify(exactly = expectedSaves) { repository.save(any()) }
     }
 
@@ -43,7 +43,7 @@ class DevDataSeederTest : FunSpec({
         coVerify(exactly = 0) { repository.save(any()) }
     }
 
-    test("instruments list contains all 35 expected instruments") {
+    test("instruments list contains all 83 expected instruments") {
         DevDataSeeder.INSTRUMENT_IDS shouldBe setOf(
             "AAPL", "GOOGL", "MSFT", "AMZN", "TSLA",
             "EURUSD", "US2Y", "US10Y", "US30Y", "GC", "SPX-PUT-4500",
@@ -58,6 +58,24 @@ class DevDataSeederTest : FunSpec({
             "JPM-BOND-2031", "USD-SOFR-5Y",
             "GBPUSD-3M", "WTI-AUG26", "GC-C-2200-DEC26",
             "EURUSD-P-1.08-SEP26", "SPX-SEP26",
+            "AMD", "INTC", "CRM", "ORCL", "ADBE",
+            "BAC", "GS", "MS",
+            "DIS", "KO", "WMT",
+            "JNJ", "PFE", "UNH",
+            "XOM", "CVX",
+            "MSFT-C-450-20260620", "MSFT-P-400-20260620",
+            "TSLA-C-280-20260620", "TSLA-P-220-20260620",
+            "GOOGL-C-190-20260620", "GOOGL-P-160-20260620",
+            "AMZN-C-220-20260620", "AMZN-P-190-20260620",
+            "US5Y", "UK10Y", "JP10Y", "DE2Y",
+            "AAPL-BOND-2030", "GS-BOND-2029", "MSFT-BOND-2032",
+            "AUDUSD", "USDCAD", "USDCHF", "EURGBP", "NZDUSD",
+            "EURUSD-6M", "USDJPY-3M",
+            "USDJPY-C-155-SEP26",
+            "USD-SOFR-10Y", "EUR-ESTR-5Y",
+            "NDX-SEP26", "RTY-SEP26",
+            "NG", "HG", "PL", "ZC",
+            "CL-P-70-DEC26",
         )
     }
 

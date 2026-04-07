@@ -206,6 +206,22 @@ class DevDataSeeder(
             "META" to 0.0035,
             "TSLA" to 0.0,
             "BABA" to 0.0,
+            "AMD" to 0.0,
+            "INTC" to 0.01,
+            "CRM" to 0.0,
+            "ORCL" to 0.013,
+            "ADBE" to 0.0,
+            "BAC" to 0.025,
+            "GS" to 0.022,
+            "MS" to 0.03,
+            "DIS" to 0.008,
+            "KO" to 0.03,
+            "WMT" to 0.014,
+            "JNJ" to 0.03,
+            "PFE" to 0.06,
+            "UNH" to 0.015,
+            "XOM" to 0.035,
+            "CVX" to 0.04,
         )
 
         private val INSTRUMENTS: Map<String, InstrumentConfig> = mapOf(
@@ -365,6 +381,209 @@ class DevDataSeeder(
                 CommodityOption(underlyingId = "GC", optionType = "CALL", strike = 2200.0, expiryDate = "2026-12-28", contractMultiplier = 100.0),
                 "Gold Call 2200 Dec2026", "USD",
             ),
+            // ── Additional cash equities ──
+            "AMD" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NASDAQ", sector = "Technology", countryCode = "US"),
+                "Advanced Micro Devices", "USD",
+            ),
+            "INTC" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NASDAQ", sector = "Technology", countryCode = "US"),
+                "Intel Corp.", "USD",
+            ),
+            "CRM" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NYSE", sector = "Technology", countryCode = "US"),
+                "Salesforce Inc.", "USD",
+            ),
+            "ORCL" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NYSE", sector = "Technology", countryCode = "US"),
+                "Oracle Corp.", "USD",
+            ),
+            "ADBE" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NASDAQ", sector = "Technology", countryCode = "US"),
+                "Adobe Inc.", "USD",
+            ),
+            "BAC" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NYSE", sector = "Financials", countryCode = "US"),
+                "Bank of America Corp.", "USD",
+            ),
+            "GS" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NYSE", sector = "Financials", countryCode = "US"),
+                "Goldman Sachs Group", "USD",
+            ),
+            "MS" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NYSE", sector = "Financials", countryCode = "US"),
+                "Morgan Stanley", "USD",
+            ),
+            "DIS" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NYSE", sector = "Consumer", countryCode = "US"),
+                "Walt Disney Co.", "USD",
+            ),
+            "KO" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NYSE", sector = "Consumer", countryCode = "US"),
+                "Coca-Cola Co.", "USD",
+            ),
+            "WMT" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NYSE", sector = "Consumer", countryCode = "US"),
+                "Walmart Inc.", "USD",
+            ),
+            "JNJ" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NYSE", sector = "Healthcare", countryCode = "US"),
+                "Johnson & Johnson", "USD",
+            ),
+            "PFE" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NYSE", sector = "Healthcare", countryCode = "US"),
+                "Pfizer Inc.", "USD",
+            ),
+            "UNH" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NYSE", sector = "Healthcare", countryCode = "US"),
+                "UnitedHealth Group", "USD",
+            ),
+            "XOM" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NYSE", sector = "Energy", countryCode = "US"),
+                "ExxonMobil Corp.", "USD",
+            ),
+            "CVX" to InstrumentConfig(
+                CashEquity(currency = "USD", exchange = "NYSE", sector = "Energy", countryCode = "US"),
+                "Chevron Corp.", "USD",
+            ),
+            // ── Additional equity options ──
+            "MSFT-C-450-20260620" to InstrumentConfig(
+                EquityOption(underlyingId = "MSFT", optionType = "CALL", strike = 450.0, expiryDate = "2026-06-20", exerciseStyle = "EUROPEAN", contractMultiplier = 100.0, dividendYield = 0.0075),
+                "MSFT Call 450 Jun2026", "USD",
+            ),
+            "MSFT-P-400-20260620" to InstrumentConfig(
+                EquityOption(underlyingId = "MSFT", optionType = "PUT", strike = 400.0, expiryDate = "2026-06-20", exerciseStyle = "EUROPEAN", contractMultiplier = 100.0, dividendYield = 0.0075),
+                "MSFT Put 400 Jun2026", "USD",
+            ),
+            "TSLA-C-280-20260620" to InstrumentConfig(
+                EquityOption(underlyingId = "TSLA", optionType = "CALL", strike = 280.0, expiryDate = "2026-06-20", exerciseStyle = "AMERICAN", contractMultiplier = 100.0),
+                "TSLA Call 280 Jun2026", "USD",
+            ),
+            "TSLA-P-220-20260620" to InstrumentConfig(
+                EquityOption(underlyingId = "TSLA", optionType = "PUT", strike = 220.0, expiryDate = "2026-06-20", exerciseStyle = "AMERICAN", contractMultiplier = 100.0),
+                "TSLA Put 220 Jun2026", "USD",
+            ),
+            "GOOGL-C-190-20260620" to InstrumentConfig(
+                EquityOption(underlyingId = "GOOGL", optionType = "CALL", strike = 190.0, expiryDate = "2026-06-20", exerciseStyle = "EUROPEAN", contractMultiplier = 100.0),
+                "GOOGL Call 190 Jun2026", "USD",
+            ),
+            "GOOGL-P-160-20260620" to InstrumentConfig(
+                EquityOption(underlyingId = "GOOGL", optionType = "PUT", strike = 160.0, expiryDate = "2026-06-20", exerciseStyle = "EUROPEAN", contractMultiplier = 100.0),
+                "GOOGL Put 160 Jun2026", "USD",
+            ),
+            "AMZN-C-220-20260620" to InstrumentConfig(
+                EquityOption(underlyingId = "AMZN", optionType = "CALL", strike = 220.0, expiryDate = "2026-06-20", exerciseStyle = "EUROPEAN", contractMultiplier = 100.0),
+                "AMZN Call 220 Jun2026", "USD",
+            ),
+            "AMZN-P-190-20260620" to InstrumentConfig(
+                EquityOption(underlyingId = "AMZN", optionType = "PUT", strike = 190.0, expiryDate = "2026-06-20", exerciseStyle = "EUROPEAN", contractMultiplier = 100.0),
+                "AMZN Put 190 Jun2026", "USD",
+            ),
+            // ── Additional government bonds ──
+            "US5Y" to InstrumentConfig(
+                GovernmentBond(currency = "USD", couponRate = 0.0375, couponFrequency = 2, maturityDate = "2031-05-15", faceValue = 1000.0, dayCountConvention = "ACT/ACT"),
+                "US 5Y Treasury", "USD",
+            ),
+            "UK10Y" to InstrumentConfig(
+                GovernmentBond(currency = "GBP", couponRate = 0.0325, couponFrequency = 2, maturityDate = "2036-05-15", faceValue = 1000.0, dayCountConvention = "ACT/ACT"),
+                "UK 10Y Gilt", "GBP",
+            ),
+            "JP10Y" to InstrumentConfig(
+                GovernmentBond(currency = "JPY", couponRate = 0.0075, couponFrequency = 2, maturityDate = "2036-05-15", faceValue = 1000.0, dayCountConvention = "ACT/ACT"),
+                "Japan 10Y JGB", "JPY",
+            ),
+            "DE2Y" to InstrumentConfig(
+                GovernmentBond(currency = "EUR", couponRate = 0.025, couponFrequency = 1, maturityDate = "2028-03-15", faceValue = 1000.0, dayCountConvention = "ACT/ACT"),
+                "German 2Y Schatz", "EUR",
+            ),
+            // ── Additional corporate bonds ──
+            "AAPL-BOND-2030" to InstrumentConfig(
+                CorporateBond(currency = "USD", couponRate = 0.0385, couponFrequency = 2, maturityDate = "2030-09-15", faceValue = 1000.0, issuer = "Apple Inc.", creditRating = "AA+", seniority = "SENIOR_UNSECURED"),
+                "AAPL 3.85% 2030", "USD",
+            ),
+            "GS-BOND-2029" to InstrumentConfig(
+                CorporateBond(currency = "USD", couponRate = 0.0525, couponFrequency = 2, maturityDate = "2029-06-15", faceValue = 1000.0, issuer = "Goldman Sachs", creditRating = "A+", seniority = "SENIOR_UNSECURED"),
+                "GS 5.25% 2029", "USD",
+            ),
+            "MSFT-BOND-2032" to InstrumentConfig(
+                CorporateBond(currency = "USD", couponRate = 0.035, couponFrequency = 2, maturityDate = "2032-03-15", faceValue = 1000.0, issuer = "Microsoft Corp.", creditRating = "AAA", seniority = "SENIOR_UNSECURED"),
+                "MSFT 3.5% 2032", "USD",
+            ),
+            // ── Additional FX spot ──
+            "AUDUSD" to InstrumentConfig(
+                FxSpot(baseCurrency = "AUD", quoteCurrency = "USD"),
+                "AUD/USD Spot", "USD",
+            ),
+            "USDCAD" to InstrumentConfig(
+                FxSpot(baseCurrency = "USD", quoteCurrency = "CAD"),
+                "USD/CAD Spot", "CAD",
+            ),
+            "USDCHF" to InstrumentConfig(
+                FxSpot(baseCurrency = "USD", quoteCurrency = "CHF"),
+                "USD/CHF Spot", "CHF",
+            ),
+            "EURGBP" to InstrumentConfig(
+                FxSpot(baseCurrency = "EUR", quoteCurrency = "GBP"),
+                "EUR/GBP Spot", "GBP",
+            ),
+            "NZDUSD" to InstrumentConfig(
+                FxSpot(baseCurrency = "NZD", quoteCurrency = "USD"),
+                "NZD/USD Spot", "USD",
+            ),
+            // ── Additional FX forwards ──
+            "EURUSD-6M" to InstrumentConfig(
+                FxForward(baseCurrency = "EUR", quoteCurrency = "USD", deliveryDate = "2026-08-16", forwardRate = 1.088),
+                "EUR/USD 6M Forward", "USD",
+            ),
+            "USDJPY-3M" to InstrumentConfig(
+                FxForward(baseCurrency = "USD", quoteCurrency = "JPY", deliveryDate = "2026-06-16", forwardRate = 149.5),
+                "USD/JPY 3M Forward", "JPY",
+            ),
+            // ── Additional FX options ──
+            "USDJPY-C-155-SEP26" to InstrumentConfig(
+                FxOption(baseCurrency = "USD", quoteCurrency = "JPY", optionType = "CALL", strike = 155.0, expiryDate = "2026-09-15"),
+                "USD/JPY Call 155 Sep2026", "USD",
+            ),
+            // ── Additional interest rate swaps ──
+            "USD-SOFR-10Y" to InstrumentConfig(
+                InterestRateSwap(notional = 20_000_000.0, currency = "USD", fixedRate = 0.038, floatIndex = "SOFR", maturityDate = "2036-03-16", effectiveDate = "2026-03-16", payReceive = "PAY_FIXED"),
+                "USD SOFR 10Y IRS", "USD",
+            ),
+            "EUR-ESTR-5Y" to InstrumentConfig(
+                InterestRateSwap(notional = 10_000_000.0, currency = "EUR", fixedRate = 0.025, floatIndex = "ESTR", maturityDate = "2031-03-16", effectiveDate = "2026-03-16", payReceive = "PAY_FIXED"),
+                "EUR ESTR 5Y IRS", "EUR",
+            ),
+            // ── Additional equity futures ──
+            "NDX-SEP26" to InstrumentConfig(
+                EquityFuture(underlyingId = "NDX", expiryDate = "2026-09-18", contractSize = 20.0, currency = "USD"),
+                "Nasdaq 100 Sep2026 Future", "USD",
+            ),
+            "RTY-SEP26" to InstrumentConfig(
+                EquityFuture(underlyingId = "RTY", expiryDate = "2026-09-18", contractSize = 50.0, currency = "USD"),
+                "Russell 2000 Sep2026 Future", "USD",
+            ),
+            // ── Additional commodity futures ──
+            "NG" to InstrumentConfig(
+                CommodityFuture(commodity = "Natural Gas", expiryDate = "2026-09-28", contractSize = 10000.0, currency = "USD"),
+                "Natural Gas Futures", "USD",
+            ),
+            "HG" to InstrumentConfig(
+                CommodityFuture(commodity = "Copper", expiryDate = "2026-09-28", contractSize = 25000.0, currency = "USD"),
+                "Copper Futures", "USD",
+            ),
+            "PL" to InstrumentConfig(
+                CommodityFuture(commodity = "Platinum", expiryDate = "2026-10-28", contractSize = 50.0, currency = "USD"),
+                "Platinum Futures", "USD",
+            ),
+            "ZC" to InstrumentConfig(
+                CommodityFuture(commodity = "Corn", expiryDate = "2026-12-14", contractSize = 5000.0, currency = "USD"),
+                "Corn Futures", "USD",
+            ),
+            // ── Additional commodity options ──
+            "CL-P-70-DEC26" to InstrumentConfig(
+                CommodityOption(underlyingId = "CL", optionType = "PUT", strike = 70.0, expiryDate = "2026-12-28", contractMultiplier = 100.0),
+                "Crude Oil Put 70 Dec2026", "USD",
+            ),
         )
 
         private val CREDIT_SPREADS: Map<String, CreditSpreadConfig> = mapOf(
@@ -374,6 +593,13 @@ class DevDataSeeder(
             "DE10Y" to CreditSpreadConfig(spread = 0.0008, rating = "AAA"),
             "JPM" to CreditSpreadConfig(spread = 0.0050, rating = "A+"),
             "BABA" to CreditSpreadConfig(spread = 0.0180, rating = "A"),
+            "US5Y" to CreditSpreadConfig(spread = 0.0008, rating = "AAA"),
+            "UK10Y" to CreditSpreadConfig(spread = 0.0010, rating = "AA"),
+            "JP10Y" to CreditSpreadConfig(spread = 0.0005, rating = "A+"),
+            "DE2Y" to CreditSpreadConfig(spread = 0.0005, rating = "AAA"),
+            "AAPL-BOND-2030" to CreditSpreadConfig(spread = 0.0030, rating = "AA+"),
+            "GS-BOND-2029" to CreditSpreadConfig(spread = 0.0060, rating = "A+"),
+            "MSFT-BOND-2032" to CreditSpreadConfig(spread = 0.0025, rating = "AAA"),
         )
 
         private val DIVISIONS: Map<String, DivisionConfig> = mapOf(
@@ -409,6 +635,26 @@ class DevDataSeeder(
             "WTI-AUG26"             to LiquidityConfig(adv = 350_000_000.0, bidAskSpreadBps = 2.0,   assetClass = "COMMODITY", advShares = 350_000.0, marketDepthScore = 8.5, source = "exchange"),
             // Gold option — semi-liquid
             "GC-C-2200-DEC26"       to LiquidityConfig(adv = 10_000_000.0,  bidAskSpreadBps = 25.0,  assetClass = "COMMODITY", advShares = null, marketDepthScore = 4.5, source = "exchange"),
+            // Additional equities
+            "AMD"                   to LiquidityConfig(adv = 60_000_000.0,  bidAskSpreadBps = 1.5,   assetClass = "EQUITY"),
+            "BAC"                   to LiquidityConfig(adv = 50_000_000.0,  bidAskSpreadBps = 1.0,   assetClass = "EQUITY"),
+            "GS"                    to LiquidityConfig(adv = 30_000_000.0,  bidAskSpreadBps = 2.0,   assetClass = "EQUITY"),
+            "XOM"                   to LiquidityConfig(adv = 40_000_000.0,  bidAskSpreadBps = 1.5,   assetClass = "EQUITY"),
+            "KO"                    to LiquidityConfig(adv = 25_000_000.0,  bidAskSpreadBps = 1.0,   assetClass = "EQUITY"),
+            // Additional FX spot
+            "AUDUSD"                to LiquidityConfig(adv = 500_000_000.0, bidAskSpreadBps = 0.2,   assetClass = "FX"),
+            "USDCAD"                to LiquidityConfig(adv = 400_000_000.0, bidAskSpreadBps = 0.3,   assetClass = "FX"),
+            // Additional fixed income
+            "US5Y"                  to LiquidityConfig(adv = 400_000_000.0, bidAskSpreadBps = 0.3,   assetClass = "FIXED_INCOME"),
+            "AAPL-BOND-2030"        to LiquidityConfig(adv = 12_000_000.0,  bidAskSpreadBps = 8.0,   assetClass = "FIXED_INCOME"),
+            // Additional commodity futures
+            "NG"                    to LiquidityConfig(adv = 200_000_000.0, bidAskSpreadBps = 3.0,   assetClass = "COMMODITY"),
+            "HG"                    to LiquidityConfig(adv = 100_000_000.0, bidAskSpreadBps = 4.0,   assetClass = "COMMODITY"),
+            // Additional equity futures
+            "NDX-SEP26"             to LiquidityConfig(adv = 80_000_000.0,  bidAskSpreadBps = 0.8,   assetClass = "EQUITY"),
+            // Additional equity options
+            "MSFT-C-450-20260620"   to LiquidityConfig(adv = 4_000_000.0,   bidAskSpreadBps = 22.0,  assetClass = "EQUITY"),
+            "TSLA-C-280-20260620"   to LiquidityConfig(adv = 6_000_000.0,   bidAskSpreadBps = 25.0,  assetClass = "EQUITY"),
         )
 
         private val DESKS: Map<String, DeskConfig> = mapOf(

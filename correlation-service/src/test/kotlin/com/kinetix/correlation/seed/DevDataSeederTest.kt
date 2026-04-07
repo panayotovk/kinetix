@@ -82,7 +82,7 @@ class DevDataSeederTest : FunSpec({
         labels shouldBe labels.sorted()
     }
 
-    test("matrix covers all 35 instruments") {
-        DevDataSeeder.LABELS.size shouldBe 35
+    test("matrix covers all 83 instruments") {
+        DevDataSeeder.LABELS.size shouldBe 83
     }
 })

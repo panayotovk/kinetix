@@ -167,6 +167,25 @@ class DevDataSeeder(
             "JPM-BOND-2031", "USD-SOFR-5Y",
             "GBPUSD-3M", "WTI-AUG26", "GC-C-2200-DEC26",
             "EURUSD-P-1.08-SEP26", "SPX-SEP26",
+            // Expanded universe
+            "AMD", "INTC", "CRM", "ORCL", "ADBE",
+            "BAC", "GS", "MS",
+            "DIS", "KO", "WMT",
+            "JNJ", "PFE", "UNH",
+            "XOM", "CVX",
+            "MSFT-C-450-20260620", "MSFT-P-400-20260620",
+            "TSLA-C-280-20260620", "TSLA-P-220-20260620",
+            "GOOGL-C-190-20260620", "GOOGL-P-160-20260620",
+            "AMZN-C-220-20260620", "AMZN-P-190-20260620",
+            "US5Y", "UK10Y", "JP10Y", "DE2Y",
+            "AAPL-BOND-2030", "GS-BOND-2029", "MSFT-BOND-2032",
+            "AUDUSD", "USDCAD", "USDCHF", "EURGBP", "NZDUSD",
+            "EURUSD-6M", "USDJPY-3M",
+            "USDJPY-C-155-SEP26",
+            "USD-SOFR-10Y", "EUR-ESTR-5Y",
+            "NDX-SEP26", "RTY-SEP26",
+            "NG", "HG", "PL", "ZC",
+            "CL-P-70-DEC26",
         )
 
         internal val INSTRUMENTS: Map<InstrumentId, InstrumentConfig> = mapOf(
@@ -212,6 +231,71 @@ class DevDataSeeder(
             InstrumentId("GC-C-2200-DEC26") to InstrumentConfig("USD", 42.30, 48.50, AssetClass.COMMODITY, dailyVol = 0.02),
             InstrumentId("EURUSD-P-1.08-SEP26") to InstrumentConfig("USD", 2.40, 1.95, AssetClass.DERIVATIVE, dailyVol = 0.025),
             InstrumentId("SPX-SEP26") to InstrumentConfig("USD", 4980.00, 5035.00, AssetClass.DERIVATIVE, dailyVol = 0.012),
+            // ── Expanded equities ──
+            // Semi-conductor — dailyVol = 0.025
+            InstrumentId("AMD") to InstrumentConfig("USD", 158.40, 164.20, AssetClass.EQUITY, dailyVol = 0.025),
+            InstrumentId("INTC") to InstrumentConfig("USD", 22.80, 24.10, AssetClass.EQUITY, dailyVol = 0.020),
+            // Enterprise software — dailyVol = 0.020
+            InstrumentId("CRM") to InstrumentConfig("USD", 298.50, 305.80, AssetClass.EQUITY, dailyVol = 0.020),
+            InstrumentId("ORCL") to InstrumentConfig("USD", 172.30, 176.50, AssetClass.EQUITY, dailyVol = 0.015),
+            InstrumentId("ADBE") to InstrumentConfig("USD", 462.80, 470.50, AssetClass.EQUITY, dailyVol = 0.020),
+            // Financials — dailyVol = 0.015-0.018
+            InstrumentId("BAC") to InstrumentConfig("USD", 38.20, 39.80, AssetClass.EQUITY, dailyVol = 0.015),
+            InstrumentId("GS") to InstrumentConfig("USD", 482.50, 495.30, AssetClass.EQUITY, dailyVol = 0.018),
+            InstrumentId("MS") to InstrumentConfig("USD", 98.60, 101.40, AssetClass.EQUITY, dailyVol = 0.018),
+            // Consumer — dailyVol = 0.010-0.018
+            InstrumentId("DIS") to InstrumentConfig("USD", 108.30, 112.50, AssetClass.EQUITY, dailyVol = 0.018),
+            InstrumentId("KO") to InstrumentConfig("USD", 61.20, 62.80, AssetClass.EQUITY, dailyVol = 0.010),
+            InstrumentId("WMT") to InstrumentConfig("USD", 168.50, 172.30, AssetClass.EQUITY, dailyVol = 0.010),
+            // Healthcare — dailyVol = 0.010-0.015
+            InstrumentId("JNJ") to InstrumentConfig("USD", 155.80, 158.40, AssetClass.EQUITY, dailyVol = 0.010),
+            InstrumentId("PFE") to InstrumentConfig("USD", 27.40, 28.60, AssetClass.EQUITY, dailyVol = 0.015),
+            InstrumentId("UNH") to InstrumentConfig("USD", 528.30, 540.60, AssetClass.EQUITY, dailyVol = 0.015),
+            // Energy — dailyVol = 0.018
+            InstrumentId("XOM") to InstrumentConfig("USD", 112.40, 116.80, AssetClass.EQUITY, dailyVol = 0.018),
+            InstrumentId("CVX") to InstrumentConfig("USD", 158.70, 163.20, AssetClass.EQUITY, dailyVol = 0.018),
+            // ── New equity options — dailyVol = 0.03 ──
+            InstrumentId("MSFT-C-450-20260620") to InstrumentConfig("USD", 12.50, 10.80, AssetClass.DERIVATIVE, dailyVol = 0.03),
+            InstrumentId("MSFT-P-400-20260620") to InstrumentConfig("USD", 8.20, 9.50, AssetClass.DERIVATIVE, dailyVol = 0.03),
+            InstrumentId("TSLA-C-280-20260620") to InstrumentConfig("USD", 15.80, 12.40, AssetClass.DERIVATIVE, dailyVol = 0.035),
+            InstrumentId("TSLA-P-220-20260620") to InstrumentConfig("USD", 10.50, 13.20, AssetClass.DERIVATIVE, dailyVol = 0.035),
+            InstrumentId("GOOGL-C-190-20260620") to InstrumentConfig("USD", 8.30, 6.80, AssetClass.DERIVATIVE, dailyVol = 0.03),
+            InstrumentId("GOOGL-P-160-20260620") to InstrumentConfig("USD", 5.40, 6.50, AssetClass.DERIVATIVE, dailyVol = 0.03),
+            InstrumentId("AMZN-C-220-20260620") to InstrumentConfig("USD", 10.20, 8.60, AssetClass.DERIVATIVE, dailyVol = 0.03),
+            InstrumentId("AMZN-P-190-20260620") to InstrumentConfig("USD", 7.80, 9.20, AssetClass.DERIVATIVE, dailyVol = 0.03),
+            // ── New government bonds ──
+            InstrumentId("US5Y") to InstrumentConfig("USD", 98.50, 98.80, AssetClass.FIXED_INCOME, dailyVol = 0.0025),
+            InstrumentId("UK10Y") to InstrumentConfig("GBP", 95.80, 96.30, AssetClass.FIXED_INCOME, dailyVol = 0.003),
+            InstrumentId("JP10Y") to InstrumentConfig("JPY", 99.20, 99.40, AssetClass.FIXED_INCOME, dailyVol = 0.002),
+            InstrumentId("DE2Y") to InstrumentConfig("EUR", 99.60, 99.75, AssetClass.FIXED_INCOME, dailyVol = 0.002),
+            // ── New corporate bonds ──
+            InstrumentId("AAPL-BOND-2030") to InstrumentConfig("USD", 100.80, 101.50, AssetClass.FIXED_INCOME, dailyVol = 0.004),
+            InstrumentId("GS-BOND-2029") to InstrumentConfig("USD", 102.20, 103.10, AssetClass.FIXED_INCOME, dailyVol = 0.005),
+            InstrumentId("MSFT-BOND-2032") to InstrumentConfig("USD", 99.50, 100.20, AssetClass.FIXED_INCOME, dailyVol = 0.003),
+            // ── New FX ──
+            InstrumentId("AUDUSD") to InstrumentConfig("USD", 0.6520, 0.6580, AssetClass.FX, scale = 4, dailyVol = 0.006),
+            InstrumentId("USDCAD") to InstrumentConfig("CAD", 1.3580, 1.3620, AssetClass.FX, scale = 4, dailyVol = 0.005),
+            InstrumentId("USDCHF") to InstrumentConfig("CHF", 0.8820, 0.8860, AssetClass.FX, scale = 4, dailyVol = 0.005),
+            InstrumentId("EURGBP") to InstrumentConfig("GBP", 0.8580, 0.8610, AssetClass.FX, scale = 4, dailyVol = 0.004),
+            InstrumentId("NZDUSD") to InstrumentConfig("USD", 0.6080, 0.6140, AssetClass.FX, scale = 4, dailyVol = 0.007),
+            // ── New FX forwards ──
+            InstrumentId("EURUSD-6M") to InstrumentConfig("USD", 1.0860, 1.0880, AssetClass.FX, scale = 4, dailyVol = 0.005),
+            InstrumentId("USDJPY-3M") to InstrumentConfig("JPY", 148.80, 149.50, AssetClass.FX, scale = 4, dailyVol = 0.006),
+            // ── New FX option ──
+            InstrumentId("USDJPY-C-155-SEP26") to InstrumentConfig("USD", 3.20, 2.80, AssetClass.DERIVATIVE, dailyVol = 0.025),
+            // ── New IRS ──
+            InstrumentId("USD-SOFR-10Y") to InstrumentConfig("USD", 99.40, 99.70, AssetClass.FIXED_INCOME, dailyVol = 0.003),
+            InstrumentId("EUR-ESTR-5Y") to InstrumentConfig("EUR", 99.50, 99.75, AssetClass.FIXED_INCOME, dailyVol = 0.002),
+            // ── New equity futures ──
+            InstrumentId("NDX-SEP26") to InstrumentConfig("USD", 17800.00, 18100.00, AssetClass.DERIVATIVE, dailyVol = 0.014),
+            InstrumentId("RTY-SEP26") to InstrumentConfig("USD", 2080.00, 2120.00, AssetClass.DERIVATIVE, dailyVol = 0.016),
+            // ── New commodity futures ──
+            InstrumentId("NG") to InstrumentConfig("USD", 2.85, 3.10, AssetClass.COMMODITY, dailyVol = 0.025),
+            InstrumentId("HG") to InstrumentConfig("USD", 4.15, 4.28, AssetClass.COMMODITY, dailyVol = 0.015),
+            InstrumentId("PL") to InstrumentConfig("USD", 980.00, 1005.00, AssetClass.COMMODITY, dailyVol = 0.015),
+            InstrumentId("ZC") to InstrumentConfig("USD", 4.52, 4.68, AssetClass.COMMODITY, dailyVol = 0.018),
+            // ── New commodity option ──
+            InstrumentId("CL-P-70-DEC26") to InstrumentConfig("USD", 3.80, 4.50, AssetClass.COMMODITY, dailyVol = 0.02),
         )
     }
 }

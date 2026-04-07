@@ -42,8 +42,8 @@ class DevDataSeederTest : FunSpec({
 
         seeder.seed()
 
-        coVerify(exactly = 9) { dividendYieldRepository.save(any()) }
-        coVerify(exactly = 6) { creditSpreadRepository.save(any()) }
+        coVerify(exactly = 25) { dividendYieldRepository.save(any()) }
+        coVerify(exactly = 13) { creditSpreadRepository.save(any()) }
     }
 
     test("seeds all divisions when database is empty") {
@@ -142,7 +142,7 @@ class DevDataSeederTest : FunSpec({
 
         seederWithLiquidity.seed()
 
-        coVerify(exactly = 11) { liquidityRepository.upsert(any()) }
+        coVerify(exactly = 25) { liquidityRepository.upsert(any()) }
         val instrumentIds = savedLiquidity.map { it.instrumentId }.toSet()
         instrumentIds.contains("AAPL") shouldBe true
         instrumentIds.contains("US10Y") shouldBe true

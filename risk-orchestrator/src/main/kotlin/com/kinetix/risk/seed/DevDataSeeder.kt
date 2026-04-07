@@ -75,14 +75,14 @@ class DevDataSeeder(
         )
 
         private val BOOK_VAR_PROFILES = listOf(
-            VaRProfile("equity-growth", 3_200_000.0, 0.08, 3_900_000.0),
-            VaRProfile("tech-momentum", 3_100_000.0, 0.10, 3_800_000.0),
-            VaRProfile("emerging-markets", 2_600_000.0, 0.12, 3_200_000.0),
-            VaRProfile("fixed-income", 1_200_000.0, 0.04, 1_500_000.0),
-            VaRProfile("multi-asset", 4_800_000.0, 0.07, 5_800_000.0),
-            VaRProfile("macro-hedge", 2_900_000.0, 0.09, 3_500_000.0),
-            VaRProfile("balanced-income", 1_600_000.0, 0.05, 2_000_000.0),
-            VaRProfile("derivatives-book", 4_400_000.0, 0.11, 5_300_000.0),
+            VaRProfile("equity-growth", 4_800_000.0, 0.08, 5_900_000.0),
+            VaRProfile("tech-momentum", 4_200_000.0, 0.10, 5_100_000.0),
+            VaRProfile("emerging-markets", 3_600_000.0, 0.12, 4_400_000.0),
+            VaRProfile("fixed-income", 1_800_000.0, 0.04, 2_200_000.0),
+            VaRProfile("multi-asset", 6_500_000.0, 0.07, 7_900_000.0),
+            VaRProfile("macro-hedge", 4_100_000.0, 0.09, 5_000_000.0),
+            VaRProfile("balanced-income", 2_200_000.0, 0.05, 2_700_000.0),
+            VaRProfile("derivatives-book", 5_800_000.0, 0.11, 7_100_000.0),
         )
 
         private const val HISTORY_DAYS = 30
