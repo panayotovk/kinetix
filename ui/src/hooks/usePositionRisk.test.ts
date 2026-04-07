@@ -128,8 +128,10 @@ describe('usePositionRisk', () => {
       expect(mockFetchPositionRisk).toHaveBeenCalledWith('book-2', null)
     })
 
-    // On initial load for a new book, data should be empty
-    expect(result.current.positionRisk).toEqual([])
+    // On initial load for a new book, data should be empty (wait for rejection handler to flush)
+    await waitFor(() => {
+      expect(result.current.positionRisk).toEqual([])
+    })
   })
 
   it('re-fetches when bookId changes', async () => {
