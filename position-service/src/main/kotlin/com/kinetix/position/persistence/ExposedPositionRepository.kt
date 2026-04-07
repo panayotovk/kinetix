@@ -9,6 +9,7 @@ import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.Join
 import org.jetbrains.exposed.sql.JoinType
+import org.jetbrains.exposed.sql.batchUpsert
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.upsert
 import java.time.OffsetDateTime
@@ -30,6 +31,27 @@ class ExposedPositionRepository(private val db: Database? = null) : PositionRepo
             it[realizedPnlAmount] = position.realizedPnl.amount
             it[instrumentType] = position.instrumentType ?: "UNKNOWN"
             it[strategyId] = position.strategyId
+        }
+    }
+
+    override suspend fun saveAll(positions: List<Position>): Unit = newSuspendedTransaction(db = db) {
+        PositionsTable.batchUpsert(
+            positions,
+            PositionsTable.bookId,
+            PositionsTable.instrumentId,
+            shouldReturnGeneratedValues = false,
+        ) { position ->
+            this[PositionsTable.bookId] = position.bookId.value
+            this[PositionsTable.instrumentId] = position.instrumentId.value
+            this[PositionsTable.assetClass] = position.assetClass.name
+            this[PositionsTable.quantity] = position.quantity
+            this[PositionsTable.avgCostAmount] = position.averageCost.amount
+            this[PositionsTable.marketPriceAmount] = position.marketPrice.amount
+            this[PositionsTable.currency] = position.currency.currencyCode
+            this[PositionsTable.updatedAt] = OffsetDateTime.now(ZoneOffset.UTC)
+            this[PositionsTable.realizedPnlAmount] = position.realizedPnl.amount
+            this[PositionsTable.instrumentType] = position.instrumentType ?: "UNKNOWN"
+            this[PositionsTable.strategyId] = position.strategyId
         }
     }
 

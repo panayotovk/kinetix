@@ -2,6 +2,7 @@ package com.kinetix.position.service
 
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.Money
+import com.kinetix.common.model.Position
 import com.kinetix.position.persistence.PositionRepository
 import org.slf4j.LoggerFactory
 
@@ -16,7 +17,7 @@ class PriceUpdateService(
             return 0
         }
 
-        var updatedCount = 0
+        val updatedPositions = mutableListOf<Position>()
         for (position in positions) {
             if (position.currency != newPrice.currency) {
                 logger.debug(
@@ -26,15 +27,17 @@ class PriceUpdateService(
                 )
                 continue
             }
-            val updated = position.markToMarket(newPrice)
-            positionRepository.save(updated)
-            updatedCount++
+            updatedPositions.add(position.markToMarket(newPrice))
+        }
+
+        if (updatedPositions.isNotEmpty()) {
+            positionRepository.saveAll(updatedPositions)
         }
 
         logger.info(
             "Updated {} positions for instrument {} to price {} {}",
-            updatedCount, instrumentId.value, newPrice.amount.toPlainString(), newPrice.currency.currencyCode,
+            updatedPositions.size, instrumentId.value, newPrice.amount.toPlainString(), newPrice.currency.currencyCode,
         )
-        return updatedCount
+        return updatedPositions.size
     }
 }

@@ -6,6 +6,7 @@ import com.kinetix.common.model.Position
 
 interface PositionRepository {
     suspend fun save(position: Position)
+    suspend fun saveAll(positions: List<Position>)
     suspend fun findByBookId(bookId: BookId): List<Position>
     suspend fun findByKey(bookId: BookId, instrumentId: InstrumentId): Position?
     suspend fun findByInstrumentId(instrumentId: InstrumentId): List<Position>
