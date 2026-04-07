@@ -228,10 +228,11 @@ test.describe('Run Comparison', () => {
     await navigateToRunCompare(page)
     await page.getByTestId('compare-dates-btn').click()
 
-    await expect(page.getByTestId('component-diff-chart')).toBeVisible()
-    // Should show EQUITY and FX
-    await expect(page.getByText('EQUITY')).toBeVisible()
-    await expect(page.getByText('FX')).toBeVisible()
+    const chart = page.getByTestId('component-diff-chart')
+    await expect(chart).toBeVisible()
+    // Should show EQUITY and FX asset class labels inside the chart
+    await expect(chart.getByText('EQUITY')).toBeVisible()
+    await expect(chart.getByText('FX')).toBeVisible()
   })
 
   test('mode switching between Daily VaR and Model Comparison', async ({ page }) => {

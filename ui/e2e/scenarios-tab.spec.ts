@@ -143,13 +143,24 @@ async function mockScenariosRoutes(
     }
   })
 
-  // Batch stress run
+  // Batch stress run — API returns a BatchStressRunResult wrapper, not a raw array
   await page.route('**/api/v1/risk/stress/*/batch', (route: Route) => {
     if (route.request().method() === 'POST') {
+      const results = opts.batchResults ?? []
+      const worst = results.length > 0
+        ? results.reduce((a, b) =>
+            Math.abs(Number((a as Record<string, unknown>).pnlImpact)) >= Math.abs(Number((b as Record<string, unknown>).pnlImpact)) ? a : b,
+          )
+        : null
       route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(opts.batchResults ?? []),
+        body: JSON.stringify({
+          results,
+          failedScenarios: [],
+          worstScenarioName: worst ? (worst as Record<string, unknown>).scenarioName : null,
+          worstPnlImpact: worst ? (worst as Record<string, unknown>).pnlImpact : null,
+        }),
       })
     } else {
       route.fallback()

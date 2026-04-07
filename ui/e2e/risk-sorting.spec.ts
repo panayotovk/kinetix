@@ -62,18 +62,18 @@ test.describe('Risk Sorting', () => {
     await page.goto('/')
     await page.waitForSelector('[data-testid="sort-delta"]')
 
-    // Before any sort: no chevrons
-    await expect(page.getByTestId('sort-delta').locator('svg')).not.toBeVisible()
-    await expect(page.getByTestId('sort-gamma').locator('svg')).not.toBeVisible()
+    // Before any sort: chevrons are transparent (opacity-0 hint icons)
+    await expect(page.getByTestId('sort-delta').locator('svg')).toHaveCSS('opacity', '0')
+    await expect(page.getByTestId('sort-gamma').locator('svg')).toHaveCSS('opacity', '0')
 
     // Sort by delta
     await page.getByTestId('sort-delta').click()
 
-    // Chevron on delta, not on others
-    await expect(page.getByTestId('sort-delta').locator('svg')).toBeVisible()
-    await expect(page.getByTestId('sort-gamma').locator('svg')).not.toBeVisible()
-    await expect(page.getByTestId('sort-vega').locator('svg')).not.toBeVisible()
-    await expect(page.getByTestId('sort-var-pct').locator('svg')).not.toBeVisible()
+    // Chevron on delta is fully visible, others are transparent hints
+    await expect(page.getByTestId('sort-delta').locator('svg')).not.toHaveCSS('opacity', '0')
+    await expect(page.getByTestId('sort-gamma').locator('svg')).toHaveCSS('opacity', '0')
+    await expect(page.getByTestId('sort-vega').locator('svg')).toHaveCSS('opacity', '0')
+    await expect(page.getByTestId('sort-var-pct').locator('svg')).toHaveCSS('opacity', '0')
   })
 
   test('sorting does not reset pagination', async ({ page }) => {

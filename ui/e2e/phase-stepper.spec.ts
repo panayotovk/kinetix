@@ -263,7 +263,7 @@ test.describe('Phase stepper', () => {
     await page.goto('/')
     await page.getByTestId('tab-risk').click()
 
-    const liveRegion = page.locator('[aria-live="polite"]')
+    const liveRegion = page.getByTestId('job-history').locator('[aria-live="polite"]')
     await expect(liveRegion).toBeAttached()
   })
 })

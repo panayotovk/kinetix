@@ -346,10 +346,10 @@ test.describe('Trade Blotter - CSV Data Accuracy', () => {
 
     for (const line of dataLines) {
       const cols = line.split(',')
-      // CSV format: Time,Instrument,Side,Qty,Price,Currency,Notional,Status
-      const qty = Number(cols[3])
-      const price = Number(cols[4])
-      const notional = Number(cols[6])
+      // CSV format: Time,Instrument,Name,Type,Side,Qty,Price,Currency,Notional,Status
+      const qty = Number(cols[5])
+      const price = Number(cols[6])
+      const notional = Number(cols[8])
       expect(notional).toBeCloseTo(qty * price, 2)
     }
   })

@@ -360,10 +360,12 @@ test.describe('WebSocket Reconnect - Banner and Recovery', () => {
   test('reconnecting banner disappears when WebSocket reconnects after a drop', async ({
     page,
   }) => {
-    // Inject a WebSocket that: connects -> drops -> reconnects
+    // Inject a WebSocket mock that connects successfully and stores the active
+    // instance on the window so the test can trigger a disconnect on demand.
+    // This avoids race conditions with React StrictMode's double-mounting, which
+    // inflates the connection count and nulls onclose on early instances.
     await page.addInitScript(() => {
       const OriginalWebSocket = window.WebSocket
-      let connectionCount = 0
 
       class MockWebSocket extends EventTarget {
         static CONNECTING = 0
@@ -389,35 +391,17 @@ test.describe('WebSocket Reconnect - Banner and Recovery', () => {
         constructor(url: string | URL, _protocols?: string | string[]) {
           super()
           this.url = typeof url === 'string' ? url : url.toString()
-          connectionCount++
 
-          if (connectionCount === 1) {
-            // First connection: open, then drop after 200ms
-            setTimeout(() => {
-              this.readyState = 1
-              const openEvent = new Event('open')
-              if (this.onopen) this.onopen.call(this as unknown as WebSocket, openEvent)
-              this.dispatchEvent(openEvent)
-            }, 50)
+          // Store as the active price WebSocket so the test can trigger a drop
+          ;(window as unknown as Record<string, unknown>).__activePriceWs = this
 
-            setTimeout(() => {
-              this.readyState = 3
-              const closeEvent = new CloseEvent('close', {
-                code: 1006,
-                reason: 'Simulated disconnect',
-              })
-              if (this.onclose) this.onclose.call(this as unknown as WebSocket, closeEvent)
-              this.dispatchEvent(closeEvent)
-            }, 200)
-          } else {
-            // Subsequent connections: reconnect successfully
-            setTimeout(() => {
-              this.readyState = 1
-              const openEvent = new Event('open')
-              if (this.onopen) this.onopen.call(this as unknown as WebSocket, openEvent)
-              this.dispatchEvent(openEvent)
-            }, 50)
-          }
+          // All connections open successfully
+          setTimeout(() => {
+            this.readyState = 1
+            const openEvent = new Event('open')
+            if (this.onopen) this.onopen.call(this as unknown as WebSocket, openEvent)
+            this.dispatchEvent(openEvent)
+          }, 50)
         }
 
         send(_data: string | ArrayBuffer | Blob | ArrayBufferView): void {}
@@ -457,6 +441,24 @@ test.describe('WebSocket Reconnect - Banner and Recovery', () => {
     // First: should show Live
     await expect(page.getByTestId('connection-status')).toContainText('Live', {
       timeout: 3000,
+    })
+
+    // Trigger a disconnect on the active WebSocket from outside
+    await page.evaluate(() => {
+      const ws = (window as unknown as Record<string, unknown>).__activePriceWs as {
+        readyState: number
+        onclose: ((this: unknown, ev: CloseEvent) => void) | null
+        dispatchEvent: (event: Event) => boolean
+      }
+      if (ws) {
+        ws.readyState = 3
+        const closeEvent = new CloseEvent('close', {
+          code: 1006,
+          reason: 'Simulated disconnect',
+        })
+        if (ws.onclose) ws.onclose.call(ws, closeEvent)
+        ws.dispatchEvent(closeEvent)
+      }
     })
 
     // Then: the simulated disconnect triggers reconnecting banner

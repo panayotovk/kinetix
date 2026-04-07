@@ -50,7 +50,7 @@ test.describe('Position Data Rendering', () => {
     await expect(googlQty).toHaveText('50')
 
     const eurQty = page.getByTestId('position-row-EUR_USD').locator('td').nth(5)
-    await expect(eurQty).toHaveText('10000')
+    await expect(eurQty).toHaveText('10,000')
   })
 
   test('formats monetary values with currency symbols', async ({ page }) => {

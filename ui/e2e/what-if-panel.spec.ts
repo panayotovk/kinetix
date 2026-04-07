@@ -31,7 +31,7 @@ test.describe('What-If Panel', () => {
 
     await page.getByTestId('whatif-close').click()
 
-    await expect(page.getByTestId('whatif-panel')).not.toBeVisible()
+    await expect(page.getByTestId('whatif-panel')).toHaveAttribute('aria-hidden', 'true')
   })
 
   test('closes on backdrop click', async ({ page }) => {
@@ -43,7 +43,7 @@ test.describe('What-If Panel', () => {
 
     await page.getByTestId('whatif-backdrop').click()
 
-    await expect(page.getByTestId('whatif-panel')).not.toBeVisible()
+    await expect(page.getByTestId('whatif-panel')).toHaveAttribute('aria-hidden', 'true')
   })
 
   test('closes on Escape key', async ({ page }) => {
@@ -55,7 +55,7 @@ test.describe('What-If Panel', () => {
 
     await page.keyboard.press('Escape')
 
-    await expect(page.getByTestId('whatif-panel')).not.toBeVisible()
+    await expect(page.getByTestId('whatif-panel')).toHaveAttribute('aria-hidden', 'true')
   })
 
   // ---------------------------------------------------------------------------
