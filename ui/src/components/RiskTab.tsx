@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ErrorBoundary, SectionErrorCard } from './ErrorBoundary'
+import { SubTabs } from './ui/SubTabs'
 import { useVaR } from '../hooks/useVaR'
 import { useCrossBookVaR } from '../hooks/useCrossBookVaR'
 import { usePositionRisk } from '../hooks/usePositionRisk'
@@ -202,23 +203,7 @@ export function RiskTab({
 
   return (
     <div>
-      {/* Sub-tab bar */}
-      <div className="flex gap-1 mb-4 border-b border-slate-200 dark:border-surface-700">
-        {subTabs.map((t) => (
-          <button
-            key={t.key}
-            data-testid={`risk-subtab-${t.key}`}
-            onClick={() => setSubTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-              subTab === t.key
-                ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <SubTabs tabs={subTabs} activeTab={subTab} onTabChange={setSubTab} testIdPrefix="risk-subtab" />
 
       {subTab === 'dashboard' && (
         <>
