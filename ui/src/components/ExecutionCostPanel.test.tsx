@@ -95,4 +95,36 @@ describe('ExecutionCostPanel', () => {
       expect(screen.getByTestId('side-ord-001')).toHaveTextContent('BUY')
     })
   })
+
+  test('shows simulation mode banner when a book is selected and loading', () => {
+    mockFetchExecutionCosts.mockReturnValue(new Promise(() => {}))
+    render(<ExecutionCostPanel bookId="book-alpha" />)
+    expect(screen.getByTestId('simulation-mode-banner')).toBeInTheDocument()
+    expect(screen.getByText(/simulation mode/i)).toBeInTheDocument()
+  })
+
+  test('shows simulation mode banner when execution costs are rendered', async () => {
+    mockFetchExecutionCosts.mockResolvedValue([sampleCost])
+    render(<ExecutionCostPanel bookId="book-alpha" />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('execution-cost-table')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('simulation-mode-banner')).toBeInTheDocument()
+  })
+
+  test('shows simulation mode banner when no costs exist for a book', async () => {
+    mockFetchExecutionCosts.mockResolvedValue([])
+    render(<ExecutionCostPanel bookId="book-empty" />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/no execution cost data/i)).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('simulation-mode-banner')).toBeInTheDocument()
+  })
+
+  test('does not show simulation mode banner when no book is selected', () => {
+    render(<ExecutionCostPanel bookId={null} />)
+    expect(screen.queryByTestId('simulation-mode-banner')).not.toBeInTheDocument()
+  })
 })

@@ -121,4 +121,36 @@ describe('ReconciliationPanel', () => {
       expect(screen.getByText('5 / 5')).toBeInTheDocument()
     })
   })
+
+  test('shows simulation mode banner when a book is selected and loading', () => {
+    mockFetchReconciliations.mockReturnValue(new Promise(() => {}))
+    render(<ReconciliationPanel bookId="book-alpha" />)
+    expect(screen.getByTestId('simulation-mode-banner')).toBeInTheDocument()
+    expect(screen.getByText(/simulation mode/i)).toBeInTheDocument()
+  })
+
+  test('shows simulation mode banner when reconciliations are rendered', async () => {
+    mockFetchReconciliations.mockResolvedValue([cleanRecon])
+    render(<ReconciliationPanel bookId="book-alpha" />)
+
+    await waitFor(() => {
+      expect(screen.getByText('2026-03-24')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('simulation-mode-banner')).toBeInTheDocument()
+  })
+
+  test('shows simulation mode banner when no reconciliations exist for a book', async () => {
+    mockFetchReconciliations.mockResolvedValue([])
+    render(<ReconciliationPanel bookId="book-empty" />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/no reconciliation data/i)).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('simulation-mode-banner')).toBeInTheDocument()
+  })
+
+  test('does not show simulation mode banner when no book is selected', () => {
+    render(<ReconciliationPanel bookId={null} />)
+    expect(screen.queryByTestId('simulation-mode-banner')).not.toBeInTheDocument()
+  })
 })

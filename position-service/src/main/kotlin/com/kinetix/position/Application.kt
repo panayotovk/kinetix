@@ -212,6 +212,25 @@ fun Application.moduleWithRoutes() {
     val fixSessionRepository = ExposedFIXSessionRepository(db)
     val executionOrderRepository = ExposedExecutionOrderRepository(db)
     val executionFillRepository = ExposedExecutionFillRepository(db)
+
+    // FIX ORDER ROUTING — SIMULATION MODE
+    //
+    // LoggingFIXOrderSender is intentionally the only FIXOrderSender implementation wired here.
+    // It logs outbound NewOrderSingle messages to standard output but does NOT open a real FIX
+    // session or transmit orders to a broker. This is deliberate: the FIX scaffolding exists to
+    // prove the domain model (execution fills, cost analysis, prime-broker reconciliation) end-to-end
+    // without requiring live broker connectivity in development and demo environments.
+    //
+    // The domain model, persistence layer, and execution cost/reconciliation logic are
+    // production-ready and fully tested. Only the transport layer is intentionally absent.
+    //
+    // TO CONNECT TO A REAL BROKER:
+    //   1. Add a QuickFIX/J dependency to position-service/build.gradle.kts.
+    //   2. Implement FIXOrderSender against the QuickFIX/J Application interface.
+    //   3. Replace LoggingFIXOrderSender with your implementation here.
+    //   4. Provide a FIX session config file (quickfix.cfg) via an environment variable.
+    //
+    // See: https://www.quickfixj.org/usermanual/2.3.0/usage/application.html
     val fixOrderSender = LoggingFIXOrderSender()
     val orderSubmissionService = OrderSubmissionService(
         orderRepository = executionOrderRepository,

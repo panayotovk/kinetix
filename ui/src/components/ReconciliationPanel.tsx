@@ -1,8 +1,22 @@
 import { useEffect, useState } from 'react'
-import { Inbox } from 'lucide-react'
+import { Inbox, AlertTriangle } from 'lucide-react'
 import { fetchReconciliations } from '../api/execution'
 import type { ReconciliationDto } from '../types'
 import { Card, EmptyState } from './ui'
+
+function SimulationModeBanner() {
+  return (
+    <div
+      data-testid="simulation-mode-banner"
+      role="status"
+      aria-label="Order routing simulation mode notice"
+      className="flex items-center gap-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 px-3 py-2 text-sm text-amber-800 dark:text-amber-300 mb-4"
+    >
+      <AlertTriangle className="h-4 w-4 flex-shrink-0 text-amber-500" aria-hidden="true" />
+      <span>Order routing in simulation mode — orders are logged but not transmitted to a broker.</span>
+    </div>
+  )
+}
 
 interface ReconciliationPanelProps {
   bookId: string | null
@@ -47,26 +61,41 @@ export function ReconciliationPanel({ bookId }: ReconciliationPanelProps) {
   }
 
   if (loading) {
-    return <p className="text-slate-500">Loading reconciliation data...</p>
+    return (
+      <>
+        <SimulationModeBanner />
+        <p className="text-slate-500">Loading reconciliation data...</p>
+      </>
+    )
   }
 
   if (error) {
-    return <p className="text-red-600">{error}</p>
+    return (
+      <>
+        <SimulationModeBanner />
+        <p className="text-red-600">{error}</p>
+      </>
+    )
   }
 
   if (reconciliations.length === 0) {
     return (
-      <Card>
-        <EmptyState
-          icon={<Inbox className="h-10 w-10" />}
-          title="No reconciliation data for this book."
-        />
-      </Card>
+      <>
+        <SimulationModeBanner />
+        <Card>
+          <EmptyState
+            icon={<Inbox className="h-10 w-10" />}
+            title="No reconciliation data for this book."
+          />
+        </Card>
+      </>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <>
+      <SimulationModeBanner />
+      <div className="space-y-4">
       {reconciliations.map((recon) => {
         const hasBreaks = recon.breakCount > 0
         return (
@@ -136,5 +165,6 @@ export function ReconciliationPanel({ bookId }: ReconciliationPanelProps) {
         )
       })}
     </div>
+    </>
   )
 }
