@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchAlerts } from '../api/notifications'
+import { fetchAlerts, acknowledgeAlert } from '../api/notifications'
 import type { AlertEventDto } from '../types'
 
 export function useAlerts() {
@@ -24,6 +24,9 @@ export function useAlerts() {
   const dismissAlert = useCallback((id: string) => {
     dismissedIds.current.add(id)
     setAlerts((prev) => prev.filter((a) => a.id !== id))
+    acknowledgeAlert(id, 'system').catch(() => {
+      // fire-and-forget — local state is already updated
+    })
   }, [])
 
   useEffect(() => {
