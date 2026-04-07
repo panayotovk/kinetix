@@ -135,4 +135,37 @@ class RulesEngineTest : FunSpec({
         val alerts = engine.evaluate(event)
         alerts.shouldBeEmpty()
     }
+
+    test("LESS_THAN rule does not fire when extractor returns null") {
+        val engine = RulesEngine(InMemoryAlertRuleRepository())
+        engine.addRule(
+            AlertRule(
+                id = "r1", name = "Delta Floor", type = AlertType.DELTA_BREACH,
+                threshold = 1000.0, operator = ComparisonOperator.LESS_THAN,
+                severity = Severity.WARNING, channels = listOf(DeliveryChannel.IN_APP),
+            ),
+        )
+        // aggregateDelta is null → extractor returns null → rule should NOT fire
+        val event = RiskResultEvent(
+            bookId = "port-1", varValue = "150000.0", expectedShortfall = "180000.0",
+            calculationType = "PARAMETRIC", calculatedAt = "2025-01-15T10:00:00Z",
+            aggregateDelta = null,
+        )
+        val alerts = engine.evaluate(event)
+        alerts.shouldBeEmpty()
+    }
+
+    test("rule with unknown alert type does not fire") {
+        val engine = RulesEngine(InMemoryAlertRuleRepository(), extractors = emptyList())
+        engine.addRule(
+            AlertRule(
+                id = "r1", name = "VaR Limit", type = AlertType.VAR_BREACH,
+                threshold = 100_000.0, operator = ComparisonOperator.GREATER_THAN,
+                severity = Severity.CRITICAL, channels = listOf(DeliveryChannel.IN_APP),
+            ),
+        )
+        val event = RiskResultEvent(bookId = "port-1", varValue = "150000.0", expectedShortfall = "180000.0", calculationType = "PARAMETRIC", calculatedAt = "2025-01-15T10:00:00Z")
+        val alerts = engine.evaluate(event)
+        alerts.shouldBeEmpty()
+    }
 })

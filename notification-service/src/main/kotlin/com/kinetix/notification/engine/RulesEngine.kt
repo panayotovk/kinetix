@@ -48,7 +48,7 @@ class RulesEngine(
                 "book_id", event.bookId,
             )?.increment()
 
-            val currentValue = extractMetric(rule.type, event)
+            val currentValue = extractMetric(rule.type, event) ?: return@mapNotNull null
             val triggered = compare(currentValue, rule.operator, rule.threshold)
 
             if (triggered) {
@@ -129,10 +129,9 @@ class RulesEngine(
         }
     }
 
-    private fun extractMetric(type: AlertType, event: RiskResultEvent): Double {
-        val extractor = extractorsByType[type]
-            ?: return 0.0
-        return extractor.extract(event) ?: 0.0
+    private fun extractMetric(type: AlertType, event: RiskResultEvent): Double? {
+        val extractor = extractorsByType[type] ?: return null
+        return extractor.extract(event)
     }
 
     private fun compare(value: Double, operator: ComparisonOperator, threshold: Double): Boolean = when (operator) {
