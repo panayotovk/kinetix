@@ -642,6 +642,11 @@ class ExposedValuationJobRecorder(private val db: Database? = null) : ValuationJ
                 .map { it.toValuationJob() }
         }
 
+    override suspend fun deleteByTriggeredBy(triggeredBy: String): Int =
+        newSuspendedTransaction(db = db) {
+            ValuationJobsTable.deleteWhere { ValuationJobsTable.triggeredBy eq triggeredBy }
+        }
+
     companion object {
         fun bucketInterval(from: Instant, to: Instant): String {
             val durationMs = Duration.between(from, to).toMillis()

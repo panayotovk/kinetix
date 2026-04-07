@@ -25,8 +25,9 @@ fun Route.demoResetRoutes(
                 return@post
             }
 
+            jobRecorder.deleteByTriggeredBy("SEED")
+
             newSuspendedTransaction(db = riskDb) {
-                exec("DELETE FROM valuation_jobs WHERE triggered_by = 'SEED'")
                 exec("DELETE FROM daily_risk_snapshots WHERE snapshot_date > '2026-02-27'")
                 exec("DELETE FROM intraday_pnl_snapshots WHERE snapshot_time > '2026-02-27'")
             }

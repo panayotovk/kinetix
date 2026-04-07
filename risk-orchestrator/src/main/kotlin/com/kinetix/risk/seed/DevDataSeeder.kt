@@ -20,8 +20,11 @@ class DevDataSeeder(
     suspend fun seed() {
         val existing = jobRecorder.findByTriggeredBy("SEED")
         if (existing.isNotEmpty()) {
-            log.info("VaR timeline seed data already present ({} rows), skipping", existing.size)
-            return
+            // SEED data uses timestamps relative to Instant.now() at seed time.
+            // On restart, delete stale entries and recreate with current timestamps
+            // so the UI's default "Last 24h" view always has data.
+            log.info("Deleting {} stale SEED entries before re-seeding", existing.size)
+            jobRecorder.deleteByTriggeredBy("SEED")
         }
 
         val jobs = buildSeedJobs()

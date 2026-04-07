@@ -1,0 +1,85 @@
+package com.kinetix.risk.seed
+
+import com.kinetix.risk.model.ChartBucketRow
+import com.kinetix.risk.model.JobPhaseName
+import com.kinetix.risk.model.RunLabel
+import com.kinetix.risk.model.RunStatus
+import com.kinetix.risk.model.ValuationJob
+import com.kinetix.risk.service.ValuationJobRecorder
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldNotBeEmpty
+import io.kotest.matchers.ints.shouldBeGreaterThan
+import io.kotest.matchers.shouldBe
+import java.time.Instant
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
+import java.util.UUID
+
+class DevDataSeederTest : FunSpec({
+
+    test("seed deletes stale SEED data and re-creates with fresh timestamps") {
+        val recorder = InMemoryValuationJobRecorder()
+
+        // First seed
+        val seeder = DevDataSeeder(recorder)
+        seeder.seed()
+        val firstSeedCount = recorder.jobs.size
+        firstSeedCount shouldBeGreaterThan 0
+
+        // Second seed should delete and recreate (not skip)
+        seeder.seed()
+        recorder.deleteCount shouldBeGreaterThan 0
+        recorder.jobs.size shouldBe firstSeedCount
+    }
+
+    test("buildSeedJobs produces intraday entries within last 24 hours") {
+        val jobs = DevDataSeeder.buildSeedJobs()
+        val cutoff = Instant.now().minus(24, ChronoUnit.HOURS)
+        val recentJobs = jobs.filter { it.startedAt.isAfter(cutoff) }
+
+        recentJobs.shouldNotBeEmpty()
+    }
+
+    test("all seed jobs have triggeredBy set to SEED") {
+        val jobs = DevDataSeeder.buildSeedJobs()
+        jobs.forEach { it.triggeredBy shouldBe "SEED" }
+    }
+
+    test("seed jobs cover all 8 book profiles") {
+        val jobs = DevDataSeeder.buildSeedJobs()
+        val bookIds = jobs.map { it.bookId }.toSet()
+        bookIds.size shouldBe 8
+    }
+})
+
+private class InMemoryValuationJobRecorder : ValuationJobRecorder {
+    val jobs = mutableListOf<ValuationJob>()
+    var deleteCount = 0
+
+    override suspend fun save(job: ValuationJob) { jobs.add(job) }
+    override suspend fun update(job: ValuationJob) {}
+    override suspend fun updateCurrentPhase(jobId: UUID, phase: JobPhaseName) {}
+    override suspend fun findByBookId(bookId: String, limit: Int, offset: Int, from: Instant?, to: Instant?, valuationDate: LocalDate?, runLabel: RunLabel?) = emptyList<ValuationJob>()
+    override suspend fun countByBookId(bookId: String, from: Instant?, to: Instant?, valuationDate: LocalDate?, runLabel: RunLabel?) = 0L
+    override suspend fun findByJobId(jobId: UUID): ValuationJob? = null
+    override suspend fun findDistinctBookIds() = emptyList<String>()
+    override suspend fun findLatestCompletedByDate(bookId: String, valuationDate: LocalDate): ValuationJob? = null
+    override suspend fun findLatestCompleted(bookId: String): ValuationJob? = null
+    override suspend fun findLatestCompletedBeforeDate(bookId: String, beforeDate: LocalDate): ValuationJob? = null
+    override suspend fun findOfficialEodByDate(bookId: String, valuationDate: LocalDate): ValuationJob? = null
+    override suspend fun findOfficialEodRange(bookId: String, from: LocalDate, to: LocalDate) = emptyList<ValuationJob>()
+    override suspend fun promoteToOfficialEod(jobId: UUID, promotedBy: String, promotedAt: Instant): ValuationJob = throw UnsupportedOperationException()
+    override suspend fun demoteOfficialEod(jobId: UUID): ValuationJob = throw UnsupportedOperationException()
+    override suspend fun supersedeOfficialEod(jobId: UUID): ValuationJob = throw UnsupportedOperationException()
+    override suspend fun findChartData(bookId: String, from: Instant, to: Instant, bucketInterval: String) = emptyList<ChartBucketRow>()
+    override suspend fun resetOrphanedRunningJobs() = 0
+    override suspend fun findByTriggeredBy(triggeredBy: String, limit: Int): List<ValuationJob> {
+        return jobs.filter { it.triggeredBy == triggeredBy }.take(limit)
+    }
+    override suspend fun deleteByTriggeredBy(triggeredBy: String): Int {
+        val count = jobs.count { it.triggeredBy == triggeredBy }
+        jobs.removeAll { it.triggeredBy == triggeredBy }
+        deleteCount += count
+        return count
+    }
+}
