@@ -70,6 +70,9 @@ class StressScenarioService(
 
     suspend fun approve(id: String, approvedBy: String): StressScenario {
         val scenario = findOrThrow(id)
+        if (scenario.createdBy == approvedBy) {
+            throw IllegalArgumentException("Four-eyes violation: approver cannot be the same as creator")
+        }
         if (scenario.status != ScenarioStatus.PENDING_APPROVAL) {
             throw IllegalStateException("Can only approve from PENDING_APPROVAL status, current: ${scenario.status}")
         }

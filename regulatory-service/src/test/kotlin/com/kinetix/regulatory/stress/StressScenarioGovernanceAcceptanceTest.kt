@@ -161,6 +161,39 @@ class StressScenarioGovernanceAcceptanceTest : BehaviorSpec({
         }
     }
 
+    given("a scenario submitted by the same user who attempts to approve it") {
+        `when`("PATCH /{id}/approve with same user as creator") {
+            then("returns 400 for four-eyes violation") {
+                testApplication {
+                    application {
+                        module(frtbRepo, riskClient, stressScenarioRepository = stressScenarioRepo)
+                    }
+                    val createResponse = client.post("/api/v1/stress-scenarios") {
+                        contentType(ContentType.Application.Json)
+                        setBody("""
+                            {
+                                "name": "Self-Approval Test",
+                                "description": "Must not be approved by creator",
+                                "shocks": "{\"EQ\":-0.10}",
+                                "createdBy": "analyst@kinetix.com"
+                            }
+                        """.trimIndent())
+                    }
+                    val id = Json.parseToJsonElement(createResponse.bodyAsText())
+                        .jsonObject["id"]!!.jsonPrimitive.content
+
+                    client.patch("/api/v1/stress-scenarios/$id/submit")
+
+                    val approveResponse = client.patch("/api/v1/stress-scenarios/$id/approve") {
+                        contentType(ContentType.Application.Json)
+                        setBody("""{"approvedBy":"analyst@kinetix.com"}""")
+                    }
+                    approveResponse.status shouldBe HttpStatusCode.BadRequest
+                }
+            }
+        }
+    }
+
     given("a DRAFT scenario for invalid transition") {
         `when`("PATCH /{id}/approve directly") {
             then("returns 400 for invalid state transition") {

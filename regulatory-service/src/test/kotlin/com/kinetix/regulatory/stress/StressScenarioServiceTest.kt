@@ -100,6 +100,17 @@ class StressScenarioServiceTest : FunSpec({
         }
     }
 
+    test("rejects self-approval to enforce the four-eyes principle") {
+        val id = UUID.randomUUID().toString()
+        val scenario = aScenario(id = id, status = ScenarioStatus.PENDING_APPROVAL, createdBy = "risk-analyst-1")
+        coEvery { repository.findById(id) } returns scenario
+
+        val exception = shouldThrow<IllegalArgumentException> {
+            service.approve(id, approvedBy = "risk-analyst-1")
+        }
+        exception.message shouldBe "Four-eyes violation: approver cannot be the same as creator"
+    }
+
     test("rejects retire when not in APPROVED status") {
         val id = UUID.randomUUID().toString()
         val scenario = aScenario(id = id, status = ScenarioStatus.DRAFT)
