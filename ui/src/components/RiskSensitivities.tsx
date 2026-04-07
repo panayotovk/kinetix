@@ -9,11 +9,11 @@ import { formatCompactCurrency } from '../utils/formatCompactCurrency'
 type Greek = 'delta' | 'gamma' | 'vega' | 'theta' | 'rho'
 
 const greekDescriptions: Record<Greek, string> = {
-  delta: "If the underlying asset(s) move up by $1, the portfolio's value is expected to increase by approximately this amount (and vice versa for a $1 decline).",
-  gamma: "For each $1 move in the underlying, delta itself is expected to change by approximately this amount — measures how quickly directional exposure accelerates.",
-  vega: "If implied volatility rises by 1 percentage point, the portfolio's value is expected to change by approximately this amount.",
-  theta: "The portfolio's value is expected to change by approximately this amount each day purely due to the passage of time, assuming all other factors remain constant.",
-  rho: "If interest rates rise by 1 percentage point, the portfolio's value is expected to change by approximately this amount — measures sensitivity to rate movements.",
+  delta: "Estimated change in portfolio VaR for a $1 move in the underlying. A positive value means VaR increases as the underlying rises.",
+  gamma: "Rate of change of Delta VaR sensitivity — captures convexity risk. Measures how quickly the delta sensitivity itself changes with the underlying.",
+  vega: "Estimated change in portfolio VaR for a 1% move in implied volatility. Reflects how options risk changes with the volatility surface.",
+  theta: "Estimated change in portfolio VaR for each day that passes (time decay effect on risk). Captures how option time value erodes overnight.",
+  rho: "Estimated change in portfolio VaR for a 1 basis point move in interest rates. Reflects sensitivity to yield curve shifts.",
 }
 
 interface RiskSensitivitiesProps {

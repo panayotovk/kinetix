@@ -131,7 +131,7 @@ describe('RiskSensitivities', () => {
 
       const popover = screen.getByTestId('greek-popover-delta')
       expect(popover).toBeInTheDocument()
-      expect(popover).toHaveTextContent('underlying asset(s) move up by $1')
+      expect(popover).toHaveTextContent('Estimated change in portfolio VaR for a $1 move in the underlying')
     })
 
     it('shows gamma explanation when info icon is clicked', () => {
@@ -141,7 +141,7 @@ describe('RiskSensitivities', () => {
 
       const popover = screen.getByTestId('greek-popover-gamma')
       expect(popover).toBeInTheDocument()
-      expect(popover).toHaveTextContent('delta itself is expected to change')
+      expect(popover).toHaveTextContent('Rate of change of Delta VaR sensitivity')
     })
 
     it('shows vega explanation when info icon is clicked', () => {
@@ -151,7 +151,7 @@ describe('RiskSensitivities', () => {
 
       const popover = screen.getByTestId('greek-popover-vega')
       expect(popover).toBeInTheDocument()
-      expect(popover).toHaveTextContent('implied volatility rises by 1 percentage point')
+      expect(popover).toHaveTextContent('Estimated change in portfolio VaR for a 1% move in implied volatility')
     })
 
     it('closes popover when the same info icon is clicked again', () => {
@@ -212,7 +212,7 @@ describe('RiskSensitivities', () => {
 
       const popover = screen.getByTestId('greek-popover-theta')
       expect(popover).toBeInTheDocument()
-      expect(popover).toHaveTextContent('passage of time')
+      expect(popover).toHaveTextContent('Estimated change in portfolio VaR for each day that passes')
     })
 
     it('shows rho explanation when info icon is clicked', () => {
@@ -222,7 +222,7 @@ describe('RiskSensitivities', () => {
 
       const popover = screen.getByTestId('greek-popover-rho')
       expect(popover).toBeInTheDocument()
-      expect(popover).toHaveTextContent('interest rates')
+      expect(popover).toHaveTextContent('Estimated change in portfolio VaR for a 1 basis point move in interest rates')
     })
 
     it('closes theta/rho popover when a header popover is opened', () => {
