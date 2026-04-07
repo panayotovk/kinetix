@@ -152,7 +152,7 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
         </div>
       </div>
       <p data-testid="greeks-footnote" className="text-[10px] text-slate-400 mt-1">
-        Sensitivities show change in VaR per unit bump. Hover headers for details.
+        Asset-class sensitivities show change in VaR per unit bump. Per-instrument Greeks for options use analytical Black-Scholes. Hover headers for details.
       </p>
     </div>
   )

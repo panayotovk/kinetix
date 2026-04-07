@@ -16,6 +16,7 @@ data class ValuationResultResponse(
     val computedOutputs: List<String>? = null,
     val pvValue: String? = null,
     val valuationDate: String? = null,
+    val positionGreeks: List<PositionGreekResponse>? = null,
 )
 
 fun ValuationResultSummary.toResponse(): ValuationResultResponse = ValuationResultResponse(
@@ -29,4 +30,5 @@ fun ValuationResultSummary.toResponse(): ValuationResultResponse = ValuationResu
     greeks = greeks?.toResponse(),
     pvValue = pvValue?.let { "%.2f".format(it) },
     valuationDate = valuationDate,
+    positionGreeks = positionGreeks.takeIf { it.isNotEmpty() }?.map { it.toResponse() },
 )
