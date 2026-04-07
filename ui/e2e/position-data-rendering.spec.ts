@@ -104,6 +104,41 @@ test.describe('Position Data Rendering', () => {
     await expect(page.getByTestId('sort-var-pct')).not.toBeVisible()
   })
 
+  test('instrument search filters positions by instrumentId', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForSelector('[data-testid="instrument-search"]')
+
+    await page.getByTestId('instrument-search').fill('AAPL')
+
+    await expect(page.getByTestId('position-row-AAPL')).toBeVisible()
+    await expect(page.getByTestId('position-row-GOOGL')).not.toBeVisible()
+    await expect(page.getByTestId('position-row-EUR_USD')).not.toBeVisible()
+  })
+
+  test('instrument search filters positions by displayName', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForSelector('[data-testid="instrument-search"]')
+
+    await page.getByTestId('instrument-search').fill('Alphabet')
+
+    await expect(page.getByTestId('position-row-GOOGL')).toBeVisible()
+    await expect(page.getByTestId('position-row-AAPL')).not.toBeVisible()
+    await expect(page.getByTestId('position-row-EUR_USD')).not.toBeVisible()
+  })
+
+  test('clearing instrument search restores all positions', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForSelector('[data-testid="instrument-search"]')
+
+    await page.getByTestId('instrument-search').fill('AAPL')
+    await expect(page.getByTestId('position-row-GOOGL')).not.toBeVisible()
+
+    await page.getByTestId('instrument-search').clear()
+    await expect(page.getByTestId('position-row-AAPL')).toBeVisible()
+    await expect(page.getByTestId('position-row-GOOGL')).toBeVisible()
+    await expect(page.getByTestId('position-row-EUR_USD')).toBeVisible()
+  })
+
   test('displays summary cards with correct totals', async ({ page }) => {
     await page.goto('/')
     await page.waitForSelector('[data-testid="book-summary"]')

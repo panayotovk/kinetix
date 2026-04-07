@@ -70,6 +70,7 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(loadColumnVisibility)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [instrumentTypeFilter, setInstrumentTypeFilter] = useState('')
+  const [instrumentSearch, setInstrumentSearch] = useState('')
   const [filterResetNotice, setFilterResetNotice] = useState<string | null>(null)
   const settingsRef = useRef<HTMLDivElement>(null)
 
@@ -135,9 +136,19 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
   }, [filterResetNotice])
 
   const filteredPositions = useMemo(() => {
-    if (!instrumentTypeFilter) return positions
-    return positions.filter((p) => p.instrumentType === instrumentTypeFilter)
-  }, [positions, instrumentTypeFilter])
+    let result = positions
+    if (instrumentTypeFilter) {
+      result = result.filter((p) => p.instrumentType === instrumentTypeFilter)
+    }
+    if (instrumentSearch) {
+      const query = instrumentSearch.toLowerCase()
+      result = result.filter((p) =>
+        p.instrumentId.toLowerCase().includes(query) ||
+        (p.displayName ?? '').toLowerCase().includes(query),
+      )
+    }
+    return result
+  }, [positions, instrumentTypeFilter, instrumentSearch])
 
   const { groups: strategyGroups, ungrouped: ungroupedPositions } = useMemo(
     () => buildStrategyGroups(filteredPositions, positionRisk),
@@ -164,6 +175,11 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
 
   const handleInstrumentTypeFilter = (value: string) => {
     setInstrumentTypeFilter(value)
+    setCurrentPage(1)
+  }
+
+  const handleInstrumentSearch = (value: string) => {
+    setInstrumentSearch(value)
     setCurrentPage(1)
   }
 
@@ -324,6 +340,15 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
       </div>
 
       <div className="flex items-center gap-3 mb-3">
+        <input
+          data-testid="instrument-search"
+          type="text"
+          placeholder="Search instrument…"
+          value={instrumentSearch}
+          onChange={(e) => handleInstrumentSearch(e.target.value)}
+          aria-label="Search instruments"
+          className="border border-slate-300 dark:border-surface-600 rounded-md px-3 py-1.5 text-sm bg-white dark:bg-surface-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-48"
+        />
         {instrumentTypeOptions.length > 1 && (
           <select
             data-testid="filter-instrument-type"
@@ -469,10 +494,10 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
                   colSpan={positionColCount + (hasRisk ? riskColCount : 0)}
                 />
               ))}
-              {sortedPositions.length === 0 && instrumentTypeFilter && (
+              {sortedPositions.length === 0 && (instrumentTypeFilter || instrumentSearch) && (
                 <tr>
                   <td colSpan={positionColCount + (hasRisk ? riskColCount : 0)} className="px-4 py-8 text-center text-sm text-slate-500">
-                    No positions match the selected type.
+                    No positions match the current filter.
                   </td>
                 </tr>
               )}

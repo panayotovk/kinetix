@@ -4,12 +4,14 @@ import type { AlertEventDto } from '../types'
 
 vi.mock('../api/notifications', () => ({
   fetchAlerts: vi.fn(),
+  acknowledgeAlert: vi.fn(),
 }))
 
-import { fetchAlerts } from '../api/notifications'
+import { fetchAlerts, acknowledgeAlert } from '../api/notifications'
 import { useAlerts } from './useAlerts'
 
 const mockFetchAlerts = vi.mocked(fetchAlerts)
+const mockAcknowledgeAlert = vi.mocked(acknowledgeAlert)
 
 const alertFixtures: AlertEventDto[] = [
   {
@@ -44,6 +46,7 @@ describe('useAlerts', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     vi.useFakeTimers({ shouldAdvanceTime: true })
+    mockAcknowledgeAlert.mockResolvedValue(alertFixtures[0])
   })
 
   afterEach(() => {
@@ -111,6 +114,23 @@ describe('useAlerts', () => {
 
     expect(result.current.alerts).toHaveLength(1)
     expect(result.current.alerts[0].id).toBe('alert-2')
+  })
+
+  it('calls acknowledgeAlert on the server when an alert is dismissed', async () => {
+    mockFetchAlerts.mockResolvedValue(alertFixtures)
+    mockAcknowledgeAlert.mockResolvedValue(alertFixtures[0])
+
+    const { result } = renderHook(() => useAlerts())
+
+    await waitFor(() => {
+      expect(result.current.alerts).toHaveLength(2)
+    })
+
+    act(() => {
+      result.current.dismissAlert('alert-1')
+    })
+
+    expect(mockAcknowledgeAlert).toHaveBeenCalledWith('alert-1', 'system')
   })
 
   it('keeps dismissed alerts hidden after re-fetch', async () => {
