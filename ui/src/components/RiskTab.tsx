@@ -36,6 +36,7 @@ import { useKrd } from '../hooks/useKrd'
 import { VolSurfacePanel } from './VolSurfacePanel'
 import { IntradayVaRChart } from './IntradayVaRChart'
 import { KrdPanel } from './KrdPanel'
+import { Spinner } from './ui/Spinner'
 
 type RiskSubTab = 'dashboard' | 'run-compare' | 'market-data' | 'intraday'
 
@@ -349,7 +350,7 @@ export function RiskTab({
 
       {subTab === 'intraday' && (
         <div data-testid="intraday-var-panel" className="space-y-4">
-          {intradayVarLoading && <p className="text-sm text-slate-500">Loading intraday VaR data...</p>}
+          {intradayVarLoading && <Spinner size="sm" />}
           {intradayVarError && <p className="text-sm text-red-600">{intradayVarError}</p>}
           {!intradayVarLoading && !intradayVarError && (
             <IntradayVaRChart varPoints={intradayVarPoints} tradeAnnotations={intradayTradeAnnotations} />
