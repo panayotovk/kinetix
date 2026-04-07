@@ -130,7 +130,7 @@ describe('RiskSensitivities', () => {
       render(<RiskSensitivities greeksResult={greeksResult} />)
 
       const footnote = screen.getByTestId('greeks-footnote')
-      expect(footnote).toHaveTextContent('Sensitivities show change in VaR per unit bump')
+      expect(footnote).toHaveTextContent('Asset-class sensitivities show change in VaR per unit bump. Per-instrument Greeks for options use analytical Black-Scholes. Hover headers for details.')
     })
   })
 
