@@ -1,7 +1,13 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
+
+vi.mock('../hooks/useHierarchySummary')
+
+import { useHierarchySummary } from '../hooks/useHierarchySummary'
 import { HierarchySelector } from './HierarchySelector'
 import type { UseHierarchySelectorResult } from '../hooks/useHierarchySelector'
+
+const mockUseHierarchySummary = vi.mocked(useHierarchySummary)
 
 function makeHierarchy(overrides: Partial<UseHierarchySelectorResult> = {}): UseHierarchySelectorResult {
   return {
@@ -22,7 +28,20 @@ function makeHierarchy(overrides: Partial<UseHierarchySelectorResult> = {}): Use
   }
 }
 
+const defaultSummaryResult = {
+  summary: null,
+  baseCurrency: 'USD',
+  setBaseCurrency: vi.fn(),
+  loading: false,
+  error: null,
+  summaryLabel: 'Firm Summary',
+}
+
 describe('HierarchySelector', () => {
+  beforeEach(() => {
+    mockUseHierarchySummary.mockReturnValue(defaultSummaryResult)
+  })
+
   it('renders toggle button', () => {
     render(<HierarchySelector hierarchy={makeHierarchy()} />)
     expect(screen.getByTestId('hierarchy-selector-toggle')).toBeInTheDocument()
@@ -163,5 +182,95 @@ describe('HierarchySelector', () => {
     fireEvent.click(screen.getByTestId('hierarchy-selector-toggle'))
     expect(screen.getByTestId('breadcrumb-firm')).toBeInTheDocument()
     expect(screen.getByTestId('breadcrumb-division')).toHaveTextContent('Equities')
+  })
+
+  describe('hierarchy summary row', () => {
+    it('shows summary row when panel is open and summary data is available', () => {
+      mockUseHierarchySummary.mockReturnValue({
+        ...defaultSummaryResult,
+        summary: {
+          bookId: 'FIRM',
+          baseCurrency: 'USD',
+          totalNav: { amount: '1000000.00', currency: 'USD' },
+          totalUnrealizedPnl: { amount: '25000.00', currency: 'USD' },
+          currencyBreakdown: [],
+        },
+      })
+
+      render(<HierarchySelector hierarchy={makeHierarchy()} />)
+      fireEvent.click(screen.getByTestId('hierarchy-selector-toggle'))
+
+      expect(screen.getByTestId('hierarchy-summary-row')).toBeInTheDocument()
+    })
+
+    it('displays NAV and unrealised P&L labels in the summary row', () => {
+      mockUseHierarchySummary.mockReturnValue({
+        ...defaultSummaryResult,
+        summary: {
+          bookId: 'FIRM',
+          baseCurrency: 'USD',
+          totalNav: { amount: '1000000.00', currency: 'USD' },
+          totalUnrealizedPnl: { amount: '25000.00', currency: 'USD' },
+          currencyBreakdown: [],
+        },
+      })
+
+      render(<HierarchySelector hierarchy={makeHierarchy()} />)
+      fireEvent.click(screen.getByTestId('hierarchy-selector-toggle'))
+
+      const summaryRow = screen.getByTestId('hierarchy-summary-row')
+      expect(summaryRow).toHaveTextContent('NAV')
+      expect(summaryRow).toHaveTextContent('P&L')
+    })
+
+    it('shows loading spinner while summary data is loading', () => {
+      mockUseHierarchySummary.mockReturnValue({
+        ...defaultSummaryResult,
+        loading: true,
+      })
+
+      render(<HierarchySelector hierarchy={makeHierarchy()} />)
+      fireEvent.click(screen.getByTestId('hierarchy-selector-toggle'))
+
+      expect(screen.getByTestId('hierarchy-summary-loading')).toBeInTheDocument()
+    })
+
+    it('does not show summary row at book level', () => {
+      mockUseHierarchySummary.mockReturnValue({
+        ...defaultSummaryResult,
+        summary: {
+          bookId: 'book-1',
+          baseCurrency: 'USD',
+          totalNav: { amount: '50000.00', currency: 'USD' },
+          totalUnrealizedPnl: { amount: '1200.00', currency: 'USD' },
+          currencyBreakdown: [],
+        },
+        summaryLabel: 'Book Summary',
+      })
+
+      const bookHierarchy = makeHierarchy({
+        selection: { level: 'book', divisionId: 'div-1', deskId: 'desk-1', bookId: 'book-1' },
+        breadcrumb: [
+          { level: 'firm', id: null, label: 'Firm' },
+          { level: 'division', id: 'div-1', label: 'Equities' },
+          { level: 'desk', id: 'desk-1', label: 'Desk 1' },
+          { level: 'book', id: 'book-1', label: 'book-1' },
+        ],
+      })
+
+      render(<HierarchySelector hierarchy={bookHierarchy} />)
+      fireEvent.click(screen.getByTestId('hierarchy-selector-toggle'))
+
+      expect(screen.queryByTestId('hierarchy-summary-row')).not.toBeInTheDocument()
+    })
+
+    it('does not show summary row when no summary data and not loading', () => {
+      mockUseHierarchySummary.mockReturnValue(defaultSummaryResult)
+
+      render(<HierarchySelector hierarchy={makeHierarchy()} />)
+      fireEvent.click(screen.getByTestId('hierarchy-selector-toggle'))
+
+      expect(screen.queryByTestId('hierarchy-summary-row')).not.toBeInTheDocument()
+    })
   })
 })

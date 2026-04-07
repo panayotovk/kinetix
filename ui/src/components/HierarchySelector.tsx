@@ -1,7 +1,10 @@
 import { useRef, useState } from 'react'
 import { ChevronDown, Building2 } from 'lucide-react'
 import { HierarchyBreadcrumb } from './HierarchyBreadcrumb'
+import { Spinner } from './ui/Spinner'
 import { useClickOutside } from '../hooks/useClickOutside'
+import { useHierarchySummary } from '../hooks/useHierarchySummary'
+import { formatMoney } from '../utils/format'
 import type { UseHierarchySelectorResult, HierarchySelection } from '../hooks/useHierarchySelector'
 
 interface HierarchySelectorProps {
@@ -15,6 +18,8 @@ export function HierarchySelector({ hierarchy }: HierarchySelectorProps) {
   useClickOutside(containerRef, () => setOpen(false))
 
   const { selection, setSelection, breadcrumb, divisions, desks, books, loading } = hierarchy
+  const { summary, loading: summaryLoading } = useHierarchySummary(selection)
+  const showSummary = selection.level !== 'book' && (summaryLoading || summary !== null)
 
   const handleNavigate = (newSelection: HierarchySelection) => {
     setSelection(newSelection)
@@ -83,6 +88,31 @@ export function HierarchySelector({ hierarchy }: HierarchySelectorProps) {
           {breadcrumb.length > 1 && (
             <div className="px-3 pt-2 pb-1 border-b border-slate-100 dark:border-surface-700">
               <HierarchyBreadcrumb breadcrumb={breadcrumb} onNavigate={handleNavigate} />
+            </div>
+          )}
+
+          {/* Aggregated metrics summary row (firm / division / desk levels only) */}
+          {showSummary && (
+            <div
+              data-testid="hierarchy-summary-row"
+              className="px-3 py-2 border-b border-slate-100 dark:border-surface-700 bg-slate-50 dark:bg-surface-800/60"
+            >
+              {summaryLoading && !summary ? (
+                <div data-testid="hierarchy-summary-loading" className="flex items-center gap-2">
+                  <Spinner size="sm" />
+                </div>
+              ) : summary ? (
+                <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-slate-400">
+                  <span>
+                    <span className="font-medium text-slate-500 dark:text-slate-500 uppercase tracking-wide mr-1">NAV</span>
+                    {formatMoney(summary.totalNav.amount, summary.totalNav.currency)}
+                  </span>
+                  <span>
+                    <span className="font-medium text-slate-500 dark:text-slate-500 uppercase tracking-wide mr-1">P&L</span>
+                    {formatMoney(summary.totalUnrealizedPnl.amount, summary.totalUnrealizedPnl.currency)}
+                  </span>
+                </div>
+              ) : null}
             </div>
           )}
 
