@@ -30,7 +30,7 @@ value BenchmarkDailyReturn {
 -- Enumerations
 ------------------------------------------------------------
 
-enum InstrumentLiquidityTier { high_liquid | liquid | semi_liquid | illiquid }
+-- LiquidityTier is defined in core.allium as a shared enum.
 
 ------------------------------------------------------------
 -- Entities and Variants
@@ -218,8 +218,8 @@ entity InstrumentLiquidity {
     instrument_id: String
     adv: Decimal
     bid_ask_spread_bps: Decimal
-    asset_class: String
-    liquidity_tier: InstrumentLiquidityTier
+    asset_class: core/AssetClass
+    liquidity_tier: core/LiquidityTier
     adv_updated_at: Timestamp
     created_at: Timestamp
     updated_at: Timestamp

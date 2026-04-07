@@ -63,7 +63,7 @@ entity RiskFreeRate {
 
 entity ForwardCurve {
     instrument_id: String
-    asset_class: String
+    asset_class: core/AssetClass
     points: List<core/CurvePoint>
     as_of_date: Timestamp
     source: core/RateSource

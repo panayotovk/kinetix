@@ -12,6 +12,7 @@
 -- Dependencies: core.allium, positions.allium, trading.allium, reference-data.allium
 
 use "./core.allium" as core
+use "./reference-data.allium" as ref
 
 ------------------------------------------------------------
 -- Value Types
@@ -98,7 +99,9 @@ value HedgingSetAddon {
 -- Entities and Variants
 ------------------------------------------------------------
 
-entity Counterparty {
+-- Counterparty is authoritatively defined in reference-data.allium.
+-- This external entity references the fields used by counterparty risk calculations.
+external entity Counterparty {
     counterparty_id: String
     legal_name: String
     short_name: String
@@ -113,20 +116,20 @@ entity Counterparty {
     lgd: Decimal
     cds_spread_bps: Decimal?
 
-    -- Derived
-    has_credit_data: pd_1y != null or cds_spread_bps != null
-    effective_pd: if pd_1y != null: pd_1y else: rating_implied_pd(rating_sp)
-
     @guidance
-        -- pd_1y: 1-year probability of default (from ML credit model or rating tables).
-        -- lgd: Loss Given Default (default 0.40 = 40%).
-        -- cds_spread_bps: most recent CDS spread (null for counterparties without CDS market).
+        -- Authoritative definition: ref/Counterparty (includes created_at, updated_at).
+        -- Derived fields used in counterparty risk calculations:
+        --   has_credit_data: pd_1y != null or cds_spread_bps != null
+        --   effective_pd: if pd_1y != null: pd_1y else: rating_implied_pd(rating_sp)
         -- If no PD available: use Basel II standard mapping from S&P rating
         --   (AAA→0.01%, BBB→0.20%, BB→1.0%, etc.).
         -- Stale ratings (>30 days without update) are flagged.
 }
 
-entity NettingAgreement {
+-- NettingAgreement is authoritatively defined in reference-data.allium.
+-- This external entity uses a Counterparty object reference for domain clarity;
+-- the authoritative definition uses counterparty_id: String for persistence.
+external entity NettingAgreement {
     netting_set_id: String
     counterparty: Counterparty
     agreement_type: String
@@ -135,6 +138,8 @@ entity NettingAgreement {
     currency: String?
 
     @guidance
+        -- Authoritative definition: ref/NettingAgreement (uses counterparty_id: String).
+        -- This spec uses the richer object reference for domain-level readability.
         -- agreement_type: ISDA_2002, ISDA_1992, GMRA, OTHER.
         -- close_out_netting: if true, positions can be netted on default.
         -- csa_threshold: minimum transfer amount for margin calls.

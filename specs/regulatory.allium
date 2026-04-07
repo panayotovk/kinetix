@@ -95,44 +95,23 @@ value BacktestComparison {
 }
 
 -- Stress testing governance
+-- GovernedStressScenario is superseded by SavedScenario in scenarios.allium.
+-- Lifecycle rules (create, submit, approve, retire, update) are authoritative
+-- in scenario-lifecycle.allium. This spec retains stress test execution and
+-- result storage rules.
 
-entity GovernedStressScenario {
+external entity SavedScenario {
+    id: String
     name: String
-    description: String?
-    shocks: String
     status: core/ScenarioStatus
-
-    transitions status {
-        draft -> pending_approval
-        pending_approval -> approved
-        approved -> retired
-        terminal: retired
-    }
-
-    scenario_type: scenarios/ScenarioType
-    category: core/ScenarioCategory
-    version: Integer
     created_by: String
-    created_at: Timestamp
-    parent_scenario_id: String?
-    correlation_override: String?
-    liquidity_stress_factors: String?
-    historical_period_id: String?
-    target_loss: Decimal?
-    approved_by: String when status = approved | retired
-    approved_at: Timestamp when status = approved | retired
 }
 
-entity StressTestResultRecord {
+-- StressTestResultRecord is authoritatively defined in scenarios.allium.
+-- It stores persisted outcomes of running stress scenarios against books.
+external entity StressTestResultRecord {
     scenario_id: String
     book_id: String
-    calculated_at: Timestamp
-    base_pv: Decimal?
-    stressed_pv: Decimal?
-    pnl_impact: Decimal?
-    var_impact: Decimal?
-    position_impacts: String?
-    model_version: String?
 }
 
 -- Regulatory submissions
@@ -254,70 +233,13 @@ rule RejectInvalidModelTransition {
 
 -- Stress testing governance
 
-rule CreateStressScenario {
-    when: CreateStressScenarioRequested(name, description, shocks, created_by, scenario_type, category, parent_scenario_id, correlation_override, liquidity_stress_factors, historical_period_id, target_loss)
-    ensures: GovernedStressScenario.created(
-        name: name,
-        description: description,
-        shocks: shocks,
-        status: draft,
-        scenario_type: scenario_type,
-        category: category,
-        version: 1,
-        created_by: created_by,
-        created_at: now,
-        parent_scenario_id: parent_scenario_id,
-        correlation_override: correlation_override,
-        liquidity_stress_factors: liquidity_stress_factors,
-        historical_period_id: historical_period_id,
-        target_loss: target_loss
-    )
-}
-
-rule SubmitScenarioForApproval {
-    when: SubmitScenarioForApprovalRequested(scenario_id)
-    let scenario = GovernedStressScenario{id: scenario_id}
-    requires: scenario.status = draft
-    ensures: scenario.status = pending_approval
-}
-
-rule ApproveScenario {
-    when: ApproveScenarioRequested(scenario_id, approved_by)
-    let scenario = GovernedStressScenario{id: scenario_id}
-    requires: scenario.status = pending_approval
-    ensures: scenario.status = approved
-    ensures: scenario.approved_by = approved_by
-    ensures: scenario.approved_at = now
-}
-
-rule RetireScenario {
-    when: RetireScenarioRequested(scenario_id)
-    let scenario = GovernedStressScenario{id: scenario_id}
-    requires: scenario.status = approved
-    ensures: scenario.status = retired
-}
-
-rule UpdateScenario {
-    when: UpdateScenarioRequested(scenario_id, shocks, correlation_override, liquidity_stress_factors)
-    let scenario = GovernedStressScenario{id: scenario_id}
-    requires: scenario.status != retired
-
-    ensures: scenario.version = scenario.version + 1
-    ensures: scenario.shocks = shocks or scenario.shocks
-    ensures: scenario.correlation_override = correlation_override or scenario.correlation_override
-    ensures: scenario.liquidity_stress_factors = liquidity_stress_factors or scenario.liquidity_stress_factors
-
-    @guidance
-        -- All update parameters are optional; unchanged fields retain their current values.
-        -- If the scenario is APPROVED or PENDING_APPROVAL, the status is reset to DRAFT
-        -- and approved_by / approved_at are cleared. This forces re-approval after
-        -- material changes to the scenario definition.
-        -- RETIRED scenarios cannot be updated (IllegalStateException).
-}
+-- Scenario lifecycle rules (CreateStressScenario, SubmitScenarioForApproval,
+-- ApproveScenario, RetireScenario, UpdateScenario) are now authoritative in
+-- scenario-lifecycle.allium. Removed from this spec to eliminate duplication.
 
 rule RunGovernedStressTest {
     when: RunGovernedStressTestRequested(scenario_id, book_id, model_version)
-    let scenario = GovernedStressScenario{id: scenario_id}
+    let scenario = SavedScenario{id: scenario_id}
     requires: scenario.status = approved
 
     @guidance
@@ -327,7 +249,7 @@ rule RunGovernedStressTest {
         -- The current computePnlImpact stub is a known data integrity bug:
         -- it reads shock magnitudes directly from the shocks JSON field without
         -- repricing positions, producing incorrect P&L figures.
-        -- Creates StressTestResultRecord with results.
+        -- Creates scenarios/StressTestResultRecord with results.
 }
 
 rule RunReverseStressTest {
@@ -496,14 +418,8 @@ invariant ModelStatusTransitions {
         -- Retired is a terminal state.
 }
 
-invariant ScenarioStatusTransitions {
-    @guidance
-        -- Valid transitions:
-        --   draft -> pending_approval
-        --   pending_approval -> approved
-        --   approved -> retired
-        -- Only approved scenarios can be executed.
-}
+-- ScenarioStatusTransitions invariant is now authoritative in
+-- scenario-lifecycle.allium (ScenarioLifecycleStateMachine invariant).
 
 invariant SubmissionFourEyes {
     for s in RegulatorySubmissions:

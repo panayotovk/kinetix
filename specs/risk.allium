@@ -8,11 +8,7 @@ use "./core.allium" as core
 -- Value Types
 ------------------------------------------------------------
 
-value ComponentBreakdown {
-    asset_class: core/AssetClass
-    var_contribution: Decimal
-    percentage_of_total: Decimal
-}
+-- ComponentBreakdown is defined in core.allium as a shared value type.
 
 value GreekValues {
     asset_class: core/AssetClass
@@ -130,7 +126,7 @@ entity ValuationJob {
     theta: Decimal? when status = completed
     rho: Decimal? when status = completed
     position_risk_snapshot: List<PositionRisk>? when status = completed
-    component_breakdown_snapshot: List<ComponentBreakdown>? when status = completed
+    component_breakdown_snapshot: List<core/ComponentBreakdown>? when status = completed
     asset_class_greeks_snapshot: List<GreekValues>? when status = completed
     computed_outputs_snapshot: Set<core/ValuationOutput>? when status = completed
     phases: List<JobPhase>
@@ -273,7 +269,7 @@ entity CrossBookValuationResult {
     confidence_level: String
     var_value: Decimal
     expected_shortfall: Decimal
-    component_breakdown: List<ComponentBreakdown>
+    component_breakdown: List<core/ComponentBreakdown>
     book_contributions: List<BookVaRContribution>
     total_standalone_var: Decimal
     diversification_benefit: Decimal

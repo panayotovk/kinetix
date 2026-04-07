@@ -15,6 +15,7 @@
 -- Dependencies: core.allium, positions.allium, risk-models.allium, limits.allium
 
 use "./core.allium" as core
+use "./trading.allium" as trading
 use "./positions.allium" as positions
 use "./limits.allium" as limits
 
@@ -46,7 +47,7 @@ value PositionLiquidityResult {
     lvar: Decimal
     concentration_flagged: Boolean
     stressed_liquidation_value: Decimal
-    liquidity_tier: LiquidityTier
+    liquidity_tier: core/LiquidityTier
     data_available: Boolean
 
     @guidance
@@ -75,7 +76,7 @@ value LiquidityRiskSummary {
 -- Enumerations
 ------------------------------------------------------------
 
-enum LiquidityTier { high_liquid | liquid | semi_liquid | illiquid }
+-- LiquidityTier is defined in core.allium as a shared enum.
 
 ------------------------------------------------------------
 -- External Entities
@@ -106,7 +107,7 @@ external entity InstrumentLiquidity {
     instrument_id: String,
     adv: Decimal,
     bid_ask_spread_bps: Decimal,
-    liquidity_tier: LiquidityTier
+    liquidity_tier: core/LiquidityTier
 }
 
 ------------------------------------------------------------
@@ -420,7 +421,7 @@ rule ScheduledLiquidityComputation {
 -- Recompute on trade events
 
 rule RecomputeLiquidityOnTrade {
-    when: positions/TradeBooked(trade, book_id, correlation_id)
+    when: trading/TradeBooked(trade, book_id)
 
     @guidance
         -- After a trade is applied, check whether the affected position's

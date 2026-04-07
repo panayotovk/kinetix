@@ -43,6 +43,15 @@ enum InstrumentType {
     interest_rate_swap
 }
 
+    @guidance
+        -- These values mirror the Instrument variant discriminator in
+        -- reference-data.allium (CashEquity, EquityOption, etc.).
+        -- The two representations must stay in sync: this enum is used for
+        -- dependency registry lookup (snake_case keys), while reference-data
+        -- uses Allium variant subtypes (PascalCase entity names).
+        -- Any new instrument type added to reference-data.allium must also
+        -- be added here and have a corresponding dependency rule below.
+
 enum FetchOutcome { fetched | not_found | client_unavailable | exception }
 
 enum PositionResolutionMethod { pass_through | delta_adjusted | dv01_based }

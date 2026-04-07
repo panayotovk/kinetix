@@ -272,7 +272,7 @@ rule RunScenarioRequiresApproval {
         -- Shock values from the stored JSON are never re-interpreted locally
         -- (SCEN-06 invariant from scenarios.allium).
         --
-        -- The result is persisted as a StressTestResult and a STRESS_TEST_RUN
+        -- The result is persisted as a StressTestResultRecord and a STRESS_TEST_RUN
         -- governance audit event is published.
 }
 

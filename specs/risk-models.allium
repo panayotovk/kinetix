@@ -11,14 +11,11 @@ use "./core.allium" as core
 value VaRResult {
     var_value: Decimal
     expected_shortfall: Decimal
-    component_breakdown: List<VaRComponentBreakdown>
+    component_breakdown: List<core/ComponentBreakdown>
 }
 
-value VaRComponentBreakdown {
-    asset_class: core/AssetClass
-    var_contribution: Decimal
-    percentage_of_total: Decimal
-}
+-- ComponentBreakdown is defined in core.allium as a shared value type.
+-- Previously named VaRComponentBreakdown here; unified to ComponentBreakdown.
 
 -- Pricing sensitivities: analytical first-order and second-order derivatives of
 -- present value with respect to market inputs. Computed from Black-Scholes

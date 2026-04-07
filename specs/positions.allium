@@ -53,6 +53,15 @@ entity Position {
     market_price: core/Money
     realized_pnl: core/Money
     instrument_type: String?
+
+    @guidance
+        -- instrument_type is stored as a plain String matching the
+        -- Instrument variant discriminator from reference-data.allium
+        -- (e.g. "CASH_EQUITY", "EQUITY_OPTION"). It is a String?
+        -- rather than a typed discriminator because positions predate
+        -- the instrument type model and the persistence layer stores it
+        -- as a nullable VARCHAR.
+
     strategy_id: String?
     strategy_type: String?
     strategy_name: String?
@@ -81,7 +90,7 @@ entity FxRate {
 -- Position updates from trade events
 
 rule ApplyTradeToPosition {
-    when: TradeBooked(trade, book_id, correlation_id)
+    when: TradeBooked(trade, book_id)
     let position = Position{book_id: trade.book_id, instrument_id: trade.instrument_id}
 
     @guidance
@@ -113,6 +122,7 @@ rule MarkToMarket {
     for position in Positions where instrument_id = instrument_id:
         requires: position.market_price.currency = price_currency
         ensures: position.market_price = core/Money{amount: price_amount, currency: price_currency}
+        ensures: PositionPriceUpdated(instrument_id: instrument_id, price_amount: price_amount, price_currency: price_currency)
 
     @guidance
         -- Triggered by Kafka consumer on price.updates topic.

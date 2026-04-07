@@ -37,7 +37,7 @@ value HedgeSuggestion {
     target_reduction_pct: Decimal
     residual_metric: Decimal
     greek_impact: GreekImpact
-    liquidity_tier: liquidity/LiquidityTier
+    liquidity_tier: core/LiquidityTier
     data_quality: String
     warnings: List<String> = []
 

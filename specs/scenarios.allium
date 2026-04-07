@@ -203,22 +203,18 @@ entity SavedScenario {
         -- The Kotlin data class is StressScenario, the DB table is stress_scenarios.
         -- approved_by and approved_at are set when a scenario transitions to APPROVED.
         --
-        -- SavedScenario supersedes GovernedStressScenario from regulatory.allium.
-        -- GovernedStressScenario handled only custom parametric shocks with
-        -- governance. SavedScenario extends this to cover three scenario types
-        -- (historical_replay, parametric, reverse_stress) with versioning.
+        -- SavedScenario superseded GovernedStressScenario (formerly in
+        -- regulatory.allium). GovernedStressScenario has been removed;
+        -- regulatory.allium now references this entity via external entity.
         --
         -- The governance workflow (draft → pending_approval → approved → retired)
-        -- is the same as regulatory.allium's GovernedStressScenario — the status
-        -- field and approval rules from regulatory.allium apply here.
-        -- GovernedStressScenario should be considered deprecated in favour of
-        -- SavedScenario for all new scenarios.
+        -- and lifecycle rules are authoritative in scenario-lifecycle.allium.
         --
         -- version increments on each update; previous versions retained.
         -- parent_scenario_id links variants ("GFC with extra credit stress").
 }
 
-entity StressTestResult {
+entity StressTestResultRecord {
     id: String
     scenario_id: String
     book_id: String
@@ -226,12 +222,14 @@ entity StressTestResult {
     base_pv: Decimal?
     stressed_pv: Decimal?
     pnl_impact: Decimal?
-    var_impact: Double?
+    var_impact: Decimal?
     position_impacts: String?
     model_version: String?
 
     @guidance
         -- Persisted outcome of running a SavedScenario against a book.
+        -- Named StressTestResultRecord to avoid collision with the
+        -- StressTestResult value type in risk-models.allium.
         -- Table: stress_test_results (V12 migration, V13 renamed portfolio_id to book_id).
         -- scenario_id references stress_scenarios(id).
         -- position_impacts is stored as JSONB — per-position breakdown of stress P&L.

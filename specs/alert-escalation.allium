@@ -24,27 +24,17 @@ enum EscalationTarget { desk_head | risk_manager_cro }
         --   risk_manager_cro -> "risk-manager,cro"
         -- Implemented as plain String in AlertEscalationService.escalationTargetFor().
 
-enum EscalationChannel { email | webhook | pager_duty }
-
-    @guidance
-        -- Extends core/DeliveryChannel with pager_duty.
-        -- core.allium defines DeliveryChannel as { in_app | email | webhook }.
-        -- The codebase adds PAGER_DUTY in the Kotlin DeliveryChannel enum
-        -- (notification-service AlertModels.kt) and PagerDutyDeliveryService.
-        -- pager_duty is only used for escalation delivery, not for initial
-        -- alert routing configured on AlertRule.channels.
+-- EscalationChannel is no longer needed as a separate enum.
+-- core/DeliveryChannel now includes pager_duty alongside in_app, email, webhook.
 
 ------------------------------------------------------------
 -- Config
 ------------------------------------------------------------
 
-config {
-    -- How long an acknowledged alert can remain unresolved before escalation.
-    escalation_timeout: Duration = 30.minutes
-
-    -- How often the scheduler polls for overdue acknowledged alerts.
-    escalation_poll_interval: Duration = 1.minute
-}
+-- Config for escalation is defined in alerts.allium:
+--   escalation_timeout: Duration = 30.minutes
+--   escalation_poll_interval: Duration = 1.minute
+-- See alerts.allium config block for the authoritative values.
 
     @guidance
         -- escalation_timeout is configurable via application.conf property

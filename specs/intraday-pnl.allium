@@ -13,6 +13,7 @@
 -- Dependencies: core.allium, positions.allium, risk.allium
 
 use "./core.allium" as core
+use "./trading.allium" as trading
 use "./positions.allium" as positions
 use "./risk.allium" as risk
 
@@ -319,7 +320,7 @@ deferred per_instrument_attribution
 -- Trigger chaining: position changes originate from existing rules
 
 rule PriceChangeTriggersPositionChanged {
-    when: positions/MarkToMarket(instrument_id, price_amount, price_currency)
+    when: positions/PositionPriceUpdated(instrument_id, price_amount, price_currency)
     for position in Positions where instrument_id = instrument_id:
         ensures: PositionChanged(
             book_id: position.book_id,
@@ -333,7 +334,7 @@ rule PriceChangeTriggersPositionChanged {
 }
 
 rule TradeTriggersPositionChanged {
-    when: positions/TradeBooked(trade, book_id, correlation_id)
+    when: trading/TradeBooked(trade, book_id)
     ensures: PositionChanged(
         book_id: book_id,
         instrument_id: trade.instrument_id,

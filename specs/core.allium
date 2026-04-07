@@ -31,6 +31,12 @@ value VolPoint {
     implied_vol: Decimal
 }
 
+value ComponentBreakdown {
+    asset_class: AssetClass
+    var_contribution: Decimal
+    percentage_of_total: Decimal
+}
+
 value Tenor {
     label: String
     days: Integer
@@ -104,7 +110,10 @@ enum Severity { info | warning | critical }
 
 enum ComparisonOperator { greater_than | less_than | equals }
 
-enum DeliveryChannel { in_app | email | webhook }
+enum DeliveryChannel { in_app | email | webhook | pager_duty }
+    @guidance
+        -- pager_duty is used exclusively for escalation delivery of critical
+        -- alerts, not for user-configured alert rule channels.
 
 enum ModelStatus { draft | validated | approved | retired }
 
@@ -142,3 +151,9 @@ enum SwapDirection { pay_fixed | receive_fixed }
         -- Currently implemented as plain String in Kotlin, Python, and Proto.
 
 enum SnapshotType { auto | manual }
+
+enum LiquidityTier { high_liquid | liquid | semi_liquid | illiquid }
+    @guidance
+        -- Liquidity classification based on ADV and bid-ask spread.
+        -- Used by reference-data-service (InstrumentLiquidity) and
+        -- liquidity risk calculations.

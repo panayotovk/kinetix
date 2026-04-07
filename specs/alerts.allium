@@ -76,7 +76,7 @@ entity AlertAcknowledgement {
 
 config {
     escalation_timeout: Duration = 30.minutes
-    escalation_check_interval: Duration = 1.minute
+    escalation_poll_interval: Duration = 1.minute
     nonlinearity_gamma_threshold: Decimal = 0.01
     nonlinearity_vega_threshold: Decimal = 1.0
     max_contributors: Integer = 10
