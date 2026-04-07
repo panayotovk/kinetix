@@ -1,6 +1,6 @@
 package com.kinetix.audit.routes
 
-import com.kinetix.audit.dto.toResponse
+import com.kinetix.audit.dtos.toResponse
 import com.kinetix.audit.persistence.AuditEventRepository
 import com.kinetix.audit.persistence.AuditHasher
 import com.kinetix.audit.persistence.ChainVerificationResult

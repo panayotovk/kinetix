@@ -2,7 +2,7 @@ package com.kinetix.audit
 
 import com.kinetix.audit.dlq.DlqReplayService
 import com.kinetix.audit.dlq.KafkaDlqMessageSource
-import com.kinetix.audit.dto.ErrorResponse
+import com.kinetix.audit.dtos.ErrorResponse
 import com.kinetix.audit.kafka.AuditEventConsumer
 import com.kinetix.audit.persistence.AuditEventRepository
 import com.kinetix.audit.persistence.DatabaseConfig

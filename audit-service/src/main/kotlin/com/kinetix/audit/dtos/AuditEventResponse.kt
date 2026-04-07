@@ -1,4 +1,4 @@
-package com.kinetix.audit.dto
+package com.kinetix.audit.dtos
 
 import com.kinetix.audit.model.AuditEvent
 import kotlinx.serialization.Serializable
@@ -30,12 +30,6 @@ data class AuditEventResponse(
     val submissionId: String? = null,
     val details: String? = null,
     val sequenceNumber: Long? = null,
-)
-
-@Serializable
-data class ErrorResponse(
-    val error: String,
-    val message: String,
 )
 
 fun AuditEvent.toResponse(): AuditEventResponse = AuditEventResponse(
