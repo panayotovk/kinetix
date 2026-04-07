@@ -39,10 +39,17 @@ def calculate_monte_carlo_var(
                 "correlation matrix is not positive-definite and could not be repaired"
             )
     z = rng.standard_normal((num_simulations, n))
+
+    # Original paths
     correlated_returns = z @ cholesky.T * daily_vols
+    # Antithetic paths (using -Z) for variance reduction
+    correlated_returns_anti = -z @ cholesky.T * daily_vols
+
+    # Combine original and antithetic paths (2N total)
+    correlated_returns_combined = np.concatenate([correlated_returns, correlated_returns_anti])
 
     # Portfolio losses (positive = loss)
-    portfolio_losses = -(correlated_returns @ market_values)
+    portfolio_losses = -(correlated_returns_combined @ market_values)
 
     # 1-day VaR at confidence level
     alpha = confidence_level.value
@@ -53,8 +60,8 @@ def calculate_monte_carlo_var(
     es_1d = calculate_expected_shortfall(portfolio_losses, confidence_level)
     es_value = es_1d * np.sqrt(time_horizon_days)
 
-    # Component breakdown: individual asset class losses
-    individual_losses = -(correlated_returns * market_values)
+    # Component breakdown: individual asset class losses (combined paths)
+    individual_losses = -(correlated_returns_combined * market_values)
     component_var_1d = []
     for i in range(n):
         asset_losses = individual_losses[:, i]

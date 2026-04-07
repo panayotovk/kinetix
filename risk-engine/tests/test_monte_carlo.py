@@ -22,35 +22,26 @@ def _correlation_matrix() -> np.ndarray:
 
 
 class TestAntitheticVarianceReduction:
-    def test_antithetic_var_has_lower_variance(self):
-        """Antithetic variates should produce lower variance in VaR estimates
-        compared to standard MC with the same number of paths."""
+    def test_main_mc_path_uses_antithetic_variates(self):
+        """The main MC VaR path (var_monte_carlo) should produce identical
+        results to the dedicated antithetic module, confirming both use
+        antithetic variates."""
         exposures = _sample_exposures()
         corr = _correlation_matrix()
-        n_trials = 30
-        n_sims = 2000
 
-        standard_vars = []
-        antithetic_vars = []
-        for i in range(n_trials):
-            from kinetix_risk.var_monte_carlo import calculate_monte_carlo_var
-            std_result = calculate_monte_carlo_var(
-                exposures, ConfidenceLevel.CL_95, 1, corr,
-                num_simulations=n_sims, seed=i,
-            )
-            standard_vars.append(std_result.var_value)
+        from kinetix_risk.var_monte_carlo import calculate_monte_carlo_var
+        main_result = calculate_monte_carlo_var(
+            exposures, ConfidenceLevel.CL_95, 1, corr,
+            num_simulations=5000, seed=42,
+        )
+        anti_result = calculate_monte_carlo_var_antithetic(
+            exposures, ConfidenceLevel.CL_95, 1, corr,
+            num_simulations=5000, seed=42,
+        )
 
-            anti_result = calculate_monte_carlo_var_antithetic(
-                exposures, ConfidenceLevel.CL_95, 1, corr,
-                num_simulations=n_sims, seed=i,
-            )
-            antithetic_vars.append(anti_result.var_value)
-
-        std_variance = np.var(standard_vars)
-        anti_variance = np.var(antithetic_vars)
-        assert anti_variance < std_variance, (
-            f"Antithetic variance ({anti_variance:.2f}) should be lower "
-            f"than standard variance ({std_variance:.2f})"
+        assert main_result.var_value == pytest.approx(anti_result.var_value, rel=1e-6), (
+            f"Main MC path ({main_result.var_value:.2f}) should match antithetic "
+            f"({anti_result.var_value:.2f}) — both should use antithetic variates"
         )
 
     def test_antithetic_var_is_close_to_standard(self):
