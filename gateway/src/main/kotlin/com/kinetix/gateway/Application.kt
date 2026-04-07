@@ -24,7 +24,7 @@ import com.kinetix.gateway.client.PriceServiceClient
 import com.kinetix.gateway.client.RegulatoryServiceClient
 import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.client.VolatilityServiceClient
-import com.kinetix.gateway.dto.*
+import com.kinetix.gateway.dtos.*
 import com.kinetix.gateway.routes.backtestProxyRoutes
 import com.kinetix.gateway.routes.dataQualityRoutes
 import com.kinetix.gateway.routes.demoAdminRoutes

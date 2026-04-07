@@ -1,10 +1,10 @@
 package com.kinetix.gateway.contract
 
 import com.kinetix.gateway.client.VolatilityServiceClient
-import com.kinetix.gateway.dto.VolPointDiffResponse
-import com.kinetix.gateway.dto.VolPointResponse
-import com.kinetix.gateway.dto.VolSurfaceDiffResponse
-import com.kinetix.gateway.dto.VolSurfaceResponse
+import com.kinetix.gateway.dtos.VolPointDiffResponse
+import com.kinetix.gateway.dtos.VolPointResponse
+import com.kinetix.gateway.dtos.VolSurfaceDiffResponse
+import com.kinetix.gateway.dtos.VolSurfaceResponse
 import com.kinetix.gateway.moduleWithVolSurface
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe

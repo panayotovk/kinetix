@@ -1,7 +1,7 @@
 package com.kinetix.gateway.routes
 
-import com.kinetix.gateway.dto.DataQualityCheckResponse
-import com.kinetix.gateway.dto.DataQualityStatusResponse
+import com.kinetix.gateway.dtos.DataQualityCheckResponse
+import com.kinetix.gateway.dtos.DataQualityStatusResponse
 import io.github.smiley4.ktoropenapi.get
 import io.ktor.client.*
 import io.ktor.client.call.*

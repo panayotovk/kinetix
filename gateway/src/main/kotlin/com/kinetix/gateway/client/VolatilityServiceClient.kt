@@ -1,7 +1,7 @@
 package com.kinetix.gateway.client
 
-import com.kinetix.gateway.dto.VolSurfaceDiffResponse
-import com.kinetix.gateway.dto.VolSurfaceResponse
+import com.kinetix.gateway.dtos.VolSurfaceDiffResponse
+import com.kinetix.gateway.dtos.VolSurfaceResponse
 
 interface VolatilityServiceClient {
     suspend fun getSurface(instrumentId: String): VolSurfaceResponse?

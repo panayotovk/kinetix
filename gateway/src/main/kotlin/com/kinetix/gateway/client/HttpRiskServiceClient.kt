@@ -418,7 +418,7 @@ class HttpRiskServiceClient(
     }
 
     override suspend fun calculateCrossBookVaR(
-        params: com.kinetix.gateway.dto.CrossBookVaRCalculationParams,
+        params: com.kinetix.gateway.dtos.CrossBookVaRCalculationParams,
     ): CrossBookVaRResultSummary? {
         val response = httpClient.post("$baseUrl/api/v1/risk/var/cross-book") {
             contentType(ContentType.Application.Json)
@@ -448,7 +448,7 @@ class HttpRiskServiceClient(
     }
 
     override suspend fun calculateStressedCrossBookVaR(
-        params: com.kinetix.gateway.dto.StressedCrossBookVaRParams,
+        params: com.kinetix.gateway.dtos.StressedCrossBookVaRParams,
     ): StressedCrossBookVaRResultSummary? {
         val response = httpClient.post("$baseUrl/api/v1/risk/var/cross-book/stressed") {
             contentType(ContentType.Application.Json)

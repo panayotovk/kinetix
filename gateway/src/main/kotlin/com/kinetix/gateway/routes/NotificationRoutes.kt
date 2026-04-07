@@ -2,10 +2,10 @@ package com.kinetix.gateway.routes
 
 import com.kinetix.gateway.client.AcknowledgeAlertParams
 import com.kinetix.gateway.client.NotificationServiceClient
-import com.kinetix.gateway.dto.AcknowledgeAlertRequest
-import com.kinetix.gateway.dto.CreateAlertRuleRequest
-import com.kinetix.gateway.dto.toDto
-import com.kinetix.gateway.dto.toParams
+import com.kinetix.gateway.dtos.AcknowledgeAlertRequest
+import com.kinetix.gateway.dtos.CreateAlertRuleRequest
+import com.kinetix.gateway.dtos.toDto
+import com.kinetix.gateway.dtos.toParams
 import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post

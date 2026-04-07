@@ -1,8 +1,8 @@
 package com.kinetix.gateway.routes
 
 import com.kinetix.gateway.client.RiskServiceClient
-import com.kinetix.gateway.dto.GenerateReportRequest
-import com.kinetix.gateway.dto.toResponse
+import com.kinetix.gateway.dtos.GenerateReportRequest
+import com.kinetix.gateway.dtos.toResponse
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*
 import io.ktor.server.request.*

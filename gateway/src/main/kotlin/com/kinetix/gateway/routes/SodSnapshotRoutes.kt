@@ -1,8 +1,8 @@
 package com.kinetix.gateway.routes
 
 import com.kinetix.gateway.client.RiskServiceClient
-import com.kinetix.gateway.dto.ErrorResponse
-import com.kinetix.gateway.dto.toResponse
+import com.kinetix.gateway.dtos.ErrorResponse
+import com.kinetix.gateway.dtos.toResponse
 import io.github.smiley4.ktoropenapi.delete
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post

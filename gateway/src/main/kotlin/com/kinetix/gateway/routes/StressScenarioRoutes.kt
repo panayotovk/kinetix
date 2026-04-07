@@ -4,8 +4,8 @@ import com.kinetix.gateway.auth.userIdOrDefault
 import com.kinetix.gateway.client.ApproveScenarioParams
 import com.kinetix.gateway.client.CreateScenarioParams
 import com.kinetix.gateway.client.RegulatoryServiceClient
-import com.kinetix.gateway.dto.CreateScenarioRequest
-import com.kinetix.gateway.dto.toResponse
+import com.kinetix.gateway.dtos.CreateScenarioRequest
+import com.kinetix.gateway.dtos.toResponse
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.patch
 import io.github.smiley4.ktoropenapi.post

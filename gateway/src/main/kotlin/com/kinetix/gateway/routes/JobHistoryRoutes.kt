@@ -3,9 +3,9 @@ package com.kinetix.gateway.routes
 import com.kinetix.common.security.Permission
 import com.kinetix.gateway.auth.requirePermission
 import com.kinetix.gateway.client.RiskServiceClient
-import com.kinetix.gateway.dto.PaginatedJobsResponse
-import com.kinetix.gateway.dto.toResponse
-import com.kinetix.gateway.dto.ChartDataGatewayResponse
+import com.kinetix.gateway.dtos.PaginatedJobsResponse
+import com.kinetix.gateway.dtos.toResponse
+import com.kinetix.gateway.dtos.ChartDataGatewayResponse
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.patch
 import io.ktor.http.*

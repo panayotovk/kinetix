@@ -2,7 +2,7 @@ package com.kinetix.gateway.routes
 
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.gateway.client.PriceServiceClient
-import com.kinetix.gateway.dto.toResponse
+import com.kinetix.gateway.dtos.toResponse
 import io.github.smiley4.ktoropenapi.get
 import io.ktor.http.*
 import io.ktor.server.response.*

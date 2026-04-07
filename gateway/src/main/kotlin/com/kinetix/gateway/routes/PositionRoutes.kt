@@ -4,7 +4,7 @@ import com.kinetix.common.model.BookId
 import com.kinetix.gateway.client.InstrumentServiceClient
 import com.kinetix.gateway.client.InstrumentSummary
 import com.kinetix.gateway.client.PositionServiceClient
-import com.kinetix.gateway.dto.*
+import com.kinetix.gateway.dtos.*
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*

@@ -523,9 +523,9 @@ interface RiskServiceClient {
     suspend fun getMarketDataQuantDiff(bookId: String, dataType: String, instrumentId: String, baseManifestId: String, targetManifestId: String): kotlinx.serialization.json.JsonObject?
     suspend fun getEodTimeline(bookId: String, from: String, to: String): EodTimelineSummary?
     suspend fun getChartData(bookId: String, from: Instant, to: Instant): ChartDataSummary
-    suspend fun calculateCrossBookVaR(params: com.kinetix.gateway.dto.CrossBookVaRCalculationParams): CrossBookVaRResultSummary?
+    suspend fun calculateCrossBookVaR(params: com.kinetix.gateway.dtos.CrossBookVaRCalculationParams): CrossBookVaRResultSummary?
     suspend fun getCrossBookVaR(groupId: String): CrossBookVaRResultSummary?
-    suspend fun calculateStressedCrossBookVaR(params: com.kinetix.gateway.dto.StressedCrossBookVaRParams): StressedCrossBookVaRResultSummary?
+    suspend fun calculateStressedCrossBookVaR(params: com.kinetix.gateway.dtos.StressedCrossBookVaRParams): StressedCrossBookVaRResultSummary?
     suspend fun getIntradayPnl(bookId: String, from: String, to: String): kotlinx.serialization.json.JsonObject?
     suspend fun calculateLiquidityRisk(bookId: String, baseVar: Double): kotlinx.serialization.json.JsonObject?
     suspend fun getLatestLiquidityRisk(bookId: String): kotlinx.serialization.json.JsonObject?

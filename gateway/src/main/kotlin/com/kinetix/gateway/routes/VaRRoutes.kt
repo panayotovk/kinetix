@@ -1,9 +1,9 @@
 package com.kinetix.gateway.routes
 
 import com.kinetix.gateway.client.RiskServiceClient
-import com.kinetix.gateway.dto.VaRCalculationRequest
-import com.kinetix.gateway.dto.toParams
-import com.kinetix.gateway.dto.toResponse
+import com.kinetix.gateway.dtos.VaRCalculationRequest
+import com.kinetix.gateway.dtos.toParams
+import com.kinetix.gateway.dtos.toResponse
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.*

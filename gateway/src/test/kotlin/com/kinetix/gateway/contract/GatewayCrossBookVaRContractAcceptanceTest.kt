@@ -1,7 +1,7 @@
 package com.kinetix.gateway.contract
 
 import com.kinetix.gateway.client.*
-import com.kinetix.gateway.dto.CrossBookVaRCalculationParams
+import com.kinetix.gateway.dtos.CrossBookVaRCalculationParams
 import com.kinetix.gateway.module
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe

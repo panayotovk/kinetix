@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap
 data class AlertWebSocketMessage(
     val type: String = "alert",
     val eventType: String,
-    val alert: com.kinetix.gateway.dto.AlertEventDto,
+    val alert: com.kinetix.gateway.dtos.AlertEventDto,
 )
 
 class AlertBroadcaster {
