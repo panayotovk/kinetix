@@ -90,8 +90,6 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
             {renderHeader('Delta ($/1%)', 'delta', 'py-1 px-4 text-right')}
             {renderHeader('Gamma', 'gamma', 'py-1 px-4 text-right')}
             {renderHeader('Vega ($/1pp)', 'vega', 'py-1 px-4 text-right')}
-            {renderHeader('Theta ($/day)', 'theta', 'py-1 px-4 text-right')}
-            {renderHeader('Rho ($/bp)', 'rho', 'py-1 pl-4 text-right')}
           </tr>
         </thead>
         <tbody>
@@ -101,8 +99,6 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
               <td className="py-1 px-4 text-right">{formatNum(g.delta)}</td>
               <td className="py-1 px-4 text-right">{formatNum(g.gamma)}</td>
               <td className="py-1 px-4 text-right">{formatNum(g.vega)}</td>
-              <td className="py-1 px-4 text-right text-slate-400">{'\u2014'}</td>
-              <td className="py-1 pl-4 text-right text-slate-400">{'\u2014'}</td>
             </tr>
           ))}
           <tr data-testid="greeks-row-TOTAL" className="border-t border-slate-300 font-semibold">
@@ -110,11 +106,51 @@ export function RiskSensitivities({ greeksResult, pvValue }: RiskSensitivitiesPr
             <td className="py-1 px-4 text-right">{formatNum(totals.delta)}</td>
             <td className="py-1 px-4 text-right">{formatNum(totals.gamma)}</td>
             <td className="py-1 px-4 text-right">{formatNum(totals.vega)}</td>
-            <td className="py-1 px-4 text-right">{formatNum(greeksResult.theta)}</td>
-            <td className="py-1 pl-4 text-right">{formatNum(greeksResult.rho)}</td>
           </tr>
         </tbody>
       </table>
+      <div className="flex gap-4 mt-2">
+        <div data-testid="greek-summary-theta" className="flex flex-col items-start gap-0.5 px-3 py-1.5 bg-slate-50 rounded text-xs">
+          <span className="inline-flex items-center gap-1 text-slate-500 font-medium">
+            Theta ($/day)
+            <Info
+              data-testid="greek-info-theta"
+              className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
+              onClick={() => togglePopover('theta')}
+            />
+          </span>
+          {openPopover === 'theta' && (
+            <span
+              data-testid="greek-popover-theta"
+              className="absolute mt-6 w-64 rounded bg-slate-800 px-3 py-2 text-xs font-normal text-white text-justify shadow-lg z-10"
+            >
+              <button data-testid="greek-popover-theta-close" className="float-right ml-2 text-slate-400 hover:text-white" onClick={closePopover}><X className="h-3 w-3" /></button>
+              {greekDescriptions.theta}
+            </span>
+          )}
+          <span className="font-semibold text-slate-800">{formatNum(greeksResult.theta)}</span>
+        </div>
+        <div data-testid="greek-summary-rho" className="flex flex-col items-start gap-0.5 px-3 py-1.5 bg-slate-50 rounded text-xs">
+          <span className="inline-flex items-center gap-1 text-slate-500 font-medium">
+            Rho ($/bp)
+            <Info
+              data-testid="greek-info-rho"
+              className="h-3 w-3 cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
+              onClick={() => togglePopover('rho')}
+            />
+          </span>
+          {openPopover === 'rho' && (
+            <span
+              data-testid="greek-popover-rho"
+              className="absolute mt-6 w-64 rounded bg-slate-800 px-3 py-2 text-xs font-normal text-white text-justify shadow-lg z-10"
+            >
+              <button data-testid="greek-popover-rho-close" className="float-right ml-2 text-slate-400 hover:text-white" onClick={closePopover}><X className="h-3 w-3" /></button>
+              {greekDescriptions.rho}
+            </span>
+          )}
+          <span className="font-semibold text-slate-800">{formatNum(greeksResult.rho)}</span>
+        </div>
+      </div>
       <p data-testid="greeks-footnote" className="text-[10px] text-slate-400 mt-1">
         Sensitivities show change in VaR per unit bump. Hover headers for details.
       </p>

@@ -24,23 +24,29 @@ describe('RiskSensitivities', () => {
     expect(screen.getByTestId('greeks-row-COMMODITY')).toBeInTheDocument()
   })
 
-  it('renders theta and rho in the total row of the heatmap', () => {
+  it('renders theta and rho as summary cards outside the table', () => {
     render(<RiskSensitivities greeksResult={greeksResult} />)
 
-    const totalRow = screen.getByTestId('greeks-row-TOTAL')
-    expect(totalRow).toHaveTextContent('-123.45')
-    expect(totalRow).toHaveTextContent('456.78')
+    const thetaCard = screen.getByTestId('greek-summary-theta')
+    expect(thetaCard).toBeInTheDocument()
+    expect(thetaCard).toHaveTextContent('-123.45')
+
+    const rhoCard = screen.getByTestId('greek-summary-rho')
+    expect(rhoCard).toBeInTheDocument()
+    expect(rhoCard).toHaveTextContent('456.78')
   })
 
-  it('renders dashes for theta and rho in asset class rows', () => {
+  it('does not render theta or rho columns in the asset class table', () => {
     render(<RiskSensitivities greeksResult={greeksResult} />)
 
+    const table = screen.getByTestId('greeks-heatmap')
+    const headers = Array.from(table.querySelectorAll('th')).map((h) => h.textContent ?? '')
+    expect(headers.join(' ')).not.toMatch(/Theta/)
+    expect(headers.join(' ')).not.toMatch(/Rho/)
+
+    // Per-asset rows must have exactly 4 cells: asset class, delta, gamma, vega
     const equityRow = screen.getByTestId('greeks-row-EQUITY')
-    const cells = equityRow.querySelectorAll('td')
-    const thetaCell = cells[4]
-    const rhoCell = cells[5]
-    expect(thetaCell).toHaveTextContent('\u2014')
-    expect(rhoCell).toHaveTextContent('\u2014')
+    expect(equityRow.querySelectorAll('td')).toHaveLength(4)
   })
 
   it('formats greek values with commas and decimals', () => {
@@ -95,14 +101,19 @@ describe('RiskSensitivities', () => {
   })
 
   describe('Greek unit labels', () => {
-    it('displays unit labels on Delta, Vega, Theta, and Rho column headers', () => {
+    it('displays unit labels on Delta and Vega column headers in the table', () => {
       render(<RiskSensitivities greeksResult={greeksResult} />)
 
       const table = screen.getByTestId('greeks-heatmap')
       expect(table).toHaveTextContent('Delta ($/1%)')
       expect(table).toHaveTextContent('Vega ($/1pp)')
-      expect(table).toHaveTextContent('Theta ($/day)')
-      expect(table).toHaveTextContent('Rho ($/bp)')
+    })
+
+    it('displays unit labels on Theta and Rho in the summary cards', () => {
+      render(<RiskSensitivities greeksResult={greeksResult} />)
+
+      expect(screen.getByTestId('greek-summary-theta')).toHaveTextContent('Theta ($/day)')
+      expect(screen.getByTestId('greek-summary-rho')).toHaveTextContent('Rho ($/bp)')
     })
 
     it('displays Gamma header without inline unit label', () => {
