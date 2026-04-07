@@ -1,10 +1,10 @@
 package com.kinetix.acceptance
 
 import com.kinetix.regulatory.client.RiskOrchestratorClient
-import com.kinetix.regulatory.dto.FrtbCalculationResponse
-import com.kinetix.regulatory.dto.FrtbHistoryResponse
-import com.kinetix.regulatory.dto.FrtbResultResponse
-import com.kinetix.regulatory.dto.RiskClassChargeDto
+import com.kinetix.regulatory.dtos.FrtbCalculationResponse
+import com.kinetix.regulatory.dtos.FrtbHistoryResponse
+import com.kinetix.regulatory.dtos.FrtbResultResponse
+import com.kinetix.regulatory.dtos.RiskClassChargeDto
 import com.kinetix.regulatory.module
 import com.kinetix.regulatory.persistence.DatabaseConfig
 import com.kinetix.regulatory.persistence.DatabaseFactory
