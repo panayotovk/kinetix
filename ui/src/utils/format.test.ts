@@ -82,15 +82,15 @@ describe('formatNum', () => {
 
 describe('pnlColorClass', () => {
   it('returns green for positive amounts', () => {
-    expect(pnlColorClass('150.00')).toBe('text-green-600')
+    expect(pnlColorClass('150.00')).toBe('text-green-600 dark:text-green-400')
   })
 
   it('returns red for negative amounts', () => {
-    expect(pnlColorClass('-50.00')).toBe('text-red-600')
+    expect(pnlColorClass('-50.00')).toBe('text-red-600 dark:text-red-400')
   })
 
   it('returns gray for zero', () => {
-    expect(pnlColorClass('0.00')).toBe('text-gray-500')
+    expect(pnlColorClass('0.00')).toBe('text-gray-500 dark:text-gray-400')
   })
 })
 

@@ -77,11 +77,11 @@ export function HierarchySelector({ hierarchy }: HierarchySelectorProps) {
       {open && (
         <div
           data-testid="hierarchy-panel"
-          className="absolute left-0 mt-1 min-w-64 bg-white border border-slate-200 rounded-lg shadow-lg z-20 text-slate-800"
+          className="absolute left-0 mt-1 min-w-64 bg-white dark:bg-surface-800 border border-slate-200 dark:border-surface-700 rounded-lg shadow-lg z-20 text-slate-800 dark:text-slate-100"
         >
           {/* Clickable breadcrumb at top of panel */}
           {breadcrumb.length > 1 && (
-            <div className="px-3 pt-2 pb-1 border-b border-slate-100">
+            <div className="px-3 pt-2 pb-1 border-b border-slate-100 dark:border-surface-700">
               <HierarchyBreadcrumb breadcrumb={breadcrumb} onNavigate={handleNavigate} />
             </div>
           )}
@@ -96,16 +96,16 @@ export function HierarchySelector({ hierarchy }: HierarchySelectorProps) {
                 <button
                   data-testid="hierarchy-firm-option"
                   onClick={handleFirmClick}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 transition-colors ${
-                    selection.level === 'firm' ? 'font-semibold text-primary-700' : ''
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-surface-700 transition-colors ${
+                    selection.level === 'firm' ? 'font-semibold text-primary-700 dark:text-primary-400' : ''
                   }`}
                 >
                   Firm (All)
                 </button>
 
                 {selection.level === 'firm' && divisions.length > 0 && (
-                  <div className="border-t border-slate-100 mt-1 pt-1">
-                    <div className="px-3 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  <div className="border-t border-slate-100 dark:border-surface-700 mt-1 pt-1">
+                    <div className="px-3 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                       Divisions
                     </div>
                     {divisions.map((div) => (
@@ -113,7 +113,7 @@ export function HierarchySelector({ hierarchy }: HierarchySelectorProps) {
                         key={div.id}
                         data-testid={`hierarchy-division-${div.id}`}
                         onClick={() => handleDivisionClick(div.id)}
-                        className="w-full text-left px-4 py-1.5 text-sm hover:bg-slate-50 transition-colors"
+                        className="w-full text-left px-4 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-surface-700 transition-colors"
                       >
                         {div.name}
                         <span className="ml-1 text-xs text-slate-400">
@@ -125,8 +125,8 @@ export function HierarchySelector({ hierarchy }: HierarchySelectorProps) {
                 )}
 
                 {selection.level === 'division' && desks.length > 0 && (
-                  <div className="border-t border-slate-100 mt-1 pt-1">
-                    <div className="px-3 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  <div className="border-t border-slate-100 dark:border-surface-700 mt-1 pt-1">
+                    <div className="px-3 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                       Desks
                     </div>
                     {desks.map((desk) => (
@@ -134,8 +134,8 @@ export function HierarchySelector({ hierarchy }: HierarchySelectorProps) {
                         key={desk.id}
                         data-testid={`hierarchy-desk-${desk.id}`}
                         onClick={() => handleDeskClick(desk.id)}
-                        className={`w-full text-left px-4 py-1.5 text-sm hover:bg-slate-50 transition-colors ${
-                          selection.deskId === desk.id ? 'font-semibold text-primary-700' : ''
+                        className={`w-full text-left px-4 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-surface-700 transition-colors ${
+                          selection.deskId === desk.id ? 'font-semibold text-primary-700 dark:text-primary-400' : ''
                         }`}
                       >
                         {desk.name}
@@ -148,8 +148,8 @@ export function HierarchySelector({ hierarchy }: HierarchySelectorProps) {
                 )}
 
                 {(selection.level === 'desk' || selection.level === 'book') && books.length > 0 && (
-                  <div className="border-t border-slate-100 mt-1 pt-1">
-                    <div className="px-3 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  <div className="border-t border-slate-100 dark:border-surface-700 mt-1 pt-1">
+                    <div className="px-3 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                       Books
                     </div>
                     {books.map((book) => (
@@ -157,8 +157,8 @@ export function HierarchySelector({ hierarchy }: HierarchySelectorProps) {
                         key={book.bookId}
                         data-testid={`hierarchy-book-${book.bookId}`}
                         onClick={() => handleBookClick(book.bookId)}
-                        className={`w-full text-left px-4 py-1.5 text-sm hover:bg-slate-50 transition-colors ${
-                          selection.bookId === book.bookId ? 'font-semibold text-primary-700' : ''
+                        className={`w-full text-left px-4 py-1.5 text-sm hover:bg-slate-50 dark:hover:bg-surface-700 transition-colors ${
+                          selection.bookId === book.bookId ? 'font-semibold text-primary-700 dark:text-primary-400' : ''
                         }`}
                       >
                         {book.bookId}

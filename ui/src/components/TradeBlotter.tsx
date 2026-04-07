@@ -146,13 +146,13 @@ export function TradeBlotter({ bookId }: TradeBlotterProps) {
           placeholder="Filter by instrument..."
           value={instrumentFilter}
           onChange={(e) => handleInstrumentFilter(e.target.value)}
-          className="border border-slate-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          className="border border-slate-300 dark:border-surface-600 rounded-md px-3 py-1.5 text-sm bg-white dark:bg-surface-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         />
         <select
           data-testid="filter-side"
           value={sideFilter}
           onChange={(e) => handleSideFilter(e.target.value as '' | 'BUY' | 'SELL')}
-          className="border border-slate-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          className="border border-slate-300 dark:border-surface-600 rounded-md px-3 py-1.5 text-sm bg-white dark:bg-surface-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         >
           <option value="">All Sides</option>
           <option value="BUY">BUY</option>
@@ -164,7 +164,7 @@ export function TradeBlotter({ bookId }: TradeBlotterProps) {
             aria-label="Filter by instrument type"
             value={instrumentTypeFilter}
             onChange={(e) => handleInstrumentTypeFilter(e.target.value)}
-            className="border border-slate-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            className="border border-slate-300 dark:border-surface-600 rounded-md px-3 py-1.5 text-sm bg-white dark:bg-surface-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           >
             <option value="">All Types</option>
             {instrumentTypeOptions.map(({ value, label, count }) => (
@@ -192,7 +192,7 @@ export function TradeBlotter({ bookId }: TradeBlotterProps) {
         <button
           data-testid="csv-export-button"
           onClick={() => exportToCsv(filtered)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-surface-600 rounded-md hover:bg-slate-50 dark:hover:bg-surface-700 transition-colors"
         >
           <Download className="h-4 w-4" />
           Export CSV
@@ -201,21 +201,21 @@ export function TradeBlotter({ bookId }: TradeBlotterProps) {
 
       <Card>
         <div className="-mx-4 -my-4 overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200">
+          <table className="min-w-full divide-y divide-slate-200 dark:divide-surface-700">
             <thead>
-              <tr className="bg-slate-50">
-                <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">Time</th>
-                <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">Instrument</th>
-                <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">Name</th>
-                <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">Type</th>
-                <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">Side</th>
-                <th className="px-4 py-2 text-right text-sm font-semibold text-slate-700">Qty</th>
-                <th className="px-4 py-2 text-right text-sm font-semibold text-slate-700">Price</th>
-                <th className="px-4 py-2 text-right text-sm font-semibold text-slate-700">Notional</th>
-                <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700">Status</th>
+              <tr className="bg-slate-50 dark:bg-surface-800">
+                <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Time</th>
+                <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Instrument</th>
+                <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Name</th>
+                <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Type</th>
+                <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Side</th>
+                <th className="px-4 py-2 text-right text-sm font-semibold text-slate-700 dark:text-slate-300">Qty</th>
+                <th className="px-4 py-2 text-right text-sm font-semibold text-slate-700 dark:text-slate-300">Price</th>
+                <th className="px-4 py-2 text-right text-sm font-semibold text-slate-700 dark:text-slate-300">Notional</th>
+                <th className="px-4 py-2 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-surface-700">
               {paginatedTrades.length === 0 && filtered.length === 0 && trades.length > 0 ? (
                 <tr>
                   <td colSpan={9} className="px-4 py-8 text-center">
@@ -227,18 +227,18 @@ export function TradeBlotter({ bookId }: TradeBlotterProps) {
                   <tr
                     key={trade.tradeId}
                     data-testid={`trade-row-${trade.tradeId}`}
-                    className="hover:bg-slate-50 transition-colors"
+                    className="hover:bg-slate-50 dark:hover:bg-surface-700 transition-colors"
                   >
-                    <td className="px-4 py-2 text-sm text-slate-600">
+                    <td className="px-4 py-2 text-sm text-slate-600 dark:text-slate-400">
                       {formatTimestamp(trade.tradedAt)}
                     </td>
                     <td className="px-4 py-2 text-sm font-medium">{trade.instrumentId}</td>
-                    <td className="px-4 py-2 text-sm text-slate-600">{trade.displayName || trade.instrumentId}</td>
+                    <td className="px-4 py-2 text-sm text-slate-600 dark:text-slate-400">{trade.displayName || trade.instrumentId}</td>
                     <td className="px-4 py-2 text-sm">{trade.instrumentType ? <InstrumentTypeBadge instrumentType={trade.instrumentType} /> : '—'}</td>
                     <td
                       data-testid={`trade-side-${trade.tradeId}`}
                       className={`px-4 py-2 text-sm font-medium ${
-                        trade.side === 'BUY' ? 'text-green-600' : 'text-red-600'
+                        trade.side === 'BUY' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                       }`}
                     >
                       {trade.side}
@@ -255,7 +255,7 @@ export function TradeBlotter({ bookId }: TradeBlotterProps) {
                       {formatCompactCurrency(notional(trade))}
                     </td>
                     <td className="px-4 py-2 text-sm">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                         FILLED
                       </span>
                     </td>
@@ -268,7 +268,7 @@ export function TradeBlotter({ bookId }: TradeBlotterProps) {
       </Card>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-3 text-sm text-slate-600">
+        <div className="flex items-center justify-between mt-3 text-sm text-slate-600 dark:text-slate-400">
           <span>
             Showing {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, filtered.length)} of {filtered.length}
           </span>
@@ -276,7 +276,7 @@ export function TradeBlotter({ bookId }: TradeBlotterProps) {
             <button
               disabled={safePage === 0}
               onClick={() => setPage((p) => p - 1)}
-              className="px-3 py-1 rounded border border-slate-300 disabled:opacity-40 hover:bg-slate-50 transition-colors"
+              className="px-3 py-1 rounded border border-slate-300 dark:border-surface-600 disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-surface-700 transition-colors"
             >
               Previous
             </button>
@@ -284,7 +284,7 @@ export function TradeBlotter({ bookId }: TradeBlotterProps) {
             <button
               disabled={safePage >= totalPages - 1}
               onClick={() => setPage((p) => p + 1)}
-              className="px-3 py-1 rounded border border-slate-300 disabled:opacity-40 hover:bg-slate-50 transition-colors"
+              className="px-3 py-1 rounded border border-slate-300 dark:border-surface-600 disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-surface-700 transition-colors"
             >
               Next
             </button>

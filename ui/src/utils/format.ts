@@ -90,7 +90,7 @@ export function formatNum(value: string | number, decimals = 2): string {
 
 export function pnlColorClass(amount: string): string {
   const value = Number(amount)
-  if (value > 0) return 'text-green-600'
-  if (value < 0) return 'text-red-600'
-  return 'text-gray-500'
+  if (value > 0) return 'text-green-600 dark:text-green-400'
+  if (value < 0) return 'text-red-600 dark:text-red-400'
+  return 'text-gray-500 dark:text-gray-400'
 }

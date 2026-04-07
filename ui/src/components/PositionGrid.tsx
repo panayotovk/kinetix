@@ -278,13 +278,13 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
         <Card>
           <div className="text-center -my-1">
             <div className="text-xs text-slate-500">Positions</div>
-            <div className="text-lg font-bold text-slate-800">{positions.length}</div>
+            <div className="text-lg font-bold text-slate-800 dark:text-slate-100">{positions.length}</div>
           </div>
         </Card>
         <Card>
           <div className="text-center -my-1">
             <div className="text-xs text-slate-500">Market Value</div>
-            <div className="text-lg font-bold text-slate-800" title={formatMoney(String(totalMarketValue), currency)}>
+            <div className="text-lg font-bold text-slate-800 dark:text-slate-100" title={formatMoney(String(totalMarketValue), currency)}>
               {formatCompactCurrency(totalMarketValue)}
             </div>
           </div>
@@ -301,7 +301,7 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
           <Card>
             <div data-testid="summary-book-delta" className="text-center -my-1">
               <div className="text-xs text-slate-500">Book Delta</div>
-              <div className="text-lg font-bold text-slate-800">
+              <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
                 {formatCompactCurrency(totalDelta)}
               </div>
             </div>
@@ -311,7 +311,7 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
           <Card>
             <div data-testid="summary-book-var" className="text-center -my-1">
               <div className="text-xs text-slate-500">Book VaR</div>
-              <div className="text-lg font-bold text-slate-800">
+              <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
                 {formatCompactCurrency(totalVar)}
               </div>
             </div>
@@ -326,7 +326,7 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
             aria-label="Filter by instrument type"
             value={instrumentTypeFilter}
             onChange={(e) => handleInstrumentTypeFilter(e.target.value)}
-            className="border border-slate-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            className="border border-slate-300 dark:border-surface-600 rounded-md px-3 py-1.5 text-sm bg-white dark:bg-surface-700 dark:text-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           >
             <option value="">All Types</option>
             {instrumentTypeOptions.map(({ value, label, count }) => (
@@ -356,7 +356,7 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
         <button
           data-testid="csv-export-button"
           onClick={handleExportCsv}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-slate-600 border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-surface-600 rounded-md hover:bg-slate-50 dark:hover:bg-surface-700 transition-colors"
         >
           <Download className="h-4 w-4" />
           Export CSV
@@ -365,17 +365,17 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
           <button
             data-testid="column-settings-button"
             onClick={() => setSettingsOpen((v) => !v)}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-slate-600 border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-surface-600 rounded-md hover:bg-slate-50 dark:hover:bg-surface-700 transition-colors"
           >
             <Settings className="h-4 w-4" />
             Columns
           </button>
           {settingsOpen && (
-            <div data-testid="column-settings-dropdown" className="absolute right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-10 py-1">
+            <div data-testid="column-settings-dropdown" className="absolute right-0 mt-1 w-48 bg-white dark:bg-surface-800 border border-slate-200 dark:border-surface-700 rounded-lg shadow-lg z-10 py-1">
               {POSITION_COLUMNS.map((col) => (
                 <label
                   key={col.key}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-surface-700 cursor-pointer"
                 >
                   <input
                     type="checkbox"
@@ -401,14 +401,14 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
                   <th
                     data-testid="header-group-position"
                     colSpan={positionColCount}
-                    className="px-4 py-1.5 text-left text-xs font-semibold text-slate-500 bg-slate-50 border-b border-slate-200"
+                    className="px-4 py-1.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-surface-800 border-b border-slate-200 dark:border-surface-700"
                   >
                     Position Details
                   </th>
                   <th
                     data-testid="header-group-risk"
                     colSpan={riskColCount}
-                    className="px-4 py-1.5 text-left text-xs font-semibold text-indigo-600 bg-indigo-50 border-b border-slate-200"
+                    className="px-4 py-1.5 text-left text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 border-b border-slate-200 dark:border-surface-700"
                   >
                     Risk Metrics
                   </th>
@@ -418,7 +418,7 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
                 {visiblePositionCols.map((col) => (
                   <th
                     key={col.key}
-                    className={`px-4 py-2 text-${col.align} text-sm font-semibold text-slate-700`}
+                    className={`px-4 py-2 text-${col.align} text-sm font-semibold text-slate-700 dark:text-slate-300`}
                   >
                     {col.label}
                   </th>
@@ -427,28 +427,28 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
                   <>
                     <th
                       data-testid="sort-delta"
-                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 bg-indigo-50/50 cursor-pointer select-none"
+                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 cursor-pointer select-none"
                       onClick={() => handleSort('delta')}
                     >
                       Delta {sortIcon('delta')}
                     </th>
                     <th
                       data-testid="sort-gamma"
-                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 bg-indigo-50/50 cursor-pointer select-none"
+                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 cursor-pointer select-none"
                       onClick={() => handleSort('gamma')}
                     >
                       Gamma {sortIcon('gamma')}
                     </th>
                     <th
                       data-testid="sort-vega"
-                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 bg-indigo-50/50 cursor-pointer select-none"
+                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 cursor-pointer select-none"
                       onClick={() => handleSort('vega')}
                     >
                       Vega {sortIcon('vega')}
                     </th>
                     <th
                       data-testid="sort-var-pct"
-                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 bg-indigo-50/50 cursor-pointer select-none"
+                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 cursor-pointer select-none"
                       onClick={() => handleSort('var-pct')}
                     >
                       VaR Contrib % {sortIcon('var-pct')}
@@ -479,7 +479,7 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
                   instrument: <td key="instrument" className="px-4 py-2 text-sm font-medium">{pos.instrumentId}</td>,
                   displayName: <td key="displayName" className="px-4 py-2 text-sm text-slate-600 dark:text-slate-400">{pos.displayName || '—'}</td>,
                   instrumentType: <td key="instrumentType" className="px-4 py-2 text-sm">{pos.instrumentType ? <InstrumentTypeBadge instrumentType={pos.instrumentType} /> : '—'}</td>,
-                  assetClass: <td key="assetClass" className="px-4 py-2 text-sm text-slate-600">{pos.assetClass}</td>,
+                  assetClass: <td key="assetClass" className="px-4 py-2 text-sm text-slate-600 dark:text-slate-400">{pos.assetClass}</td>,
                   quantity: <td key="quantity" className="px-4 py-2 text-sm text-right">{formatQuantity(pos.quantity)}</td>,
                   avgCost: <td key="avgCost" className="px-4 py-2 text-sm text-right">{formatMoney(pos.averageCost.amount, pos.averageCost.currency)}</td>,
                   marketPrice: <td key="marketPrice" className={`px-4 py-2 text-sm text-right ${reconnecting ? 'opacity-60' : ''}`}>{formatMoney(pos.marketPrice.amount, pos.marketPrice.currency)}</td>,
@@ -501,25 +501,25 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
                       <>
                         <td
                           data-testid={`delta-${pos.instrumentId}`}
-                          className="px-4 py-2 text-sm text-right bg-indigo-50/30"
+                          className="px-4 py-2 text-sm text-right bg-indigo-50/30 dark:bg-indigo-950/10"
                         >
                           {risk?.delta != null ? formatNum(risk.delta) : '\u2014'}
                         </td>
                         <td
                           data-testid={`gamma-${pos.instrumentId}`}
-                          className="px-4 py-2 text-sm text-right bg-indigo-50/30"
+                          className="px-4 py-2 text-sm text-right bg-indigo-50/30 dark:bg-indigo-950/10"
                         >
                           {risk?.gamma != null ? formatNum(risk.gamma) : '\u2014'}
                         </td>
                         <td
                           data-testid={`vega-${pos.instrumentId}`}
-                          className="px-4 py-2 text-sm text-right bg-indigo-50/30"
+                          className="px-4 py-2 text-sm text-right bg-indigo-50/30 dark:bg-indigo-950/10"
                         >
                           {risk?.vega != null ? formatNum(risk.vega) : '\u2014'}
                         </td>
                         <td
                           data-testid={`var-pct-${pos.instrumentId}`}
-                          className="px-4 py-2 text-sm text-right font-medium bg-indigo-50/30"
+                          className="px-4 py-2 text-sm text-right font-medium bg-indigo-50/30 dark:bg-indigo-950/10"
                         >
                           {risk ? `${formatNum(risk.percentageOfTotal)}%` : '\u2014'}
                         </td>
@@ -539,19 +539,19 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
             data-testid="pagination-prev"
             disabled={currentPage === 1}
             onClick={() => setCurrentPage((p) => p - 1)}
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-slate-300 dark:border-surface-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-surface-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <ChevronLeft className="h-4 w-4" />
             Previous
           </button>
-          <span data-testid="pagination-info" className="text-sm text-slate-600">
+          <span data-testid="pagination-info" className="text-sm text-slate-600 dark:text-slate-400">
             Page {currentPage} of {totalPages}
           </span>
           <button
             data-testid="pagination-next"
             disabled={currentPage === totalPages}
             onClick={() => setCurrentPage((p) => p + 1)}
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-slate-300 dark:border-surface-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-surface-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Next
             <ChevronRight className="h-4 w-4" />

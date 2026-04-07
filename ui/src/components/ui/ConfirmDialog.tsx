@@ -81,11 +81,11 @@ export function ConfirmDialog({
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
         tabIndex={-1}
-        className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6 outline-none"
+        className="bg-white dark:bg-surface-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6 outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 id="confirm-dialog-title" className="text-lg font-semibold text-slate-800">{title}</h3>
-        <div className="mt-2 text-sm text-slate-600">{message}</div>
+        <h3 id="confirm-dialog-title" className="text-lg font-semibold text-slate-800 dark:text-slate-100">{title}</h3>
+        <div className="mt-2 text-sm text-slate-600 dark:text-slate-400">{message}</div>
         <div className="mt-6 flex justify-end gap-3">
           <Button
             variant="secondary"
