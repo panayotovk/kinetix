@@ -39,8 +39,8 @@ describe('ScenarioDetailPanel', () => {
     const assetClassBtn = screen.getByTestId('view-toggle-asset-class')
     const positionsBtn = screen.getByTestId('view-toggle-positions')
 
-    expect(assetClassBtn.className).toContain('bg-indigo-600')
-    expect(positionsBtn.className).not.toContain('bg-indigo-600')
+    expect(assetClassBtn.className).toContain('bg-primary-600')
+    expect(positionsBtn.className).not.toContain('bg-primary-600')
   })
 
   it('should pass asset class filter when switching from AssetClassImpactView to positions', () => {

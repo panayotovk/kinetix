@@ -246,7 +246,7 @@ export function JobHistory({ bookId, refreshSignal = 0, onCompareJobs }: JobHist
                       const ids = Array.from(selectedForCompare)
                       onCompareJobs(ids[0], ids[1])
                     }}
-                    className="px-3 py-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-300 dark:border-indigo-600 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+                    className="px-3 py-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 border border-primary-300 dark:border-primary-600 rounded-md hover:bg-primary-100 dark:hover:bg-primary-900/20 transition-colors"
                   >
                     Compare Selected
                   </button>

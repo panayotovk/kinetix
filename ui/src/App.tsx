@@ -394,7 +394,7 @@ function App() {
                       <button
                         data-testid="whatif-open-button"
                         onClick={() => setWhatIfOpen(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-indigo-600 border border-indigo-300 rounded-md hover:bg-indigo-50 transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 border border-primary-300 dark:border-primary-700 rounded-md hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors"
                       >
                         <FlaskRound className="h-4 w-4" />
                         What-If

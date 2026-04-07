@@ -98,7 +98,7 @@ export function RegulatoryDashboard({
             {grandTotal > 0 && (
               <>
                 <div
-                  className="bg-indigo-500 text-white rounded px-2 py-1"
+                  className="bg-primary-500 text-white rounded px-2 py-1"
                   style={{ flex: totalSbm / grandTotal }}
                 >
                   SbM {((totalSbm / grandTotal) * 100).toFixed(0)}%

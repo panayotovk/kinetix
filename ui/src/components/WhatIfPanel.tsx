@@ -152,7 +152,7 @@ export function WhatIfPanel({
               onClick={() => setRebalancingMode(false)}
               className={`px-2.5 py-1 transition-colors ${
                 !rebalancingMode
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-primary-600 text-white'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-surface-700'
               }`}
             >
@@ -164,7 +164,7 @@ export function WhatIfPanel({
               onClick={() => setRebalancingMode(true)}
               className={`px-2.5 py-1 transition-colors ${
                 rebalancingMode
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-primary-600 text-white'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-surface-700'
               }`}
             >
@@ -324,7 +324,7 @@ export function WhatIfPanel({
           data-testid="whatif-add-trade"
           aria-label="Add another hypothetical trade"
           onClick={onAddTrade}
-          className="flex items-center gap-1.5 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors"
+          className="flex items-center gap-1.5 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium transition-colors"
         >
           <Plus className="h-4 w-4" />
           Add another trade

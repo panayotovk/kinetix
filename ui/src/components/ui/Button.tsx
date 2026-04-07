@@ -2,7 +2,7 @@ import { type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { Loader2 } from 'lucide-react'
 
 const variants = {
-  primary: 'bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-500',
+  primary: 'bg-primary-600 hover:bg-primary-700 text-white focus:ring-primary-500',
   danger: 'bg-red-500 hover:bg-red-600 text-white focus:ring-red-400',
   success: 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500',
   secondary: 'border border-slate-300 text-slate-700 hover:bg-slate-50 focus:ring-slate-400',
