@@ -1,6 +1,7 @@
 package com.kinetix.position.service
 
 import com.kinetix.common.model.*
+import com.kinetix.common.model.instrument.InstrumentTypeCode
 import com.kinetix.position.kafka.TradeEventPublisher
 import com.kinetix.position.model.LimitBreach
 import com.kinetix.position.persistence.PositionRepository
@@ -60,7 +61,7 @@ class TradeBookingService(
             quantity = command.quantity,
             price = command.price,
             tradedAt = command.tradedAt,
-            instrumentType = command.instrumentType,
+            instrumentType = InstrumentTypeCode.fromString(command.instrumentType),
             strategyId = command.strategyId,
             counterpartyId = command.counterpartyId,
         )

@@ -1,6 +1,7 @@
 package com.kinetix.gateway.routes
 
 import com.kinetix.common.model.*
+import com.kinetix.common.model.instrument.InstrumentTypeCode
 import com.kinetix.gateway.client.BookTradeCommand
 import com.kinetix.gateway.client.BookTradeResult
 import com.kinetix.gateway.client.InstrumentServiceClient
@@ -462,7 +463,7 @@ class PositionRoutesTest : FunSpec({
             quantity = BigDecimal("100"),
             averageCost = usd("150.00"),
             marketPrice = usd("155.00"),
-            instrumentType = "UNKNOWN",
+            instrumentType = null,
         )
         coEvery { positionClient.getPositions(BookId("port-1")) } returns listOf(position)
         coEvery { instrumentClient.fetchAll() } returns listOf(
@@ -488,7 +489,7 @@ class PositionRoutesTest : FunSpec({
             quantity = BigDecimal("50"),
             averageCost = usd("100.00"),
             marketPrice = usd("100.00"),
-            instrumentType = "CASH_EQUITY",
+            instrumentType = InstrumentTypeCode.CASH_EQUITY,
         )
         coEvery { positionClient.getPositions(BookId("port-1")) } returns listOf(position)
         coEvery { instrumentClient.fetchAll() } returns emptyList()

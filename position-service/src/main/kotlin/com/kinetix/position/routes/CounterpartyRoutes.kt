@@ -60,7 +60,7 @@ fun Route.counterpartyRoutes(counterpartyExposureService: CounterpartyExposureSe
                 quantity = it.quantity.toPlainString(),
                 priceAmount = it.price.amount.toPlainString(),
                 priceCurrency = it.price.currency.currencyCode,
-                instrumentType = it.instrumentType,
+                instrumentType = it.instrumentType?.name,
                 counterpartyId = it.counterpartyId,
             )
         })

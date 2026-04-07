@@ -36,7 +36,7 @@ fun Position.toResponse(instruments: Map<String, InstrumentSummary>): PositionRe
         marketValue = marketValue.toDto(),
         unrealizedPnl = unrealizedPnl.toDto(),
         realizedPnl = realizedPnl.toDto(),
-        instrumentType = instrument?.instrumentType ?: instrumentType,
+        instrumentType = instrument?.instrumentType ?: instrumentType?.name,
         displayName = instrument?.displayName,
         strategyId = strategyId,
         strategyType = strategyType,

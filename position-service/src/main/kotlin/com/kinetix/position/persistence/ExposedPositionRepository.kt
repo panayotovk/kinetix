@@ -1,6 +1,7 @@
 package com.kinetix.position.persistence
 
 import com.kinetix.common.model.*
+import com.kinetix.common.model.instrument.InstrumentTypeCode
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
@@ -29,7 +30,7 @@ class ExposedPositionRepository(private val db: Database? = null) : PositionRepo
             it[currency] = position.currency.currencyCode
             it[updatedAt] = OffsetDateTime.now(ZoneOffset.UTC)
             it[realizedPnlAmount] = position.realizedPnl.amount
-            it[instrumentType] = position.instrumentType ?: "UNKNOWN"
+            it[instrumentType] = position.instrumentType?.name ?: "UNKNOWN"
             it[strategyId] = position.strategyId
         }
     }
@@ -50,7 +51,7 @@ class ExposedPositionRepository(private val db: Database? = null) : PositionRepo
             this[PositionsTable.currency] = position.currency.currencyCode
             this[PositionsTable.updatedAt] = OffsetDateTime.now(ZoneOffset.UTC)
             this[PositionsTable.realizedPnlAmount] = position.realizedPnl.amount
-            this[PositionsTable.instrumentType] = position.instrumentType ?: "UNKNOWN"
+            this[PositionsTable.instrumentType] = position.instrumentType?.name ?: "UNKNOWN"
             this[PositionsTable.strategyId] = position.strategyId
         }
     }
@@ -125,7 +126,7 @@ class ExposedPositionRepository(private val db: Database? = null) : PositionRepo
             this[PositionsTable.realizedPnlAmount],
             Currency.getInstance(this[PositionsTable.currency]),
         ),
-        instrumentType = this[PositionsTable.instrumentType],
+        instrumentType = InstrumentTypeCode.fromString(this[PositionsTable.instrumentType]),
         strategyId = this[PositionsTable.strategyId],
         strategyType = this.getOrNull(TradeStrategiesTable.strategyType),
         strategyName = this.getOrNull(TradeStrategiesTable.name),

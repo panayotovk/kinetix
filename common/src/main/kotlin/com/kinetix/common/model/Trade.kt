@@ -1,5 +1,6 @@
 package com.kinetix.common.model
 
+import com.kinetix.common.model.instrument.InstrumentTypeCode
 import java.math.BigDecimal
 import java.time.Instant
 
@@ -16,7 +17,7 @@ data class Trade(
     val status: TradeStatus = TradeStatus.LIVE,
     val originalTradeId: TradeId? = null,
     val counterpartyId: String? = null,
-    val instrumentType: String? = null,
+    val instrumentType: InstrumentTypeCode? = null,
     val strategyId: String? = null,
 ) {
     init {

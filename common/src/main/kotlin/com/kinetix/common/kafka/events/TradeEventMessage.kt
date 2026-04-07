@@ -46,6 +46,7 @@ data class TradeEventMessage(
             userId = event.userId,
             userRole = event.userRole,
             auditEventType = event.auditEventType,
+            instrumentType = event.trade.instrumentType?.name,
         )
     }
 }

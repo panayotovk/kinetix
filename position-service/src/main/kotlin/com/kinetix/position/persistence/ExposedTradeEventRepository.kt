@@ -1,6 +1,7 @@
 package com.kinetix.position.persistence
 
 import com.kinetix.common.model.*
+import com.kinetix.common.model.instrument.InstrumentTypeCode
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
@@ -31,7 +32,7 @@ class ExposedTradeEventRepository(private val db: Database? = null) : TradeEvent
             it[status] = trade.status.name
             it[originalTradeId] = trade.originalTradeId?.value
             it[counterpartyId] = trade.counterpartyId
-            it[instrumentType] = trade.instrumentType ?: "UNKNOWN"
+            it[instrumentType] = trade.instrumentType?.name ?: "UNKNOWN"
             it[strategyId] = trade.strategyId
         }
     }
@@ -100,7 +101,7 @@ class ExposedTradeEventRepository(private val db: Database? = null) : TradeEvent
         status = TradeStatus.valueOf(this[TradeEventsTable.status]),
         originalTradeId = this[TradeEventsTable.originalTradeId]?.let { TradeId(it) },
         counterpartyId = this[TradeEventsTable.counterpartyId],
-        instrumentType = this[TradeEventsTable.instrumentType],
+        instrumentType = InstrumentTypeCode.fromString(this[TradeEventsTable.instrumentType]),
         strategyId = this[TradeEventsTable.strategyId],
     )
 }

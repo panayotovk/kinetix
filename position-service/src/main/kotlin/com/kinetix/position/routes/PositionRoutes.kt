@@ -1,6 +1,7 @@
 package com.kinetix.position.routes
 
 import com.kinetix.common.model.*
+import com.kinetix.common.model.instrument.InstrumentTypeCode
 import com.kinetix.position.model.LimitBreach
 import com.kinetix.position.persistence.PositionRepository
 import com.kinetix.position.service.*
@@ -158,7 +159,7 @@ private fun Position.toResponse() = PositionResponse(
     marketValue = marketValue.toDto(),
     unrealizedPnl = unrealizedPnl.toDto(),
     realizedPnl = realizedPnl.toDto(),
-    instrumentType = instrumentType,
+    instrumentType = instrumentType?.name,
     strategyId = strategyId,
     strategyType = strategyType,
     strategyName = strategyName,
@@ -176,7 +177,7 @@ private fun Trade.toResponse() = TradeResponse(
     eventType = eventType.name,
     status = status.name,
     originalTradeId = originalTradeId?.value,
-    instrumentType = instrumentType,
+    instrumentType = instrumentType?.name,
     strategyId = strategyId,
     counterpartyId = counterpartyId,
 )

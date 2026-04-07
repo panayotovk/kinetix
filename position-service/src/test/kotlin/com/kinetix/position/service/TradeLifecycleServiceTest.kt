@@ -1,6 +1,7 @@
 package com.kinetix.position.service
 
 import com.kinetix.common.model.*
+import com.kinetix.common.model.instrument.InstrumentTypeCode
 import com.kinetix.position.kafka.TradeEventPublisher
 import com.kinetix.position.persistence.PositionRepository
 import com.kinetix.position.persistence.TradeEventRepository
@@ -336,9 +337,9 @@ class TradeLifecycleServiceTest : FunSpec({
 
     test("amend trade preserves instrumentType from original trade") {
         val originalTrade = trade(tradeId = "t-1", side = Side.BUY, quantity = "100", price = "150.00")
-            .copy(instrumentType = "CASH_EQUITY")
+            .copy(instrumentType = InstrumentTypeCode.CASH_EQUITY)
         val existingPosition = position(quantity = "100", averageCost = "150.00")
-            .copy(instrumentType = "CASH_EQUITY")
+            .copy(instrumentType = InstrumentTypeCode.CASH_EQUITY)
 
         coEvery { tradeRepo.findByTradeId(TradeId("t-1")) } returns originalTrade
         coEvery { tradeRepo.save(any()) } just runs
@@ -360,15 +361,15 @@ class TradeLifecycleServiceTest : FunSpec({
 
         val result = service.handleAmend(command)
 
-        result.trade.instrumentType shouldBe "CASH_EQUITY"
-        result.position.instrumentType shouldBe "CASH_EQUITY"
+        result.trade.instrumentType shouldBe InstrumentTypeCode.CASH_EQUITY
+        result.position.instrumentType shouldBe InstrumentTypeCode.CASH_EQUITY
     }
 
     test("cancel trade preserves instrumentType on position") {
         val originalTrade = trade(tradeId = "t-1", side = Side.BUY, quantity = "100", price = "150.00")
-            .copy(instrumentType = "EQUITY_OPTION")
+            .copy(instrumentType = InstrumentTypeCode.EQUITY_OPTION)
         val existingPosition = position(quantity = "100", averageCost = "150.00")
-            .copy(instrumentType = "EQUITY_OPTION")
+            .copy(instrumentType = InstrumentTypeCode.EQUITY_OPTION)
 
         coEvery { tradeRepo.findByTradeId(TradeId("t-1")) } returns originalTrade
         coEvery { tradeRepo.updateStatus(TradeId("t-1"), TradeStatus.CANCELLED) } just runs
@@ -382,7 +383,7 @@ class TradeLifecycleServiceTest : FunSpec({
 
         val result = service.handleCancel(command)
 
-        result.position.instrumentType shouldBe "EQUITY_OPTION"
+        result.position.instrumentType shouldBe InstrumentTypeCode.EQUITY_OPTION
     }
 
     test("cancel publishes trade event for the cancelled trade") {

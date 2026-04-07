@@ -1,6 +1,7 @@
 package com.kinetix.gateway.client
 
 import com.kinetix.common.model.*
+import com.kinetix.common.model.instrument.InstrumentTypeCode
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
 import java.time.Instant
@@ -530,7 +531,7 @@ fun PositionDto.toDomain() = Position(
     quantity = BigDecimal(quantity),
     averageCost = averageCost.toDomainMoney(),
     marketPrice = marketPrice.toDomainMoney(),
-    instrumentType = instrumentType,
+    instrumentType = InstrumentTypeCode.fromString(instrumentType),
     strategyId = strategyId,
     strategyType = strategyType,
     strategyName = strategyName,
@@ -545,7 +546,7 @@ fun TradeDto.toDomain() = Trade(
     quantity = BigDecimal(quantity),
     price = price.toDomainMoney(),
     tradedAt = Instant.parse(tradedAt),
-    instrumentType = instrumentType,
+    instrumentType = InstrumentTypeCode.fromString(instrumentType),
 )
 
 fun BookTradeResponseDto.toDomain() = BookTradeResult(

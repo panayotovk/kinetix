@@ -1,5 +1,6 @@
 package com.kinetix.common.model
 
+import com.kinetix.common.model.instrument.InstrumentTypeCode
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -234,23 +235,23 @@ class PositionTest : FunSpec({
 
     test("apply trade propagates instrumentType to position without one") {
         val pos = Position.empty(BOOK, AAPL, AssetClass.EQUITY, USD)
-        val trade = buyTrade(quantity = "100", price = "50.00").copy(instrumentType = "CASH_EQUITY")
+        val trade = buyTrade(quantity = "100", price = "50.00").copy(instrumentType = InstrumentTypeCode.CASH_EQUITY)
         val updated = pos.applyTrade(trade)
-        updated.instrumentType shouldBe "CASH_EQUITY"
+        updated.instrumentType shouldBe InstrumentTypeCode.CASH_EQUITY
     }
 
     test("apply trade does not overwrite existing instrumentType") {
-        val pos = position().copy(instrumentType = "EQUITY_OPTION")
-        val trade = buyTrade(quantity = "50", price = "55.00").copy(instrumentType = "CASH_EQUITY")
+        val pos = position().copy(instrumentType = InstrumentTypeCode.EQUITY_OPTION)
+        val trade = buyTrade(quantity = "50", price = "55.00").copy(instrumentType = InstrumentTypeCode.CASH_EQUITY)
         val updated = pos.applyTrade(trade)
-        updated.instrumentType shouldBe "EQUITY_OPTION"
+        updated.instrumentType shouldBe InstrumentTypeCode.EQUITY_OPTION
     }
 
     test("apply trade with null instrumentType preserves existing position type") {
-        val pos = position().copy(instrumentType = "CASH_EQUITY")
+        val pos = position().copy(instrumentType = InstrumentTypeCode.CASH_EQUITY)
         val trade = buyTrade(quantity = "50", price = "55.00")
         val updated = pos.applyTrade(trade)
-        updated.instrumentType shouldBe "CASH_EQUITY"
+        updated.instrumentType shouldBe InstrumentTypeCode.CASH_EQUITY
     }
 
     // Factory

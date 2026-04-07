@@ -33,7 +33,7 @@ fun Trade.toResponse(instruments: Map<String, InstrumentSummary>): TradeResponse
         price = price.toDto(),
         tradedAt = tradedAt.toString(),
         status = status.name,
-        instrumentType = instrument?.instrumentType ?: instrumentType,
+        instrumentType = instrument?.instrumentType ?: instrumentType?.name,
         displayName = instrument?.displayName,
     )
 }

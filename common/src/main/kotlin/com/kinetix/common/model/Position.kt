@@ -1,5 +1,6 @@
 package com.kinetix.common.model
 
+import com.kinetix.common.model.instrument.InstrumentTypeCode
 import java.math.BigDecimal
 import java.math.MathContext
 import java.util.Currency
@@ -12,7 +13,7 @@ data class Position(
     val averageCost: Money,
     val marketPrice: Money,
     val realizedPnl: Money = Money.zero(marketPrice.currency),
-    val instrumentType: String? = null,
+    val instrumentType: InstrumentTypeCode? = null,
     val strategyId: String? = null,
     val strategyType: String? = null,
     val strategyName: String? = null,
