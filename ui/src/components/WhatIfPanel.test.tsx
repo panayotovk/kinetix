@@ -79,10 +79,11 @@ describe('WhatIfPanel', () => {
     expect(screen.getByTestId('whatif-price-0')).toBeInTheDocument()
   })
 
-  it('does not render when closed', () => {
+  it('is hidden when closed', () => {
     render(<WhatIfPanel {...defaultProps} open={false} />)
 
-    expect(screen.queryByTestId('whatif-panel')).not.toBeInTheDocument()
+    expect(screen.getByTestId('whatif-panel')).toHaveAttribute('aria-hidden', 'true')
+    expect(screen.getByTestId('whatif-panel')).toHaveClass('translate-x-full')
   })
 
   it('renders before/after comparison when results are available', () => {

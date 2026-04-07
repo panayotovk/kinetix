@@ -124,22 +124,22 @@ export function WhatIfPanel({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [open, onClose])
 
-  if (!open) return null
-
   return (
     <>
     {/* Backdrop */}
     <div
       data-testid="whatif-backdrop"
-      className="fixed inset-0 z-40 bg-black/30"
+      className={`fixed inset-0 z-40 bg-black/30 transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       onClick={onClose}
+      aria-hidden={!open}
     />
     <div
       data-testid="whatif-panel"
       role="dialog"
       aria-modal="true"
       aria-labelledby="whatif-title"
-      className="fixed top-0 right-0 h-full w-[420px] bg-white dark:bg-surface-800 border-l border-slate-200 dark:border-surface-700 shadow-xl z-50 flex flex-col transition-transform duration-300"
+      aria-hidden={!open}
+      className={`fixed top-0 right-0 h-full w-[420px] bg-white dark:bg-surface-800 border-l border-slate-200 dark:border-surface-700 shadow-xl z-50 flex flex-col transition-transform duration-300 ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-surface-700 bg-slate-50 dark:bg-surface-900">

@@ -204,10 +204,12 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
   }
 
   const sortIcon = (field: SortField) => {
-    if (sortField !== field) return null
-    return sortDir === 'desc'
-      ? <ChevronDown className="inline h-3 w-3" />
-      : <ChevronUp className="inline h-3 w-3" />
+    if (sortField === field) {
+      return sortDir === 'desc'
+        ? <ChevronDown className="inline h-3 w-3" />
+        : <ChevronUp className="inline h-3 w-3" />
+    }
+    return <ChevronDown className="inline h-3 w-3 opacity-0 group-hover/sort:opacity-40 transition-opacity" />
   }
 
   const BOOK_COLUMN: ColumnDef = { key: 'book', label: 'Book', align: 'left' }
@@ -427,28 +429,28 @@ export function PositionGrid({ positions, connected, reconnecting, lastConnected
                   <>
                     <th
                       data-testid="sort-delta"
-                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 cursor-pointer select-none"
+                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 cursor-pointer select-none group/sort"
                       onClick={() => handleSort('delta')}
                     >
                       Delta {sortIcon('delta')}
                     </th>
                     <th
                       data-testid="sort-gamma"
-                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 cursor-pointer select-none"
+                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 cursor-pointer select-none group/sort"
                       onClick={() => handleSort('gamma')}
                     >
                       Gamma {sortIcon('gamma')}
                     </th>
                     <th
                       data-testid="sort-vega"
-                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 cursor-pointer select-none"
+                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 cursor-pointer select-none group/sort"
                       onClick={() => handleSort('vega')}
                     >
                       Vega {sortIcon('vega')}
                     </th>
                     <th
                       data-testid="sort-var-pct"
-                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 cursor-pointer select-none"
+                      className="px-4 py-2 text-right text-sm font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20 cursor-pointer select-none group/sort"
                       onClick={() => handleSort('var-pct')}
                     >
                       VaR Contrib % {sortIcon('var-pct')}
