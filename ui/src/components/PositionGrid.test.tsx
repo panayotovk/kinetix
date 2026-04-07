@@ -565,6 +565,73 @@ describe('PositionGrid', () => {
     })
   })
 
+  describe('instrument text search', () => {
+    const positions = [
+      makePosition({ instrumentId: 'AAPL', displayName: 'Apple Inc' }),
+      makePosition({ instrumentId: 'GOOGL', displayName: 'Alphabet Inc' }),
+      makePosition({ instrumentId: 'EUR_USD', displayName: 'Euro FX' }),
+    ]
+
+    it('renders a text search input', () => {
+      render(<PositionGrid positions={positions} />)
+
+      expect(screen.getByTestId('instrument-search')).toBeInTheDocument()
+    })
+
+    it('filters positions by instrumentId substring (case-insensitive)', async () => {
+      const user = userEvent.setup()
+      render(<PositionGrid positions={positions} />)
+
+      await user.type(screen.getByTestId('instrument-search'), 'eur')
+
+      expect(screen.getByTestId('position-row-EUR_USD')).toBeInTheDocument()
+      expect(screen.queryByTestId('position-row-AAPL')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('position-row-GOOGL')).not.toBeInTheDocument()
+    })
+
+    it('filters positions by displayName substring (case-insensitive)', async () => {
+      const user = userEvent.setup()
+      render(<PositionGrid positions={positions} />)
+
+      await user.type(screen.getByTestId('instrument-search'), 'alpha')
+
+      expect(screen.getByTestId('position-row-GOOGL')).toBeInTheDocument()
+      expect(screen.queryByTestId('position-row-AAPL')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('position-row-EUR_USD')).not.toBeInTheDocument()
+    })
+
+    it('resets to page 1 when search text changes', async () => {
+      const user = userEvent.setup()
+      const manyPositions = [
+        ...Array.from({ length: 55 }, (_, i) =>
+          makePosition({ instrumentId: `STOCK-${i}`, displayName: `Stock ${i}` }),
+        ),
+        makePosition({ instrumentId: 'EUR_USD', displayName: 'Euro FX' }),
+      ]
+      render(<PositionGrid positions={manyPositions} />)
+
+      // Navigate to page 2
+      await user.click(screen.getByTestId('pagination-next'))
+      expect(screen.getByTestId('pagination-info')).toHaveTextContent('Page 2')
+
+      // Type search text — should reset to page 1
+      await user.type(screen.getByTestId('instrument-search'), 'EUR')
+      expect(screen.queryByTestId('pagination-controls')).not.toBeInTheDocument()
+      expect(screen.getByTestId('position-row-EUR_USD')).toBeInTheDocument()
+    })
+
+    it('shows all positions when search text is cleared', async () => {
+      const user = userEvent.setup()
+      render(<PositionGrid positions={positions} />)
+
+      await user.type(screen.getByTestId('instrument-search'), 'AAPL')
+      expect(screen.getAllByTestId(/^position-row-/)).toHaveLength(1)
+
+      await user.clear(screen.getByTestId('instrument-search'))
+      expect(screen.getAllByTestId(/^position-row-/)).toHaveLength(3)
+    })
+  })
+
   describe('instrument type filter', () => {
     const positions = [
       makePosition({ instrumentId: 'AAPL', instrumentType: 'CASH_EQUITY' }),
