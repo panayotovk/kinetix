@@ -67,13 +67,15 @@ test.describe('VaR Dashboard - Data Display', () => {
     await expect(fxRow).toContainText('10.00')
     await expect(fxRow).toContainText('200.00')
 
-    // TOTAL row
+    // TOTAL row (delta, gamma, vega only — theta/rho are in summary boxes)
     const totalRow = page.getByTestId('greeks-row-TOTAL')
     await expect(totalRow).toContainText('2,000.00') // delta
     await expect(totalRow).toContainText('35.00') // gamma
     await expect(totalRow).toContainText('1,000.00') // vega
-    await expect(totalRow).toContainText('-350.00') // theta
-    await expect(totalRow).toContainText('120.00') // rho
+
+    // Theta and Rho in summary boxes
+    await expect(page.getByTestId('greek-summary-theta')).toContainText('-350.00')
+    await expect(page.getByTestId('greek-summary-rho')).toContainText('120.00')
 
     // PV display - 5000000 -> "$5M"
     await expect(page.getByTestId('pv-display')).toContainText('$5M')
@@ -296,7 +298,7 @@ test.describe('VaR Dashboard - Info Popovers', () => {
 
     await page.getByTestId('greek-info-delta').click()
     await expect(page.getByTestId('greek-popover-delta')).toBeVisible()
-    await expect(page.getByTestId('greek-popover-delta')).toContainText('underlying asset')
+    await expect(page.getByTestId('greek-popover-delta')).toContainText('the underlying')
 
     await page.getByTestId('greek-popover-delta-close').click()
     await expect(page.getByTestId('greek-popover-delta')).not.toBeVisible()

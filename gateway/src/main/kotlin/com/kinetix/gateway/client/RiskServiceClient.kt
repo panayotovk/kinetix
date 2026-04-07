@@ -28,6 +28,7 @@ data class ValuationResultSummary(
     val greeks: GreeksResultSummary? = null,
     val pvValue: Double? = null,
     val valuationDate: String? = null,
+    val positionGreeks: List<PositionGreekSummary> = emptyList(),
 )
 
 data class StressTestParams(
@@ -117,6 +118,15 @@ data class GreeksResultSummary(
     val theta: Double,
     val rho: Double,
     val calculatedAt: Instant,
+)
+
+data class PositionGreekSummary(
+    val instrumentId: String,
+    val delta: Double,
+    val gamma: Double,
+    val vega: Double,
+    val theta: Double,
+    val rho: Double,
 )
 
 data class RiskClassChargeItem(

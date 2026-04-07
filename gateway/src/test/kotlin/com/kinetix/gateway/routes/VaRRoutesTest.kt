@@ -1,6 +1,7 @@
 package com.kinetix.gateway.routes
 
 import com.kinetix.gateway.client.ComponentBreakdownItem
+import com.kinetix.gateway.client.PositionGreekSummary
 import com.kinetix.gateway.client.RiskServiceClient
 import com.kinetix.gateway.client.VaRCalculationParams
 import com.kinetix.gateway.client.ValuationResultSummary
@@ -178,6 +179,52 @@ class VaRRoutesTest : FunSpec({
             val response = client.get("/api/v1/risk/var/port-1")
             response.status shouldBe HttpStatusCode.OK
             coVerify { riskClient.getLatestVaR("port-1", null) }
+        }
+    }
+
+    // --- Position Greeks ---
+
+    test("GET returns positionGreeks in response when result has option Greeks") {
+        val resultWithGreeks = sampleResult.copy(
+            positionGreeks = listOf(
+                PositionGreekSummary(
+                    instrumentId = "AAPL-OPT-JAN25-150C",
+                    delta = 0.65,
+                    gamma = 0.03,
+                    vega = 125.4,
+                    theta = -8.2,
+                    rho = 12.1,
+                ),
+            ),
+        )
+        coEvery { riskClient.getLatestVaR("port-1", null) } returns resultWithGreeks
+
+        testApplication {
+            application { module(riskClient) }
+            val response = client.get("/api/v1/risk/var/port-1")
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            val positionGreeks = body["positionGreeks"]?.jsonArray
+            positionGreeks?.size shouldBe 1
+            val greek = positionGreeks!![0].jsonObject
+            greek["instrumentId"]?.jsonPrimitive?.content shouldBe "AAPL-OPT-JAN25-150C"
+            greek["delta"]?.jsonPrimitive?.content shouldBe "0.650000"
+            greek["gamma"]?.jsonPrimitive?.content shouldBe "0.030000"
+            greek["vega"]?.jsonPrimitive?.content shouldBe "125.400000"
+            greek["theta"]?.jsonPrimitive?.content shouldBe "-8.200000"
+            greek["rho"]?.jsonPrimitive?.content shouldBe "12.100000"
+        }
+    }
+
+    test("GET returns null positionGreeks field when result has no option Greeks") {
+        coEvery { riskClient.getLatestVaR("port-1", null) } returns sampleResult
+
+        testApplication {
+            application { module(riskClient) }
+            val response = client.get("/api/v1/risk/var/port-1")
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["positionGreeks"]?.jsonNull shouldBe JsonNull
         }
     }
 

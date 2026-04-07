@@ -120,6 +120,16 @@ data class ComponentBreakdownDto(
 )
 
 @Serializable
+data class PositionGreekClientDto(
+    val instrumentId: String,
+    val delta: String,
+    val gamma: String,
+    val vega: String,
+    val theta: String,
+    val rho: String,
+)
+
+@Serializable
 data class ValuationResultDto(
     val bookId: String,
     val calculationType: String,
@@ -132,6 +142,7 @@ data class ValuationResultDto(
     val computedOutputs: List<String>? = null,
     val pvValue: String? = null,
     val valuationDate: String? = null,
+    val positionGreeks: List<PositionGreekClientDto> = emptyList(),
 )
 
 @Serializable
@@ -578,6 +589,16 @@ fun ValuationResultDto.toDomain() = ValuationResultSummary(
     greeks = greeks?.toDomain(),
     pvValue = pvValue?.toDoubleOrNull(),
     valuationDate = valuationDate,
+    positionGreeks = positionGreeks.map { pg ->
+        PositionGreekSummary(
+            instrumentId = pg.instrumentId,
+            delta = pg.delta.toDouble(),
+            gamma = pg.gamma.toDouble(),
+            vega = pg.vega.toDouble(),
+            theta = pg.theta.toDouble(),
+            rho = pg.rho.toDouble(),
+        )
+    },
 )
 
 fun StressTestResultDto.toDomain() = StressTestResultSummary(
