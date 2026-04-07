@@ -169,7 +169,7 @@ entity PrimeBrokerReconciliation {
 ------------------------------------------------------------
 
 config {
-    risk_check_timeout: Duration = 100.milliseconds
+    risk_check_timeout: Duration = 500.milliseconds
     arrival_price_staleness: Duration = 30.seconds
     auto_resolve_break_threshold: Decimal = 1.0
     manual_review_notional_threshold: Decimal = 10000

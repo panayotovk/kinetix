@@ -378,7 +378,7 @@ rule CalculateKeyRateDurations {
         -- Computes per-tenor DV01 using tent function bumps on a fitted yield curve.
         -- NOT bumped-VaR quantities — these are analytical PV sensitivities.
         --
-        -- Standard tenor grid: 1M, 3M, 6M, 1Y, 2Y, 3Y, 5Y, 7Y, 10Y, 20Y, 30Y.
+        -- Standard tenor grid: 2Y, 5Y, 10Y, 30Y (simplified; full grid is aspirational).
         -- For each tenor bucket t_i:
         --   1. Fit yield curve using monotone cubic spline through CurvePoints.
         --   2. Apply tent function bump: rate increases linearly from 0 at t_{i-1}

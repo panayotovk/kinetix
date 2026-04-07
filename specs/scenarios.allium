@@ -242,7 +242,7 @@ entity StressTestResultRecord {
 ------------------------------------------------------------
 
 config {
-    reverse_stress_max_iterations: Integer = 100
+    reverse_stress_max_iterations: Integer = 500
     reverse_stress_tolerance: Decimal = 0.10
     max_replay_period_days: Integer = 252
     scenario_retention: Duration = 3650.days
