@@ -1,15 +1,20 @@
 package com.kinetix.risk.seed
 
 import com.kinetix.risk.model.ChartBucketRow
+import com.kinetix.risk.model.CounterpartyExposureSnapshot
 import com.kinetix.risk.model.JobPhaseName
 import com.kinetix.risk.model.RunLabel
 import com.kinetix.risk.model.RunStatus
 import com.kinetix.risk.model.ValuationJob
+import com.kinetix.risk.persistence.CounterpartyExposureRepository
 import com.kinetix.risk.service.ValuationJobRecorder
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldHaveAtLeastSize
 import io.kotest.matchers.collections.shouldNotBeEmpty
+import io.kotest.matchers.doubles.shouldBeGreaterThan
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldStartWith
 import java.time.Instant
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -50,6 +55,57 @@ class DevDataSeederTest : FunSpec({
         val bookIds = jobs.map { it.bookId }.toSet()
         bookIds.size shouldBe 8
     }
+
+    test("seeds counterparty exposure snapshots for all demo counterparties") {
+        val recorder = InMemoryValuationJobRecorder()
+        val exposureRepo = InMemoryCounterpartyExposureRepository()
+
+        val seeder = DevDataSeeder(recorder, exposureRepo)
+        seeder.seed()
+
+        exposureRepo.snapshots shouldHaveAtLeastSize 6
+        val counterpartyIds = exposureRepo.snapshots.map { it.counterpartyId }.toSet()
+        counterpartyIds shouldBe setOf("CP-GS", "CP-JPM", "CP-BARC", "CP-DB", "CP-UBS", "CP-CITI")
+
+        exposureRepo.snapshots.forEach { snapshot ->
+            snapshot.currentNetExposure shouldBeGreaterThan 0.0
+            snapshot.peakPfe shouldBeGreaterThan 0.0
+            snapshot.pfeProfile shouldHaveAtLeastSize 1
+            snapshot.currency shouldBe "USD"
+        }
+    }
+
+    test("skips counterparty exposure seeding when data already exists") {
+        val recorder = InMemoryValuationJobRecorder()
+        val exposureRepo = InMemoryCounterpartyExposureRepository()
+        // Pre-populate so seeder detects existing data
+        exposureRepo.snapshots.add(DevDataSeeder.buildCounterpartyExposureSnapshots().first())
+
+        val seeder = DevDataSeeder(recorder, exposureRepo)
+        seeder.seed()
+
+        // Should still have only the 1 pre-existing snapshot, not 6+1
+        exposureRepo.snapshots.size shouldBe 1
+    }
+
+    test("each counterparty has netting set exposures and realistic PFE profiles") {
+        val snapshots = DevDataSeeder.buildCounterpartyExposureSnapshots()
+
+        snapshots.forEach { snapshot ->
+            val nettingSets = snapshot.nettingSetExposures!!
+            nettingSets shouldHaveAtLeastSize 1
+            nettingSets.forEach { ns ->
+                ns.nettingSetId shouldStartWith "NS-"
+                ns.netExposure shouldBeGreaterThan 0.0
+                ns.peakPfe shouldBeGreaterThan 0.0
+            }
+
+            snapshot.pfeProfile.forEach { tenor ->
+                tenor.pfe95 shouldBeGreaterThan tenor.expectedExposure
+                tenor.pfe99 shouldBeGreaterThan tenor.pfe95
+            }
+        }
+    }
 })
 
 private class InMemoryValuationJobRecorder : ValuationJobRecorder {
@@ -82,4 +138,23 @@ private class InMemoryValuationJobRecorder : ValuationJobRecorder {
         deleteCount += count
         return count
     }
+}
+
+private class InMemoryCounterpartyExposureRepository : CounterpartyExposureRepository {
+    val snapshots = mutableListOf<CounterpartyExposureSnapshot>()
+
+    override suspend fun save(snapshot: CounterpartyExposureSnapshot): CounterpartyExposureSnapshot {
+        val saved = snapshot.copy(id = (snapshots.size + 1).toLong())
+        snapshots.add(saved)
+        return saved
+    }
+
+    override suspend fun findLatestByCounterpartyId(counterpartyId: String): CounterpartyExposureSnapshot? =
+        snapshots.filter { it.counterpartyId == counterpartyId }.maxByOrNull { it.calculatedAt }
+
+    override suspend fun findByCounterpartyId(counterpartyId: String, limit: Int): List<CounterpartyExposureSnapshot> =
+        snapshots.filter { it.counterpartyId == counterpartyId }.sortedByDescending { it.calculatedAt }.take(limit)
+
+    override suspend fun findLatestForAllCounterparties(): List<CounterpartyExposureSnapshot> =
+        snapshots.groupBy { it.counterpartyId }.mapValues { (_, v) -> v.maxByOrNull { it.calculatedAt }!! }.values.toList()
 }

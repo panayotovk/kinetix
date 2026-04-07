@@ -1,8 +1,12 @@
 package com.kinetix.risk.seed
 
+import com.kinetix.risk.model.CounterpartyExposureSnapshot
+import com.kinetix.risk.model.ExposureAtTenor
+import com.kinetix.risk.model.NettingSetExposure
 import com.kinetix.risk.model.RunStatus
 import com.kinetix.risk.model.TriggerType
 import com.kinetix.risk.model.ValuationJob
+import com.kinetix.risk.persistence.CounterpartyExposureRepository
 import com.kinetix.risk.service.ValuationJobRecorder
 import org.slf4j.LoggerFactory
 import java.time.Instant
@@ -14,10 +18,16 @@ import kotlin.math.sin
 
 class DevDataSeeder(
     private val jobRecorder: ValuationJobRecorder,
+    private val exposureRepository: CounterpartyExposureRepository? = null,
 ) {
     private val log = LoggerFactory.getLogger(DevDataSeeder::class.java)
 
     suspend fun seed() {
+        seedVaRTimeline()
+        seedCounterpartyExposures()
+    }
+
+    private suspend fun seedVaRTimeline() {
         val existing = jobRecorder.findByTriggeredBy("SEED")
         if (existing.isNotEmpty()) {
             // SEED data uses timestamps relative to Instant.now() at seed time.
@@ -35,6 +45,25 @@ class DevDataSeeder(
         }
 
         log.info("VaR timeline seeding complete")
+    }
+
+    private suspend fun seedCounterpartyExposures() {
+        if (exposureRepository == null) return
+
+        val existing = exposureRepository.findLatestForAllCounterparties()
+        if (existing.isNotEmpty()) {
+            log.info("Counterparty exposure seed data already present ({} rows), skipping", existing.size)
+            return
+        }
+
+        val snapshots = buildCounterpartyExposureSnapshots()
+        log.info("Seeding {} counterparty exposure snapshots", snapshots.size)
+
+        for (snapshot in snapshots) {
+            exposureRepository.save(snapshot)
+        }
+
+        log.info("Counterparty exposure seeding complete")
     }
 
     companion object {
@@ -63,6 +92,67 @@ class DevDataSeeder(
             val seed = bookIndex * 1000.0 + dayIndex * 10.0 + hourIndex
             return sin(seed * 0.7) * 0.5 + sin(seed * 1.3) * 0.3 + sin(seed * 2.1) * 0.2
         }
+
+        private data class CounterpartyProfile(
+            val counterpartyId: String,
+            val currentNetExposure: Double,
+            val peakPfe: Double,
+            val cva: Double?,
+            val collateralHeld: Double,
+            val collateralPosted: Double,
+            val nettingSetId: String,
+            val agreementType: String,
+        )
+
+        private val COUNTERPARTY_PROFILES = listOf(
+            CounterpartyProfile("CP-GS", 2_000_000.0, 1_800_000.0, 12_500.0, 500_000.0, 150_000.0, "NS-GS-001", "ISDA"),
+            CounterpartyProfile("CP-JPM", 6_500_000.0, 7_200_000.0, 45_000.0, 1_200_000.0, 300_000.0, "NS-JPM-001", "ISDA"),
+            CounterpartyProfile("CP-BARC", 3_200_000.0, 3_800_000.0, 22_000.0, 800_000.0, 200_000.0, "NS-BARC-001", "ISDA"),
+            CounterpartyProfile("CP-DB", 1_800_000.0, 2_100_000.0, 9_800.0, 400_000.0, 100_000.0, "NS-DB-001", "ISDA"),
+            CounterpartyProfile("CP-UBS", 4_100_000.0, 4_600_000.0, 28_000.0, 950_000.0, 250_000.0, "NS-UBS-001", "CSA"),
+            CounterpartyProfile("CP-CITI", 5_300_000.0, 5_900_000.0, 36_000.0, 1_100_000.0, 280_000.0, "NS-CITI-001", "CSA"),
+        )
+
+        private val PFE_TENORS = listOf(
+            Triple("3M", 0.25, 0.9),
+            Triple("6M", 0.5, 0.85),
+            Triple("1Y", 1.0, 0.75),
+            Triple("2Y", 2.0, 0.6),
+            Triple("3Y", 3.0, 0.5),
+            Triple("5Y", 5.0, 0.35),
+        )
+
+        fun buildCounterpartyExposureSnapshots(): List<CounterpartyExposureSnapshot> =
+            COUNTERPARTY_PROFILES.map { profile ->
+                val pfeProfile = PFE_TENORS.map { (tenor, tenorYears, decayFactor) ->
+                    val ee = profile.peakPfe * decayFactor * 0.7
+                    val pfe95 = profile.peakPfe * decayFactor * 0.85
+                    val pfe99 = profile.peakPfe * decayFactor
+                    ExposureAtTenor(tenor, tenorYears, ee, pfe95, pfe99)
+                }
+
+                CounterpartyExposureSnapshot(
+                    counterpartyId = profile.counterpartyId,
+                    calculatedAt = Instant.now(),
+                    pfeProfile = pfeProfile,
+                    currentNetExposure = profile.currentNetExposure,
+                    peakPfe = profile.peakPfe,
+                    cva = profile.cva,
+                    cvaEstimated = false,
+                    currency = "USD",
+                    nettingSetExposures = listOf(
+                        NettingSetExposure(
+                            nettingSetId = profile.nettingSetId,
+                            agreementType = profile.agreementType,
+                            netExposure = profile.currentNetExposure,
+                            peakPfe = profile.peakPfe,
+                        ),
+                    ),
+                    collateralHeld = profile.collateralHeld,
+                    collateralPosted = profile.collateralPosted,
+                    netNetExposure = profile.currentNetExposure - profile.collateralHeld + profile.collateralPosted,
+                )
+            }
 
         fun buildSeedJobs(): List<ValuationJob> {
             val now = Instant.now()

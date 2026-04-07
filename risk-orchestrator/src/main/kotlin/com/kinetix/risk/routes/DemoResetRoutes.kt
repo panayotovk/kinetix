@@ -1,5 +1,6 @@
 package com.kinetix.risk.routes
 
+import com.kinetix.risk.persistence.CounterpartyExposureRepository
 import com.kinetix.risk.seed.DevDataSeeder
 import com.kinetix.risk.service.ValuationJobRecorder
 import io.ktor.http.*
@@ -15,6 +16,7 @@ data class DemoResetResponse(val status: String, val message: String)
 fun Route.demoResetRoutes(
     riskDb: Database,
     jobRecorder: ValuationJobRecorder,
+    exposureRepository: CounterpartyExposureRepository,
     resetToken: String,
 ) {
     route("/api/v1/internal/risk") {
@@ -30,9 +32,10 @@ fun Route.demoResetRoutes(
             newSuspendedTransaction(db = riskDb) {
                 exec("DELETE FROM daily_risk_snapshots WHERE snapshot_date > '2026-02-27'")
                 exec("DELETE FROM intraday_pnl_snapshots WHERE snapshot_time > '2026-02-27'")
+                exec("DELETE FROM counterparty_exposure_history")
             }
 
-            DevDataSeeder(jobRecorder).seed()
+            DevDataSeeder(jobRecorder, exposureRepository).seed()
 
             call.respond(DemoResetResponse("ok", "Risk data reset and reseeded"))
         }
