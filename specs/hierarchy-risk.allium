@@ -218,7 +218,7 @@ rule TrackBudgetUtilisation {
     let budget = RiskBudgetAllocation{
         entity_id: snapshot.entity_id,
         entity_level: snapshot.level,
-        budget_type: "VAR"
+        budget_type: "VAR_BUDGET"
     }
     requires: budget != null
     requires: budget.effective_from <= today
@@ -242,7 +242,7 @@ rule AlertOnBudgetBreach {
     let budget = RiskBudgetAllocation{
         entity_id: snapshot.entity_id,
         entity_level: snapshot.level,
-        budget_type: "VAR"
+        budget_type: "VAR_BUDGET"
     }
     requires: budget != null
     requires: snapshot.var_value > budget.budget_amount * config.budget_breach_pct

@@ -407,11 +407,10 @@ rule EvaluateRegimeChange {
         -- Consumes from Kafka topic risk.regime.changes via MarketRegimeEventConsumer.
         -- RegimeChangeRule evaluates the regime and maps to severity:
         --   any -> CRISIS                           = critical
-        --   NORMAL -> ELEVATED_VOL                  = warning
+        --   any -> ELEVATED_VOL                     = warning
         --   any -> RECOVERY                         = info
         --   CRISIS -> NORMAL (recovery from crisis) = info
-        --   NORMAL -> NORMAL                        = no alert (suppressed)
-        --   ELEVATED_VOL -> NORMAL                  = no alert (suppressed)
+        --   any other -> NORMAL                     = no alert (suppressed)
         --
         -- The alert message includes:
         --   - previous regime and new regime
