@@ -119,7 +119,7 @@ export function RegulatoryDashboard({
             )}
           </div>
 
-          <h3 className="text-sm font-semibold text-slate-700 mb-2">SbM Breakdown by Risk Class</h3>
+          <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200 mb-2">SbM Breakdown by Risk Class</h3>
           <table data-testid="sbm-breakdown-table" className="w-full text-sm mb-4">
             <thead>
               <tr className="border-b text-left text-slate-600">

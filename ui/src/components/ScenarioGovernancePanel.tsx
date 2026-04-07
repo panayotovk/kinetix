@@ -27,7 +27,7 @@ export function ScenarioGovernancePanel({
 }: ScenarioGovernancePanelProps) {
   return (
     <div className="mt-4 border-t pt-4" data-testid="governance-panel">
-      <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Scenario Governance</h3>
+      <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200 mb-3">Scenario Governance</h3>
 
       {loading && (
         <div className="text-sm text-slate-500">Loading scenarios...</div>
