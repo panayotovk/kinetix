@@ -93,6 +93,23 @@ describe('NotificationCenter', () => {
     expect(screen.getByTestId('create-rule-btn')).toBeInTheDocument()
   })
 
+  it('does not offer DATA_STALENESS as an alert type option', () => {
+    render(
+      <NotificationCenter
+        rules={[]}
+        alerts={[]}
+        loading={false}
+        error={null}
+        onCreateRule={() => {}}
+        onDeleteRule={() => {}}
+      />,
+    )
+
+    const typeSelect = screen.getByTestId('rule-type-select')
+    const options = Array.from(typeSelect.querySelectorAll('option')).map((o) => o.value)
+    expect(options).not.toContain('DATA_STALENESS')
+  })
+
   it('renders recent alerts list', () => {
     render(
       <NotificationCenter

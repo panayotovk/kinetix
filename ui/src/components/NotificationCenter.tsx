@@ -130,7 +130,6 @@ export function NotificationCenter({
             <option value="VEGA_BREACH">Vega Breach</option>
             <option value="CONCENTRATION">Concentration</option>
             <option value="MARGIN_BREACH">Margin Breach</option>
-            <option value="DATA_STALENESS">Data Staleness</option>
           </Select>
           <Input
             data-testid="rule-threshold-input"
