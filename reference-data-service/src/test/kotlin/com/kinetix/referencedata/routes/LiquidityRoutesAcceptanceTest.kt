@@ -39,8 +39,8 @@ class LiquidityRoutesAcceptanceTest : FunSpec({
     val liquidityRepo = mockk<InstrumentLiquidityRepository>()
     val liquidityService = InstrumentLiquidityService(liquidityRepo)
 
-    val NOW = Instant.parse("2026-03-26T10:00:00Z")
-    val STALE = Instant.parse("2026-03-23T10:00:00Z")  // 3 days ago
+    val NOW = Instant.now()
+    val STALE = NOW.minusSeconds(3 * 24 * 3600)  // 3 days ago
 
     fun sampleLiquidity(instrumentId: String = "AAPL", adv: Double = 10_000_000.0) = InstrumentLiquidity(
         instrumentId = instrumentId,

@@ -962,7 +962,7 @@ test.describe('Valuation Date Picker', () => {
     await page.waitForSelector('[data-testid="var-dashboard"]')
 
     // Live mode: shows current VaR
-    await expect(page.getByTestId('var-dashboard')).toContainText('125,000')
+    await expect(page.getByTestId('var-dashboard')).toContainText('$125K')
 
     // Click Yesterday
     await page.getByTestId('vdate-yesterday').click()
@@ -972,7 +972,7 @@ test.describe('Valuation Date Picker', () => {
     await expect(page.getByTestId('historical-badge')).toContainText('Historical')
 
     // Should show historical VaR value
-    await expect(page.getByTestId('var-dashboard')).toContainText('98,000')
+    await expect(page.getByTestId('var-dashboard')).toContainText('$98K')
 
     // Should show the valuation date label
     await expect(page.getByTestId('valuation-date-label')).toContainText('2025-01-14')
@@ -1015,7 +1015,7 @@ test.describe('Valuation Date Picker', () => {
     // Switch to Yesterday
     await page.getByTestId('vdate-yesterday').click()
     await expect(page.getByTestId('historical-badge')).toBeVisible()
-    await expect(page.getByTestId('var-dashboard')).toContainText('98,000')
+    await expect(page.getByTestId('var-dashboard')).toContainText('$98K')
 
     // Switch back to Today
     await page.getByTestId('vdate-today').click()
@@ -1024,7 +1024,7 @@ test.describe('Valuation Date Picker', () => {
     await expect(page.getByTestId('historical-badge')).not.toBeVisible()
 
     // Live VaR should be restored
-    await expect(page.getByTestId('var-dashboard')).toContainText('125,000')
+    await expect(page.getByTestId('var-dashboard')).toContainText('$125K')
   })
 
   test('valuationDate query parameter is sent to the API', async ({ page }) => {
