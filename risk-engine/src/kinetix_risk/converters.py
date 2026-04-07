@@ -298,6 +298,18 @@ def valuation_result_to_proto_response(
         if o in _VALUATION_OUTPUT_NAME_TO_PROTO
     ]
 
+    position_greeks_proto = []
+    if result.position_greeks:
+        for inst_id, greeks in result.position_greeks.items():
+            position_greeks_proto.append(risk_calculation_pb2.PositionGreek(
+                instrument_id=inst_id,
+                delta=greeks.get("delta", 0.0),
+                gamma=greeks.get("gamma", 0.0),
+                vega=greeks.get("vega", 0.0),
+                theta=greeks.get("theta", 0.0),
+                rho=greeks.get("rho", 0.0),
+            ))
+
     response = risk_calculation_pb2.ValuationResponse(
         book_id=types_pb2.BookId(value=book_id),
         calculation_type=calculation_type,
@@ -310,6 +322,8 @@ def valuation_result_to_proto_response(
         pv_value=result.pv_value or 0.0,
         model_version=model_version,
         monte_carlo_seed=monte_carlo_seed,
+        position_greeks=position_greeks_proto,
+        degradation_flags=list(result.degradation_flags) if result.degradation_flags else [],
     )
     if greeks_summary is not None:
         response.greeks.CopyFrom(greeks_summary)

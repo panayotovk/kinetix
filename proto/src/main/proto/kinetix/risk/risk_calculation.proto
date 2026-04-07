@@ -131,6 +131,15 @@ message GreekValues {
   double vega = 4;
 }
 
+message PositionGreek {
+  string instrument_id = 1;
+  double delta = 2;
+  double gamma = 3;
+  double vega = 4;
+  double theta = 5;
+  double rho = 6;
+}
+
 message ValuationResponse {
   kinetix.common.BookId book_id = 1;
   RiskCalculationType calculation_type = 2;
@@ -144,6 +153,8 @@ message ValuationResponse {
   double pv_value = 10;
   string model_version = 11;              // risk-engine version, e.g. "0.1.0-abc1234"
   int64 monte_carlo_seed = 12;            // seed used (0 = not applicable / unseeded)
+  repeated PositionGreek position_greeks = 13;
+  repeated string degradation_flags = 14; // signals market data was missing or calculations degraded
 }
 
 // Cross-book aggregated VaR: computes portfolio-level VaR across multiple books

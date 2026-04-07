@@ -256,8 +256,24 @@ class GreekValues(_message.Message):
     vega: float
     def __init__(self, asset_class: _Optional[_Union[_types_pb2.AssetClass, str]] = ..., delta: _Optional[float] = ..., gamma: _Optional[float] = ..., vega: _Optional[float] = ...) -> None: ...
 
+class PositionGreek(_message.Message):
+    __slots__ = ("instrument_id", "delta", "gamma", "vega", "theta", "rho")
+    INSTRUMENT_ID_FIELD_NUMBER: _ClassVar[int]
+    DELTA_FIELD_NUMBER: _ClassVar[int]
+    GAMMA_FIELD_NUMBER: _ClassVar[int]
+    VEGA_FIELD_NUMBER: _ClassVar[int]
+    THETA_FIELD_NUMBER: _ClassVar[int]
+    RHO_FIELD_NUMBER: _ClassVar[int]
+    instrument_id: str
+    delta: float
+    gamma: float
+    vega: float
+    theta: float
+    rho: float
+    def __init__(self, instrument_id: _Optional[str] = ..., delta: _Optional[float] = ..., gamma: _Optional[float] = ..., vega: _Optional[float] = ..., theta: _Optional[float] = ..., rho: _Optional[float] = ...) -> None: ...
+
 class ValuationResponse(_message.Message):
-    __slots__ = ("book_id", "calculation_type", "confidence_level", "var_value", "expected_shortfall", "component_breakdown", "calculated_at", "greeks", "computed_outputs", "pv_value", "model_version", "monte_carlo_seed")
+    __slots__ = ("book_id", "calculation_type", "confidence_level", "var_value", "expected_shortfall", "component_breakdown", "calculated_at", "greeks", "computed_outputs", "pv_value", "model_version", "monte_carlo_seed", "position_greeks", "degradation_flags")
     BOOK_ID_FIELD_NUMBER: _ClassVar[int]
     CALCULATION_TYPE_FIELD_NUMBER: _ClassVar[int]
     CONFIDENCE_LEVEL_FIELD_NUMBER: _ClassVar[int]
@@ -270,6 +286,8 @@ class ValuationResponse(_message.Message):
     PV_VALUE_FIELD_NUMBER: _ClassVar[int]
     MODEL_VERSION_FIELD_NUMBER: _ClassVar[int]
     MONTE_CARLO_SEED_FIELD_NUMBER: _ClassVar[int]
+    POSITION_GREEKS_FIELD_NUMBER: _ClassVar[int]
+    DEGRADATION_FLAGS_FIELD_NUMBER: _ClassVar[int]
     book_id: _types_pb2.BookId
     calculation_type: RiskCalculationType
     confidence_level: ConfidenceLevel
@@ -282,7 +300,9 @@ class ValuationResponse(_message.Message):
     pv_value: float
     model_version: str
     monte_carlo_seed: int
-    def __init__(self, book_id: _Optional[_Union[_types_pb2.BookId, _Mapping]] = ..., calculation_type: _Optional[_Union[RiskCalculationType, str]] = ..., confidence_level: _Optional[_Union[ConfidenceLevel, str]] = ..., var_value: _Optional[float] = ..., expected_shortfall: _Optional[float] = ..., component_breakdown: _Optional[_Iterable[_Union[VaRComponentBreakdown, _Mapping]]] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., greeks: _Optional[_Union[GreeksSummary, _Mapping]] = ..., computed_outputs: _Optional[_Iterable[_Union[ValuationOutput, str]]] = ..., pv_value: _Optional[float] = ..., model_version: _Optional[str] = ..., monte_carlo_seed: _Optional[int] = ...) -> None: ...
+    position_greeks: _containers.RepeatedCompositeFieldContainer[PositionGreek]
+    degradation_flags: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, book_id: _Optional[_Union[_types_pb2.BookId, _Mapping]] = ..., calculation_type: _Optional[_Union[RiskCalculationType, str]] = ..., confidence_level: _Optional[_Union[ConfidenceLevel, str]] = ..., var_value: _Optional[float] = ..., expected_shortfall: _Optional[float] = ..., component_breakdown: _Optional[_Iterable[_Union[VaRComponentBreakdown, _Mapping]]] = ..., calculated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., greeks: _Optional[_Union[GreeksSummary, _Mapping]] = ..., computed_outputs: _Optional[_Iterable[_Union[ValuationOutput, str]]] = ..., pv_value: _Optional[float] = ..., model_version: _Optional[str] = ..., monte_carlo_seed: _Optional[int] = ..., position_greeks: _Optional[_Iterable[_Union[PositionGreek, _Mapping]]] = ..., degradation_flags: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class CrossBookVaRRequest(_message.Message):
     __slots__ = ("book_ids", "calculation_type", "confidence_level", "time_horizon_days", "num_simulations", "positions", "market_data", "requested_outputs", "monte_carlo_seed", "portfolio_group_id")

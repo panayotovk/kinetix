@@ -21,6 +21,11 @@ import com.kinetix.risk.model.ScalarMarketData
 import com.kinetix.risk.model.TimeSeriesMarketData
 import com.kinetix.risk.model.TimeSeriesPoint
 import io.ktor.client.plugins.ResponseException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -54,200 +59,94 @@ class MarketDataFetcher(
         else -> null
     }
 
-    suspend fun fetch(dependencies: List<DiscoveredDependency>, correlationId: String? = null): List<FetchResult> {
-        val results = mutableListOf<FetchResult>()
+    private val concurrencyLimit = Semaphore(10)
 
-        for (dep in dependencies) {
-            val startTime = Instant.now()
-            val circuitBreaker = circuitBreakerFor(dep.dataType)
-            try {
-                val result = if (circuitBreaker != null) {
-                    circuitBreaker.execute {
-                        val r = fetchDependency(dep.dataType, dep.instrumentId, dep.assetClass, dep.parameters)
-                        // Treat upstream error responses as failures so the circuit breaker tracks them
-                        if (r is ClientResponse.ServiceUnavailable || r is ClientResponse.UpstreamError || r is ClientResponse.NetworkError) {
-                            throw MarketDataFetchException(dep.dataType, r)
-                        }
-                        r
-                    }
-                } else {
-                    fetchDependency(dep.dataType, dep.instrumentId, dep.assetClass, dep.parameters)
-                }
-                val durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis()
-                when (result) {
-                    is ClientResponse.Success -> results.add(FetchSuccess(dep, result.value))
-                    is ClientResponse.NotFound -> results.add(
-                        FetchFailure(
-                            dependency = dep,
-                            reason = "NOT_FOUND",
-                            url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
-                            httpStatus = result.httpStatus,
-                            errorMessage = null,
-                            service = resolveServiceName(dep.dataType),
-                            timestamp = startTime,
-                            durationMs = durationMs,
-                            correlationId = correlationId,
-                        )
-                    )
-                    is ClientResponse.ServiceUnavailable -> {
-                        logger.warn("Service unavailable fetching {} for {}", dep.dataType, dep.instrumentId)
-                        results.add(
-                            FetchFailure(
-                                dependency = dep,
-                                reason = "SERVICE_UNAVAILABLE",
-                                url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
-                                httpStatus = 503,
-                                errorMessage = null,
-                                service = resolveServiceName(dep.dataType),
-                                timestamp = startTime,
-                                durationMs = durationMs,
-                                correlationId = correlationId,
-                            )
-                        )
-                    }
-                    is ClientResponse.UpstreamError -> {
-                        logger.warn(
-                            "Upstream error {} fetching {} for {}: {}",
-                            result.httpStatus, dep.dataType, dep.instrumentId, result.message,
-                        )
-                        results.add(
-                            FetchFailure(
-                                dependency = dep,
-                                reason = "UPSTREAM_ERROR",
-                                url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
-                                httpStatus = result.httpStatus,
-                                errorMessage = result.message,
-                                service = resolveServiceName(dep.dataType),
-                                timestamp = startTime,
-                                durationMs = durationMs,
-                                correlationId = correlationId,
-                            )
-                        )
-                    }
-                    is ClientResponse.NetworkError -> {
-                        logger.warn("Network error fetching {} for {}", dep.dataType, dep.instrumentId, result.cause)
-                        results.add(
-                            FetchFailure(
-                                dependency = dep,
-                                reason = "NETWORK_ERROR",
-                                url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
-                                httpStatus = null,
-                                errorMessage = result.cause.message,
-                                service = resolveServiceName(dep.dataType),
-                                timestamp = startTime,
-                                durationMs = durationMs,
-                                correlationId = correlationId,
-                            )
-                        )
-                    }
-                    null -> {
-                        val reason = if (isClientAvailable(dep.dataType)) "NOT_FOUND" else "CLIENT_UNAVAILABLE"
-                        results.add(
-                            FetchFailure(
-                                dependency = dep,
-                                reason = reason,
-                                url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
-                                httpStatus = null,
-                                errorMessage = null,
-                                service = resolveServiceName(dep.dataType),
-                                timestamp = startTime,
-                                durationMs = durationMs,
-                                correlationId = correlationId,
-                            )
-                        )
-                    }
-                }
-            } catch (e: CircuitBreakerOpenException) {
-                val durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis()
-                logger.debug("Circuit breaker open for {}, skipping fetch of {} for {}", e.circuitName, dep.dataType, dep.instrumentId)
-                results.add(
-                    FetchFailure(
-                        dependency = dep,
-                        reason = "CIRCUIT_OPEN",
-                        url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
-                        httpStatus = null,
-                        errorMessage = "Circuit breaker '${e.circuitName}' is open",
-                        service = resolveServiceName(dep.dataType),
-                        timestamp = startTime,
-                        durationMs = durationMs,
-                        correlationId = correlationId,
-                    )
-                )
-            } catch (e: MarketDataFetchException) {
-                val durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis()
-                when (val r = e.response) {
-                    is ClientResponse.ServiceUnavailable -> {
-                        logger.warn("Service unavailable fetching {} for {}", dep.dataType, dep.instrumentId)
-                        results.add(
-                            FetchFailure(
-                                dependency = dep,
-                                reason = "SERVICE_UNAVAILABLE",
-                                url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
-                                httpStatus = 503,
-                                errorMessage = null,
-                                service = resolveServiceName(dep.dataType),
-                                timestamp = startTime,
-                                durationMs = durationMs,
-                                correlationId = correlationId,
-                            )
-                        )
-                    }
-                    is ClientResponse.UpstreamError -> {
-                        logger.warn("Upstream error {} fetching {} for {}: {}", r.httpStatus, dep.dataType, dep.instrumentId, r.message)
-                        results.add(
-                            FetchFailure(
-                                dependency = dep,
-                                reason = "UPSTREAM_ERROR",
-                                url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
-                                httpStatus = r.httpStatus,
-                                errorMessage = r.message,
-                                service = resolveServiceName(dep.dataType),
-                                timestamp = startTime,
-                                durationMs = durationMs,
-                                correlationId = correlationId,
-                            )
-                        )
-                    }
-                    is ClientResponse.NetworkError -> {
-                        logger.warn("Network error fetching {} for {}", dep.dataType, dep.instrumentId, r.cause)
-                        results.add(
-                            FetchFailure(
-                                dependency = dep,
-                                reason = "NETWORK_ERROR",
-                                url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
-                                httpStatus = null,
-                                errorMessage = r.cause.message,
-                                service = resolveServiceName(dep.dataType),
-                                timestamp = startTime,
-                                durationMs = durationMs,
-                                correlationId = correlationId,
-                            )
-                        )
-                    }
-                    else -> {}
-                }
-            } catch (e: Exception) {
-                val durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis()
-                logger.warn("Failed to fetch {} for {}, skipping", dep.dataType, dep.instrumentId, e)
-                results.add(
-                    FetchFailure(
-                        dependency = dep,
-                        reason = "EXCEPTION",
-                        url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters),
-                        httpStatus = extractHttpStatus(e),
-                        errorMessage = e.message,
-                        service = resolveServiceName(dep.dataType),
-                        timestamp = startTime,
-                        durationMs = durationMs,
-                        correlationId = correlationId,
-                    )
-                )
-            }
+    suspend fun fetch(dependencies: List<DiscoveredDependency>, correlationId: String? = null): List<FetchResult> {
+        val results = coroutineScope {
+            dependencies.map { dep ->
+                async { concurrencyLimit.withPermit { fetchOneDependency(dep, correlationId) } }
+            }.awaitAll()
         }
 
         val successCount = results.count { it is FetchSuccess }
         logger.debug("Fetched {} market data values for {} dependencies", successCount, dependencies.size)
         return results
+    }
+
+    private suspend fun fetchOneDependency(dep: DiscoveredDependency, correlationId: String?): FetchResult {
+        val startTime = Instant.now()
+        val circuitBreaker = circuitBreakerFor(dep.dataType)
+        return try {
+            val result = if (circuitBreaker != null) {
+                circuitBreaker.execute {
+                    val r = fetchDependency(dep.dataType, dep.instrumentId, dep.assetClass, dep.parameters)
+                    if (r is ClientResponse.ServiceUnavailable || r is ClientResponse.UpstreamError || r is ClientResponse.NetworkError) {
+                        throw MarketDataFetchException(dep.dataType, r)
+                    }
+                    r
+                }
+            } else {
+                fetchDependency(dep.dataType, dep.instrumentId, dep.assetClass, dep.parameters)
+            }
+            val durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis()
+            resultToFetchResult(result, dep, startTime, durationMs, correlationId)
+        } catch (e: CircuitBreakerOpenException) {
+            val durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis()
+            logger.debug("Circuit breaker open for {}, skipping fetch of {} for {}", e.circuitName, dep.dataType, dep.instrumentId)
+            FetchFailure(dep, "CIRCUIT_OPEN", resolveUrl(dep.dataType, dep.instrumentId, dep.parameters), null, "Circuit breaker '${e.circuitName}' is open", resolveServiceName(dep.dataType), startTime, durationMs, correlationId)
+        } catch (e: MarketDataFetchException) {
+            val durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis()
+            marketDataExceptionToFetchResult(e, dep, startTime, durationMs, correlationId)
+        } catch (e: Exception) {
+            val durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis()
+            logger.warn("Failed to fetch {} for {}, skipping", dep.dataType, dep.instrumentId, e)
+            FetchFailure(dep, "EXCEPTION", resolveUrl(dep.dataType, dep.instrumentId, dep.parameters), extractHttpStatus(e), e.message, resolveServiceName(dep.dataType), startTime, durationMs, correlationId)
+        }
+    }
+
+    private fun resultToFetchResult(result: ClientResponse<MarketDataValue>?, dep: DiscoveredDependency, startTime: Instant, durationMs: Long, correlationId: String?): FetchResult {
+        val url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters)
+        val service = resolveServiceName(dep.dataType)
+        return when (result) {
+            is ClientResponse.Success -> FetchSuccess(dep, result.value)
+            is ClientResponse.NotFound -> FetchFailure(dep, "NOT_FOUND", url, result.httpStatus, null, service, startTime, durationMs, correlationId)
+            is ClientResponse.ServiceUnavailable -> {
+                logger.warn("Service unavailable fetching {} for {}", dep.dataType, dep.instrumentId)
+                FetchFailure(dep, "SERVICE_UNAVAILABLE", url, 503, null, service, startTime, durationMs, correlationId)
+            }
+            is ClientResponse.UpstreamError -> {
+                logger.warn("Upstream error {} fetching {} for {}: {}", result.httpStatus, dep.dataType, dep.instrumentId, result.message)
+                FetchFailure(dep, "UPSTREAM_ERROR", url, result.httpStatus, result.message, service, startTime, durationMs, correlationId)
+            }
+            is ClientResponse.NetworkError -> {
+                logger.warn("Network error fetching {} for {}", dep.dataType, dep.instrumentId, result.cause)
+                FetchFailure(dep, "NETWORK_ERROR", url, null, result.cause.message, service, startTime, durationMs, correlationId)
+            }
+            null -> {
+                val reason = if (isClientAvailable(dep.dataType)) "NOT_FOUND" else "CLIENT_UNAVAILABLE"
+                FetchFailure(dep, reason, url, null, null, service, startTime, durationMs, correlationId)
+            }
+        }
+    }
+
+    private fun marketDataExceptionToFetchResult(e: MarketDataFetchException, dep: DiscoveredDependency, startTime: Instant, durationMs: Long, correlationId: String?): FetchResult {
+        val url = resolveUrl(dep.dataType, dep.instrumentId, dep.parameters)
+        val service = resolveServiceName(dep.dataType)
+        return when (val r = e.response) {
+            is ClientResponse.ServiceUnavailable -> {
+                logger.warn("Service unavailable fetching {} for {}", dep.dataType, dep.instrumentId)
+                FetchFailure(dep, "SERVICE_UNAVAILABLE", url, 503, null, service, startTime, durationMs, correlationId)
+            }
+            is ClientResponse.UpstreamError -> {
+                logger.warn("Upstream error {} fetching {} for {}: {}", r.httpStatus, dep.dataType, dep.instrumentId, r.message)
+                FetchFailure(dep, "UPSTREAM_ERROR", url, r.httpStatus, r.message, service, startTime, durationMs, correlationId)
+            }
+            is ClientResponse.NetworkError -> {
+                logger.warn("Network error fetching {} for {}", dep.dataType, dep.instrumentId, r.cause)
+                FetchFailure(dep, "NETWORK_ERROR", url, null, r.cause.message, service, startTime, durationMs, correlationId)
+            }
+            else -> FetchFailure(dep, "EXCEPTION", url, null, null, service, startTime, durationMs, correlationId)
+        }
     }
 
     private fun isClientAvailable(dataType: String): Boolean = when (dataType) {
@@ -331,7 +230,7 @@ class MarketDataFetcher(
                                 dataType = "HISTORICAL_PRICES",
                                 instrumentId = instrumentId,
                                 assetClass = assetClass,
-                                points = history.map { pp ->
+                                points = history.sortedBy { it.timestamp }.map { pp ->
                                     TimeSeriesPoint(
                                         timestamp = pp.timestamp,
                                         value = pp.price.amount.toDouble(),

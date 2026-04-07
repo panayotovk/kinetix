@@ -34,6 +34,39 @@ def _annualized_vol_from_prices(prices: list[float]) -> float | None:
     return float(np.std(log_returns, ddof=1)) * math.sqrt(252)
 
 
+def _vol_surface_from_matrix(matrix_data: dict) -> list[VolSurfacePoint]:
+    """Reconstruct VolSurfacePoints from a proto Matrix encoding.
+
+    The matrix is row-major with rows=maturities, cols=strikes.
+    Labels contain maturity strings followed by strike strings.
+    """
+    num_rows = matrix_data.get("rows", 0)
+    num_cols = matrix_data.get("cols", 0)
+    values = matrix_data.get("values", [])
+    labels = matrix_data.get("labels", [])
+
+    if num_rows == 0 or num_cols == 0 or len(values) != num_rows * num_cols:
+        return []
+    if len(labels) < num_rows + num_cols:
+        return []
+
+    maturities = labels[:num_rows]
+    strikes = labels[num_rows : num_rows + num_cols]
+
+    points = []
+    for i, mat_str in enumerate(maturities):
+        maturity_days = int(float(mat_str))
+        for j, strike_str in enumerate(strikes):
+            strike = float(strike_str)
+            implied_vol = values[i * num_cols + j]
+            points.append(VolSurfacePoint(
+                strike=strike,
+                maturity_days=maturity_days,
+                implied_vol=implied_vol,
+            ))
+    return points
+
+
 def consume_market_data(market_data: list[dict]) -> MarketDataBundle:
     if not market_data:
         return MarketDataBundle()
@@ -75,6 +108,7 @@ def consume_market_data(market_data: list[dict]) -> MarketDataBundle:
         elif data_type == "VOLATILITY_SURFACE":
             instrument_id = item.get("instrument_id", "")
             raw_points = item.get("points", [])
+            matrix_data = item.get("matrix")
             if instrument_id and raw_points:
                 points = [
                     VolSurfacePoint(
@@ -85,6 +119,10 @@ def consume_market_data(market_data: list[dict]) -> MarketDataBundle:
                     for pt in raw_points
                 ]
                 vol_surfaces[instrument_id] = VolSurface(points=points)
+            elif instrument_id and matrix_data:
+                points = _vol_surface_from_matrix(matrix_data)
+                if points:
+                    vol_surfaces[instrument_id] = VolSurface(points=points)
 
         elif data_type == "YIELD_CURVE":
             currency = item.get("currency", "")

@@ -23,17 +23,21 @@ _DEFAULT_IMPLIED_VOL = 0.25
 def resolve_positions(
     positions: list[PositionRisk],
     bundle: "MarketDataBundle | None" = None,
-) -> list[PositionRisk]:
+) -> tuple[list[PositionRisk], list[str]]:
     """Convert typed positions into effective linear exposures for VaR.
 
     If a MarketDataBundle is provided, OptionPositions with missing spot or
     vol data are enriched from the bundle before delta-adjustment.
+
+    Returns (resolved_positions, degradation_flags).
     """
     resolved = []
+    flags: list[str] = []
     for pos in positions:
         if isinstance(pos, OptionPosition):
-            pos = _enrich_option(pos, bundle)
-            if pos.spot_price > 0 and pos.implied_vol > 0:
+            pos, enrich_flags = _enrich_option(pos, bundle)
+            flags.extend(enrich_flags)
+            if pos.spot_price > 0 and pos.implied_vol > 0 and pos.expiry_days > 0:
                 from kinetix_risk.black_scholes import bs_delta
                 delta = bs_delta(pos)
                 effective_mv = delta * pos.quantity * pos.spot_price * pos.contract_multiplier
@@ -43,22 +47,38 @@ def resolve_positions(
                     market_value=effective_mv,
                     currency=pos.currency,
                 ))
+            elif pos.spot_price > 0 and pos.expiry_days <= 0:
+                # Expired option: use intrinsic value as exposure
+                from kinetix_risk.black_scholes import _intrinsic_value
+                intrinsic = _intrinsic_value(pos) * pos.quantity * pos.contract_multiplier
+                resolved.append(PositionRisk(
+                    instrument_id=pos.instrument_id,
+                    asset_class=pos.asset_class,
+                    market_value=intrinsic,
+                    currency=pos.currency,
+                ))
             else:
                 resolved.append(pos)
         elif isinstance(pos, SwapPosition):
             resolved.append(_resolve_swap(pos, bundle))
         else:
             resolved.append(pos)
-    return resolved
+    return resolved, flags
 
 
-def _enrich_option(pos: OptionPosition, bundle: "MarketDataBundle | None") -> OptionPosition:
+def _enrich_option(
+    pos: OptionPosition,
+    bundle: "MarketDataBundle | None",
+) -> tuple[OptionPosition, list[str]]:
     """Return a new OptionPosition with spot_price and implied_vol filled from the bundle.
 
     Only overwrites fields that are zero/missing; does not clobber existing values.
+    Returns (enriched_position, degradation_flags).
     """
+    flags: list[str] = []
+
     if bundle is None:
-        return pos
+        return pos, flags
 
     spot = pos.spot_price
     vol = pos.implied_vol
@@ -73,11 +93,16 @@ def _enrich_option(pos: OptionPosition, bundle: "MarketDataBundle | None") -> Op
                 vol = surface.vol_at(pos.strike, pos.expiry_days)
             except Exception:
                 vol = _DEFAULT_IMPLIED_VOL
+                flags.append(f"VOL_SURFACE_INTERPOLATION_FAILED:{pos.instrument_id}")
         else:
-            vol = _DEFAULT_IMPLIED_VOL if spot > 0.0 else 0.0
+            if spot > 0.0:
+                vol = _DEFAULT_IMPLIED_VOL
+                flags.append(f"VOL_SURFACE_MISSING:{pos.instrument_id}")
+            else:
+                vol = 0.0
 
     if spot == pos.spot_price and vol == pos.implied_vol:
-        return pos
+        return pos, flags
 
     # frozen dataclass — create a new instance with the enriched values
     return OptionPosition(
@@ -94,7 +119,7 @@ def _enrich_option(pos: OptionPosition, bundle: "MarketDataBundle | None") -> Op
         dividend_yield=pos.dividend_yield,
         contract_multiplier=pos.contract_multiplier,
         asset_class=pos.asset_class,
-    )
+    ), flags
 
 
 def _resolve_swap(pos: SwapPosition, bundle: "MarketDataBundle | None") -> PositionRisk:

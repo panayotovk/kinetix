@@ -183,6 +183,7 @@ class ValuationResult:
     computed_outputs: list[str]
     pv_value: float | None = None
     position_greeks: dict | None = None
+    degradation_flags: list[str] = ()
 
 
 class FrtbRiskClass(Enum):

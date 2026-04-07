@@ -4,10 +4,12 @@ from typing import TYPE_CHECKING
 
 from kinetix_risk.greeks import calculate_greeks
 from kinetix_risk.models import (
+    BondPosition,
     CalculationType,
     ConfidenceLevel,
     OptionPosition,
     PositionRisk,
+    SwapPosition,
     ValuationResult,
 )
 from kinetix_risk.portfolio_risk import calculate_book_var
@@ -40,7 +42,7 @@ def calculate_valuation(
 
     # Resolve typed positions to linear exposures (e.g., delta-adjusted for options).
     # Pass the market data bundle so that options with missing spot/vol can be enriched.
-    resolved = resolve_positions(positions, bundle=market_data_bundle)
+    resolved, degradation_flags = resolve_positions(positions, bundle=market_data_bundle)
 
     need_var = "VAR" in outputs or "EXPECTED_SHORTFALL" in outputs
     need_greeks = "GREEKS" in outputs
@@ -80,7 +82,7 @@ def calculate_valuation(
         computed.append("GREEKS")
 
     if need_pv:
-        pv_value = sum(pos.market_value for pos in positions)
+        pv_value = _calculate_model_pv(positions, market_data_bundle, degradation_flags)
         computed.append("PV")
 
     # Compute per-position analytical Black-Scholes Greeks for any OptionPosition
@@ -93,8 +95,8 @@ def calculate_valuation(
         from kinetix_risk.position_resolver import _enrich_option
         for pos in positions:
             if isinstance(pos, OptionPosition):
-                enriched = _enrich_option(pos, market_data_bundle)
-                if enriched.spot_price > 0 and enriched.implied_vol > 0:
+                enriched, _ = _enrich_option(pos, market_data_bundle)
+                if enriched.spot_price > 0 and enriched.implied_vol > 0 and enriched.expiry_days > 0:
                     from kinetix_risk.black_scholes import bs_greeks
                     pg[enriched.instrument_id] = bs_greeks(enriched)
         if pg:
@@ -106,4 +108,40 @@ def calculate_valuation(
         computed_outputs=computed,
         pv_value=pv_value,
         position_greeks=position_greeks,
+        degradation_flags=list(degradation_flags),
     )
+
+
+def _calculate_model_pv(
+    positions: list[PositionRisk],
+    bundle: "MarketDataBundle | None",
+    flags: list[str],
+) -> float:
+    """Compute portfolio PV using pricing models where available, falling back to market_value."""
+    total = 0.0
+    for pos in positions:
+        if isinstance(pos, BondPosition) and bundle is not None:
+            yc = bundle.yield_curves.get(pos.currency)
+            if yc is not None:
+                from kinetix_risk.bond_pricing import bond_pv
+                total += bond_pv(pos, yc.rate_at(365))
+                continue
+            else:
+                flags.append(f"YIELD_CURVE_MISSING:{pos.currency}")
+        elif isinstance(pos, SwapPosition) and bundle is not None:
+            yc = bundle.yield_curves.get(pos.currency)
+            if yc is not None:
+                from kinetix_risk.swap_pricing import swap_pv
+                total += swap_pv(pos, yc)
+                continue
+            else:
+                flags.append(f"YIELD_CURVE_MISSING:{pos.currency}")
+        elif isinstance(pos, OptionPosition) and bundle is not None:
+            from kinetix_risk.position_resolver import _enrich_option
+            enriched, _ = _enrich_option(pos, bundle)
+            if enriched.spot_price > 0 and enriched.implied_vol > 0 and enriched.expiry_days > 0:
+                from kinetix_risk.black_scholes import bs_price
+                total += bs_price(enriched) * enriched.quantity * enriched.contract_multiplier
+                continue
+        total += pos.market_value
+    return total

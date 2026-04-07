@@ -59,7 +59,7 @@ fun MarketDataValue.toProto(): ProtoMarketDataValue {
                 .setRows(rows.size)
                 .setCols(columns.size)
                 .addAllValues(values)
-                .addAllLabels(rows)
+                .addAllLabels(rows + columns)
         )
     }
 

@@ -1,6 +1,7 @@
 package com.kinetix.risk.mapper
 
 import com.kinetix.proto.risk.MarketDataType
+import com.kinetix.risk.model.MatrixMarketData
 import com.kinetix.risk.model.ScalarMarketData
 import com.kinetix.risk.model.TimeSeriesMarketData
 import com.kinetix.risk.model.TimeSeriesPoint
@@ -45,6 +46,27 @@ class MarketDataMapperTest : FunSpec({
         proto.timeSeries.getPoints(0).timestamp.seconds shouldBe 1000000L
         proto.timeSeries.getPoints(0).value shouldBe 100.0
         proto.timeSeries.getPoints(1).value shouldBe 101.5
+    }
+
+    test("maps matrix market data with row and column labels") {
+        val matrix = MatrixMarketData(
+            dataType = "VOLATILITY_SURFACE",
+            instrumentId = "AAPL",
+            assetClass = "EQUITY",
+            rows = listOf("30", "60"),
+            columns = listOf("100.0", "150.0"),
+            values = listOf(0.20, 0.25, 0.18, 0.22),
+        )
+
+        val proto = matrix.toProto()
+
+        proto.dataType shouldBe MarketDataType.VOLATILITY_SURFACE
+        proto.instrumentId shouldBe "AAPL"
+        proto.matrix.rows shouldBe 2
+        proto.matrix.cols shouldBe 2
+        proto.matrix.valuesCount shouldBe 4
+        proto.matrix.labelsCount shouldBe 4
+        proto.matrix.getLabelsList() shouldBe listOf("30", "60", "100.0", "150.0")
     }
 
     test("maps unknown data type to UNSPECIFIED") {

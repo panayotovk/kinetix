@@ -21,23 +21,23 @@ from kinetix_risk.position_resolver import resolve_positions
 class TestResolvePositionsNonOption:
     def test_plain_position_risk_passes_through(self):
         pos = PositionRisk("AAPL", AssetClass.EQUITY, 1_000_000.0, "USD")
-        result = resolve_positions([pos])
+        result, flags = resolve_positions([pos])
         assert len(result) == 1
         assert result[0] is pos
 
     def test_bond_position_passes_through(self):
         pos = BondPosition("US10Y", AssetClass.FIXED_INCOME, 980_000.0, "USD", face_value=1e6)
-        result = resolve_positions([pos])
+        result, flags = resolve_positions([pos])
         assert len(result) == 1
         assert result[0] is pos
 
     def test_future_position_passes_through(self):
         pos = FuturePosition("SPX-SEP26", AssetClass.EQUITY, 250_000.0, "USD")
-        result = resolve_positions([pos])
+        result, _ = resolve_positions([pos])
         assert result[0] is pos
 
     def test_empty_list(self):
-        result = resolve_positions([])
+        result, _ = resolve_positions([])
         assert result == []
 
 
@@ -57,7 +57,7 @@ class TestResolvePositionsOption:
             contract_multiplier=100.0,
             asset_class=AssetClass.EQUITY,
         )
-        result = resolve_positions([opt])
+        result, _ = resolve_positions([opt])
         assert len(result) == 1
         resolved = result[0]
         assert type(resolved) is PositionRisk
@@ -81,7 +81,7 @@ class TestResolvePositionsOption:
             quantity=1.0,
             contract_multiplier=1.0,
         )
-        result = resolve_positions([opt])
+        result, _ = resolve_positions([opt])
         assert result[0].market_value > 0
 
     def test_put_delta_adjusted_exposure_is_negative(self):
@@ -96,7 +96,7 @@ class TestResolvePositionsOption:
             quantity=1.0,
             contract_multiplier=1.0,
         )
-        result = resolve_positions([opt])
+        result, _ = resolve_positions([opt])
         assert result[0].market_value < 0
 
     def test_option_without_market_data_passes_through(self):
@@ -110,7 +110,7 @@ class TestResolvePositionsOption:
             spot_price=0.0,
             implied_vol=0.0,
         )
-        result = resolve_positions([opt])
+        result, _ = resolve_positions([opt])
         assert result[0] is opt
 
     def test_contract_multiplier_scales_exposure(self):
@@ -136,8 +136,8 @@ class TestResolvePositionsOption:
             quantity=1.0,
             contract_multiplier=100.0,
         )
-        result_base = resolve_positions([base])
-        result_scaled = resolve_positions([scaled])
+        result_base, _ = resolve_positions([base])
+        result_scaled, _ = resolve_positions([scaled])
         assert result_scaled[0].market_value == pytest.approx(
             result_base[0].market_value * 100.0, rel=1e-10
         )
@@ -162,7 +162,7 @@ class TestResolvePositionsMixed:
             ),
             BondPosition("US10Y", AssetClass.FIXED_INCOME, 980_000.0, "USD"),
         ]
-        result = resolve_positions(positions)
+        result, _ = resolve_positions(positions)
         assert len(result) == 3
         # First and third pass through
         assert result[0] is positions[0]
@@ -213,20 +213,20 @@ def _make_bundle(currency="USD", rate=0.04) -> MarketDataBundle:
 class TestResolvePositionsSwap:
     def test_swap_without_bundle_passes_through(self):
         swap = _make_swap()
-        result = resolve_positions([swap])
+        result, _ = resolve_positions([swap])
         assert len(result) == 1
         assert result[0] is swap
 
     def test_swap_without_matching_currency_passes_through(self):
         swap = _make_swap(currency="EUR")
         bundle = _make_bundle(currency="USD")
-        result = resolve_positions([swap], bundle=bundle)
+        result, _ = resolve_positions([swap], bundle=bundle)
         assert result[0] is swap
 
     def test_swap_with_yield_curve_produces_dv01_exposure(self):
         swap = _make_swap(notional=10_000_000.0, fixed_rate=0.035, maturity_date="2031-04-01")
         bundle = _make_bundle(currency="USD", rate=0.04)
-        result = resolve_positions([swap], bundle=bundle)
+        result, _ = resolve_positions([swap], bundle=bundle)
         assert len(result) == 1
         resolved = result[0]
         assert type(resolved) is PositionRisk
@@ -237,19 +237,19 @@ class TestResolvePositionsSwap:
     def test_swap_dv01_is_always_positive_pay_fixed(self):
         swap = _make_swap(pay_receive="PAY_FIXED")
         bundle = _make_bundle()
-        result = resolve_positions([swap], bundle=bundle)
+        result, _ = resolve_positions([swap], bundle=bundle)
         assert result[0].market_value > 0
 
     def test_swap_dv01_is_always_positive_receive_fixed(self):
         swap = _make_swap(pay_receive="RECEIVE_FIXED")
         bundle = _make_bundle()
-        result = resolve_positions([swap], bundle=bundle)
+        result, _ = resolve_positions([swap], bundle=bundle)
         assert result[0].market_value > 0
 
     def test_swap_preserves_instrument_id_and_currency(self):
         swap = _make_swap(instrument_id="EUR-ESTR-10Y", currency="EUR")
         bundle = _make_bundle(currency="EUR")
-        result = resolve_positions([swap], bundle=bundle)
+        result, _ = resolve_positions([swap], bundle=bundle)
         assert result[0].instrument_id == "EUR-ESTR-10Y"
         assert result[0].currency == "EUR"
         assert result[0].asset_class == AssetClass.DERIVATIVE
@@ -269,7 +269,7 @@ class TestResolvePositionsSwap:
         )
         equity = PositionRisk("AAPL", AssetClass.EQUITY, 500_000.0, "USD")
         bundle = _make_bundle()
-        result = resolve_positions([swap, opt, equity], bundle=bundle)
+        result, _ = resolve_positions([swap, opt, equity], bundle=bundle)
         assert len(result) == 3
         # Swap resolved to DV01
         assert type(result[0]) is PositionRisk
@@ -280,3 +280,94 @@ class TestResolvePositionsSwap:
         assert result[1].instrument_id == "AAPL-C"
         # Equity passes through
         assert result[2] is equity
+
+
+@pytest.mark.unit
+class TestDefaultVolFallback:
+    def test_option_falls_back_to_default_vol_when_surface_missing(self):
+        opt = OptionPosition(
+            instrument_id="AAPL-C",
+            underlying_id="AAPL",
+            option_type=OptionType.CALL,
+            strike=200.0,
+            expiry_days=30,
+            spot_price=0.0,
+            implied_vol=0.0,
+        )
+        bundle = MarketDataBundle(spot_prices={"AAPL": 195.0})
+        result, flags = resolve_positions([opt], bundle=bundle)
+        assert len(result) == 1
+        resolved = result[0]
+        assert type(resolved) is PositionRisk
+        assert resolved.market_value != 0.0
+        assert any("VOL_SURFACE_MISSING" in f for f in flags)
+
+    def test_option_vol_zero_when_spot_zero_and_surface_missing(self):
+        opt = OptionPosition(
+            instrument_id="AAPL-C",
+            underlying_id="AAPL",
+            option_type=OptionType.CALL,
+            strike=200.0,
+            expiry_days=30,
+            spot_price=0.0,
+            implied_vol=0.0,
+        )
+        bundle = MarketDataBundle()  # No spot, no surface
+        result, flags = resolve_positions([opt], bundle=bundle)
+        # Option passes through since neither spot nor vol could be enriched
+        assert result[0] is opt
+        assert len(flags) == 0
+
+    def test_default_vol_not_applied_when_already_populated(self):
+        opt = OptionPosition(
+            instrument_id="AAPL-C",
+            underlying_id="AAPL",
+            option_type=OptionType.CALL,
+            strike=200.0,
+            expiry_days=30,
+            spot_price=195.0,
+            implied_vol=0.30,
+        )
+        result, flags = resolve_positions([opt])
+        assert len(flags) == 0
+
+
+@pytest.mark.unit
+class TestOptionExpiryGuard:
+    def test_option_at_expiry_uses_intrinsic_value(self):
+        """expiry_days=0 should not call bs_delta (would divide by zero)."""
+        opt = OptionPosition(
+            instrument_id="AAPL-C",
+            underlying_id="AAPL",
+            option_type=OptionType.CALL,
+            strike=190.0,
+            expiry_days=0,
+            spot_price=195.0,
+            implied_vol=0.25,
+            quantity=10.0,
+            contract_multiplier=100.0,
+        )
+        result, _ = resolve_positions([opt])
+        assert len(result) == 1
+        resolved = result[0]
+        assert type(resolved) is PositionRisk
+        # Intrinsic value = (195 - 190) * 10 * 100 = 5_000
+        assert resolved.market_value == pytest.approx(5_000.0)
+
+    def test_option_post_expiry_has_zero_intrinsic_for_otm(self):
+        opt = OptionPosition(
+            instrument_id="AAPL-P",
+            underlying_id="AAPL",
+            option_type=OptionType.PUT,
+            strike=190.0,
+            expiry_days=0,
+            spot_price=195.0,
+            implied_vol=0.25,
+            quantity=10.0,
+            contract_multiplier=100.0,
+        )
+        result, _ = resolve_positions([opt])
+        resolved = result[0]
+        assert type(resolved) is PositionRisk
+        # OTM put at expiry: intrinsic = 0
+        assert resolved.market_value == 0.0
