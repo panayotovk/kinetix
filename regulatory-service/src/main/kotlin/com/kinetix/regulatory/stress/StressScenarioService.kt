@@ -7,6 +7,9 @@ import com.kinetix.common.audit.GovernanceAuditEvent
 import com.kinetix.regulatory.audit.GovernanceAuditPublisher
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.double
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.math.BigDecimal
 import java.time.Instant
@@ -174,23 +177,23 @@ class StressScenarioService(
         return result
     }
 
-    /**
-     * Delegates P&L impact computation to the risk engine via the risk-orchestrator.
-     *
-     * The scenario name is passed as-is so the risk engine resolves the scenario from its
-     * own registry and applies full position repricing. Shock values are never re-interpreted
-     * locally — doing so would bypass the engine's valuation model and produce incorrect
-     * results (SCEN-06 invariant).
-     */
     private suspend fun computePnlImpact(bookId: String, scenario: StressScenario): BigDecimal {
         val client = riskOrchestratorClient ?: return BigDecimal.ZERO
+        val priceShocks = parseShocks(scenario.shocks)
         val result = client.runStressTest(
             bookId = bookId,
             scenarioName = scenario.name,
-            priceShocks = emptyMap(),
+            priceShocks = priceShocks,
         )
         return runCatching { BigDecimal(result.pnlImpact) }.getOrDefault(BigDecimal.ZERO)
     }
+
+    private fun parseShocks(shocksJson: String): Map<String, Double> =
+        runCatching {
+            Json.parseToJsonElement(shocksJson)
+                .jsonObject
+                .mapValues { (_, v) -> v.jsonPrimitive.double }
+        }.getOrDefault(emptyMap())
 
     /**
      * Creates a parametric scenario whose secondary shocks are derived from the primary shock
