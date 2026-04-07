@@ -23,7 +23,12 @@ enum AuditEventType {
     | scenario_retired
     | eod_promoted
     | submission_approved
+    | submission_acknowledged
     | rbac_access_denied
+    | book_access_denied
+    | alert_acknowledged
+    | alert_escalated
+    | alert_resolved
     | report_generated
 }
 

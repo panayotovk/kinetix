@@ -27,6 +27,7 @@ use "./scenarios.allium" as scenarios
 external entity SavedScenario {
     id: String
     name: String
+    description: String
     status: core/ScenarioStatus
     created_by: String
     approved_by: String?

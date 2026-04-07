@@ -45,7 +45,9 @@ external entity DailyRiskSnapshot {
     gamma: Decimal?,
     vega: Decimal?,
     theta: Decimal?,
-    rho: Decimal?
+    rho: Decimal?,
+    sod_vol: Decimal?,       -- SOD implied vol, used for vol-change attribution
+    sod_rate: Decimal?       -- SOD risk-free rate, used for rate-change attribution
 }
 
 external entity SodBaseline {
