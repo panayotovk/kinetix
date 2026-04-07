@@ -198,6 +198,15 @@ groups:
 
   - name: kinetix-pnl-attribution
     rules:
+      - alert: HighUnexplainedPnL
+        expr: abs(pnl_attribution_unexplained_pnl) > 50000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High unexplained P&L detected"
+          description: "Unexplained P&L exceeds threshold for portfolio {{ $labels.portfolio_id }}"
+
       - alert: PnlUnexplainedFractionHigh
         expr: >
           abs(pnl_attribution_unexplained_pnl)
