@@ -16,12 +16,27 @@ function notional(trade: TradeHistoryDto): number {
   return Number(trade.quantity) * Number(trade.price.amount)
 }
 
+function tradeStatus(trade: TradeHistoryDto): string {
+  return trade.status || 'LIVE'
+}
+
+function statusBadgeClass(status: string): string {
+  switch (status) {
+    case 'CANCELLED':
+      return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+    case 'AMENDED':
+      return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+    default:
+      return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+  }
+}
+
 function exportToCsv(trades: TradeHistoryDto[]) {
   const header = 'Time,Instrument,Name,Type,Side,Qty,Price,Currency,Notional,Status'
   const rows = trades.map((t) => {
     const n = notional(t)
     const name = (t.displayName || t.instrumentId).replace(/,/g, ' ')
-    return `${t.tradedAt},${t.instrumentId},${name},${t.instrumentType || ''},${t.side},${t.quantity},${t.price.amount},${t.price.currency},${n.toFixed(2)},FILLED`
+    return `${t.tradedAt},${t.instrumentId},${name},${t.instrumentType || ''},${t.side},${t.quantity},${t.price.amount},${t.price.currency},${n.toFixed(2)},${tradeStatus(t)}`
   })
   const csv = [header, ...rows].join('\n')
   const blob = new Blob([csv], { type: 'text/csv' })
@@ -255,8 +270,11 @@ export function TradeBlotter({ bookId }: TradeBlotterProps) {
                       {formatCompactCurrency(notional(trade))}
                     </td>
                     <td className="px-4 py-2 text-sm">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                        FILLED
+                      <span
+                        data-testid={`trade-status-${trade.tradeId}`}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusBadgeClass(tradeStatus(trade))}`}
+                      >
+                        {tradeStatus(trade)}
                       </span>
                     </td>
                   </tr>

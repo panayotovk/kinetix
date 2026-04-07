@@ -20,6 +20,7 @@ const trades: TradeHistoryDto[] = [
     quantity: '100',
     price: { amount: '150.00', currency: 'USD' },
     tradedAt: '2025-01-15T10:00:00Z',
+    status: 'LIVE',
   },
   {
     tradeId: 't-2',
@@ -31,6 +32,7 @@ const trades: TradeHistoryDto[] = [
     quantity: '50',
     price: { amount: '300.00', currency: 'USD' },
     tradedAt: '2025-01-15T11:00:00Z',
+    status: 'CANCELLED',
   },
   {
     tradeId: 't-3',
@@ -42,6 +44,7 @@ const trades: TradeHistoryDto[] = [
     quantity: '200',
     price: { amount: '148.00', currency: 'USD' },
     tradedAt: '2025-01-14T09:00:00Z',
+    status: 'AMENDED',
   },
 ]
 
@@ -155,6 +158,39 @@ describe('TradeBlotter', () => {
     render(<TradeBlotter bookId="book-1" />)
 
     expect(screen.getByTestId('csv-export-button')).toBeInTheDocument()
+  })
+
+  it('shows the actual trade status in the status cell, not a hardcoded FILLED', () => {
+    setupDefaults()
+    render(<TradeBlotter bookId="book-1" />)
+
+    expect(screen.getByTestId('trade-status-t-1')).toHaveTextContent('LIVE')
+    expect(screen.getByTestId('trade-status-t-2')).toHaveTextContent('CANCELLED')
+    expect(screen.getByTestId('trade-status-t-3')).toHaveTextContent('AMENDED')
+  })
+
+  it('falls back to LIVE status when trade has no status field', () => {
+    const tradesWithoutStatus: TradeHistoryDto[] = [
+      {
+        tradeId: 'no-status',
+        bookId: 'book-1',
+        instrumentId: 'AAPL',
+        assetClass: 'EQUITY',
+        side: 'BUY',
+        quantity: '100',
+        price: { amount: '150.00', currency: 'USD' },
+        tradedAt: '2025-01-15T10:00:00Z',
+      },
+    ]
+    mockUseTradeHistory.mockReturnValue({
+      trades: tradesWithoutStatus,
+      loading: false,
+      error: null,
+      refetch: vi.fn(),
+    })
+    render(<TradeBlotter bookId="book-1" />)
+
+    expect(screen.getByTestId('trade-status-no-status')).toHaveTextContent('LIVE')
   })
 
   it('displays notional value as quantity times price', () => {

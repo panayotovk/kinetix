@@ -55,6 +55,7 @@ export interface TradeHistoryDto {
   tradedAt: string
   instrumentType?: string
   displayName?: string
+  status?: string
 }
 
 export interface BookDto {

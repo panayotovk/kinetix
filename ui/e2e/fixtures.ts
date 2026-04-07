@@ -63,6 +63,7 @@ export interface TradeFixture {
   quantity: string
   price: { amount: string; currency: string }
   tradedAt: string
+  status?: string
 }
 
 export const TEST_TRADES: TradeFixture[] = [
@@ -75,6 +76,7 @@ export const TEST_TRADES: TradeFixture[] = [
     quantity: '100',
     price: { amount: '150.00', currency: 'USD' },
     tradedAt: '2025-01-15T10:30:00Z',
+    status: 'LIVE',
   },
   {
     tradeId: 'trade-2',
@@ -85,6 +87,7 @@ export const TEST_TRADES: TradeFixture[] = [
     quantity: '50',
     price: { amount: '2800.00', currency: 'USD' },
     tradedAt: '2025-01-15T11:00:00Z',
+    status: 'CANCELLED',
   },
   {
     tradeId: 'trade-3',
@@ -95,6 +98,7 @@ export const TEST_TRADES: TradeFixture[] = [
     quantity: '25',
     price: { amount: '155.00', currency: 'USD' },
     tradedAt: '2025-01-15T14:00:00Z',
+    status: 'AMENDED',
   },
 ]
 

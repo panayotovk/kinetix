@@ -59,14 +59,41 @@ test.describe('Trade Blotter - Core Display', () => {
     await expect(page.getByTestId('trade-notional-trade-3')).toHaveText('$3.9K')
   })
 
-  test('shows FILLED status badge for all trades', async ({ page }) => {
+  test('shows actual trade status in each status badge', async ({ page }) => {
     await goToTradesTab(page)
 
-    const badges = page.locator('.bg-green-100')
-    await expect(badges).toHaveCount(3)
-    for (let i = 0; i < 3; i++) {
-      await expect(badges.nth(i)).toHaveText('FILLED')
+    // trade-1 is LIVE, trade-2 is CANCELLED, trade-3 is AMENDED (from TEST_TRADES)
+    await expect(page.getByTestId('trade-status-trade-1')).toHaveText('LIVE')
+    await expect(page.getByTestId('trade-status-trade-2')).toHaveText('CANCELLED')
+    await expect(page.getByTestId('trade-status-trade-3')).toHaveText('AMENDED')
+  })
+
+  test('falls back to LIVE when API response has no status field', async ({ page }) => {
+    const tradeWithoutStatus = {
+      tradeId: 'trade-no-status',
+      bookId: 'port-1',
+      instrumentId: 'MSFT',
+      assetClass: 'EQUITY',
+      side: 'BUY',
+      quantity: '10',
+      price: { amount: '300.00', currency: 'USD' },
+      tradedAt: '2025-01-15T12:00:00Z',
     }
+
+    await page.unroute('**/api/v1/books/*/trades')
+    await page.route('**/api/v1/books/*/trades', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([tradeWithoutStatus]),
+      })
+    })
+
+    await page.goto('/')
+    await page.getByTestId('tab-trades').click()
+    await page.waitForSelector('[data-testid="trade-status-trade-no-status"]')
+
+    await expect(page.getByTestId('trade-status-trade-no-status')).toHaveText('LIVE')
   })
 })
 
@@ -352,6 +379,31 @@ test.describe('Trade Blotter - CSV Data Accuracy', () => {
       const notional = Number(cols[8])
       expect(notional).toBeCloseTo(qty * price, 2)
     }
+  })
+
+  test('CSV status column reflects actual trade status, not hardcoded FILLED', async ({ page }) => {
+    await page.goto('/')
+    await page.getByTestId('tab-trades').click()
+    await page.waitForSelector('[data-testid="csv-export-button"]')
+
+    const downloadPromise = page.waitForEvent('download')
+    await page.getByTestId('csv-export-button').click()
+    const download = await downloadPromise
+
+    const filePath = await download.path()
+    const { readFile } = await import('fs/promises')
+    const content = await readFile(filePath!, 'utf-8')
+    const lines = content.trim().split('\n')
+    const dataLines = lines.slice(1) // skip header
+
+    // Collect status values from last column
+    const statuses = dataLines.map((line) => line.split(',').at(-1))
+
+    // TEST_TRADES has LIVE, CANCELLED, AMENDED — none should be "FILLED"
+    expect(statuses).not.toContain('FILLED')
+    expect(statuses).toContain('LIVE')
+    expect(statuses).toContain('CANCELLED')
+    expect(statuses).toContain('AMENDED')
   })
 
   test('CSV rows are in descending time order (matching UI)', async ({ page }) => {
