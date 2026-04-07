@@ -216,7 +216,7 @@ config {
     default_vol_derivative: Decimal = 0.30
 
     -- DRC parameters
-    default_lgd: Decimal = 0.60
+    drc_default_lgd: Decimal = 0.60
     hedge_benefit_factor: Decimal = 0.50
 
     -- RRAO parameters

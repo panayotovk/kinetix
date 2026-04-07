@@ -157,3 +157,9 @@ enum LiquidityTier { high_liquid | liquid | semi_liquid | illiquid }
         -- Liquidity classification based on ADV and bid-ask spread.
         -- Used by reference-data-service (InstrumentLiquidity) and
         -- liquidity risk calculations.
+        --
+        -- Kotlin naming divergence: reference-data-service uses
+        -- InstrumentLiquidityTier with numbered names (TIER_1 = high_liquid,
+        -- TIER_2 = liquid, TIER_3 = semi_liquid, ILLIQUID = illiquid).
+        -- The common module LiquidityTier uses the spec names.
+        -- A rename would require a DB migration; the mapping is documented here.
