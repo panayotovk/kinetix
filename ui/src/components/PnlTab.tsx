@@ -130,7 +130,11 @@ export function PnlTab({ bookId }: PnlTabProps) {
       {data && (
         <>
           {sod.status?.exists && (
-            <p data-testid="pnl-baseline-provenance" className="text-xs text-slate-500">
+            <p
+              data-testid="pnl-baseline-provenance"
+              className="text-sm text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded px-3 py-1.5"
+            >
+              <span className="font-medium">Baseline:</span>{' '}
               Attribution baseline: {sod.status.snapshotType === 'AUTO' ? 'Auto' : 'Manual'}
               {sod.status.calculationType && ` · ${sod.status.calculationType}`}
               {sod.status.createdAt && ` · ${formatTimestamp(sod.status.createdAt)}`}
