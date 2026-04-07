@@ -1,6 +1,7 @@
 package com.kinetix.risk.service
 
 import com.kinetix.common.model.*
+import com.kinetix.risk.client.InstrumentServiceClient
 import com.kinetix.risk.client.PositionProvider
 import com.kinetix.risk.client.RiskEngineClient
 import com.kinetix.risk.kafka.RiskResultPublisher
@@ -1138,5 +1139,116 @@ class VaRCalculationServiceTest : FunSpec({
 
         result.shouldNotBeNull()
         result.marketDataComplete shouldBe false
+    }
+
+    // ---- Phase 6.1: computePositionRisk dedicated tests ----
+
+    test("computePositionRisk produces negative varContribution for short positions") {
+        val longPos = position(instrumentId = "AAPL", marketPrice = "170.00")
+        val shortPos = position(instrumentId = "TSLA", marketPrice = "-200.00")
+        val result = varResult(
+            varValue = 10000.0,
+            componentBreakdown = listOf(
+                ComponentBreakdown(AssetClass.EQUITY, 10000.0, 100.0),
+            ),
+        )
+
+        val risk = service.computePositionRisk(listOf(longPos, shortPos), result)
+
+        risk shouldHaveSize 2
+        val longRisk = risk.first { it.instrumentId.value == "AAPL" }
+        val shortRisk = risk.first { it.instrumentId.value == "TSLA" }
+
+        // Short position should have negative contribution
+        (shortRisk.varContribution.toDouble() < 0) shouldBe true
+        (shortRisk.percentageOfTotal.toDouble() < 0) shouldBe true
+        // Long position should have positive contribution
+        (longRisk.varContribution.toDouble() > 0) shouldBe true
+    }
+
+    test("computePositionRisk handles zero total VaR without exception") {
+        val pos = position()
+        val result = varResult(
+            varValue = 0.0,
+            componentBreakdown = listOf(
+                ComponentBreakdown(AssetClass.EQUITY, 0.0, 0.0),
+            ),
+        )
+
+        val risk = service.computePositionRisk(listOf(pos), result)
+
+        risk shouldHaveSize 1
+        risk[0].varContribution.toDouble() shouldBeExactly 0.0
+        risk[0].percentageOfTotal.toDouble() shouldBeExactly 0.0
+        risk[0].esContribution.toDouble() shouldBeExactly 0.0
+    }
+
+    test("computePositionRisk handles null Greeks gracefully") {
+        val pos = position()
+        val result = varResult().copy(greeks = null)
+
+        val risk = service.computePositionRisk(listOf(pos), result)
+
+        risk shouldHaveSize 1
+        risk[0].delta.shouldBeNull()
+        risk[0].gamma.shouldBeNull()
+        risk[0].vega.shouldBeNull()
+    }
+
+    test("computePositionRisk applies instrument enrichment from instrumentMap") {
+        val pos = position()
+        val result = varResult()
+        val instrumentMap = mapOf(
+            "AAPL" to com.kinetix.risk.client.dtos.InstrumentDto(
+                instrumentId = "AAPL",
+                instrumentType = "CASH_EQUITY",
+                displayName = "Apple Inc.",
+                assetClass = "EQUITY",
+                currency = "USD",
+                attributes = kotlinx.serialization.json.JsonObject(emptyMap()),
+                createdAt = "2026-01-01T00:00:00Z",
+                updatedAt = "2026-01-01T00:00:00Z",
+            ),
+        )
+
+        val risk = service.computePositionRisk(listOf(pos), result, instrumentMap)
+
+        risk shouldHaveSize 1
+        risk[0].instrumentType shouldBe "CASH_EQUITY"
+        risk[0].displayName shouldBe "Apple Inc."
+    }
+
+    // ---- Phase 6.3: Instrument enrichment failure test ----
+
+    test("handles instrument enrichment failure gracefully and still returns a result") {
+        val positions = listOf(position())
+        val expectedResult = varResult()
+
+        val instrumentClient = mockk<InstrumentServiceClient>()
+        coEvery { instrumentClient.getInstruments(any()) } throws RuntimeException("Reference data service unreachable")
+        coEvery { positionProvider.getPositions(BookId("port-1")) } returns positions
+        coEvery { riskEngineClient.valuate(any(), positions) } returns expectedResult
+        coEvery { resultPublisher.publish(expectedResult) } just Runs
+
+        val serviceWithInstruments = VaRCalculationService(
+            positionProvider, riskEngineClient, resultPublisher, SimpleMeterRegistry(),
+            instrumentServiceClient = instrumentClient,
+        )
+
+        val result = serviceWithInstruments.calculateVaR(
+            VaRCalculationRequest(
+                bookId = BookId("port-1"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
+        )
+
+        result.shouldNotBeNull()
+        // Calculation completes despite instrument service failure
+        result.varValue shouldBe 5000.0
+        // No instrument enrichment available
+        result.positionRisk.forEach { pr ->
+            pr.instrumentType.shouldBeNull()
+        }
     }
 })
