@@ -1,3 +1,27 @@
+"""
+Historical (empirical) Value at Risk.
+
+Multi-day VaR is derived from 1-day VaR using the Basel square-root-of-time rule:
+
+    VaR(T) = VaR(1) * sqrt(T)
+
+Assumption: daily returns are i.i.d. (independent and identically distributed).
+The empirical 1-day loss quantile is computed from the historical return series
+and then scaled to the target horizon via sqrt(T).
+
+Validity: holds reasonably well for short horizons (1-10 days) in liquid markets.
+
+Known limitation: understates risk when:
+  - returns exhibit autocorrelation (positive serial correlation means actual
+    multi-day losses exceed the sqrt(T)-scaled 1-day estimate),
+  - volatility is time-varying / clustered (GARCH effects mean variance does not
+    grow linearly with time), or
+  - the historical window is too short to capture tail events.
+
+The correct alternative is to compute multi-day VaR directly from overlapping
+T-day return windows drawn from the historical series.
+"""
+
 import logging
 
 import numpy as np
@@ -56,6 +80,9 @@ def calculate_historical_var(
     # 1-day VaR at confidence level
     alpha = confidence_level.value
     var_1d = float(np.percentile(portfolio_losses, alpha * 100))
+    # Basel sqrt(T) rule: scales 1-day VaR to T-day VaR under the i.i.d. normally
+    # distributed returns assumption.  Valid for short horizons (1-10 days);
+    # understates risk under autocorrelation, volatility clustering, or fat tails.
     var_value = var_1d * np.sqrt(time_horizon_days)
 
     # Expected shortfall from empirical distribution

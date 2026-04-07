@@ -1,3 +1,24 @@
+"""
+Parametric (variance-covariance) Value at Risk.
+
+Multi-day VaR is derived from 1-day VaR using the Basel square-root-of-time rule:
+
+    VaR(T) = VaR(1) * sqrt(T)
+
+Assumption: daily returns are i.i.d. (independent and identically distributed)
+and normally distributed.  Under i.i.d. the variance of a T-day return is
+T times the 1-day variance, so the standard deviation scales by sqrt(T).
+
+Validity: holds reasonably well for short horizons (1-10 days) in liquid markets.
+
+Known limitation: understates risk when:
+  - returns exhibit autocorrelation (positive serial correlation makes multi-day
+    losses larger than sqrt(T) scaling implies),
+  - volatility is time-varying / clustered (GARCH effects mean variance does not
+    grow linearly with time), or
+  - return distributions have fat tails or skew (normality assumption breaks down).
+"""
+
 import numpy as np
 from scipy.stats import norm
 
@@ -29,6 +50,9 @@ def calculate_parametric_var(
 
     alpha = confidence_level.value
     z = norm.ppf(alpha)
+    # Basel sqrt(T) rule: scales 1-day VaR to T-day VaR under the i.i.d. normally
+    # distributed returns assumption.  Valid for short horizons (1-10 days);
+    # understates risk under autocorrelation, volatility clustering, or fat tails.
     sqrt_t = np.sqrt(time_horizon_days)
 
     var_value = z * port_std * sqrt_t

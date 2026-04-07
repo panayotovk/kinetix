@@ -1,3 +1,27 @@
+"""
+Monte Carlo Value at Risk.
+
+Multi-day VaR is derived from 1-day VaR using the Basel square-root-of-time rule:
+
+    VaR(T) = VaR(1) * sqrt(T)
+
+Assumption: daily returns are i.i.d. (independent and identically distributed).
+Each simulation path generates a single-day correlated return; the result is then
+scaled to the target horizon via sqrt(T).
+
+Validity: holds reasonably well for short horizons (1-10 days) in liquid markets.
+
+Known limitation: understates risk when:
+  - returns exhibit autocorrelation (positive serial correlation makes multi-day
+    losses larger than sqrt(T) scaling implies),
+  - volatility is time-varying / clustered (GARCH effects mean variance does not
+    grow linearly with time), or
+  - return distributions have fat tails or skew.
+
+For more accurate multi-day VaR, simulate full T-day paths rather than scaling
+the 1-day quantile.
+"""
+
 import numpy as np
 
 from kinetix_risk.expected_shortfall import calculate_expected_shortfall
@@ -54,6 +78,9 @@ def calculate_monte_carlo_var(
     # 1-day VaR at confidence level
     alpha = confidence_level.value
     var_1d = float(np.percentile(portfolio_losses, alpha * 100))
+    # Basel sqrt(T) rule: scales 1-day VaR to T-day VaR under the i.i.d. normally
+    # distributed returns assumption.  Valid for short horizons (1-10 days);
+    # understates risk under autocorrelation, volatility clustering, or fat tails.
     var_value = var_1d * np.sqrt(time_horizon_days)
 
     # Expected shortfall from simulated distribution
