@@ -372,7 +372,7 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
         }
     }
 
-    // --- Test 27: cancelling an already-cancelled trade throws InvalidTradeStateException ---
+    // --- Test 27: cancelling an already-cancelled trade returns idempotently ---
 
     given("a trade that has already been cancelled") {
         `when`("a second cancel is attempted") {
@@ -392,22 +392,22 @@ class TradeLifecycleEnd2EndTest : BehaviorSpec({
                 )
             )
 
-            lifecycleService.handleCancel(
+            val firstResult = lifecycleService.handleCancel(
                 CancelTradeCommand(
                     tradeId = TradeId(tradeId),
                     bookId = BookId(bookId),
                 )
             )
 
-            then("InvalidTradeStateException is thrown") {
-                shouldThrow<InvalidTradeStateException> {
-                    lifecycleService.handleCancel(
-                        CancelTradeCommand(
-                            tradeId = TradeId(tradeId),
-                            bookId = BookId(bookId),
-                        )
+            then("the same cancelled result is returned idempotently") {
+                val secondResult = lifecycleService.handleCancel(
+                    CancelTradeCommand(
+                        tradeId = TradeId(tradeId),
+                        bookId = BookId(bookId),
                     )
-                }
+                )
+                secondResult.trade.status shouldBe TradeStatus.CANCELLED
+                secondResult.position.quantity.compareTo(firstResult.position.quantity) shouldBe 0
             }
         }
     }
