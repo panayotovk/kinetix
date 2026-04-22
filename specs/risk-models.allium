@@ -164,26 +164,34 @@ value BacktestResult {
     violations: List<BacktestViolation>
 }
 
-------------------------------------------------------------
--- Entities and Variants
-------------------------------------------------------------
+-- StressScenarioShocks is the computational, typed representation of the
+-- shocks used by RunStressTest. It is populated from the persisted
+-- scenarios/SavedScenario (whose shocks field is serialised JSON) at the
+-- moment a stress test runs. It is a value type, not an entity — it has
+-- no lifecycle of its own; scenario governance lives on SavedScenario.
 
-entity StressScenario {
+value StressAssetShock {
+    asset_class: core/AssetClass
+    vol_multiplier: Decimal      -- 1.0 = unchanged; 3.0 = 3x vol
+    price_multiplier: Decimal    -- 1.0 = unchanged; 0.60 = 60% of base
+}
+
+value StressScenarioShocks {
     name: String
     description: String?
-    vol_shocks: Map<core/AssetClass, Decimal>
-    price_shocks: Map<core/AssetClass, Decimal>
+    shocks: List<StressAssetShock>
     correlation_override: List<Decimal>?
     category: core/ScenarioCategory
 
     @guidance
-        -- vol_shocks: multipliers by asset class (e.g., 3.0 = 3x vol).
-        -- price_shocks: multipliers by asset class (e.g., 0.60 = 60% of base).
-        -- Pre-defined scenarios:
+        -- Pre-defined scenarios (materialised from the scenarios/SavedScenario
+        -- library before a stress run):
         --   GFC_2008: vol 3.0x (derivatives), prices 0.55-0.95x, crisis correlations
         --   COVID_2020: vol 2.5x, prices 0.60-0.97x, pandemic correlations
         --   TAPER_TANTRUM_2013: vol 1.5-2.0x, prices 0.90-0.97x
         --   EURO_CRISIS_2011: vol 1.5-2.0x, prices 0.75-0.92x
+        -- One StressAssetShock entry per asset class. Missing asset classes
+        -- default to vol_multiplier = 1.0, price_multiplier = 1.0.
 }
 
 ------------------------------------------------------------
@@ -420,6 +428,10 @@ rule RunStressTest {
     when: RunStressTestRequested(book_id, scenario, positions, market_data)
 
     @guidance
+        -- The scenario parameter is a StressScenarioShocks value, typically
+        -- materialised from a persisted scenarios/SavedScenario immediately
+        -- before this rule fires.
+        --
         -- 1. Calculate base VaR with current market data.
         -- 2. Apply price shocks to positions (multiply by shock factor).
         -- 3. Build stressed vols (multiply by vol shock factor).

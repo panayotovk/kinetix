@@ -18,6 +18,8 @@ use "./core.allium" as core
 use "./trading.allium" as trading
 use "./positions.allium" as positions
 use "./limits.allium" as limits
+use "./risk-models.allium" as risk_models
+use "./reference-data.allium" as refdata
 
 ------------------------------------------------------------
 -- Value Types
@@ -82,33 +84,17 @@ value LiquidityRiskSummary {
 -- External Entities
 ------------------------------------------------------------
 
-external entity Position {
-    book_id: String,
-    instrument_id: String,
-    asset_class: core/AssetClass,
-    quantity: Decimal,
-    average_cost: core/Money,
-    market_price: core/Money,
-    realized_pnl: core/Money,
-    instrument_type: String?,
-    market_value: Decimal,
-    unrealized_pnl: Decimal
-}
+-- Position is declared authoritatively in positions.allium and is referenced
+-- here via the qualified positions/Position name.
+--
+-- The computational stress-scenario shock bundle is declared in
+-- risk-models.allium as the value type StressScenarioShocks. Liquidity
+-- references it via the qualified risk_models/StressScenarioShocks name.
 
-external entity StressScenario {
-    name: String,
-    description: String?,
-    vol_shocks: Map<core/AssetClass, Decimal>,
-    price_shocks: Map<core/AssetClass, Decimal>,
-    correlation_override: List<Decimal>?
-}
-
-external entity InstrumentLiquidity {
-    instrument_id: String,
-    adv: Decimal,
-    bid_ask_spread_bps: Decimal,
-    liquidity_tier: core/LiquidityTier
-}
+-- InstrumentLiquidity is declared authoritatively in reference-data.allium.
+-- Liquidity references it via refdata/InstrumentLiquidity. Creation and
+-- upserts are owned by reference-data/UpsertInstrumentLiquidity; this spec
+-- only ingests and computes derived risk metrics on top.
 
 ------------------------------------------------------------
 -- Entities and Variants
@@ -201,29 +187,24 @@ config {
 -- Rules
 ------------------------------------------------------------
 
--- Instrument liquidity ingestion
+-- Instrument liquidity ingestion: delegate to reference-data.
+-- This rule translates an external "liquidity received" event into the
+-- canonical upsert request consumed by reference-data/UpsertInstrumentLiquidity.
 
 rule IngestInstrumentLiquidity {
     when: InstrumentLiquidityReceived(instrument_id, adv, bid_ask_spread_bps, asset_class)
-
-    let tier = classify_tier(adv, bid_ask_spread_bps)
-
-    ensures: InstrumentLiquidity.created(
+    ensures: UpsertInstrumentLiquidityRequested(
         instrument_id: instrument_id,
         adv: adv,
         bid_ask_spread_bps: bid_ask_spread_bps,
-        asset_class: asset_class,
-        liquidity_tier: tier,
-        adv_updated_at: now,
-        created_at: now,
-        updated_at: now
+        asset_class: asset_class
     )
 
     @guidance
-        -- Triggered by daily batch ingestion job.
-        -- Upserts: if instrument_id already exists, fields are updated
-        -- and updated_at is set to now.
-        -- classify_tier uses the config thresholds:
+        -- Triggered by the daily batch ingestion job. The upsert is handled
+        -- by reference-data/UpsertInstrumentLiquidity which performs tier
+        -- classification and writes the record. classify_tier applies the
+        -- thresholds:
         --   adv >= high_liquid_adv_floor AND spread <= high_liquid_spread_cap → HIGH_LIQUID
         --   adv >= liquid_adv_floor AND spread <= liquid_spread_cap → LIQUID
         --   adv >= semi_liquid_adv_floor → SEMI_LIQUID
@@ -235,8 +216,8 @@ rule IngestInstrumentLiquidity {
 
 rule ComputePositionLiquidity {
     when: ComputePositionLiquidityRequested(book_id)
-    for position in Positions where book_id = book_id:
-        let instrument_liq = InstrumentLiquidity{instrument_id: position.instrument_id}
+    for position in positions/Positions where book_id = book_id:
+        let instrument_liq = refdata/InstrumentLiquidity{instrument_id: position.instrument_id}
         let has_adv = instrument_liq != null and instrument_liq.adv > 0
 
         let adv_pct = if has_adv:
@@ -348,8 +329,10 @@ rule ComputeStressedLiquidity {
         ensures: metric.stressed_liquidation_days = stressed_days
 
     @guidance
-        -- Each StressScenario carries per-asset-class stress factors
-        -- via a LiquidityStressFactors block:
+        -- scenario is a risk_models/StressScenarioShocks; its companion
+        -- LiquidityStressFactors (sourced alongside the shocks on the
+        -- persisted scenarios/SavedScenario) carries per-asset-class
+        -- ADV stress factors:
         --   GFC_2008:            equity=0.25, fixed_income=0.15, fx=0.50, commodity=0.30
         --   COVID_2020:          equity=0.60, fixed_income=0.20, fx=0.40, commodity=0.25
         --   TAPER_TANTRUM_2013:  equity=0.80, fixed_income=0.30, fx=0.60, commodity=0.50
@@ -366,8 +349,8 @@ rule CheckADVConcentration {
     when: PreTradeLimitCheck(book_id, instrument_id, new_quantity, limit_type)
     requires: limit_type = adv_concentration
 
-    let instrument_liq = InstrumentLiquidity{instrument_id: instrument_id}
-    let position = Position{book_id: book_id, instrument_id: instrument_id}
+    let instrument_liq = refdata/InstrumentLiquidity{instrument_id: instrument_id}
+    let position = positions/Position{book_id: book_id, instrument_id: instrument_id}
     let new_notional = abs(new_quantity * current_price(instrument_id))
     let new_adv_pct = if instrument_liq != null and instrument_liq.adv > 0:
         new_notional / instrument_liq.adv
@@ -435,7 +418,7 @@ rule RecomputeLiquidityOnTrade {
 ------------------------------------------------------------
 
 invariant NoADVDefaultsToIlliquid {
-    for il in InstrumentLiquiditys:
+    for il in refdata/InstrumentLiquiditys:
         not (il.adv > 0) implies il.liquidity_tier = illiquid
 }
 
