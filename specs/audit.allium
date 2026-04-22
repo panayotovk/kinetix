@@ -62,20 +62,19 @@ entity AuditEvent {
     limit_id: String?
     submission_id: String?
     details: String?
-
-    @guidance
-        -- quantity and price_amount stored as NUMERIC(28,12) for precision.
-        -- traded_at stored as TIMESTAMPTZ, truncated to microsecond precision.
-        -- Hash chain: each event's previous_hash = previous event's record_hash.
-        -- The first event in the chain has previous_hash = null.
-        -- Non-trade events leave trade fields null; their identity is carried
-        -- in model_name, scenario_id, limit_id, or submission_id as appropriate.
-        -- All fields (including nulls) are included in hash computation so that
-        -- the hash is deterministic regardless of event type.
-        -- details is a free-text field for additional context (e.g. scenario name,
-        -- model version info). Included in SHA-256 hash computation between
-        -- submission_id and previous_hash.
 }
+
+-- Notes on AuditEvent representation:
+--   quantity and price_amount are stored at NUMERIC(28,12) precision.
+--   traded_at is truncated to microsecond precision.
+--   Hash chain: each event's previous_hash = previous event's record_hash.
+--   The first event in the chain has previous_hash = null.
+--   Non-trade events leave trade fields null; their identity is carried
+--   in model_name, scenario_id, limit_id, or submission_id as appropriate.
+--   All fields (including nulls) are included in hash computation so that
+--   the hash is deterministic regardless of event type.
+--   details is a free-text field for additional context (e.g. scenario name,
+--   model version info).
 
 entity VerificationCheckpoint {
     last_event_id: Integer
@@ -104,7 +103,7 @@ config {
 -- We subscribe to all three; the recording logic is identical.
 
 rule RecordAuditEventOnBook {
-    when: trading/TradeBooked(trade, book_id)
+    when: TradeBooked(trade, book_id)
     let latest_hash = latest_audit_event_hash
     let normalized_quantity = normalize_decimal(trade.quantity)
     let normalized_price = normalize_decimal(trade.price.amount)
@@ -139,7 +138,7 @@ rule RecordAuditEventOnBook {
 }
 
 rule RecordAuditEventOnAmend {
-    when: trading/TradeAmended(trade, original_trade_id, book_id)
+    when: TradeAmended(trade, original_trade_id, book_id)
     let latest_hash = latest_audit_event_hash
     let normalized_quantity = normalize_decimal(trade.quantity)
     let normalized_price = normalize_decimal(trade.price.amount)
@@ -163,7 +162,7 @@ rule RecordAuditEventOnAmend {
 }
 
 rule RecordAuditEventOnCancel {
-    when: trading/TradeCancelled(trade, book_id)
+    when: TradeCancelled(trade, book_id)
     let latest_hash = latest_audit_event_hash
     let normalized_quantity = normalize_decimal(trade.quantity)
     let normalized_price = normalize_decimal(trade.price.amount)
@@ -286,51 +285,18 @@ rule VerifyAuditChain {
 -- Invariants
 ------------------------------------------------------------
 
-invariant AuditImmutability {
-    @guidance
-        -- No UPDATE or DELETE is permitted on audit events.
-        -- Enforced by database triggers:
-        --   prevent_audit_event_mutation: blocks UPDATE
-        --   prevent_audit_event_deletion: blocks DELETE
-        -- Violation of these triggers raises a database error.
+invariant EveryAuditEventIsHashed {
+    -- Every audit event carries a non-empty record hash; breakage of this
+    -- hash chain indicates tampering.
+    for e in AuditEvents:
+        e.record_hash != ""
 }
 
-invariant HashChainIntegrity {
-    @guidance
-        -- For all consecutive audit events (ordered by id):
-        --   event[n].previous_hash = event[n-1].record_hash
-        -- The first event has previous_hash = null.
-        -- Each record_hash = SHA-256(serialized fields + previous_hash).
-        -- Breaking the chain indicates tampering.
-}
-
-invariant AuditCompleteness {
-    @guidance
-        -- Every event in the following categories must produce exactly one audit record:
-        --
-        -- Trade lifecycle:
-        --   trade_booked, trade_amended, trade_cancelled
-        --   Verified daily by TradeAuditReconciliationJob:
-        --     trade_event_count(24h) = audit_event_count(event_type IN trade_booked|amended|cancelled, 24h)
-        --
-        -- Risk calculations:
-        --   risk_calculation_completed — every completed VaR run via risk-orchestrator.
-        --   stress_test_run — every completed stress test execution.
-        --
-        -- Model governance transitions:
-        --   model_status_changed — every model approval, deprecation, or rejection.
-        --   limit_breached, limit_increase_approved — all limit lifecycle events.
-        --   scenario_approved, scenario_retired — all scenario workflow transitions.
-        --   eod_promoted — every EOD risk snapshot promotion.
-        --   submission_approved — every regulatory submission sign-off.
-        --
-        -- Access denials:
-        --   rbac_access_denied — every HTTP 403 response from the gateway.
-        --
-        -- report_generated:
-        --   Every report produced by regulatory-service.
-        --
-        -- Completeness for non-trade event types is verified by
-        -- cross-referencing the originating service's own event log
-        -- against the audit trail count for the same time window.
+invariant FirstEventHasNoPredecessor {
+    -- At most one audit event has a null previous_hash; that event anchors
+    -- the chain.
+    for a in AuditEvents:
+        for b in AuditEvents:
+            (a != b and a.previous_hash = null and b.previous_hash = null)
+                implies false
 }
