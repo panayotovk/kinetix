@@ -405,25 +405,22 @@ rule RunSavedScenario {
 rule RunBatchStressTest {
     when: RunBatchStressTestRequested(book_id)
 
-    let approved_scenarios = SavedScenario where status = approved
-    let base_var = compute_base_var(book_id)
-
-    ensures: BatchStressRunResult(
-        scenario_results: run_parallel(approved_scenarios, book_id, base_var),
-        worst_scenario_name: name_of(min_by(scenario_results, pnl_impact)),
-        worst_pnl_impact: min(scenario_results.pnl_impact)
-    )
+    ensures: BatchStressTestCompleted(book_id: book_id)
 
     @guidance
         -- Runs all approved scenarios for the given book concurrently.
-        -- Base VaR is computed once and shared across all scenario executions
-        -- to avoid redundant calculation.
-        -- Each scenario execution follows RunSavedScenario dispatch logic.
+        -- Fetches SavedScenarios where status = approved, computes a
+        -- base VaR once (shared across scenario executions to avoid
+        -- redundant calculation), then dispatches each scenario via the
+        -- RunSavedScenario path.
+        --
+        -- Emits BatchStressTestCompleted once all parallel executions
+        -- return. The payload includes the BatchStressRunResult value
+        -- (results list, worst_scenario_name, worst_pnl_impact, and
+        -- failed_scenarios).
         -- Results are ranked by pnl_impact ascending (worst loss first).
-        -- The rule returns immediately with a BatchStressRunResult once all
-        -- parallel executions complete.
-        -- If any individual scenario fails, it is excluded from results and
-        -- a warning is recorded; the batch run is not aborted.
+        -- If an individual scenario fails, it is excluded from results
+        -- and recorded in failed_scenarios; the batch run is not aborted.
 }
 
 ------------------------------------------------------------
