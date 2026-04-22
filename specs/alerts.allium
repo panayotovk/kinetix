@@ -3,6 +3,7 @@
 -- suggested actions, delivery routing, and alert acknowledgement.
 
 use "./core.allium" as core
+use "./regime.allium" as regime
 
 ------------------------------------------------------------
 -- Value Types
@@ -177,8 +178,9 @@ deferred extract_metric
     --       "BREACHED" -> 2.0, "WARNING" -> 1.0, "OK" -> 0.0, absent -> null.
     --       A rule with threshold=1.5, operator=GREATER_THAN fires only on BREACHED.
     --       A rule with threshold=0.5, operator=GREATER_THAN fires on WARNING and BREACHED.
-    --   REGIME_CHANGE       -> not evaluated via MetricExtractor; uses dedicated
-    --       RegimeChangeRule consuming from Kafka topic risk.regime.changes.
+    --   REGIME_CHANGE       -> not evaluated via MetricExtractor; uses the
+    --       dedicated EvaluateRegimeChange rule that subscribes to
+    --       regime/RegimeTransitioned.
     --   FACTOR_CONCENTRATION -> sentinel detection: if event.concentrationByInstrument
     --       contains an entry with instrumentId = "FACTOR_MODEL", returns 1.0; else null.
     --       A rule with threshold=0.5, operator=GREATER_THAN fires whenever the
@@ -396,47 +398,48 @@ rule EvaluateDataStaleness {
         -- alert evaluation pipeline.
 }
 
--- Regime change alerts (from MarketRegimeEvent Kafka topic)
+-- Regime change alerts: subscribe directly to regime/RegimeTransitioned.
 
 rule EvaluateRegimeChange {
-    when: MarketRegimeEventReceived(event)
-    requires: event.regime != "NORMAL"
+    when: regime/RegimeTransitioned(from, to, signals, new_params)
+    requires: to != normal
 
     ensures: AlertEvent.created(
         id: new_id,
         rule_id: "REGIME_CHANGE",
         rule_name: "Market Regime Change",
         type: regime_change,
-        severity: regime_severity(event.regime),
-        message: format_regime_message(event),
+        severity: regime_severity(to),
+        message: format_regime_message(from, to, new_params, signals),
         current_value: 0,
         threshold: 0,
         book_id: "GLOBAL",
         triggered_at: now,
-        status: triggered,
-        correlation_id: event.correlation_id
+        status: triggered
     )
 
     @guidance
-        -- Consumes from Kafka topic risk.regime.changes via MarketRegimeEventConsumer.
-        -- RegimeChangeRule evaluates the regime and maps to severity:
-        --   any -> CRISIS                           = critical
-        --   any -> ELEVATED_VOL                     = warning
-        --   any -> RECOVERY                         = info
-        --   CRISIS -> NORMAL (recovery from crisis) = info
-        --   any other -> NORMAL                     = no alert (suppressed)
+        -- Chains directly from regime/ConfirmRegimeTransition (which emits
+        -- RegimeTransitioned). At the implementation level this is consumed
+        -- via the risk.regime.changes Kafka topic by MarketRegimeEventConsumer.
+        --
+        -- Severity mapping on the destination regime:
+        --   crisis       = critical
+        --   elevated_vol = warning
+        --   recovery     = info
+        --   normal (from crisis) = info
+        --   normal (otherwise)   = no alert (requires: to != normal suppresses)
         --
         -- The alert message includes:
-        --   - previous regime and new regime
-        --   - effective VaR method (calculation type)
+        --   - previous regime (from) and new regime (to)
+        --   - effective VaR method (calculation type from new_params)
         --   - confidence level
         --   - time horizon in days
         --   - correlation method
-        --   - degraded signal inputs warning (if event.degradedInputs = true)
+        --   - degraded signal inputs warning (if signals carry a degraded flag)
         --
         -- Regime change alerts use book_id = "GLOBAL" (system-wide, not book-specific).
-        -- They bypass the standard MetricExtractor pipeline entirely --
-        -- RegimeChangeRule is evaluated directly by the MarketRegimeEventConsumer.
+        -- They bypass the standard MetricExtractor pipeline entirely.
         -- Persisted via AlertEventRepository and delivered via DeliveryService.
 }
 

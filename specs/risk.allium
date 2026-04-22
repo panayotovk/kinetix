@@ -3,6 +3,8 @@
 -- P&L attribution, EOD promotion, and calculation job lifecycle.
 
 use "./core.allium" as core
+use "./trading.allium" as trading
+use "./market-data.allium" as md
 
 ------------------------------------------------------------
 -- Value Types
@@ -359,31 +361,80 @@ rule ScheduledVaRRecalculation {
 }
 
 -- Event-driven recalculation
+-- Chain directly from the canonical trade and price triggers.
 
-rule RecalculateOnTradeEvent {
-    when: TradeEventReceived(book_id, correlation_id)
+rule RecalculateOnTradeBooked {
+    when: trading/TradeBooked(trade, book_id)
     ensures: CalculateVaRRequested(
         book_id: book_id,
-        trigger_type: trade_event,
-        correlation_id: correlation_id
+        calculation_type: null,
+        confidence_level: null,
+        time_horizon_days: null,
+        num_simulations: null,
+        requested_outputs: null,
+        correlation_id: trade.trade_id,
+        trigger_type: trade_event
     )
 
     @guidance
-        -- Triggered by Kafka consumer on trades.lifecycle topic.
-        -- Recalculates VaR for the affected book.
+        -- Recalculates VaR for the affected book after a new trade is booked.
+        -- At the implementation level this fires from the trades.lifecycle
+        -- Kafka topic via the trade-event consumer.
 }
 
-rule RecalculateOnPriceEvent {
-    when: PriceEventReceived(instrument_id)
+rule RecalculateOnTradeAmended {
+    when: trading/TradeAmended(trade, original_trade_id, book_id)
+    ensures: CalculateVaRRequested(
+        book_id: book_id,
+        calculation_type: null,
+        confidence_level: null,
+        time_horizon_days: null,
+        num_simulations: null,
+        requested_outputs: null,
+        correlation_id: trade.trade_id,
+        trigger_type: trade_event
+    )
+
+    @guidance
+        -- Recalculates VaR for the affected book after a trade amendment.
+}
+
+rule RecalculateOnTradeCancelled {
+    when: trading/TradeCancelled(trade, book_id)
+    ensures: CalculateVaRRequested(
+        book_id: book_id,
+        calculation_type: null,
+        confidence_level: null,
+        time_horizon_days: null,
+        num_simulations: null,
+        requested_outputs: null,
+        correlation_id: trade.trade_id,
+        trigger_type: trade_event
+    )
+
+    @guidance
+        -- Recalculates VaR for the affected book after a trade cancellation.
+}
+
+rule RecalculateOnPricePublished {
+    when: md/PricePublished(instrument_id, price_amount, price_currency)
     for book_id in all_book_ids:
         ensures: CalculateVaRRequested(
             book_id: book_id,
+            calculation_type: null,
+            confidence_level: null,
+            time_horizon_days: null,
+            num_simulations: null,
+            requested_outputs: null,
+            correlation_id: null,
             trigger_type: price_event
         )
 
     @guidance
-        -- Triggered by Kafka consumer on price.updates topic.
-        -- Recalculates VaR for ALL books (price may affect multiple).
+        -- Recalculates VaR for ALL books when any instrument price changes
+        -- (a price update may affect multiple books holding the instrument).
+        -- At the implementation level this fires from the price.updates
+        -- Kafka topic via the price-event consumer.
 }
 
 -- Cross-book VaR

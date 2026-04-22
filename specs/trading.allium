@@ -3,7 +3,6 @@
 
 use "./core.allium" as core
 use "./reference-data.allium" as ref
-use "./positions.allium" as pos
 
 ------------------------------------------------------------
 -- Entities and Variants

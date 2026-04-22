@@ -2,6 +2,8 @@
 -- Position management, mark-to-market, realized P&L, and portfolio aggregation.
 
 use "./core.allium" as core
+use "./trading.allium" as trading
+use "./market-data.allium" as md
 
 ------------------------------------------------------------
 -- Value Types
@@ -90,7 +92,7 @@ entity FxRate {
 -- Position updates from trade events
 
 rule ApplyTradeToPosition {
-    when: TradeBooked(trade, book_id)
+    when: trading/TradeBooked(trade, book_id)
     let position = Position{book_id: trade.book_id, instrument_id: trade.instrument_id}
 
     @guidance
@@ -118,7 +120,7 @@ rule ApplyTradeToPosition {
 -- Mark-to-market from price events
 
 rule MarkToMarket {
-    when: PricePublished(instrument_id, price_amount, price_currency)
+    when: md/PricePublished(instrument_id, price_amount, price_currency)
     for position in Positions where instrument_id = instrument_id:
         requires: position.market_price.currency = price_currency
         ensures: position.market_price = core/Money{amount: price_amount, currency: price_currency}
@@ -134,7 +136,7 @@ rule MarkToMarket {
 -- FX rate extraction from price events
 
 rule ExtractFxRate {
-    when: PricePublished(instrument_id, price_amount, price_currency)
+    when: md/PricePublished(instrument_id, price_amount, price_currency)
     requires: length(instrument_id) = 6
 
     @guidance
