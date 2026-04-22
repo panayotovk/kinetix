@@ -146,13 +146,17 @@ rule ProcessEscalation {
         -- 2. Route delivery with promoted channels
         ensures: RouteEscalationDelivery(alert, promoted_severity)
 
-        -- 3. Publish audit event
-        ensures: GovernanceAuditEvent.published(
+        -- 3. Emit governance transition for audit trail
+        ensures: GovernanceTransitionOccurred(
             event_type: alert_escalated,
             user_id: "system",
             user_role: "SYSTEM",
+            model_name: null,
+            scenario_id: null,
+            limit_id: null,
+            submission_id: null,
             book_id: alert.book_id,
-            details: "alertId={alert.id} severity={alert.severity}->{promoted_severity} escalatedTo={target} type={alert.type}"
+            details: "alertRuleId={alert.rule_id} severity={alert.severity}->{promoted_severity} escalatedTo={target} type={alert.type}"
         )
 
     @guidance
@@ -193,10 +197,10 @@ rule EscalatedAlertCannotBeReAcknowledged {
     let alert = alerts/AlertEvent{id: alert_id}
     requires: alert.status = escalated
 
-    rejects: HTTP 409 Conflict
-        "Escalated alerts cannot be re-acknowledged; resolve them instead"
-
     @guidance
+        -- Reject with HTTP 409 Conflict:
+        --   "Escalated alerts cannot be re-acknowledged; resolve them instead"
+        --
         -- The acknowledge endpoint checks AlertStatus.canTransitionTo(ACKNOWLEDGED).
         -- For ESCALATED status, canTransitionTo returns false for ACKNOWLEDGED
         -- and true only for RESOLVED.
@@ -240,9 +244,12 @@ invariant SeverityPromotionIsMonotonic {
 
 invariant EscalationProducesAuditTrail {
     @guidance
-        -- Every successful escalation publishes exactly one
-        -- GovernanceAuditEvent with eventType = ALERT_ESCALATED to the
-        -- "governance.audit" Kafka topic. This event includes:
+        -- Every successful escalation emits exactly one
+        -- GovernanceTransitionOccurred trigger with event_type = alert_escalated.
+        -- audit/RecordGovernanceAuditEvent consumes it and records the event
+        -- in the hash-chained audit trail. At the implementation level the
+        -- governance publisher writes to the "governance.audit" Kafka topic.
+        -- This event includes:
         --   - alertId: the escalated alert's ID
         --   - severity transition: original -> promoted
         --   - escalatedTo: the target (desk-head or risk-manager,cro)
