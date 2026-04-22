@@ -39,7 +39,7 @@ value HedgeSuggestion {
     greek_impact: GreekImpact
     liquidity_tier: core/LiquidityTier
     data_quality: String
-    warnings: List<String> = []
+    warnings: List<String> = {}
 
     @guidance
         -- estimated_cost: total cost including premium + crossing cost.
@@ -324,41 +324,28 @@ rule SuggestHedgeNoCandidates {
 -- Invariants
 ------------------------------------------------------------
 
-invariant SuggestionsRankedByCostEffectiveness {
-    @guidance
-        -- Within a HedgeRecommendation, suggestions are sorted
-        -- by cost-adjusted effectiveness descending (best first).
-}
-
-invariant HedgeRespectsLimits {
-    @guidance
-        -- When constraints.respect_position_limits = true,
-        -- no suggestion would breach a limit at any hierarchy level
-        -- (BOOK through FIRM) if executed.
-}
-
 invariant ExpiredRecommendationsNotAcceptable {
     for rec in HedgeRecommendations:
         rec.is_expired implies rec.status != pending
 }
 
-invariant ExpiryJobSingleExecution {
-    @guidance
-        -- At most one instance of ScheduledHedgeExpiryJob executes per
-        -- tick interval across all replicas. The distributed lock (Redis
-        -- SET NX EX) ensures mutual exclusion. If the lock holder crashes,
-        -- the TTL expires and the next replica acquires on the following tick.
-        -- The lock key is config.expiry_job_lock_key with TTL =
-        -- config.expiry_job_interval.
-}
-
-invariant FullGreekImpactShown {
-    @guidance
-        -- Every HedgeSuggestion includes the full GreekImpact
-        -- (delta, gamma, vega, theta, rho before and after).
-        -- The UI must never show only the target Greek change.
-        -- This prevents the Lyapunov problem from being hidden.
-}
+-- Additional hedge properties (policy and protocol, not expressible as
+-- state invariants):
+--
+-- SuggestionsRankedByCostEffectiveness. Within a HedgeRecommendation,
+-- suggestions are ordered by cost-adjusted effectiveness (best first).
+--
+-- HedgeRespectsLimits. When constraints.respect_position_limits is true,
+-- no produced suggestion would breach a limit at any hierarchy level
+-- (book through firm) if executed.
+--
+-- ExpiryJobSingleExecution. At most one instance of the scheduled expiry
+-- job runs per tick interval across replicas; a Redis-backed lock ensures
+-- mutual exclusion and TTL-based release on crash.
+--
+-- FullGreekImpactShown. Every HedgeSuggestion carries the full GreekImpact
+-- (delta, gamma, vega, theta, rho before and after); the UI shows the
+-- complete picture rather than only the target Greek change.
 
 ------------------------------------------------------------
 -- Open Questions

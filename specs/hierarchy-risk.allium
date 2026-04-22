@@ -42,7 +42,7 @@ value HierarchyNodeRisk {
     top_contributors: List<RiskContributor>
     child_count: Integer
     is_partial: Boolean = false
-    missing_books: List<String> = []
+    missing_books: List<String> = {}
 }
 
 value RiskContributor {
@@ -324,40 +324,24 @@ rule ScheduledHierarchyAggregation {
 -- Invariants
 ------------------------------------------------------------
 
-invariant FirmVaRDiversified {
-    @guidance
-        -- Firm VaR (diversified) <= sum of standalone desk VaRs.
-        -- The difference is the diversification benefit.
-        -- If firm VaR > sum of desks, the correlation model is broken.
-}
-
-invariant EulerDecompositionSums {
-    @guidance
-        -- Marginal VaR contributions of all children at any hierarchy
-        -- level sum to the parent's VaR (Euler allocation property).
-        -- This is a mathematical property of the decomposition method.
-}
-
-invariant BudgetsSoftNotHard {
-    @guidance
-        -- Risk budget breaches fire alerts and trigger reviews.
-        -- They do NOT block trades. Trade blocking is the domain
-        -- of limits.allium (hard limits).
-        -- A budget is a strategic target; a limit is an operational control.
-}
-
-invariant HierarchyConsistency {
-    @guidance
-        -- Every book must map to exactly one desk.
-        -- Every desk must map to exactly one division.
-        -- There is exactly one firm.
-        -- No cycles in the hierarchy.
-}
-
-invariant PartialAggregationOnFailure {
-    @guidance
-        -- If one book's VaR is unavailable during hierarchy aggregation,
-        -- the aggregation proceeds with remaining books and the result
-        -- is marked as partial (with the failed book listed).
-        -- The firm-level VaR is never null — it may be partial.
-}
+-- Hierarchy-risk properties (mathematical/modelling properties rather than
+-- state invariants):
+--
+-- FirmVaRDiversified. Firm VaR (diversified) must not exceed the sum of
+-- standalone desk VaRs; the difference is the diversification benefit.
+-- A violation indicates a broken correlation model.
+--
+-- EulerDecompositionSums. Marginal VaR contributions of all children at
+-- any hierarchy level sum to the parent's VaR (Euler allocation property).
+--
+-- BudgetsSoftNotHard. Risk budget breaches fire alerts and trigger reviews
+-- but do not block trades. Trade blocking is the domain of limits.allium
+-- (hard limits). A budget is a strategic target; a limit is an
+-- operational control.
+--
+-- HierarchyConsistency. Every book maps to exactly one desk, every desk
+-- to exactly one division, with exactly one firm and no cycles.
+--
+-- PartialAggregationOnFailure. If one book's VaR is unavailable during
+-- aggregation the result is marked is_partial and missing_books lists the
+-- unavailable books; the firm-level result is never null.

@@ -404,7 +404,7 @@ rule ScheduledLiquidityComputation {
 -- Recompute on trade events
 
 rule RecomputeLiquidityOnTrade {
-    when: trading/TradeBooked(trade, book_id)
+    when: TradeBooked(trade, book_id)
 
     @guidance
         -- After a trade is applied, check whether the affected position's
@@ -428,13 +428,11 @@ invariant ConcentrationFlagConsistency {
 }
 
 invariant LVaRExceedsVaR {
+    -- LVaR is VaR scaled up by holding period and spread cost; it can
+    -- never be less than VaR (base_holding_period >= 1 day and spread
+    -- cost >= 0).
     for s in LiquidityRiskSnapshots:
         s.lvar >= s.var_1day
-
-    @guidance
-        -- LVaR is VaR scaled up by holding period and spread cost.
-        -- It can never be less than VaR (base_holding_period = 1 day
-        -- is the minimum, and spread cost >= 0).
 }
 
 invariant DataCompletenessRange {
@@ -443,23 +441,18 @@ invariant DataCompletenessRange {
 }
 
 invariant StressedHorizonExceedsNormal {
+    -- Stressed ADV is <= normal ADV (stress factor <= 1.0); stressed
+    -- liquidation horizon is therefore >= normal.
     for m in PositionLiquidityMetrics:
         m.stressed_liquidation_days != null implies
             m.stressed_liquidation_days >= m.liquidation_days
-
-    @guidance
-        -- Stressed ADV is always <= normal ADV (stress factor <= 1.0).
-        -- Therefore stressed liquidation horizon is always >= normal.
 }
 
-invariant FailSafeOnMissingADV {
-    @guidance
-        -- Pre-trade ADV concentration checks with missing or stale
-        -- ADV data must fail safe:
-        --   Missing ADV → BREACHED (block the trade)
-        --   Stale ADV (> 2 business days) → WARNING
-        -- This prevents silent pass-through when data is unavailable.
-}
+-- FailSafeOnMissingADV (policy, not a state invariant). Pre-trade ADV
+-- concentration checks with missing or stale ADV must fail safe:
+--   Missing ADV -> breached (block the trade)
+--   Stale ADV (> 2 business days) -> warning
+-- This prevents silent pass-through when data is unavailable.
 
 ------------------------------------------------------------
 -- Open Questions

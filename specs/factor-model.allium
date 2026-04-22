@@ -223,21 +223,21 @@ rule DecomposeFactorRisk {
         --   Ledoit-Wolf shrinkage (reuses existing correlation.py).
         --
         -- Persists FactorDecompositionSnapshot.
+}
 
 -- Factor P&L attribution
 
 rule ComputeFactorPnlAttribution {
     when: FactorPnlAttributionRequested(book_id, date)
 
-    let positions = all_positions(book_id)
-    let loadings = all_loadings(positions)
+    let book_positions = all_positions(book_id)
+    let position_loadings = all_loadings(book_positions)
     let factor_returns_today = todays_factor_returns(date)
     let total_pnl = total_book_pnl(book_id)
-
-    for factor in FactorDefinitions:
-        let factor_pnl = sum_i(position_mv[i] * loading[i, factor] * factor_returns_today[factor])
-
-    let idiosyncratic = total_pnl - sum(factor_pnls)
+    let factor_contributions = compute_factor_pnl_contributions(
+        book_positions, position_loadings, factor_returns_today
+    )
+    let idiosyncratic = total_pnl - sum_factor_contributions(factor_contributions)
 
     ensures: FactorPnlAttribution.created(
         book_id: book_id,
@@ -288,18 +288,9 @@ rule ScheduledFactorDecomposition {
 ------------------------------------------------------------
 
 invariant DecompositionSumsToTotal {
+    -- By construction: idiosyncratic = total - systematic.
     for d in FactorDecompositionSnapshots:
         d.systematic_var + d.idiosyncratic_var = d.total_var
-
-    @guidance
-        -- By construction: idiosyncratic = total - systematic.
-}
-
-invariant FactorPnlResidualIsReal {
-    @guidance
-        -- idiosyncratic_pnl is a real, meaningful number (not noise).
-        -- It captures higher-order effects, cross-factor interactions,
-        -- and model error. It should be displayed, never hidden.
 }
 
 invariant RSquaredRange {
@@ -307,17 +298,17 @@ invariant RSquaredRange {
         d.r_squared >= 0.0 and d.r_squared <= 1.0
 }
 
-invariant LoadingStalenessFlag {
-    @guidance
-        -- Loadings older than config.loading_staleness_threshold (5 business days)
-        -- are flagged as stale. The decomposition result carries a
-        -- staleness warning if any position uses stale loadings.
-}
-
-invariant AnalyticalFallback {
-    @guidance
-        -- Instruments with fewer than config.min_history_for_ols days
-        -- of return history use analytical loadings.
-        -- These loadings have r_squared = null and method = analytical.
-        -- The decomposition is valid but less precise for these positions.
-}
+-- Additional factor-model properties (policy rather than state invariants):
+--
+-- FactorPnlResidualIsReal. idiosyncratic_pnl carries genuine signal
+-- (higher-order effects, cross-factor interactions, model error) and must
+-- be displayed alongside factor attributions, not hidden.
+--
+-- LoadingStalenessFlag. Loadings older than
+-- config.loading_staleness_threshold are flagged as stale; the
+-- decomposition result carries a staleness warning if any position uses
+-- stale loadings.
+--
+-- AnalyticalFallback. Instruments with fewer than config.min_history_for_ols
+-- days of return history use analytical loadings; these carry r_squared =
+-- null and method = analytical.
