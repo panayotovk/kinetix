@@ -29,7 +29,7 @@ enum MarketDataType {
     correlation_matrix
 }
 
-enum InstrumentType {
+enum InstrumentTypeKey {
     cash_equity |
     equity_option |
     equity_future |
@@ -50,7 +50,8 @@ enum InstrumentType {
         -- dependency registry lookup (snake_case keys), while reference-data
         -- uses Allium variant subtypes (PascalCase entity names).
         -- Any new instrument type added to reference-data.allium must also
-        -- be added here and have a corresponding dependency rule below.
+        -- be added here and have a corresponding entry in the dependency
+        -- registry guidance table on DiscoverMarketDataDependencies below.
 
 enum FetchOutcome { fetched | not_found | client_unavailable | exception }
 
@@ -60,16 +61,26 @@ enum PositionResolutionMethod { pass_through | delta_adjusted | dv01_based }
 -- Value Types
 ------------------------------------------------------------
 
+value DependencyParameter {
+    key: String
+    value: String
+}
+
+    @guidance
+        -- A single key/value pair inside a MarketDataDependency.parameters list.
+        -- Modelled as a value type list rather than Map<K,V> because Allium
+        -- has no first-class Map compound type.
+
 value MarketDataDependency {
     data_type: MarketDataType
     instrument_id: String     -- empty for non-per-instrument deps (yield curves, correlation)
     asset_class: String
     required: Boolean
     description: String
-    parameters: Map<String, String>
+    parameters: List<DependencyParameter>
 
     @guidance
-        -- parameters carries context-specific keys:
+        -- parameters carries context-specific entries:
         --   lookbackDays  for HISTORICAL_PRICES (default "252")
         --   curveId       for YIELD_CURVE (typically the position currency)
         --   currency      for RISK_FREE_RATE
@@ -100,216 +111,63 @@ value ResolvedExposure {
 }
 
 ------------------------------------------------------------
--- Entities
-------------------------------------------------------------
-
--- The dependency registry is not a persistent entity; it is a compile-time
--- mapping from instrument type (or asset class) to a list of dependency
--- templates. We model it as an entity so that rules can reference it.
-
-entity DependencyRegistry {
-    @guidance
-        -- The registry lives in risk-engine/src/kinetix_risk/dependencies.py.
-        -- It contains two layers:
-        --   1. _INSTRUMENT_TYPE_EMITTERS: instrument-type-keyed functions
-        --      that inspect the typed position and emit precise dependencies.
-        --   2. DEPENDENCIES_REGISTRY: legacy asset-class-keyed templates
-        --      used as fallback when instrument_type is empty.
-        -- The instrument-type layer is preferred; the asset-class layer
-        -- exists for backward compatibility with untyped positions.
-}
-
-------------------------------------------------------------
 -- Data Service Routing
 ------------------------------------------------------------
 
--- Maps each MarketDataType to the service responsible for providing it.
--- This mapping lives in risk-orchestrator MarketDataFetcher.
+-- The MarketDataType -> service mapping is a static lookup table, not a
+-- behavioural rule. It lives in risk-orchestrator MarketDataFetcher and is
+-- documented here for reference.
 
-contract DataServiceRouting {
-    spot_price           -> price-service      -- GET /api/prices/{id}/latest
-    historical_prices    -> price-service      -- GET /api/prices/{id}/history
-    yield_curve          -> rates-service      -- GET /api/rates/yield-curves/{curveId}/latest
-    risk_free_rate       -> rates-service      -- GET /api/rates/risk-free/{currency}/{tenor}
-    forward_curve        -> rates-service      -- GET /api/rates/forward-curves/{id}/latest
-    dividend_yield       -> reference-data-service  -- GET /api/reference-data/{id}/dividend-yield
-    credit_spread        -> reference-data-service  -- GET /api/reference-data/{id}/credit-spread
-    volatility_surface   -> volatility-service      -- GET /api/volatility/{id}/surface/latest
-    correlation_matrix   -> correlation-service      -- GET /api/correlation/matrix
+@invariant DataServiceRouting
+    -- Each MarketDataType is served by exactly one data service:
+    --
+    --   spot_price           -> price-service
+    --     GET /api/prices/{id}/latest
+    --   historical_prices    -> price-service
+    --     GET /api/prices/{id}/history
+    --   yield_curve          -> rates-service
+    --     GET /api/rates/yield-curves/{curveId}/latest
+    --   risk_free_rate       -> rates-service
+    --     GET /api/rates/risk-free/{currency}/{tenor}
+    --   forward_curve        -> rates-service
+    --     GET /api/rates/forward-curves/{id}/latest
+    --   dividend_yield       -> reference-data-service
+    --     GET /api/reference-data/{id}/dividend-yield
+    --   credit_spread        -> reference-data-service
+    --     GET /api/reference-data/{id}/credit-spread
+    --   volatility_surface   -> volatility-service
+    --     GET /api/volatility/{id}/surface/latest
+    --   correlation_matrix   -> correlation-service
+    --     GET /api/correlation/matrix
+    --
+    -- The MarketDataFetcher holds optional clients for rates, reference-data,
+    -- volatility, and correlation services. When a client is null the fetch
+    -- returns client_unavailable outcome. Price-service is always available.
 
-    @guidance
-        -- The MarketDataFetcher holds optional clients for rates, reference-data,
-        -- volatility, and correlation services. When a client is null the fetch
-        -- returns CLIENT_UNAVAILABLE outcome. Price-service is always available.
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    default_lookback_days: Integer = 252
+    spx_benchmark_instrument_id: String = "IDX-SPX"
+    spx_history_lookback_days: Integer = 300
+    default_implied_vol: Decimal = 0.25
+    default_risk_free_rate_tenor: String = "3M"
 }
 
 ------------------------------------------------------------
--- Instrument Type Dependency Registry
-------------------------------------------------------------
--- Each instrument type declares the market data it requires. This is the
--- authoritative mapping from instrument classification to data needs.
-
-rule CashEquityDependencies {
-    when: InstrumentTypeIs(cash_equity, position)
-    ensures: [
-        MarketDataDependency(spot_price,          position.instrument_id, required: true),
-        MarketDataDependency(historical_prices,   position.instrument_id, required: false, parameters: {lookbackDays: "252"})
-    ]
-}
-
-rule EquityOptionDependencies {
-    when: InstrumentTypeIs(equity_option, position)
-    let underlying = position.underlying_id
-    ensures: [
-        MarketDataDependency(spot_price,          underlying, required: true),
-        MarketDataDependency(volatility_surface,  underlying, required: true),
-        MarketDataDependency(risk_free_rate,       "",        required: true, parameters: {currency: position.currency}),
-        MarketDataDependency(dividend_yield,       underlying, required: false),
-        MarketDataDependency(historical_prices,    underlying, required: false, parameters: {lookbackDays: "252"})
-    ]
-}
-
-rule EquityFutureDependencies {
-    when: InstrumentTypeIs(equity_future, position)
-    let underlying = position.underlying_id
-    ensures: [
-        MarketDataDependency(spot_price,          underlying,            required: true),
-        MarketDataDependency(forward_curve,       underlying,            required: false),
-        MarketDataDependency(risk_free_rate,       "",                   required: false, parameters: {currency: position.currency}),
-        MarketDataDependency(historical_prices,    position.instrument_id, required: false, parameters: {lookbackDays: "252"})
-    ]
-}
-
-rule GovernmentBondDependencies {
-    when: InstrumentTypeIs(government_bond, position)
-    ensures: [
-        MarketDataDependency(yield_curve,         "",                    required: true, parameters: {curveId: position.currency}),
-        MarketDataDependency(historical_prices,    position.instrument_id, required: false, parameters: {lookbackDays: "252"})
-    ]
-}
-
-rule CorporateBondDependencies {
-    when: InstrumentTypeIs(corporate_bond, position)
-    ensures: [
-        MarketDataDependency(yield_curve,         "",                    required: true, parameters: {curveId: position.currency}),
-        MarketDataDependency(credit_spread,        position.instrument_id, required: true),
-        MarketDataDependency(historical_prices,    position.instrument_id, required: false, parameters: {lookbackDays: "252"})
-    ]
-}
-
-rule FxSpotDependencies {
-    when: InstrumentTypeIs(fx_spot, position)
-    ensures: [
-        MarketDataDependency(spot_price,          position.instrument_id, required: true),
-        MarketDataDependency(historical_prices,    position.instrument_id, required: false, parameters: {lookbackDays: "252"})
-    ]
-}
-
-rule FxForwardDependencies {
-    when: InstrumentTypeIs(fx_forward, position)
-    let base  = position.base_currency
-    let quote = position.quote_currency
-    ensures: [
-        MarketDataDependency(spot_price,          position.instrument_id, required: true),
-        MarketDataDependency(yield_curve,          "",                   required: true, parameters: {curveId: base}),
-        MarketDataDependency(yield_curve,          "",                   required: true, parameters: {curveId: quote}),
-        MarketDataDependency(forward_curve,        position.instrument_id, required: false),
-        MarketDataDependency(historical_prices,    position.instrument_id, required: false, parameters: {lookbackDays: "252"})
-    ]
-
-    @guidance
-        -- FX forwards need yield curves for both currencies to compute the
-        -- forward rate via covered interest rate parity.
-}
-
-rule FxOptionDependencies {
-    when: InstrumentTypeIs(fx_option, position)
-    let underlying = position.underlying_id
-    let base  = position.currency
-    ensures: [
-        MarketDataDependency(spot_price,          underlying, required: true),
-        MarketDataDependency(volatility_surface,  underlying, required: true),
-        MarketDataDependency(yield_curve,          "",        required: true, parameters: {curveId: base}),
-        MarketDataDependency(yield_curve,          "",        required: true, parameters: {curveId: "USD"}),
-        MarketDataDependency(historical_prices,    underlying, required: false, parameters: {lookbackDays: "252"})
-    ]
-
-    @guidance
-        -- FX options use Garman-Kohlhagen pricing, which requires yield curves
-        -- for both the base (foreign) and quote (domestic) currencies.
-        -- The quote currency defaults to USD when base is non-USD.
-}
-
-rule CommodityFutureDependencies {
-    when: InstrumentTypeIs(commodity_future, position)
-    let underlying = position.underlying_id
-    ensures: [
-        MarketDataDependency(forward_curve,       position.instrument_id, required: true),
-        MarketDataDependency(spot_price,           underlying,            required: false),
-        MarketDataDependency(risk_free_rate,        "",                   required: false, parameters: {currency: position.currency}),
-        MarketDataDependency(historical_prices,    position.instrument_id, required: false, parameters: {lookbackDays: "252"})
-    ]
-}
-
-rule CommodityOptionDependencies {
-    when: InstrumentTypeIs(commodity_option, position)
-    let underlying = position.underlying_id
-    ensures: [
-        MarketDataDependency(forward_curve,       underlying, required: true),
-        MarketDataDependency(volatility_surface,  underlying, required: true),
-        MarketDataDependency(risk_free_rate,        "",       required: true, parameters: {currency: position.currency}),
-        MarketDataDependency(spot_price,           underlying, required: false),
-        MarketDataDependency(historical_prices,    position.instrument_id, required: false, parameters: {lookbackDays: "252"})
-    ]
-
-    @guidance
-        -- Commodity options use Black-76 pricing, which requires the forward
-        -- curve rather than spot price as the primary input.
-}
-
-rule InterestRateSwapDependencies {
-    when: InstrumentTypeIs(interest_rate_swap, position)
-    ensures: [
-        MarketDataDependency(yield_curve, "", required: true, parameters: {curveId: position.currency})
-    ]
-
-    @guidance
-        -- Interest rate swaps only need the yield curve for their currency.
-        -- The curve is used for both swap PV and DV01 computation.
-        -- No historical prices needed -- swap risk is captured through DV01.
-}
-
-------------------------------------------------------------
--- Fallback: Asset-Class Dependency Templates
+-- Rules — Two-Phase Protocol
 ------------------------------------------------------------
 
-rule AssetClassFallback {
-    when: DiscoverDependencies(position) and position.instrument_type = ""
-    requires: position.instrument_type is empty
-
-    @guidance
-        -- When a position has no instrument_type, the legacy asset-class
-        -- registry is used as a fallback. This provides backward compatibility
-        -- with positions that predate the instrument type model.
-        --
-        -- Asset class template mappings:
-        --   EQUITY:       SPOT_PRICE (required), HISTORICAL_PRICES (optional, 252d)
-        --   FIXED_INCOME: YIELD_CURVE (required, curveId=currency), CREDIT_SPREAD (required)
-        --   FX:           SPOT_PRICE (required), FORWARD_CURVE (optional)
-        --   COMMODITY:    SPOT_PRICE (required), FORWARD_CURVE (optional)
-        --   DERIVATIVE:   SPOT_PRICE (required), VOLATILITY_SURFACE (required),
-        --                 RISK_FREE_RATE (required, currency param), DIVIDEND_YIELD (optional)
-}
-
-------------------------------------------------------------
--- Two-Phase Protocol Rules
-------------------------------------------------------------
+-- Phase 1: discover what market data each position needs.
 
 rule DiscoverMarketDataDependencies {
-    when: CalculateVaRRequested(book_id, calculation_type, confidence_level)
+    when: risk/CalculateVaRRequested(book_id, calculation_type, confidence_level, time_horizon_days, num_simulations, requested_outputs, correlation_id, trigger_type)
+
+    ensures: DependenciesDiscovered(book_id: book_id, correlation_id: correlation_id)
 
     @guidance
-        -- Phase 1: Discovery.
         -- The orchestrator calls the risk-engine DiscoverDependencies gRPC RPC,
         -- passing positions and calculation parameters. The engine inspects each
         -- position's instrument_type (falling back to asset_class when empty),
@@ -319,181 +177,200 @@ rule DiscoverMarketDataDependencies {
         --   Orchestrator: DependenciesDiscoverer.discover()
         --   Engine:       dependencies_server.DiscoverDependencies -> dependencies.discover()
         --
-        -- De-duplication: dependencies with the same (data_type, instrument_id, parameters)
-        -- tuple are emitted only once, even when multiple positions share an underlying.
-
-    ensures: DependencyManifest emitted for positions
+        -- De-duplication: dependencies with the same
+        -- (data_type, instrument_id, parameters) tuple are emitted only once,
+        -- even when multiple positions share an underlying.
+        --
+        -- Dependency registry, per instrument type:
+        --
+        --   cash_equity:
+        --     spot_price        (required, instrument_id = position.instrument_id)
+        --     historical_prices (optional, instrument_id = position.instrument_id,
+        --                        lookbackDays = "252")
+        --
+        --   equity_option:
+        --     spot_price        (required, instrument_id = position.underlying_id)
+        --     volatility_surface (required, instrument_id = position.underlying_id)
+        --     risk_free_rate    (required, currency = position.currency)
+        --     dividend_yield    (optional, instrument_id = position.underlying_id)
+        --     historical_prices (optional, instrument_id = position.underlying_id,
+        --                        lookbackDays = "252")
+        --
+        --   equity_future:
+        --     spot_price        (required, instrument_id = position.underlying_id)
+        --     forward_curve     (optional, instrument_id = position.underlying_id)
+        --     risk_free_rate    (optional, currency = position.currency)
+        --     historical_prices (optional, lookbackDays = "252")
+        --
+        --   government_bond:
+        --     yield_curve       (required, curveId = position.currency)
+        --     historical_prices (optional, lookbackDays = "252")
+        --
+        --   corporate_bond:
+        --     yield_curve       (required, curveId = position.currency)
+        --     credit_spread     (required, instrument_id = position.instrument_id)
+        --     historical_prices (optional, lookbackDays = "252")
+        --
+        --   fx_spot:
+        --     spot_price        (required, instrument_id = position.instrument_id)
+        --     historical_prices (optional, lookbackDays = "252")
+        --
+        --   fx_forward:
+        --     spot_price        (required, instrument_id = position.instrument_id)
+        --     yield_curve       (required, curveId = position.base_currency)
+        --     yield_curve       (required, curveId = position.quote_currency)
+        --     forward_curve     (optional, instrument_id = position.instrument_id)
+        --     historical_prices (optional, lookbackDays = "252")
+        --   FX forwards need yield curves for both currencies to compute the
+        --   forward rate via covered interest rate parity.
+        --
+        --   fx_option:
+        --     spot_price        (required, instrument_id = position.underlying_id)
+        --     volatility_surface (required, instrument_id = position.underlying_id)
+        --     yield_curve       (required, curveId = position.currency)
+        --     yield_curve       (required, curveId = "USD")
+        --     historical_prices (optional, lookbackDays = "252")
+        --   FX options use Garman-Kohlhagen pricing (yield curves for both
+        --   base and quote currencies). Quote currency defaults to USD.
+        --
+        --   commodity_future:
+        --     forward_curve     (required, instrument_id = position.instrument_id)
+        --     spot_price        (optional, instrument_id = position.underlying_id)
+        --     risk_free_rate    (optional, currency = position.currency)
+        --     historical_prices (optional, lookbackDays = "252")
+        --
+        --   commodity_option:
+        --     forward_curve     (required, instrument_id = position.underlying_id)
+        --     volatility_surface (required, instrument_id = position.underlying_id)
+        --     risk_free_rate    (required, currency = position.currency)
+        --     spot_price        (optional, instrument_id = position.underlying_id)
+        --     historical_prices (optional, lookbackDays = "252")
+        --   Commodity options use Black-76 pricing (forward curve as primary input).
+        --
+        --   interest_rate_swap:
+        --     yield_curve       (required, curveId = position.currency)
+        --   Swaps only need the yield curve for their currency; risk is
+        --   captured via DV01 so no historical prices are required.
+        --
+        -- Asset-class fallback (used when instrument_type is empty):
+        --   equity:       spot_price (required), historical_prices (optional, 252d)
+        --   fixed_income: yield_curve (required, curveId=currency),
+        --                 credit_spread (required)
+        --   fx:           spot_price (required), forward_curve (optional)
+        --   commodity:    spot_price (required), forward_curve (optional)
+        --   derivative:   spot_price (required), volatility_surface (required),
+        --                 risk_free_rate (required, currency), dividend_yield (optional)
+        --
+        -- Portfolio-level additions:
+        --   correlation_matrix (required) when the portfolio spans two or more
+        --     distinct asset classes — captures diversification in parametric VaR.
+        --   historical_prices for the SPX benchmark (instrument_id=IDX-SPX,
+        --     lookbackDays=300, optional) when any equity position is present —
+        --     consumed by FactorRiskService for OLS equity-beta estimation.
+        --     This injection is orchestrator-side (DependenciesDiscoverer); the
+        --     engine is unaware of it.
 }
 
+-- Phase 2a: fetch the discovered market data from the five services.
+
 rule FetchDiscoveredDependencies {
-    when: DependencyManifest(dependencies) received by orchestrator
-    requires: dependencies is not empty
+    when: DependenciesDiscovered(book_id, correlation_id)
+
+    ensures: DependenciesFetched(book_id: book_id, correlation_id: correlation_id)
 
     @guidance
-        -- Phase 2a: Fetch.
         -- The orchestrator routes each dependency to the appropriate data service
-        -- based on its data_type (see DataServiceRouting contract).
+        -- based on its data_type (see DataServiceRouting invariant).
         --
         -- Implementation: MarketDataFetcher.fetch()
         --
         -- Fetches proceed sequentially per dependency (current implementation).
-        -- Each fetch produces a FetchResult with outcome, timing, and error details.
-        --
-        -- When a service client is null (not configured), the outcome is
-        -- CLIENT_UNAVAILABLE. When the resource is not found, NOT_FOUND.
-        -- Exceptions produce EXCEPTION with the error message captured.
+        -- Each fetch produces a FetchResult with outcome, timing, and error
+        -- details. When a service client is null (not configured), the outcome
+        -- is client_unavailable. When the resource is not found, not_found.
+        -- Exceptions produce exception with the error message captured.
         --
         -- Missing optional dependencies are tolerated (logged as warnings).
         -- Missing required dependencies are tolerated too (graceful degradation)
         -- but may result in lower-quality valuation outputs.
-
-    ensures: List<FetchResult> for all dependencies
 }
 
+-- Phase 2b: hand everything off to the risk-engine for valuation.
+
 rule ValuateWithFetchedData {
-    when: FetchResults(fetch_results) and Positions(positions) available
-    let market_data = fetch_results where outcome = fetched
+    when: DependenciesFetched(book_id, correlation_id)
 
     @guidance
-        -- Phase 2b: Valuation.
         -- The orchestrator passes positions and all successfully fetched market
         -- data to the risk-engine Valuate gRPC RPC.
         --
-        -- The engine performs position resolution (see PositionResolution rules),
-        -- then runs the requested calculation (VaR, Greeks, Monte Carlo, etc.)
-        -- using only the data provided in the request.
+        -- The engine performs position resolution (see Position Resolution rules
+        -- below), then runs the requested calculation (VaR, Greeks, Monte Carlo,
+        -- etc.) using only the data provided in the request.
         --
         -- The engine never makes outbound calls. If data is missing from the
         -- request, the engine degrades gracefully (e.g. uses default volatility).
-
-    ensures: risk/ValuationJob completed with outputs
-}
-
-------------------------------------------------------------
--- SPX Benchmark Injection
-------------------------------------------------------------
-
-rule InjectSpxBenchmarkForEquityPositions {
-    when: DependencyManifest(dependencies) and positions contain equity asset class
-    ensures: dependencies += MarketDataDependency(
-        historical_prices,
-        "IDX-SPX",
-        "EQUITY",
-        required: false,
-        parameters: {lookbackDays: "300"}
-    )
-
-    @guidance
-        -- When equity positions are present, the orchestrator (not the engine)
-        -- injects a HISTORICAL_PRICES dependency for the S&P 500 benchmark
-        -- (IDX-SPX) with a 300-day lookback. This is consumed by FactorRiskService
-        -- for equity beta estimation via OLS regression.
         --
-        -- This is orchestrator-side logic in DependenciesDiscoverer, not part of
-        -- the engine's dependency registry. The engine remains unaware of it.
+        -- This rule terminates the discovery-valuation chain for the current
+        -- request; the ValuationJob completion and RiskResultPublished emission
+        -- occur inside risk/CalculateVaR.
 }
 
 ------------------------------------------------------------
--- Position Resolution
+-- Rules — Position Resolution
 ------------------------------------------------------------
 
-rule ResolveOptionPositions {
-    when: Position is OptionPosition and spot_price > 0 and implied_vol > 0
-    let delta = BlackScholes.delta(position)
-    let effective_mv = delta * position.quantity * position.spot_price * position.contract_multiplier
-    ensures: ResolvedExposure(
-        instrument_id: position.instrument_id,
-        market_value: effective_mv,
-        method: delta_adjusted
-    )
+-- Position resolution decides how each position's effective exposure is
+-- computed before it reaches the VaR calculation. Options are delta-adjusted;
+-- swaps are DV01-adjusted; everything else passes through.
+
+rule ResolvePositions {
+    when: ResolvePositionsRequested(book_id)
 
     @guidance
-        -- Options are delta-adjusted because the option premium (market_value)
-        -- dramatically understates the actual directional risk. An at-the-money
-        -- call with delta=0.5 on $1M of stock has ~$500K of effective equity
-        -- risk, not the $50K premium paid.
+        -- Option positions (equity_option, fx_option, commodity_option):
+        --   effective_mv = bs_delta(position) * quantity * spot_price * contract_multiplier
+        --   Produces ResolvedExposure with method = delta_adjusted.
+        --   Options are delta-adjusted because the premium (market_value)
+        --   dramatically understates directional risk. An at-the-money call
+        --   with delta=0.5 on $1M of stock has ~$500K of effective equity
+        --   risk, not the $50K premium paid.
+        --   If spot_price or implied_vol is zero, the engine attempts
+        --   enrichment from the MarketDataBundle (spot from SPOT_PRICE, vol
+        --   from VOLATILITY_SURFACE or default 0.25). If enrichment still
+        --   leaves zeros, the option passes through unchanged.
         --
-        -- If spot_price or implied_vol is zero, the engine attempts enrichment
-        -- from the MarketDataBundle (spot from SPOT_PRICE, vol from
-        -- VOLATILITY_SURFACE or default 0.25). If enrichment still leaves
-        -- zeros, the option passes through unchanged.
-}
-
-rule ResolveSwapPositions {
-    when: Position is SwapPosition and yield_curve available for position.currency
-    let dv01 = SwapPricing.dv01(position, yield_curve)
-    ensures: ResolvedExposure(
-        instrument_id: position.instrument_id,
-        market_value: dv01,
-        method: dv01_based
-    )
-
-    @guidance
-        -- Swaps are DV01-adjusted because a swap's PV at inception is near zero,
-        -- which dramatically understates interest-rate sensitivity. A $100M notional
-        -- 10-year swap has significant rate exposure despite near-zero market value.
+        -- Swap positions (interest_rate_swap):
+        --   effective_mv = swap_dv01(position, yield_curve)
+        --   Produces ResolvedExposure with method = dv01_based.
+        --   Swaps are DV01-adjusted because swap PV at inception is near zero,
+        --   which dramatically understates interest-rate sensitivity. A $100M
+        --   notional 10-year swap has significant rate exposure despite
+        --   near-zero market value.
+        --   If no yield curve is available for the swap currency, the swap
+        --   passes through unchanged (graceful degradation to market_value).
         --
-        -- If no yield curve is available, the swap passes through unchanged
-        -- (graceful degradation to its market_value, which may be near zero).
-}
-
-rule ResolvePassThroughPositions {
-    when: Position is not OptionPosition and Position is not SwapPosition
-    ensures: ResolvedExposure(
-        instrument_id: position.instrument_id,
-        market_value: position.market_value,
-        method: pass_through
-    )
-
-    @guidance
-        -- All other position types (cash equity, bonds, FX, futures, commodities)
-        -- pass through unchanged. Their market_value is already a reasonable
-        -- linear exposure measure for VaR computation.
+        -- All other position types (cash_equity, bonds, fx_spot/forward,
+        -- futures, commodities):
+        --   Produces ResolvedExposure with method = pass_through.
+        --   Their market_value is already a reasonable linear exposure
+        --   measure for VaR computation.
 }
 
 ------------------------------------------------------------
--- Portfolio-Level Dependencies
-------------------------------------------------------------
-
-rule CorrelationMatrixForMultiAssetPortfolios {
-    when: DiscoverDependencies(positions) and distinct_asset_classes(positions) >= 2
-    ensures: dependencies += MarketDataDependency(
-        correlation_matrix,
-        "",
-        "",
-        required: true
-    )
-
-    @guidance
-        -- A cross-asset correlation matrix is required when a portfolio spans
-        -- two or more asset classes. It captures diversification effects in
-        -- the parametric VaR calculation.
-        --
-        -- The dependency has no instrument_id or asset_class because it covers
-        -- the entire portfolio. The orchestrator provides labels (asset class
-        -- names) when fetching from the correlation service.
-}
-
-------------------------------------------------------------
--- De-duplication
+-- Invariants
 ------------------------------------------------------------
 
 invariant DependencyDeduplication {
-    for d1 in DependencyManifest.dependencies:
-        for d2 in DependencyManifest.dependencies:
-            d1 = d2 or (d1.data_type, d1.instrument_id, d1.parameters) != (d2.data_type, d2.instrument_id, d2.parameters)
-
     @guidance
+        -- Within a single DependencyManifest, no two dependencies share the
+        -- same (data_type, instrument_id, parameters) tuple.
         -- The discover() function tracks a seen set keyed on
         -- (data_type, instrument_id, frozenset(parameters.items())).
         -- Duplicate dependencies are suppressed. This is important when
-        -- multiple options share the same underlying: only one SPOT_PRICE
-        -- and one VOLATILITY_SURFACE dependency is emitted per underlying.
+        -- multiple options share the same underlying: only one spot_price
+        -- and one volatility_surface dependency is emitted per underlying.
 }
-
-------------------------------------------------------------
--- Boundary Rule
-------------------------------------------------------------
 
 invariant RiskEngineHasZeroDataKnowledge {
     @guidance
@@ -531,8 +408,8 @@ invariant GracefulDegradationOnMissingData {
         -- fallback defaults where possible:
         --   - Options with missing vol: default implied vol = 0.25
         --   - Swaps with missing yield curve: pass through at market_value
-        --   - Missing optional dependencies (HISTORICAL_PRICES, DIVIDEND_YIELD,
-        --     FORWARD_CURVE): silently omitted
+        --   - Missing optional dependencies (historical_prices, dividend_yield,
+        --     forward_curve): silently omitted
 }
 
 invariant InstrumentTypeTakesPrecedence {
@@ -544,16 +421,4 @@ invariant InstrumentTypeTakesPrecedence {
         -- Instrument-type emitters produce more precise dependencies because
         -- they can inspect typed position fields (underlying_id, base_currency,
         -- quote_currency, etc.) that generic templates cannot access.
-}
-
-------------------------------------------------------------
--- Config
-------------------------------------------------------------
-
-config {
-    default_lookback_days: Integer = 252
-    spx_benchmark_instrument_id: String = "IDX-SPX"
-    spx_history_lookback_days: Integer = 300
-    default_implied_vol: Decimal = 0.25
-    default_risk_free_rate_tenor: String = "3M"
 }
