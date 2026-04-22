@@ -132,10 +132,10 @@ value VolSurfaceDiff {
 ------------------------------------------------------------
 
 config {
-    price_retention: core/Duration = 730.days
-    price_compression_after: core/Duration = 30.days
-    vol_surface_retention: core/Duration = 730.days
-    yield_curve_history_retention: core/Duration = 2555.days
+    price_retention: Duration = 730.days
+    price_compression_after: Duration = 30.days
+    vol_surface_retention: Duration = 730.days
+    yield_curve_history_retention: Duration = 2555.days
 }
 
 ------------------------------------------------------------

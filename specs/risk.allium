@@ -286,15 +286,15 @@ entity CrossBookValuationResult {
 ------------------------------------------------------------
 
 config {
-    scheduled_var_interval: core/Duration = 60.seconds
-    scheduled_cross_book_interval: core/Duration = 120.seconds
+    scheduled_var_interval: Duration = 60.seconds
+    scheduled_cross_book_interval: Duration = 120.seconds
     sod_snapshot_hour: Integer = 6
-    cache_max_staleness: core/Duration = 120.minutes
-    grpc_deadline: core/Duration = 60.seconds
-    manifest_retention: core/Duration = 2555.days
-    var_cache_ttl: core/Duration = 5.minutes
-    daily_risk_snapshot_retention: core/Duration = 730.days
-    valuation_job_retention: core/Duration = 2555.days
+    cache_max_staleness: Duration = 120.minutes
+    grpc_deadline: Duration = 60.seconds
+    manifest_retention: Duration = 2555.days
+    var_cache_ttl: Duration = 5.minutes
+    daily_risk_snapshot_retention: Duration = 730.days
+    valuation_job_retention: Duration = 2555.days
 }
 
 ------------------------------------------------------------
