@@ -97,24 +97,11 @@ value BacktestComparison {
 }
 
 -- Stress testing governance
--- GovernedStressScenario is superseded by SavedScenario in scenarios.allium.
+-- GovernedStressScenario has been superseded by scenarios/SavedScenario.
 -- Lifecycle rules (create, submit, approve, retire, update) are authoritative
 -- in scenario-lifecycle.allium. This spec retains stress test execution and
--- result storage rules.
-
-external entity SavedScenario {
-    id: String
-    name: String
-    status: core/ScenarioStatus
-    created_by: String
-}
-
--- StressTestResultRecord is authoritatively defined in scenarios.allium.
--- It stores persisted outcomes of running stress scenarios against books.
-external entity StressTestResultRecord {
-    scenario_id: String
-    book_id: String
-}
+-- result storage rules; scenario entities are accessed via the qualified
+-- scenarios/ name from the imported module.
 
 -- Regulatory submissions
 
@@ -163,11 +150,8 @@ entity FrtbCalculationRecord {
     stored_at: Timestamp
 }
 
--- Historical scenario periods (authoritative declaration in scenarios.allium)
-
-external entity HistoricalScenarioPeriod {
-    period_id: String
-}
+-- HistoricalScenarioPeriod is declared authoritatively in scenarios.allium;
+-- this spec references it via scenarios/HistoricalScenarioPeriod.
 
 ------------------------------------------------------------
 -- Rules
@@ -246,7 +230,7 @@ rule RejectInvalidModelTransition {
 
 rule RunGovernedStressTest {
     when: RunGovernedStressTestRequested(scenario_id, book_id, model_version)
-    let scenario = SavedScenario{id: scenario_id}
+    let scenario = scenarios/SavedScenario{id: scenario_id}
     requires: scenario.status = approved
 
     @guidance
@@ -391,7 +375,7 @@ rule StoreFrtbCalculation {
 
 rule RunHistoricalReplay {
     when: RunHistoricalReplayRequested(period_id, book_id)
-    let period = HistoricalScenarioPeriod{period_id: period_id}
+    let period = scenarios/HistoricalScenarioPeriod{period_id: period_id}
 
     @guidance
         -- Loads the historical period metadata and its stored daily returns,

@@ -21,27 +21,9 @@ use "./scenarios.allium" as scenarios
 -- Entities (cross-references)
 ------------------------------------------------------------
 
--- SavedScenario is the authoritative entity (declared in scenarios.allium).
--- This spec defines the lifecycle rules that govern its status field.
-
-external entity SavedScenario {
-    id: String
-    name: String
-    description: String
-    status: core/ScenarioStatus
-    created_by: String
-    approved_by: String?
-    approved_at: Timestamp?
-    version: Integer
-    shocks: String?
-    correlation_override: String?
-    liquidity_stress_factors: String?
-    parent_scenario_id: String?
-    category: core/ScenarioCategory
-    scenario_type: scenarios/ScenarioType
-    historical_period_id: String?
-    target_loss: Decimal?
-}
+-- SavedScenario is declared authoritatively in scenarios.allium and is
+-- used here via the scenarios/SavedScenario qualified name. This spec
+-- defines the lifecycle rules that govern its status field.
 
 ------------------------------------------------------------
 -- State Machine
@@ -69,7 +51,7 @@ rule CreateScenario {
         historical_period_id?, target_loss?
     )
 
-    ensures: SavedScenario.created(
+    ensures: scenarios/SavedScenario.created(
         status: draft,
         version: 1,
         approved_by: null,
@@ -98,7 +80,7 @@ rule CreateScenario {
 
 rule SubmitForApproval {
     when: SubmitForApprovalRequested(scenario_id)
-    let scenario = SavedScenario{id: scenario_id}
+    let scenario = scenarios/SavedScenario{id: scenario_id}
     requires: scenario.status = draft
 
     ensures: scenario.status = pending_approval
@@ -112,7 +94,7 @@ rule SubmitForApproval {
 
 rule ApproveScenario {
     when: ApproveScenarioRequested(scenario_id, approved_by)
-    let scenario = SavedScenario{id: scenario_id}
+    let scenario = scenarios/SavedScenario{id: scenario_id}
     requires: scenario.status = pending_approval
 
     ensures: scenario.status = approved
@@ -147,7 +129,7 @@ rule ApproveScenario {
 
 rule RetireScenario {
     when: RetireScenarioRequested(scenario_id)
-    let scenario = SavedScenario{id: scenario_id}
+    let scenario = scenarios/SavedScenario{id: scenario_id}
     requires: scenario.status = approved
 
     ensures: scenario.status = retired
@@ -179,7 +161,7 @@ rule RetireScenario {
 
 rule RejectApprovalFromDraft {
     when: ApproveScenarioRequested(scenario_id, approved_by)
-    let scenario = SavedScenario{id: scenario_id}
+    let scenario = scenarios/SavedScenario{id: scenario_id}
     requires: scenario.status = draft
 
     @guidance
@@ -190,7 +172,7 @@ rule RejectApprovalFromDraft {
 
 rule RejectRetireFromNonApproved {
     when: RetireScenarioRequested(scenario_id)
-    let scenario = SavedScenario{id: scenario_id}
+    let scenario = scenarios/SavedScenario{id: scenario_id}
     requires: scenario.status != approved
 
     @guidance
@@ -202,7 +184,7 @@ rule RejectRetireFromNonApproved {
 
 rule RejectTransitionFromRetired {
     when: any transition on scenario_id
-    let scenario = SavedScenario{id: scenario_id}
+    let scenario = scenarios/SavedScenario{id: scenario_id}
     requires: scenario.status = retired
 
     @guidance
@@ -217,7 +199,7 @@ rule RejectTransitionFromRetired {
 
 rule UpdateScenario {
     when: UpdateScenarioRequested(scenario_id, shocks?, correlation_override?, liquidity_stress_factors?)
-    let scenario = SavedScenario{id: scenario_id}
+    let scenario = scenarios/SavedScenario{id: scenario_id}
     requires: scenario.status != retired
 
     ensures: scenario.version = scenario.version + 1
@@ -255,7 +237,7 @@ rule UpdateScenario {
 
 rule RunScenarioRequiresApproval {
     when: RunScenarioRequested(scenario_id, book_id, model_version?)
-    let scenario = SavedScenario{id: scenario_id}
+    let scenario = scenarios/SavedScenario{id: scenario_id}
     requires: scenario.status = approved
 
     ensures: GovernanceTransitionOccurred(
@@ -301,7 +283,7 @@ rule CreateCorrelatedScenario {
     let matrix = fetch_correlation_matrix(asset_classes)
     requires: matrix exists
 
-    ensures: SavedScenario.created(
+    ensures: scenarios/SavedScenario.created(
         name: name,
         description: description,
         scenario_type: parametric,
@@ -430,7 +412,7 @@ rule FindScenarioById {
 ------------------------------------------------------------
 
 invariant ScenarioLifecycleStateMachine {
-    for s in SavedScenarios:
+    for s in scenarios/SavedScenarios:
         s.status in {draft, pending_approval, approved, retired}
 
     @guidance
@@ -446,7 +428,7 @@ invariant ScenarioLifecycleStateMachine {
 }
 
 invariant ApprovalMetadataConsistency {
-    for s in SavedScenarios:
+    for s in scenarios/SavedScenarios:
         (s.status = approved implies s.approved_by != null and s.approved_at != null)
         and
         (s.status = draft implies s.approved_by = null and s.approved_at = null)
@@ -462,7 +444,7 @@ invariant ApprovalMetadataConsistency {
 }
 
 invariant VersionMonotonicallyIncreasing {
-    for s in SavedScenarios:
+    for s in scenarios/SavedScenarios:
         s.version >= 1
 
     @guidance
@@ -472,7 +454,7 @@ invariant VersionMonotonicallyIncreasing {
 }
 
 invariant RetiredIsTerminal {
-    for s in SavedScenarios where s.status = retired:
+    for s in scenarios/SavedScenarios where s.status = retired:
         no transition is valid
 
     @guidance
@@ -483,7 +465,7 @@ invariant RetiredIsTerminal {
 }
 
 invariant OnlyApprovedScenariosExecutable {
-    for s in SavedScenarios:
+    for s in scenarios/SavedScenarios:
         run(s) requires s.status = approved
 
     @guidance
