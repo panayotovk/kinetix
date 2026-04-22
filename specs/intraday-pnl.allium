@@ -17,54 +17,12 @@ use "./trading.allium" as trading
 use "./positions.allium" as positions
 use "./risk.allium" as risk
 
-------------------------------------------------------------
--- External Entities
-------------------------------------------------------------
-
-external entity Position {
-    book_id: String,
-    instrument_id: String,
-    asset_class: core/AssetClass,
-    quantity: Decimal,
-    average_cost: core/Money,
-    market_price: core/Money,
-    realized_pnl: core/Money,
-    instrument_type: String?,
-    market_value: Decimal,
-    unrealized_pnl: Decimal
-}
-
-external entity DailyRiskSnapshot {
-    book_id: String,
-    snapshot_date: Timestamp,
-    instrument_id: String,
-    asset_class: core/AssetClass,
-    quantity: Decimal,
-    market_price: Decimal,
-    delta: Decimal?,
-    gamma: Decimal?,
-    vega: Decimal?,
-    theta: Decimal?,
-    rho: Decimal?,
-    sod_vol: Decimal?,       -- SOD implied vol, used for vol-change attribution
-    sod_rate: Decimal?       -- SOD risk-free rate, used for rate-change attribution
-}
-
-external entity SodBaseline {
-    book_id: String,
-    baseline_date: String,
-    snapshot_type: core/SnapshotType,
-    source_job_id: String,
-    calculation_type: String?,
-    var_value: Decimal?,
-    expected_shortfall: Decimal?
-}
-
-external entity FxRate {
-    from_currency: String,
-    to_currency: String,
-    rate: Decimal
-}
+-- Cross-module entity references:
+--   positions/Position
+--   positions/FxRate
+--   risk/SodBaseline
+--   risk/SodGreekSnapshot (carries sod_price, sod_vol, sod_rate per instrument)
+-- No shadow external-entity declarations; use the qualified names above.
 
 ------------------------------------------------------------
 -- Value Types
@@ -140,8 +98,8 @@ entity IntradayPnlSnapshot {
 
 entity IntradayPnlState {
     book_id: String
-    sod_baseline: SodBaseline
-    sod_snapshots: List<DailyRiskSnapshot>
+    sod_baseline: risk/SodBaseline
+    sod_snapshots: List<risk/SodGreekSnapshot>
     sod_total_pnl: Decimal
     high_water_mark: Decimal
     last_snapshot_at: Timestamp?
@@ -149,7 +107,10 @@ entity IntradayPnlState {
 
     @guidance
         -- In-memory state per book, initialised when SOD baseline exists.
-        -- Holds frozen SOD Greeks and prices for attribution.
+        -- Holds frozen SOD pricing Greeks (risk/SodGreekSnapshot) and
+        -- SOD market state (sod_price / sod_vol / sod_rate) used to
+        -- attribute intraday P&L. Pricing Greeks (dPV/dX) are correct for
+        -- attribution — not the VaR sensitivities on DailyRiskSnapshot.
         -- high_water_mark and last_snapshot_at are mutable running state.
         -- Cleared when a new SOD baseline is created for the same book.
 }
@@ -170,8 +131,8 @@ config {
 -- Initialisation: load SOD state when baseline exists
 
 rule InitialiseIntradayState {
-    when: baseline: SodBaseline.created
-    let sod_snapshots = DailyRiskSnapshots
+    when: baseline: risk/SodBaseline.created
+    let sod_snapshots = risk/SodGreekSnapshots
         where book_id = baseline.book_id
         and snapshot_date = baseline.baseline_date
     requires: sod_snapshots.count > 0
@@ -192,7 +153,7 @@ rule InitialiseIntradayState {
         -- Triggered once per book per day when SOD baseline is created.
         -- If state already exists for this book, replace it (new day).
         -- sod_total_pnl is the book's total P&L at the moment of SOD snapshot.
-        -- Frozen SOD Greeks from DailyRiskSnapshots are held in memory
+        -- Frozen SOD pricing Greeks from SodGreekSnapshots are held in memory
         -- for the duration of the trading day.
 }
 
@@ -206,13 +167,13 @@ rule RecomputeIntradayPnl {
         or (now - state.last_snapshot_at) >= config.debounce_interval
 
     -- Compute total P&L independently from positions (the truth)
-    let positions = Positions where book_id = book_id
-    let total_realised = sum(positions, p => convert(p.realized_pnl, state.base_currency))
-    let total_unrealised = sum(positions, p => convert(p.unrealized_pnl, state.base_currency))
+    let book_positions = positions/Positions where book_id = book_id
+    let total_realised = sum(book_positions, p => convert(p.realized_pnl, state.base_currency))
+    let total_unrealised = sum(book_positions, p => convert(p.unrealized_pnl, state.base_currency))
     let total_pnl = total_realised + total_unrealised
 
     -- Compute Greek attribution against frozen SOD state
-    let attribution = attribute_pnl(positions, state.sod_snapshots, total_pnl)
+    let attribution = attribute_pnl(book_positions, state.sod_snapshots, total_pnl)
 
     -- Update high-water mark
     let new_hwm = max(state.high_water_mark, total_pnl)
@@ -228,7 +189,7 @@ rule RecomputeIntradayPnl {
         attribution: attribution,
         high_water_mark: new_hwm,
         correlation_id: current_correlation_id,
-        instrument_pnl: per_instrument_attribution(positions, state.sod_snapshots)
+        instrument_pnl: per_instrument_attribution(book_positions, state.sod_snapshots)
     )
     ensures: state.high_water_mark = new_hwm
     ensures: state.last_snapshot_at = now
@@ -323,7 +284,7 @@ deferred per_instrument_attribution
 
 rule PriceChangeTriggersPositionChanged {
     when: positions/PositionPriceUpdated(instrument_id, price_amount, price_currency)
-    for position in Positions where instrument_id = instrument_id:
+    for position in positions/Positions where instrument_id = instrument_id:
         ensures: PositionChanged(
             book_id: position.book_id,
             instrument_id: instrument_id,
