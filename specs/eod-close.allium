@@ -12,8 +12,10 @@ use "./risk.allium" as risk
 
 config {
     -- Wall-clock time (local) after which the auto-close trigger fires.
+    -- Encoded as an ISO-8601 local time string (HH:MM) because Allium has
+    -- no first-class Time primitive.
     -- Overridable via AUTO_CLOSE_TIME environment variable.
-    auto_close_time: Time = 17:30
+    auto_close_time: String = "17:30"
 
     -- Master toggle for all scheduled jobs (VaR, price-event, auto-close).
     -- When false, the auto-close loop still runs but the tick is never reached
@@ -21,7 +23,7 @@ config {
     scheduler_enabled: Boolean = true
 
     -- Polling interval for the auto-close loop.
-    auto_close_interval: core/Duration = 60.seconds
+    auto_close_interval: Duration = 60.seconds
 }
 
 ------------------------------------------------------------
@@ -51,20 +53,22 @@ rule AutoCloseSchedulerLoop {
 rule AutoCloseTick {
     when: AutoCloseTick()
     requires: now_time >= auto_close_time
-    requires: today is weekday  -- skip Saturday and Sunday
+    requires: is_weekday(today)
 
     for book_id in all_book_ids:
         ensures: AutoCloseBookEvaluation(book_id: book_id, date: today)
 
     @guidance
         -- now_time is a LocalTime; auto_close_time is parsed from config.
+        -- is_weekday(today) excludes Saturday and Sunday (the tick is a no-op
+        -- on weekends).
         -- The tick exits early (no-op) before close time or on weekends.
         -- Book IDs are fetched from position-service via HTTP.
         -- Each book is processed independently; failure on one book does
         -- not prevent processing of the remaining books.
 }
 
--- Per-book evaluation: idempotency check, VaR calculation, and promotion.
+-- Per-book evaluation: idempotency check and VaR calculation request.
 
 rule AutoCloseBookEvaluation {
     when: AutoCloseBookEvaluation(book_id, date)
@@ -72,37 +76,59 @@ rule AutoCloseBookEvaluation {
     -- Idempotency: if an OFFICIAL_EOD already exists for this book and
     -- date, skip entirely. This makes the auto-close safe to re-run if
     -- it fires multiple times (e.g. across restarts within the same evening).
-    requires: no existing ValuationJob where
-        book_id = book_id and
-        valuation_date = date and
-        run_label = official_eod
+    requires: not exists risk/ValuationJob{
+        book_id: book_id,
+        valuation_date: date,
+        run_label: official_eod
+    }
 
-    -- 1. Fire a VaR calculation with PRE_CLOSE label and full output set.
-    let job = risk/CalculateVaR(
+    -- Fire a VaR calculation with auto_close trigger, PARAMETRIC at 99% CL,
+    -- and the full output set. The downstream chain (AutoClosePromoted after
+    -- RiskResultPublished) handles promotion once the calculation completes.
+    ensures: risk/CalculateVaRRequested(
         book_id: book_id,
         calculation_type: parametric,
         confidence_level: cl_99,
-        trigger_type: auto_close,
-        run_label: pre_close,
-        triggered_by: "AUTO_CLOSE",
-        requested_outputs: { var, expected_shortfall, greeks, pv }
+        time_horizon_days: null,
+        num_simulations: null,
+        requested_outputs: { var, expected_shortfall, greeks, pv },
+        correlation_id: null,
+        trigger_type: auto_close
     )
-
-    -- 2. If the calculation succeeded, promote to OFFICIAL_EOD immediately.
-    requires: job != null
-
-    ensures: AutoClosePromoted(job_id: job.job_id, book_id: book_id, date: date)
 
     @guidance
         -- The VaR request uses PARAMETRIC at 99% confidence level with all
         -- four output types (VaR, ES, Greeks, PV) to produce a complete
         -- risk snapshot suitable for regulatory reporting.
         --
-        -- If calculateVaR returns null (e.g. no positions), a warning is
-        -- logged and promotion is skipped for that book.
+        -- Promotion is driven by AutoClosePromoteOnRiskResult, which fires
+        -- when the ensuing RiskResultPublished trigger arrives with
+        -- trigger_type = auto_close.
         --
-        -- On exception, the error is logged and the loop continues to
-        -- the next book.
+        -- If risk/CalculateVaR cannot produce a completed job (e.g. no
+        -- positions), no RiskResultPublished fires and promotion is skipped
+        -- for that book. On exception the scheduling loop logs and continues.
+}
+
+-- Bridge: when the auto-close VaR calculation publishes a result, queue
+-- the book for OFFICIAL_EOD promotion.
+
+rule AutoClosePromoteOnRiskResult {
+    when: RiskResultPublished(job)
+    requires: job.trigger_type = auto_close
+    requires: job.status = completed
+    requires: job.promoted_at = null
+
+    ensures: AutoClosePromoted(
+        job_id: job.job_id,
+        book_id: job.book_id,
+        date: job.valuation_date
+    )
+
+    @guidance
+        -- RiskResultPublished is emitted by risk/CalculateVaR after Phase 5
+        -- (PUBLISH_RESULT). Filtering on trigger_type = auto_close restricts
+        -- auto-promotion to jobs fired by the scheduler loop.
 }
 
 -- Automatic promotion: bypasses the four-eyes check because the trigger
@@ -117,7 +143,14 @@ rule AutoClosePromotion {
 
     -- Supersede any existing Official EOD for the same book and date.
     -- (Handles the case where a manual promotion preceded the auto-close.)
-    ensures: existing_eod_superseded_if_present(book_id, date)
+    -- Any other ValuationJob already promoted for (book_id, date) is
+    -- demoted to superseded_eod by the promotion pipeline.
+    for other in risk/ValuationJobs
+        where book_id = book_id
+        and valuation_date = date
+        and run_label = official_eod
+        and job_id != job_id:
+        ensures: other.run_label = superseded_eod
 
     ensures: job.run_label = official_eod
     ensures: job.promoted_at = now
@@ -142,9 +175,8 @@ rule AutoClosePromotion {
         --
         -- Post-promotion side-effects (same as manual promotion):
         --   - Publishes OfficialEodPromotedEvent to Kafka.
-        --   - Publishes GovernanceAuditEvent (eventType=EOD_PROMOTED,
-        --     userRole="AUTO_CLOSE").
-        --   - Publishes RISK_RUN_EOD_PROMOTED audit event.
+        --   - Emits GovernanceTransitionOccurred (event_type=eod_promoted,
+        --     user_role="AUTO_CLOSE"), consumed by audit/RecordGovernanceAuditEvent.
         --   - Refreshes daily_official_eod_summary materialized view
         --     with retry (2 attempts, 5s delay).
         --   - Updates eod.promotion.last_timestamp gauge per book.
