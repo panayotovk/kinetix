@@ -165,12 +165,18 @@ rule AggregatePortfolio {
         -- Throws if no FX rate available for a currency after all steps.
 }
 
--- Counterparty exposure
+-- Counterparty exposure (book-level roll-up)
 
-rule CalculateCounterpartyExposure {
+rule SummariseBookCounterpartyExposure {
     when: CounterpartyExposureRequested(book_id)
 
     @guidance
+        -- Book-level counterparty exposure summary: aggregates trades in a
+        -- single book by counterparty_id. This is NOT the full counterparty
+        -- credit-risk calculation (that lives in counterparty-risk.allium,
+        -- CalculateCounterpartyExposure, which covers PFE, CVA, netting
+        -- agreements and collateral across all books for a counterparty).
+        --
         -- Load all trades for book where counterparty_id is not null.
         -- Group by counterparty_id.
         -- For each counterparty group:

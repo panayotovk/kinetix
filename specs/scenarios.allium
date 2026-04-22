@@ -358,23 +358,9 @@ rule CreateCustomScenario {
         -- (draft → pending_approval → approved).
 }
 
--- Scenario versioning
-
-rule UpdateScenario {
-    when: UpdateScenarioRequested(scenario_id, shocks, correlation_override, liquidity_stress_factors)
-    let scenario = SavedScenario{id: scenario_id}
-
-    ensures: scenario.version = scenario.version + 1
-    ensures: scenario.shocks = shocks
-    ensures: scenario.correlation_override = correlation_override
-    ensures: scenario.liquidity_stress_factors = liquidity_stress_factors
-
-    @guidance
-        -- Incrementing version preserves previous parameters
-        -- (the database retains the full history).
-        -- Updating an APPROVED scenario resets status to DRAFT
-        -- (requires re-approval via regulatory.allium governance).
-}
+-- Scenario versioning is defined in scenario-lifecycle.allium
+-- (rule UpdateScenario). That rule also handles status reset on update
+-- (approved/pending_approval -> draft), which this module does not govern.
 
 -- Save reverse stress result as scenario
 
@@ -409,34 +395,10 @@ rule RunSavedScenario {
         -- Ad-hoc (unsaved) scenarios can be run directly without approval.
 }
 
--- Correlated multi-factor scenario creation
-
-rule CreateCorrelatedScenario {
-    when: CreateCorrelatedScenarioRequested(name, description, correlated_shock_spec, created_by)
-    let spec = correlated_shock_spec
-
-    ensures: SavedScenario.created(
-        name: name,
-        description: description,
-        scenario_type: parametric,
-        version: 1,
-        shocks: serialize_correlated_shocks(spec),
-        created_by: created_by,
-        created_at: now
-    )
-
-    @guidance
-        -- Creates a parametric scenario whose secondary shocks are derived from
-        -- the primary shock via historical correlation structure (CorrelatedShockSpec).
-        -- The correlation matrix used to derive implied_shocks must be the most
-        -- recently approved correlation matrix from correlation-service.
-        -- If no approved correlation matrix exists, reject with
-        -- "No approved correlation matrix available."
-        -- The resulting scenario is saved with shocks serialised from all
-        -- asset class shocks (primary + implied) for execution by RunSavedScenario.
-        -- Enters the governance workflow (draft → pending_approval → approved)
-        -- via regulatory.allium before it can be run.
-}
+-- Correlated multi-factor scenario creation is defined in
+-- scenario-lifecycle.allium (rule CreateCorrelatedScenario). That rule
+-- owns the correlation-matrix lookup, the primary/implied shock derivation
+-- and the lifecycle entry into DRAFT.
 
 -- Batch stress run across all approved scenarios for a book
 
