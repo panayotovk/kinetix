@@ -188,26 +188,11 @@ invariant TradeQuantityPositive {
         t.quantity > 0
 }
 
-invariant TradeImmutabilityExceptStatus {
-    @guidance
-        -- Enforced by database trigger (V14): the following fields are immutable
-        -- after insertion:
-        --   trade_id, book_id, instrument_id, asset_class, side, quantity,
-        --   price_amount, price_currency, traded_at, created_at, event_type.
-        -- The following fields are intentionally mutable (not protected by trigger):
-        --   status (lifecycle transitions), counterparty_id, instrument_type,
-        --   original_trade_id, strategy_id.
-}
+-- Trade identity fields (trade_id, book_id, instrument_id, asset_class, side,
+-- quantity, price_amount, price_currency, traded_at, event_type) are
+-- immutable after insertion. Status, counterparty_id, instrument_type,
+-- original_trade_id and strategy_id are mutable to support lifecycle
+-- transitions and enrichment.
 
-invariant TradeNeverDeleted {
-    @guidance
-        -- Enforced by database trigger: DELETE on trade_events is blocked.
-        -- Trades are soft-transitioned via status, never physically removed.
-}
-
-invariant TradeStatusTransitions {
-    @guidance
-        -- Valid transitions: live -> amended, live -> cancelled.
-        -- No other transitions are permitted.
-        -- Amended and cancelled are terminal states.
-}
+-- Trades are never deleted; cancellation is a status transition
+-- (live -> cancelled), preserving the full trade history.

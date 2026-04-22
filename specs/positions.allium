@@ -92,7 +92,7 @@ entity FxRate {
 -- Position updates from trade events
 
 rule ApplyTradeToPosition {
-    when: trading/TradeBooked(trade, book_id)
+    when: TradeBooked(trade, book_id)
     let position = Position{book_id: trade.book_id, instrument_id: trade.instrument_id}
 
     @guidance
@@ -120,7 +120,7 @@ rule ApplyTradeToPosition {
 -- Mark-to-market from price events
 
 rule MarkToMarket {
-    when: md/PricePublished(instrument_id, price_amount, price_currency)
+    when: PricePublished(instrument_id, price_amount, price_currency)
     for position in Positions where instrument_id = instrument_id:
         requires: position.market_price.currency = price_currency
         ensures: position.market_price = core/Money{amount: price_amount, currency: price_currency}
@@ -136,7 +136,7 @@ rule MarkToMarket {
 -- FX rate extraction from price events
 
 rule ExtractFxRate {
-    when: md/PricePublished(instrument_id, price_amount, price_currency)
+    when: PricePublished(instrument_id, price_amount, price_currency)
     requires: length(instrument_id) = 6
 
     @guidance
@@ -200,8 +200,6 @@ invariant PositionCurrencyConsistency {
         and p.average_cost.currency = p.realized_pnl.currency
 }
 
-invariant RealizedPnlCumulative {
-    @guidance
-        -- realized_pnl is strictly cumulative: only increases or decreases
-        -- through trade applications, never reset to zero.
-}
+-- realized_pnl is strictly cumulative: it is only updated through trade
+-- applications and never reset to zero. Enforced by the absence of any rule
+-- that assigns position.realized_pnl outside ApplyTradeToPosition.
