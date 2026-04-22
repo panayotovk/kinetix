@@ -18,12 +18,9 @@ use "./audit.allium" as audit
 
 enum EscalationTarget { desk_head | risk_manager_cro }
 
-    @guidance
-        -- Maps to the string values stored in AlertEvent.escalated_to:
-        --   desk_head       -> "desk-head"
-        --   risk_manager_cro -> "risk-manager,cro"
-        -- Implemented as plain String in AlertEscalationService.escalationTargetFor().
-
+-- Maps to the string values stored in AlertEvent.escalated_to:
+--   desk_head       -> "desk-head"
+--   risk_manager_cro -> "risk-manager,cro"
 -- EscalationChannel is no longer needed as a separate enum.
 -- core/DeliveryChannel now includes pager_duty alongside in_app, email, webhook.
 
@@ -36,12 +33,6 @@ enum EscalationTarget { desk_head | risk_manager_cro }
 --   escalation_poll_interval: Duration = 1.minute
 -- See alerts.allium config block for the authoritative values.
 
-    @guidance
-        -- escalation_timeout is configurable via application.conf property
-        -- "escalation.timeoutMinutes" (Long, default 30).
-        -- escalation_poll_interval is hard-coded to 60,000ms in Application.kt
-        -- (the coroutine delay between ScheduledAlertEscalation.tick() calls).
-
 ------------------------------------------------------------
 -- Rules
 ------------------------------------------------------------
@@ -51,11 +42,11 @@ enum EscalationTarget { desk_head | risk_manager_cro }
 rule PromoteSeverity {
     when: EscalationProcessing(alert)
 
-    ensures: promoted_severity = match alert.severity {
-        warning  -> critical
-        critical -> critical
-        info     -> info
-    }
+    ensures:
+        if alert.severity = warning:
+            promoted_severity = critical
+        else:
+            promoted_severity = alert.severity
 
     @guidance
         -- WARNING alerts are promoted to CRITICAL when they escalate.
@@ -70,11 +61,11 @@ rule PromoteSeverity {
 rule ResolveEscalationTarget {
     when: EscalationProcessing(alert, promoted_severity)
 
-    ensures: escalation_target = match promoted_severity {
-        warning  -> desk_head
-        info     -> desk_head
-        critical -> risk_manager_cro
-    }
+    ensures:
+        if promoted_severity = critical:
+            escalation_target = risk_manager_cro
+        else:
+            escalation_target = desk_head
 
     @guidance
         -- The target is derived from the PROMOTED severity, not the original.
@@ -89,12 +80,12 @@ rule ResolveEscalationTarget {
 rule RouteEscalationDelivery {
     when: AlertEscalated(alert, promoted_severity)
 
-    ensures: channels = match promoted_severity {
-        critical -> [email, webhook, pager_duty]
-        warning  -> [email]
-        info     -> [email]
-    }
-    ensures: DeliveryRouter.route(alert, channels)
+    ensures:
+        if promoted_severity = critical:
+            channels = {email, webhook, pager_duty}
+        else:
+            channels = {email}
+    ensures: EscalationDeliveryRouted(alert, channels)
 
     @guidance
         -- Escalation delivery uses a DIFFERENT channel set from the initial
@@ -213,62 +204,24 @@ rule EscalatedAlertCannotBeReAcknowledged {
 ------------------------------------------------------------
 
 invariant EscalationRequiresAcknowledgement {
-    @guidance
-        -- An alert can only be escalated if it has been acknowledged first.
-        -- The state machine enforces: TRIGGERED -> ACKNOWLEDGED -> ESCALATED.
-        -- There is no direct TRIGGERED -> ESCALATED transition.
-        -- This is enforced both by the AlertStatus.canTransitionTo() method
-        -- and by the findAcknowledgedBefore() query that only finds ACKNOWLEDGED alerts.
+    -- An escalated alert must have been acknowledged first; there is no
+    -- direct TRIGGERED -> ESCALATED transition.
+    for alert in alerts/AlertEvents:
+        alert.status = escalated implies alert.acknowledged_at != null
 }
 
 invariant EscalationIsIdempotent {
-    @guidance
-        -- An alert is escalated at most once. Once status = ESCALATED,
-        -- no subsequent escalation poll will re-escalate it.
-        -- The debounce is at the query level: findAcknowledgedBefore returns
-        -- only ACKNOWLEDGED alerts, so ESCALATED alerts are never candidates.
-        -- The escalated_at and escalated_to fields are immutable after escalation.
+    -- An escalated alert's escalation timestamp and target are set exactly
+    -- once; once recorded they remain present for the lifetime of the alert.
+    for alert in alerts/AlertEvents:
+        alert.status = escalated implies
+            (alert.escalated_at != null and alert.escalated_to != null)
 }
 
 invariant SeverityPromotionIsMonotonic {
-    @guidance
-        -- Severity can only increase on escalation, never decrease:
-        --   INFO     -> INFO      (no change)
-        --   WARNING  -> CRITICAL  (promoted)
-        --   CRITICAL -> CRITICAL  (no change)
-        -- There is no path from CRITICAL back to WARNING or INFO.
-        -- This ensures escalated alerts always carry at least their
-        -- original severity, and WARNING alerts are elevated to match
-        -- the operational urgency that triggered escalation.
-}
-
-invariant EscalationProducesAuditTrail {
-    @guidance
-        -- Every successful escalation emits exactly one
-        -- GovernanceTransitionOccurred trigger with event_type = alert_escalated.
-        -- audit/RecordGovernanceAuditEvent consumes it and records the event
-        -- in the hash-chained audit trail. At the implementation level the
-        -- governance publisher writes to the "governance.audit" Kafka topic.
-        -- This event includes:
-        --   - alertId: the escalated alert's ID
-        --   - severity transition: original -> promoted
-        --   - escalatedTo: the target (desk-head or risk-manager,cro)
-        --   - alert type: the AlertType of the original alert
-        --   - bookId: the portfolio book associated with the alert
-        --   - userId: "system" (escalation is automatic)
-        --   - userRole: "SYSTEM"
-        -- The audit event is consumed by audit-service and becomes part
-        -- of the hash-chained audit trail, ensuring escalation decisions
-        -- are tamper-evident and auditable.
-}
-
-invariant EscalatedDeliveryMatchesPromotedSeverity {
-    @guidance
-        -- The delivery channels used for escalation notifications are
-        -- determined by the PROMOTED severity, not the original severity.
-        -- A WARNING alert that is promoted to CRITICAL will be delivered
-        -- via email + webhook + PagerDuty (the CRITICAL channel set),
-        -- not just email (the WARNING channel set).
-        -- This ensures that promoted alerts receive the urgency-appropriate
-        -- notification channels.
+    -- Severity can only be raised on escalation, never lowered. An escalated
+    -- alert's severity is therefore critical or info (never warning, which
+    -- is promoted to critical on escalation).
+    for alert in alerts/AlertEvents:
+        alert.status = escalated implies alert.severity != warning
 }
