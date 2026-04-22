@@ -284,12 +284,16 @@ rule EscalateAlert {
         ensures: alert.escalated_to = target
         ensures: AlertEscalated(alert: alert)
         ensures: delivery_routed(alert, channels)
-        ensures: AuditEvent.created(
+        ensures: GovernanceTransitionOccurred(
             event_type: alert_escalated,
             user_id: "system",
             user_role: "SYSTEM",
+            model_name: null,
+            scenario_id: null,
+            limit_id: null,
+            submission_id: null,
             book_id: alert.book_id,
-            details: "alertId={alert.id} severity={alert.severity}->{promoted_severity} escalatedTo={target} type={alert.type}"
+            details: "alertRuleId={alert.rule_id} severity={alert.severity}->{promoted_severity} escalatedTo={target} type={alert.type}"
         )
 
     @guidance
@@ -316,9 +320,11 @@ rule EscalateAlert {
         -- (DeliveryChannel enum) but not yet in core.allium. It is used
         -- exclusively for escalation delivery of critical alerts.
         --
-        -- Every escalation produces a GovernanceAuditEvent (event_type:
-        -- ALERT_ESCALATED) published to the audit trail, ensuring the
-        -- escalation is visible in the hash-chained audit log.
+        -- Every escalation emits a GovernanceTransitionOccurred event
+        -- (event_type: alert_escalated) consumed by audit.allium
+        -- (RecordGovernanceAuditEvent), ensuring the escalation is visible
+        -- in the hash-chained audit log. The audit module imports alerts
+        -- implicitly via the shared trigger; alerts does not depend on audit.
 }
 
 deferred promote_severity
