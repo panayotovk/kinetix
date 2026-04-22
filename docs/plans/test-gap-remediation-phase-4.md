@@ -133,9 +133,16 @@ Goal: close gaps where a silent regression could let bad data through a regulato
   4. Upstream timeout surfaces as 504 or whatever the contract says — verify the existing behaviour, don't change it.
 - **Note:** this is the most critical route in the system. The test must be strict about error propagation.
 
-### 4B.6 `GatewayMarginContractAcceptanceTest` + `GatewayMarketRegimeContractAcceptanceTest`
+### 4B.6 `GatewayMarketRegimeContractAcceptanceTest` (margin split out — see note)
 - **Module:** `gateway`
-- **Cases per route:** Happy path, upstream 404, upstream 503. Minimal but enough to catch silent path changes.
+- **Cases:** Happy path, upstream 404, upstream 503. Minimal but enough to catch silent path changes.
+- **Margin deferred (blocked on wiring):** `Route.marginRoutes` is defined in
+  `gateway/src/main/kotlin/com/kinetix/gateway/routes/MarginRoutes.kt` but
+  is not referenced from any `Application.module(...)` overload, so the
+  gateway margin endpoint returns 404 at runtime. The UI also does not call
+  it. Writing a contract test against an unwired route would conceal the
+  fact that the feature is unreachable. Revive this item after the route
+  is wired in (or the route is removed if the feature is shelved).
 
 ### 4B.7 `KafkaFIXSessionEventPublisherIntegrationTest`
 - **Module:** `position-service`
