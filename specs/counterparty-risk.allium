@@ -224,6 +224,7 @@ config {
     equity_haircut: Decimal = 0.20
     sa_ccr_alpha: Decimal = 1.4
     sa_ccr_floor: Decimal = 0.05
+    exposure_reporting_currency: String = "USD"
 }
 
 ------------------------------------------------------------
@@ -271,7 +272,7 @@ rule CalculateCounterpartyExposure {
         peak_pfe: 0,
         cva: null,
         cva_estimated: false,
-        currency: "USD",
+        currency: config.exposure_reporting_currency,
         netting_set_exposures: netting_exposures,
         collateral_held: received,
         collateral_posted: posted,

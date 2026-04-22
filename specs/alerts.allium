@@ -231,7 +231,8 @@ rule GenerateSuggestedAction {
         --
         -- Nonlinearity detection:
         --   If top contributor has gamma != null or vega != null, AND
-        --   (|gamma| > 0.01 or |vega| > 1.0):
+        --   (|gamma| > config.nonlinearity_gamma_threshold
+        --    or |vega| > config.nonlinearity_vega_threshold):
         --     Message: "Book VaR exceeds limit by ${var_excess}. Top contributor:
         --     {instrumentId} ({pctOfTotal}%). Non-linear position -- use What-If
         --     for accurate sizing."
