@@ -198,9 +198,7 @@ rule AutoResolveAlerts {
     for alert in AlertEvents
         where book_id = event.book_id
         and status != resolved:
-        let rule = AlertRule{id: alert.rule_id}
-        let metric = extract_metric(rule.type, event)
-        requires: not compare(metric, rule.operator, rule.threshold)
+        requires: not alert_still_breaching(alert, event)
 
         ensures: alert.status = resolved
         ensures: alert.resolved_at = now
@@ -294,8 +292,7 @@ rule AcknowledgeAlertRejectedAlreadyAcknowledged {
 rule EscalateAlert {
     when: EscalationCheckTriggered()
     for alert in AlertEvents where status = acknowledged:
-        let acknowledgement = AlertAcknowledgement{alert_event: alert}
-        requires: (now - acknowledgement.acknowledged_at) >= config.escalation_timeout
+        requires: (now - alert.acknowledged_at) >= config.escalation_timeout
 
         let promoted_severity = promote_severity(alert.severity)
         let target = escalation_target(promoted_severity)
@@ -414,16 +411,16 @@ rule EvaluateDataStaleness {
 -- Regime change alerts: subscribe directly to regime/RegimeTransitioned.
 
 rule EvaluateRegimeChange {
-    when: regime/RegimeTransitioned(from, to, signals, new_params)
-    requires: to != normal
+    when: RegimeTransitioned(from_regime, to_regime, signals, new_params)
+    requires: to_regime != normal
 
     ensures: AlertEvent.created(
         id: new_id,
         rule_id: "REGIME_CHANGE",
         rule_name: "Market Regime Change",
         type: regime_change,
-        severity: regime_severity(to),
-        message: format_regime_message(from, to, new_params, signals),
+        severity: regime_severity(to_regime),
+        message: format_regime_message(from_regime, to_regime, new_params, signals),
         current_value: 0,
         threshold: 0,
         book_id: "GLOBAL",
@@ -474,40 +471,33 @@ rule ConsumeAnomalyEvent {
 ------------------------------------------------------------
 
 invariant AlertDeduplication {
-    @guidance
-        -- At most one TRIGGERED alert per (rule_id, book_id) at any time.
-        -- New evaluations that match an already-triggered alert are suppressed.
+    -- At most one triggered alert per (rule_id, book_id) at any time.
+    -- New evaluations that match an already-triggered alert are suppressed.
+    for a in AlertEvents:
+        for b in AlertEvents:
+            (a != b and a.rule_id = b.rule_id and a.book_id = b.book_id
+                and a.status = triggered)
+                implies b.status != triggered
 }
 
-invariant AlertStatusTransitions {
-    @guidance
-        -- Valid transitions (enforced by AlertStatus.canTransitionTo):
-        --   triggered    -> acknowledged  (manual acknowledgement)
-        --   triggered    -> resolved      (auto-clear when metric recovers, or manual)
-        --   acknowledged -> escalated     (automatic, after escalation_timeout elapses)
-        --   acknowledged -> resolved      (auto-clear when metric recovers, or manual)
-        --   escalated    -> resolved      (auto-clear when metric recovers, or manual)
-        --
-        -- Invalid transitions (rejected):
-        --   resolved -> any              (terminal; cannot reopen)
-        --   triggered -> escalated       (must be acknowledged first)
-        --   escalated -> acknowledged    (cannot demote)
-        --
-        -- resolved is the only terminal state.
-        -- acknowledged is NOT terminal: it can escalate or resolve.
-        --
-        -- On escalation, severity may be promoted:
-        --   warning  -> critical  (increases urgency)
-        --   info     -> info      (informational stays informational)
-        --   critical -> critical  (already at ceiling)
-        --
-        -- Every acknowledgement and escalation must produce an audit event
-        -- so that the full lifecycle is visible in the hash-chained audit trail.
+invariant EscalatedAlertsAreAcknowledged {
+    -- An escalated alert must have passed through the acknowledged state;
+    -- there is no direct triggered -> escalated transition.
+    for alert in AlertEvents:
+        alert.status = escalated implies alert.acknowledged_at != null
+}
+
+invariant ResolvedIsTerminal {
+    -- resolved is the only terminal state: a resolved alert has a
+    -- resolved_at and stays resolved.
+    for alert in AlertEvents:
+        alert.status = resolved implies alert.resolved_at != null
 }
 
 invariant EscalationSeverityMonotonic {
-    @guidance
-        -- Severity can only increase or stay the same during escalation.
-        -- It never decreases. The promote_severity function enforces this:
-        -- warning -> critical, all others stay at their current level.
+    -- Severity can only be raised on escalation, never lowered. Escalated
+    -- alerts therefore never carry the warning severity (which is promoted
+    -- to critical at escalation time).
+    for alert in AlertEvents:
+        alert.status = escalated implies alert.severity != warning
 }
