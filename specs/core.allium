@@ -19,11 +19,11 @@ value TimeRange {
 value CurvePoint {
     tenor: String
     value: Decimal
-
-    @guidance
-        -- days can be derived from the tenor string (e.g. "1Y" = 365, "6M" = 182).
-        -- value represents the rate at that tenor point.
 }
+
+-- Notes on CurvePoint:
+--   days can be derived from the tenor string (e.g. "1Y" = 365, "6M" = 182).
+--   value represents the rate at that tenor point.
 
 value VolPoint {
     strike: Decimal
@@ -61,10 +61,6 @@ enum Permission {
 enum ScenarioCategory { regulatory_mandated | internal_approved | supervisory_requested }
 
 enum DataQualityFlag { full_attribution | price_only | stale_greeks }
-    @guidance
-        -- No typed Kotlin enum named DataQualityFlag exists in production code.
-        -- The risk-orchestrator uses AttributionDataQuality enum with the same
-        -- values, serialised as plain String in DTOs and persistence.
 
 enum AssetClass { equity | fixed_income | fx | commodity | derivative }
 
@@ -111,9 +107,8 @@ enum Severity { info | warning | critical }
 enum ComparisonOperator { greater_than | less_than | equals }
 
 enum DeliveryChannel { in_app | email | webhook | pager_duty }
-    @guidance
-        -- pager_duty is used exclusively for escalation delivery of critical
-        -- alerts, not for user-configured alert rule channels.
+-- pager_duty is used exclusively for escalation delivery of critical alerts,
+-- not for user-configured alert rule channels.
 
 enum ModelStatus { draft | validated | approved | retired }
 
@@ -122,44 +117,19 @@ enum ScenarioStatus { draft | pending_approval | approved | retired }
 enum SubmissionStatus { draft | pending_review | approved | submitted | acknowledged }
 
 enum TrafficLightZone { green | yellow | red }
-    @guidance
-        -- No typed Kotlin enum exists in production code. Currently implemented
-        -- as ad-hoc String values ("GREEN", "YELLOW", "RED") in
-        -- regulatory-service (BacktestRoutes.kt) and risk-orchestrator.
 
 enum FrtbRiskClass { girr | csr_non_sec | csr_sec_ctp | csr_sec_non_ctp | equity | commodity | fx }
-    @guidance
-        -- No production Kotlin enum class exists. Defined as a proto enum in
-        -- regulatory_reporting.proto (used by risk-orchestrator via generated code)
-        -- and as a private test-only enum in RegulatoryReportingAcceptanceTest.kt.
 
 enum OptionType { call | put }
-    @guidance
-        -- Currently implemented in Python risk-engine only (models.py).
-        -- No corresponding Kotlin enum in common module.
 
 enum ExerciseStyle { american | european }
-    @guidance
-        -- Currently implemented as plain String in Kotlin, Python, and Proto.
 
 enum BondSeniority { senior_secured | senior_unsecured | subordinated }
-    @guidance
-        -- Currently implemented as plain String in Kotlin, Python, and Proto.
 
 enum SwapDirection { pay_fixed | receive_fixed }
-    @guidance
-        -- Currently implemented as plain String in Kotlin, Python, and Proto.
 
 enum SnapshotType { auto | manual }
 
 enum LiquidityTier { high_liquid | liquid | semi_liquid | illiquid }
-    @guidance
-        -- Liquidity classification based on ADV and bid-ask spread.
-        -- Used by reference-data-service (InstrumentLiquidity) and
-        -- liquidity risk calculations.
-        --
-        -- Kotlin naming divergence: reference-data-service uses
-        -- InstrumentLiquidityTier with numbered names (TIER_1 = high_liquid,
-        -- TIER_2 = liquid, TIER_3 = semi_liquid, ILLIQUID = illiquid).
-        -- The common module LiquidityTier uses the spec names.
-        -- A rename would require a DB migration; the mapping is documented here.
+-- Liquidity classification based on ADV and bid-ask spread. Used by
+-- reference-data (InstrumentLiquidity) and liquidity risk calculations.
