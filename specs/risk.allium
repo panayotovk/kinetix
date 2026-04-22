@@ -109,6 +109,7 @@ entity ValuationJob {
     confidence_level: String
     time_horizon_days: Integer?
     current_phase: String?
+    correlation_id: String?
     market_data_snapshot_id: String?
 
     -- Regime audit: original request values before any regime override.

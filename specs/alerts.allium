@@ -159,31 +159,36 @@ rule EvaluateAlertRules {
 ------------------------------------------------------------
 
 deferred extract_metric
-    -- Each AlertType has a dedicated MetricExtractor that maps a
-    -- RiskResultEvent to a nullable Double. If null, the rule does
+    -- Each AlertType has a dedicated MetricExtractor that maps the payload
+    -- of a RiskResultPublished trigger (a ValuationJob and its associated
+    -- position-risk snapshot) to a nullable Decimal. If null, the rule does
     -- not fire. Extractors are registered by type and looked up at
     -- evaluation time.
     --
-    -- Extraction by alert type:
+    -- Extraction by alert type (spec-level field references in snake_case;
+    -- the implementation-side Kafka DTO uses camelCase equivalents):
     --
-    --   VAR_BREACH          -> event.varValue (parsed as Double)
-    --   PNL_THRESHOLD       -> event.expectedShortfall (parsed as Double)
-    --   RISK_LIMIT          -> event.varValue (parsed as Double)
-    --   DELTA_BREACH        -> event.aggregateDelta (parsed as Double)
-    --   VEGA_BREACH         -> event.aggregateVega (parsed as Double)
-    --   CONCENTRATION       -> max(event.concentrationByInstrument[].percentage)
-    --   MARGIN_BREACH       -> event.marginUtilisation
-    --   DATA_STALENESS      -> null (stub — not yet implemented; rule never fires)
-    --   LIQUIDITY_CONCENTRATION -> numeric encoding of event.liquidityConcentrationStatus:
-    --       "BREACHED" -> 2.0, "WARNING" -> 1.0, "OK" -> 0.0, absent -> null.
-    --       A rule with threshold=1.5, operator=GREATER_THAN fires only on BREACHED.
-    --       A rule with threshold=0.5, operator=GREATER_THAN fires on WARNING and BREACHED.
-    --   REGIME_CHANGE       -> not evaluated via MetricExtractor; uses the
+    --   var_breach          -> event.var_value
+    --   pnl_threshold       -> event.expected_shortfall
+    --   risk_limit          -> event.var_value
+    --   delta_breach        -> event.delta
+    --   vega_breach         -> event.vega
+    --   concentration       -> max pct across event.position_risk_snapshot
+    --   margin_breach       -> derived from position-service margin signal
+    --                          (not carried on the job; see the Kafka DTO)
+    --   data_staleness      -> null (stub — not yet implemented; rule never fires)
+    --   liquidity_concentration -> numeric encoding of a liquidity status flag
+    --       sourced from the liquidity pipeline: breached -> 2.0,
+    --       warning -> 1.0, ok -> 0.0, absent -> null.
+    --       A rule with threshold=1.5, operator=greater_than fires only on breached.
+    --       A rule with threshold=0.5, operator=greater_than fires on warning and breached.
+    --   regime_change       -> not evaluated via MetricExtractor; uses the
     --       dedicated EvaluateRegimeChange rule that subscribes to
     --       regime/RegimeTransitioned.
-    --   FACTOR_CONCENTRATION -> sentinel detection: if event.concentrationByInstrument
-    --       contains an entry with instrumentId = "FACTOR_MODEL", returns 1.0; else null.
-    --       A rule with threshold=0.5, operator=GREATER_THAN fires whenever the
+    --   factor_concentration -> sentinel detection: if the snapshot's
+    --       concentration list contains an entry with instrument_id =
+    --       "FACTOR_MODEL", returns 1.0; else null. A rule with
+    --       threshold=0.5, operator=greater_than fires whenever the
     --       factor model reports concentration risk.
 
 -- Auto-resolution
