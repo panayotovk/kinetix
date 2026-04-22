@@ -316,7 +316,7 @@ rule CalculateVaR {
         valuation_date: today,
         calculation_type: calculation_type,
         confidence_level: confidence_level,
-        phases: []
+        phases: {}
     )
 
     ensures: job
@@ -365,7 +365,7 @@ rule ScheduledVaRRecalculation {
 -- Chain directly from the canonical trade and price triggers.
 
 rule RecalculateOnTradeBooked {
-    when: trading/TradeBooked(trade, book_id)
+    when: TradeBooked(trade, book_id)
     ensures: CalculateVaRRequested(
         book_id: book_id,
         calculation_type: null,
@@ -384,7 +384,7 @@ rule RecalculateOnTradeBooked {
 }
 
 rule RecalculateOnTradeAmended {
-    when: trading/TradeAmended(trade, original_trade_id, book_id)
+    when: TradeAmended(trade, original_trade_id, book_id)
     ensures: CalculateVaRRequested(
         book_id: book_id,
         calculation_type: null,
@@ -401,7 +401,7 @@ rule RecalculateOnTradeAmended {
 }
 
 rule RecalculateOnTradeCancelled {
-    when: trading/TradeCancelled(trade, book_id)
+    when: TradeCancelled(trade, book_id)
     ensures: CalculateVaRRequested(
         book_id: book_id,
         calculation_type: null,
@@ -418,7 +418,7 @@ rule RecalculateOnTradeCancelled {
 }
 
 rule RecalculateOnPricePublished {
-    when: md/PricePublished(instrument_id, price_amount, price_currency)
+    when: PricePublished(instrument_id, price_amount, price_currency)
     for book_id in all_book_ids:
         ensures: CalculateVaRRequested(
             book_id: book_id,
@@ -605,41 +605,34 @@ rule ReconcileTradeAudit {
 -- Invariants
 ------------------------------------------------------------
 
-invariant PromotedJobsImmutable {
-    @guidance
-        -- Once promoted_at is set, no further updates to the job are permitted.
-        -- job.update() checks promoted_at != null and throws.
-}
-
-invariant PnlAttributionRequiresBaseline {
-    @guidance
-        -- P&L attribution can only be computed for dates
-        -- that have a SodBaseline record.
-}
-
 invariant DiversificationBenefitNonNegative {
     for result in CrossBookValuationResults:
         result.diversification_benefit >= 0
 }
 
 invariant OneSodBaselinePerBookPerDate {
-    @guidance
-        -- Only one SodBaseline can exist for a given (book_id, baseline_date).
-        -- Creating a new one for the same date replaces the previous.
+    -- Only one SodBaseline exists per (book_id, baseline_date). Creating a
+    -- new one supersedes the previous entry rather than adding a duplicate.
+    for a in SodBaselines:
+        for b in SodBaselines:
+            (a != b and a.book_id = b.book_id
+                and a.baseline_date = b.baseline_date)
+                implies false
 }
 
-invariant PnlExplainUsesPricingSensitivities {
-    @guidance
-        -- P&L attribution (ComputePnlAttribution) must use analytical pricing
-        -- Greeks from SodGreekSnapshot (dPV/dX), not VaR sensitivities from
-        -- DailyRiskSnapshot or greeks.py (dVaR/dX).
-        -- If SodGreekSnapshot is unavailable, data_quality_flag = price_only
-        -- and Greek attribution terms are zeroed; unexplained_pnl absorbs them.
-}
-
-invariant SodGreekSnapshotImmutable {
-    @guidance
-        -- Once SodGreekSnapshot.is_locked = true, the row is immutable for the
-        -- remainder of the trading day. Any attempt to modify a locked row must
-        -- be rejected. New rows for the following day may be created independently.
-}
+-- Additional properties documented as policy:
+--
+-- PromotedJobsImmutable. Once a ValuationJob has promoted_at set, updates
+-- are rejected.
+--
+-- PnlAttributionRequiresBaseline. ComputePnlAttribution is defined only
+-- for dates that have a SodBaseline record.
+--
+-- PnlExplainUsesPricingSensitivities. P&L attribution must use analytical
+-- pricing Greeks from SodGreekSnapshot (dPV/dX), not VaR sensitivities
+-- (dVaR/dX). When SodGreekSnapshot is unavailable, data_quality_flag is
+-- price_only and Greek attribution terms are zeroed; unexplained_pnl
+-- absorbs them.
+--
+-- SodGreekSnapshotImmutable. Once is_locked = true, the snapshot row is
+-- immutable for the remainder of the trading day.

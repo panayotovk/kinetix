@@ -276,7 +276,7 @@ rule CreateCorrelatedScenario {
     requires: primary_asset_class in asset_classes
 
     let matrix = fetch_correlation_matrix(asset_classes)
-    requires: matrix exists
+    requires: matrix != null
 
     ensures: scenarios/SavedScenario.created(
         name: name,
@@ -406,22 +406,6 @@ rule FindScenarioById {
 -- Invariants
 ------------------------------------------------------------
 
-invariant ScenarioLifecycleStateMachine {
-    for s in scenarios/SavedScenarios:
-        s.status in {draft, pending_approval, approved, retired}
-
-    @guidance
-        -- Valid forward transitions:
-        --   draft -> pending_approval  (SubmitForApproval)
-        --   pending_approval -> approved  (ApproveScenario)
-        --   approved -> retired  (RetireScenario)
-        -- Reset transitions (via UpdateScenario):
-        --   approved -> draft
-        --   pending_approval -> draft
-        -- Terminal state: retired (no outbound transitions).
-        -- All other transitions are rejected with IllegalStateException.
-}
-
 invariant ApprovalMetadataConsistency {
     for s in scenarios/SavedScenarios:
         (s.status = approved implies s.approved_by != null and s.approved_at != null)
@@ -429,59 +413,33 @@ invariant ApprovalMetadataConsistency {
         (s.status = draft implies s.approved_by = null and s.approved_at = null)
         and
         (s.status = pending_approval implies s.approved_by = null and s.approved_at = null)
-
-    @guidance
-        -- approved_by and approved_at are set atomically when transitioning to APPROVED.
-        -- They are cleared atomically when UpdateScenario resets status to DRAFT.
-        -- They are never set for DRAFT or PENDING_APPROVAL scenarios.
-        -- For RETIRED scenarios, the values from the prior APPROVED state are retained
-        -- (retirement does not clear them).
 }
 
-invariant VersionMonotonicallyIncreasing {
+invariant VersionAtLeastOne {
     for s in scenarios/SavedScenarios:
         s.version >= 1
-
-    @guidance
-        -- Version starts at 1 on creation.
-        -- Every update increments by exactly 1.
-        -- Version never decreases.
 }
 
-@invariant RetiredIsTerminal
-    -- A retired scenario cannot be submitted, approved, retired again,
-    -- or updated. Any attempt throws IllegalStateException.
-    -- To re-use a retired scenario, create a new scenario with
-    -- parent_scenario_id pointing to the retired one.
-    -- (Also declared structurally via the terminal: retired clause in
-    -- the transitions status graph on scenarios/SavedScenario.)
-
-@invariant OnlyApprovedScenariosExecutable
-    -- Every run of a SavedScenario requires status = approved.
-    -- StressScenarioService.runScenario() checks the precondition before
-    -- delegating to the risk engine. This gate ensures that only
-    -- scenarios that have passed the governance review can produce
-    -- official stress test results.
-
-invariant UpdateResetsApproval {
-    @guidance
-        -- Any material change (shocks, correlation_override, liquidity_stress_factors)
-        -- to an APPROVED or PENDING_APPROVAL scenario resets its status to DRAFT
-        -- and clears approved_by / approved_at. This forces the full approval
-        -- workflow to be repeated, ensuring no unapproved changes are executable.
-        -- This is the core governance safety net for scenario integrity.
-}
-
-invariant AuditEventOnApprovalAndRetirement {
-    @guidance
-        -- Every successful approval transition publishes a SCENARIO_APPROVED
-        -- governance audit event. Every successful retirement publishes a
-        -- SCENARIO_RETIRED event. These events are consumed by the audit-service
-        -- for the immutable hash-chained audit trail.
-        -- If the audit publisher is unavailable, the transition still succeeds
-        -- (fire-and-forget publishing). This is a known trade-off: availability
-        -- over strict audit consistency. See open question below.
-}
+-- Additional lifecycle policy (structural state transitions are declared
+-- via the `transitions status { ... }` block on SavedScenario):
+--
+-- RetiredIsTerminal. A retired scenario cannot be resubmitted, updated or
+-- retired again. Re-use requires creating a new scenario with
+-- parent_scenario_id pointing to the retired one.
+--
+-- OnlyApprovedScenariosExecutable. Stress runs of a SavedScenario require
+-- status = approved; the executor rejects runs against any other status.
+--
+-- UpdateResetsApproval. Any material change (shocks, correlation_override,
+-- liquidity_stress_factors) on an approved or pending_approval scenario
+-- resets the status to draft and clears approved_by / approved_at,
+-- forcing the approval workflow to be repeated.
+--
+-- AuditEventOnApprovalAndRetirement. Every successful approval publishes
+-- a scenario_approved governance audit event; every successful retirement
+-- publishes a scenario_retired event. See open question below for the
+-- availability-vs-audit-consistency trade-off when the audit publisher is
+-- unreachable.
 
 ------------------------------------------------------------
 -- Open Questions

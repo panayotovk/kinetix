@@ -283,7 +283,7 @@ deferred per_instrument_attribution
 -- Trigger chaining: position changes originate from existing rules
 
 rule PriceChangeTriggersPositionChanged {
-    when: positions/PositionPriceUpdated(instrument_id, price_amount, price_currency)
+    when: PositionPriceUpdated(instrument_id, price_amount, price_currency)
     for position in positions/Positions where instrument_id = instrument_id:
         ensures: PositionChanged(
             book_id: position.book_id,
@@ -297,7 +297,7 @@ rule PriceChangeTriggersPositionChanged {
 }
 
 rule TradeTriggersPositionChanged {
-    when: trading/TradeBooked(trade, book_id)
+    when: TradeBooked(trade, book_id)
     ensures: PositionChanged(
         book_id: book_id,
         instrument_id: trade.instrument_id,
@@ -338,14 +338,6 @@ rule QueryIntradaySeries {
 -- Invariants
 ------------------------------------------------------------
 
-invariant TotalPnlIsIndependent {
-    @guidance
-        -- total_pnl is always computed from position state:
-        --   total_pnl = sum(realised) + sum(unrealised)
-        -- It is never derived from Greek attribution components.
-        -- attribution.unexplained_pnl absorbs the residual.
-}
-
 invariant AttributionSumsToTotal {
     for s in IntradayPnlSnapshots:
         s.total_pnl = s.attribution.delta_pnl
@@ -360,59 +352,35 @@ invariant AttributionSumsToTotal {
             + s.attribution.unexplained_pnl
 }
 
-invariant HighWaterMarkMonotonic {
-    @guidance
-        -- Within a single trading day (same SOD baseline),
-        -- high_water_mark is monotonically non-decreasing.
-        -- For any two snapshots s1, s2 with the same book_id
-        -- and s1.snapshot_at < s2.snapshot_at:
-        --   s2.high_water_mark >= s1.high_water_mark
-}
-
 invariant HighWaterMarkBoundsTotal {
     for s in IntradayPnlSnapshots:
         s.high_water_mark >= s.total_pnl
 }
 
-invariant SnapshotRequiresBaseline {
-    @guidance
-        -- An IntradayPnlSnapshot can only exist for a book_id
-        -- that has a SodBaseline for the current date.
-        -- No baseline = no intraday P&L.
-}
-
-invariant DebounceRespected {
-    @guidance
-        -- For any two consecutive snapshots for the same book_id,
-        -- the time between them is >= config.debounce_interval.
-        -- This is a loose bound: the actual interval may be longer
-        -- if no position changes occur.
-}
-
-invariant UnexplainedPnlThreshold {
-    @guidance
-        -- If |attribution.unexplained_pnl / total_pnl| > 0.20 (20%),
-        -- the system must flag this as a data quality warning.
-        -- This condition indicates stale Greeks, missing vol/rate data
-        -- (e.g. volatility-service or rates-service returned a stale or
-        -- null value causing vol_change or rate_change to be treated as zero),
-        -- or a position type whose sensitivities are not captured by the
-        -- current Greek set.
-        -- The warning is surfaced:
-        --   1. As a field on the IntradayPnlSnapshot (data_quality_warning: Boolean).
-        --   2. In the UI alongside the attribution breakdown.
-        --   3. As a structured log entry at WARN level with book_id, unexplained_pct,
-        --      and snapshot_at for operational monitoring.
-        -- A warning does not prevent the snapshot from being persisted or published.
-        -- The total_pnl figure (computed from positions) remains the authoritative value.
-}
-
-invariant CurrencyConsistency {
-    @guidance
-        -- All monetary amounts within a single IntradayPnlSnapshot
-        -- are denominated in the snapshot's base_currency.
-        -- Conversion happens at computation time using current FX rates.
-}
+-- Additional properties (policy and protocol, not expressed as
+-- machine-checkable state invariants):
+--
+-- TotalPnlIsIndependent. total_pnl is always computed from position state
+-- (sum of realised and unrealised); it is never derived from Greek
+-- attribution components. unexplained_pnl absorbs the residual.
+--
+-- HighWaterMarkMonotonic. Within a single trading day (same SOD baseline)
+-- high_water_mark is monotonically non-decreasing in snapshot time order.
+--
+-- SnapshotRequiresBaseline. An IntradayPnlSnapshot exists only for a
+-- book_id that has a SodBaseline for the current date.
+--
+-- DebounceRespected. Consecutive snapshots for the same book_id are at
+-- least config.debounce_interval apart.
+--
+-- UnexplainedPnlThreshold. When |unexplained_pnl / total_pnl| exceeds the
+-- configured threshold, the snapshot is flagged as data_quality_warning
+-- and surfaced in the UI and structured logs. The warning does not block
+-- persistence; total_pnl (from positions) remains authoritative.
+--
+-- CurrencyConsistency. All monetary amounts within a single snapshot are
+-- denominated in the snapshot's base_currency; conversion happens at
+-- computation time.
 
 ------------------------------------------------------------
 -- Open Questions

@@ -17,12 +17,7 @@ use "./core.allium" as core
 ------------------------------------------------------------
 
 enum ScenarioType { historical_replay | parametric | reverse_stress }
-
-    @guidance
-        -- The code-level enum is ScenarioType { PARAMETRIC, HISTORICAL_REPLAY, REVERSE_STRESS }.
-        -- The spec originally used "custom_parametric" but the implementation uses
-        -- "parametric" (Kotlin: ScenarioType.PARAMETRIC, DB default: 'PARAMETRIC').
-        -- PARAMETRIC is the default scenario type when none is specified.
+-- parametric is the default scenario type when none is specified.
 
 ------------------------------------------------------------
 -- Value Types
@@ -427,55 +422,33 @@ rule RunBatchStressTest {
 -- Invariants
 ------------------------------------------------------------
 
-invariant ReplayUsesCurrentPositions {
-    @guidance
-        -- Historical replay always applies returns to the CURRENT portfolio.
-        -- It never reconstructs historical positions.
-        -- The output is hypothetical: "if I had held today's book during that period."
-}
-
-invariant ReverseStressMinimumNorm {
-    @guidance
-        -- The reverse stress solver seeks the minimum-norm shock vector
-        -- (smallest market move) that achieves the target loss.
-        -- It does not return the maximum possible shock.
-}
-
-invariant ScenarioVersionsRetained {
-    @guidance
-        -- Updating a scenario increments the version counter.
-        -- Previous versions are retained and accessible by version number.
-        -- This enables auditing: which scenario was used in which risk report.
-}
-
-invariant NonPDCorrelationRepaired {
-    @guidance
-        -- If a custom scenario specifies a correlation override that is
-        -- not positive definite, it is repaired using nearest_positive_definite
-        -- (same as risk-models.allium CorrelationMatrixPositiveDefinite).
-        -- The user is warned that the matrix was adjusted.
-}
-
-invariant ProxyReturnsFlagged {
-    @guidance
-        -- When historical replay uses a proxy return for an instrument
-        -- (because the instrument did not exist or has no data for the period),
-        -- the ReplayResult.proxy_used flag is true and the
-        -- instruments_without_data count is > 0.
-        -- The UI must surface this as a data coverage warning.
-}
-
-invariant ScenarioPnlImpactFromRiskEngine {
-    @guidance
-        -- Scenario P&L impact must be computed by the risk engine using
-        -- full position repricing: pnl_impact = sum(position_market_value * price_shock)
-        -- via the risk engine gRPC call.
-        -- It must NEVER be computed by summing raw shock JSON values directly.
-        -- The current computePnlImpact stub in the codebase violates this invariant
-        -- and is a known data integrity bug (see TODO in risk-orchestrator).
-        -- Any implementation that reads shock values from the shocks JSON field and
-        -- sums them without consulting the risk engine is incorrect.
-}
+-- Scenario modelling properties (not expressed as machine-checkable state
+-- invariants):
+--
+-- ReplayUsesCurrentPositions. Historical replay applies returns to the
+-- current portfolio; it never reconstructs historical positions. The
+-- output is hypothetical: "if I had held today's book during that period."
+--
+-- ReverseStressMinimumNorm. The reverse-stress solver seeks the
+-- minimum-norm shock vector that achieves the target loss, not the maximum
+-- shock.
+--
+-- ScenarioVersionsRetained. Updating a scenario increments its version
+-- counter. Previous versions remain accessible by version number so that
+-- reports can be tied to the exact scenario revision used.
+--
+-- NonPDCorrelationRepaired. A custom scenario's correlation override that
+-- is not positive definite is repaired via a nearest-PSD projection. The
+-- user is warned that the matrix was adjusted.
+--
+-- ProxyReturnsFlagged. When historical replay substitutes a proxy return
+-- for an instrument, ReplayResult.proxy_used is true and
+-- instruments_without_data > 0. The UI surfaces this as a data coverage
+-- warning.
+--
+-- ScenarioPnlImpactFromRiskEngine. Scenario P&L impact is computed by the
+-- risk engine via full position repricing, never by summing shock JSON
+-- values directly in the orchestrator.
 
 ------------------------------------------------------------
 -- Open Questions
