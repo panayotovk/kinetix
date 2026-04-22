@@ -119,11 +119,15 @@ rule ApproveScenario {
     ensures: scenario.approved_by = approved_by
     ensures: scenario.approved_at = now
 
-    emits: GovernanceAuditEvent(
+    ensures: GovernanceTransitionOccurred(
         event_type: scenario_approved,
         user_id: approved_by,
         user_role: "APPROVER",
+        model_name: null,
         scenario_id: scenario_id,
+        limit_id: null,
+        submission_id: null,
+        book_id: null,
         details: scenario.name
     )
 
@@ -148,11 +152,15 @@ rule RetireScenario {
 
     ensures: scenario.status = retired
 
-    emits: GovernanceAuditEvent(
+    ensures: GovernanceTransitionOccurred(
         event_type: scenario_retired,
         user_id: "SYSTEM",
         user_role: "SYSTEM",
+        model_name: null,
         scenario_id: scenario_id,
+        limit_id: null,
+        submission_id: null,
+        book_id: null,
         details: scenario.name
     )
 
@@ -250,11 +258,14 @@ rule RunScenarioRequiresApproval {
     let scenario = SavedScenario{id: scenario_id}
     requires: scenario.status = approved
 
-    emits: GovernanceAuditEvent(
+    ensures: GovernanceTransitionOccurred(
         event_type: stress_test_run,
         user_id: "SYSTEM",
         user_role: "SYSTEM",
+        model_name: null,
         scenario_id: scenario_id,
+        limit_id: null,
+        submission_id: null,
         book_id: book_id,
         details: "modelVersion=<model_version>"
     )
@@ -359,16 +370,18 @@ rule FindScenarioById {
 -- Governance Audit Events
 ------------------------------------------------------------
 
--- Three governance audit events are published during the scenario lifecycle:
+-- Three governance transition events are emitted during the scenario lifecycle:
 --
 --   SCENARIO_APPROVED  — on successful approval transition
 --   SCENARIO_RETIRED   — on successful retirement transition
 --   STRESS_TEST_RUN    — on successful scenario execution
 --
--- All events are published to the "governance.audit" Kafka topic
--- via GovernanceAuditPublisher. The event payload is GovernanceAuditEvent
--- from common/audit, containing: eventType, userId, userRole, scenarioId,
--- bookId (for execution events), and details.
+-- All three emit GovernanceTransitionOccurred, consumed by
+-- audit/RecordGovernanceAuditEvent which records them in the hash-chained
+-- audit trail. At the implementation level these are published to the
+-- "governance.audit" Kafka topic via GovernanceAuditPublisher; the payload
+-- carries eventType, userId, userRole, scenarioId, bookId (for execution
+-- events), and details.
 --
 -- No governance audit events are published for:
 --   - Scenario creation
