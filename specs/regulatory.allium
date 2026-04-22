@@ -12,6 +12,7 @@ use "./scenarios.allium" as scenarios
 -- Model governance
 
 entity ModelVersion {
+    id: String
     model_name: String
     version: String
     status: core/ModelStatus
@@ -30,7 +31,7 @@ entity ModelVersion {
     validation_report_url: String?
     known_limitations: String?
     approved_use_cases: String?
-    next_validation_date: Date?
+    next_validation_date: String?
     approved_by: String when status = approved | retired
     approved_at: Timestamp when status = approved | retired
 
@@ -48,6 +49,7 @@ entity ModelVersion {
 -- Backtest records
 
 entity BacktestResultRecord {
+    id: String
     book_id: String
     calculation_type: String
     confidence_level: Decimal
@@ -63,8 +65,8 @@ entity BacktestResultRecord {
     traffic_light_zone: core/TrafficLightZone
     calculated_at: Timestamp
     input_digest: String?
-    window_start: Date?
-    window_end: Date?
+    window_start: String?
+    window_end: String?
     model_version: String?
 }
 
@@ -117,6 +119,7 @@ external entity StressTestResultRecord {
 -- Regulatory submissions
 
 entity RegulatorySubmission {
+    id: String
     report_type: String
     deadline: Timestamp
     status: core/SubmissionStatus
@@ -175,6 +178,7 @@ external entity HistoricalScenarioPeriod {
 rule RegisterModel {
     when: RegisterModelRequested(model_name, version, parameters, registered_by)
     ensures: ModelVersion.created(
+        id: new_id,
         model_name: model_name,
         version: version,
         status: draft,
@@ -182,6 +186,9 @@ rule RegisterModel {
         registered_by: registered_by,
         created_at: now
     )
+
+    @guidance
+        -- id is a system-generated UUID assigned at creation time.
 }
 
 rule ValidateModel {
@@ -271,6 +278,7 @@ rule RecordBacktest {
     when: RecordBacktestRequested(book_id, request, result)
 
     ensures: BacktestResultRecord.created(
+        id: new_id,
         book_id: book_id,
         calculation_type: request.calculation_type,
         confidence_level: request.confidence_level,
@@ -313,11 +321,15 @@ rule CompareBacktests {
 rule CreateSubmission {
     when: CreateSubmissionRequested(report_type, preparer_id, deadline)
     ensures: RegulatorySubmission.created(
+        id: new_id,
         report_type: report_type,
         deadline: deadline,
         status: draft,
         preparer_id: preparer_id
     )
+
+    @guidance
+        -- id is a system-generated UUID assigned at creation time.
 }
 
 rule SubmitForReview {

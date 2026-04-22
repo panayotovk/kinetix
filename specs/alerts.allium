@@ -22,6 +22,7 @@ value PositionBreakdownItem {
 ------------------------------------------------------------
 
 entity AlertRule {
+    id: String
     name: String
     type: core/AlertType
     threshold: Decimal
@@ -32,6 +33,7 @@ entity AlertRule {
 }
 
 entity AlertEvent {
+    id: String
     rule_id: String
     rule_name: String
     type: core/AlertType
@@ -93,6 +95,7 @@ rule CreateAlertRule {
     requires: name != ""
     requires: channels.count >= 1
     ensures: AlertRule.created(
+        id: new_id,
         name: name,
         type: type,
         threshold: threshold,
@@ -101,6 +104,9 @@ rule CreateAlertRule {
         channels: channels,
         enabled: true
     )
+
+    @guidance
+        -- id is a system-generated UUID assigned at creation time.
 }
 
 rule DeleteAlertRule {
@@ -124,6 +130,7 @@ rule EvaluateAlertRules {
         requires: not exists AlertEvent{rule_id: rule.id, book_id: event.book_id, status: triggered}
 
         ensures: AlertEvent.created(
+            id: new_id,
             rule_id: rule.id,
             rule_name: rule.name,
             type: rule.type,
@@ -293,7 +300,7 @@ rule EscalateAlert {
             limit_id: null,
             submission_id: null,
             book_id: alert.book_id,
-            details: "alertRuleId={alert.rule_id} severity={alert.severity}->{promoted_severity} escalatedTo={target} type={alert.type}"
+            details: "alertId={alert.id} severity={alert.severity}->{promoted_severity} escalatedTo={target} type={alert.type}"
         )
 
     @guidance
@@ -396,6 +403,7 @@ rule EvaluateRegimeChange {
     requires: event.regime != "NORMAL"
 
     ensures: AlertEvent.created(
+        id: new_id,
         rule_id: "REGIME_CHANGE",
         rule_name: "Market Regime Change",
         type: regime_change,

@@ -81,6 +81,7 @@ entity BookHierarchyEntry {
 }
 
 entity RiskBudgetAllocation {
+    id: String
     entity_level: HierarchyLevel
     entity_id: String
     budget_type: String
@@ -258,6 +259,7 @@ rule AlertOnBudgetBreach {
 rule CreateRiskBudget {
     when: CreateRiskBudgetRequested(entity_level, entity_id, budget_type, budget_period, budget_amount, effective_from, allocated_by, note)
     ensures: RiskBudgetAllocation.created(
+        id: new_id,
         entity_level: entity_level,
         entity_id: entity_id,
         budget_type: budget_type,
@@ -267,6 +269,9 @@ rule CreateRiskBudget {
         allocated_by: allocated_by,
         allocation_note: note
     )
+
+    @guidance
+        -- id is a system-generated UUID assigned at creation time.
 }
 
 rule UpdateRiskBudget {

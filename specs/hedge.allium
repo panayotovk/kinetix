@@ -76,6 +76,7 @@ value HedgeConstraints {
 ------------------------------------------------------------
 
 entity HedgeRecommendation {
+    id: String
     book_id: String
     target_metric: HedgeTarget
     target_reduction_pct: Decimal
@@ -155,6 +156,7 @@ rule SuggestHedge {
     )
 
     ensures: HedgeRecommendation.created(
+        id: new_id,
         book_id: book_id,
         target_metric: target_metric,
         target_reduction_pct: target_reduction_pct,
