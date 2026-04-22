@@ -224,9 +224,9 @@ rule RejectInvalidModelTransition {
 
 -- Stress testing governance
 
--- Scenario lifecycle rules (CreateStressScenario, SubmitScenarioForApproval,
--- ApproveScenario, RetireScenario, UpdateScenario) are now authoritative in
--- scenario-lifecycle.allium. Removed from this spec to eliminate duplication.
+-- Scenario lifecycle rules (CreateScenario, SubmitForApproval, ApproveScenario,
+-- RetireScenario, UpdateScenario) are authoritative in scenario-lifecycle.allium.
+-- They are not duplicated here.
 
 rule RunGovernedStressTest {
     when: RunGovernedStressTestRequested(scenario_id, book_id, model_version)
