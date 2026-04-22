@@ -419,54 +419,30 @@ config {
 -- Invariants
 ------------------------------------------------------------
 
-invariant ModelStatusTransitions {
-    @guidance
-        -- Valid transitions:
-        --   draft -> validated
-        --   validated -> approved
-        --   approved -> retired
-        -- No other transitions permitted.
-        -- Retired is a terminal state.
-}
-
--- ScenarioStatusTransitions invariant is now authoritative in
--- scenario-lifecycle.allium (ScenarioLifecycleStateMachine invariant).
+-- Model and submission status transitions are specified authoritatively via
+-- the `transitions status { ... }` blocks on ModelVersion and
+-- RegulatorySubmission; the checker rejects out-of-graph transitions.
+-- ScenarioStatusTransitions is covered in scenario-lifecycle.allium
+-- (ScenarioLifecycleStateMachine).
 
 invariant SubmissionFourEyes {
     for s in RegulatorySubmissions:
         s.approver_id = null or s.approver_id != s.preparer_id
 }
 
-invariant SubmissionStatusTransitions {
-    @guidance
-        -- Valid transitions:
-        --   draft -> pending_review
-        --   pending_review -> approved
-        --   approved -> submitted
-        --   submitted -> acknowledged (external)
-}
-
-invariant BacktestInputReproducibility {
-    @guidance
-        -- Two backtest runs with the same input_digest (SHA-256)
-        -- must produce identical statistical results.
-}
-
 invariant ModelApprovalFourEyes {
+    -- The person approving a model must differ from the person who
+    -- registered it. Mirrors SubmissionFourEyes for model approvals.
     for m in ModelVersions:
         m.approved_by = null or m.approved_by != m.registered_by
-
-    @guidance
-        -- The person approving a model must differ from the person who registered it.
-        -- Enforces separation of duties in the model governance lifecycle.
-        -- Mirrors SubmissionFourEyes for model approvals.
 }
 
-invariant StressTestResultRetention {
-    @guidance
-        -- Stress test results (StressTestResultRecord) must be retained for
-        -- config.stress_test_result_retention (7 years) for regulatory audit purposes.
-        -- Results must not be deleted or archived to inaccessible storage within
-        -- this window. The retention policy must be enforced at the database level
-        -- (TimescaleDB retention policy or equivalent) and verified in compliance audits.
-}
+-- Backtest reproducibility: two backtest runs with the same input_digest
+-- (SHA-256 over inputs) must produce identical statistical results. This is
+-- a property of the backtest function rather than an assertion over entity
+-- state.
+--
+-- Stress test results must be retained for the full
+-- config.stress_test_result_retention window for regulatory audit; this is
+-- a data-retention policy documented here and enforced in the persistence
+-- layer.

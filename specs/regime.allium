@@ -373,45 +373,29 @@ rule HandleDegradedSignals {
 -- Invariants
 ------------------------------------------------------------
 
-invariant RegimeSeverityOrdering {
-    @guidance
-        -- Severity: normal=0, recovery=1, elevated_vol=2, crisis=3.
-        -- Escalation (severity increase) requires config.escalation_debounce
-        -- consecutive observations.
-        -- De-escalation (severity decrease) requires config.de_escalation_debounce.
-}
+-- Regime severity ordering: normal=0, recovery=1, elevated_vol=2, crisis=3.
+-- Escalation (severity increase) requires config.escalation_debounce
+-- consecutive observations; de-escalation requires
+-- config.de_escalation_debounce. Debounce is enforced by the
+-- EvaluateRegimeTransition rule's count-based guard rather than by a
+-- separate invariant.
+--
+-- Parameter mapping:
+--   normal        -> parametric, cl_95
+--   elevated_vol  -> historical, cl_99
+--   crisis        -> monte_carlo, cl_99
+-- Parameter selection is a property of the rules that source
+-- RegimeModelConfig; the mapping is not re-asserted here.
+--
+-- Changes to RegimeModelConfig require the same four-eyes approval as
+-- regulatory-service ModelVersion (see regulatory.allium
+-- ModelApprovalFourEyes).
 
 invariant SingleActiveRegime {
-    @guidance
-        -- Exactly one RegimeState is active at any time.
-        -- Transitions create a RegimeHistory record for the prior state.
-}
-
-invariant RegimeParameterConsistency {
-    @guidance
-        -- The active VaR parameters must match the confirmed regime.
-        -- NORMAL → PARAMETRIC, CL_95
-        -- ELEVATED_VOL → HISTORICAL, CL_99
-        -- CRISIS → MONTE_CARLO, CL_99
-        -- No state where regime says CRISIS but parameters say PARAMETRIC.
-}
-
-invariant EscalationDebounce {
-    @guidance
-        -- A regime transition to higher severity never fires
-        -- on fewer than config.escalation_debounce consecutive observations.
-}
-
-invariant RegimeConfigRequiresApproval {
-    @guidance
-        -- Changes to RegimeModelConfig (thresholds, parameter mappings)
-        -- must be approved before taking effect.
-        -- Uses the same governance model as regulatory-service ModelVersion.
-}
-
-invariant AuditBothParameters {
-    @guidance
-        -- Every VaR job affected by regime override records both
-        -- the requested parameters and the effective parameters.
-        -- This enables after-the-fact analysis of regime impact on VaR.
+    -- At most one RegimeState entity exists at any time; historical regimes
+    -- are recorded as RegimeHistory entries, not additional RegimeState
+    -- instances.
+    for a in RegimeStates:
+        for b in RegimeStates:
+            a != b implies false
 }

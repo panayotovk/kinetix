@@ -292,20 +292,8 @@ invariant VolSurfacePositiveVols {
         surface.points.count >= 1
 }
 
-invariant VolSurfaceRetentionEnforced {
-    @guidance
-        -- Vol surface snapshots older than config.vol_surface_retention must be compressed
-        -- or dropped. Compression is acceptable (e.g. TimescaleDB chunk compression) as long
-        -- as the data remains queryable. Full deletion is only permitted beyond the retention
-        -- window. Any query for a date older than the retention window must return an explicit
-        -- "data not available" response rather than silently returning stale data.
-}
-
-invariant YieldCurveHistoryRequired {
-    @guidance
-        -- Historical yield curve snapshots (one per as_of date per curve_id) must be retained
-        -- for at least config.yield_curve_history_retention (2555 days = 7 years) to support
-        -- curve P&L explain. Deleting or overwriting historical snapshots is not permitted.
-        -- Only the latest snapshot per curve_id may be cached in Redis; the full history lives
-        -- in the rates-service database.
-}
+-- Vol surface retention and yield curve history retention are policy
+-- concerns documented in config (vol_surface_retention,
+-- yield_curve_history_retention). Queries beyond the retention window must
+-- return an explicit "data not available" response rather than silently
+-- returning stale data.

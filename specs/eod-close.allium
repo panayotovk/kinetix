@@ -189,80 +189,56 @@ rule AutoClosePromotion {
 -- RunLabel tracks the lifecycle stage of a ValuationJob. The auto-close
 -- workflow exercises the PRE_CLOSE -> OFFICIAL_EOD transition.
 
-@guidance
-    -- The full RunLabel state machine (defined in core.allium as an enum):
-    --
-    --   adhoc          Manually triggered ad-hoc calculation.
-    --   sod            Start-of-day baseline snapshot.
-    --   intraday       Scheduled or event-driven recalculation during the day.
-    --   overnight      Batch run outside trading hours.
-    --   pre_close      Auto-close VaR run before promotion. Transient label.
-    --   official_eod   Promoted end-of-day run. Immutable once set.
-    --   superseded_eod Previously official EOD that was replaced.
-    --
-    -- Transitions relevant to EOD close:
-    --
-    --   pre_close ----promote----> official_eod
-    --   official_eod --supersede-> superseded_eod   (when a new EOD replaces it)
-    --   official_eod --demote----> (run_label cleared, promoted_at cleared)
-    --
-    -- Constraints:
-    --   - Only COMPLETED jobs can be promoted.
-    --   - A job that is already promoted (promoted_at != null) cannot be
-    --     promoted again.
-    --   - At most one OFFICIAL_EOD per (book_id, valuation_date) at any time.
-    --     Promoting a new one supersedes the existing one.
-    --   - Once promoted, the job is immutable (PromotedJobsImmutable invariant
-    --     from risk.allium).
+-- The full RunLabel state machine (defined in core.allium as an enum):
+--
+--   adhoc          Manually triggered ad-hoc calculation.
+--   sod            Start-of-day baseline snapshot.
+--   intraday       Scheduled or event-driven recalculation during the day.
+--   overnight      Batch run outside trading hours.
+--   pre_close      Auto-close VaR run before promotion. Transient label.
+--   official_eod   Promoted end-of-day run. Immutable once set.
+--   superseded_eod Previously official EOD that was replaced.
+--
+-- Transitions relevant to EOD close:
+--
+--   pre_close ----promote----> official_eod
+--   official_eod --supersede-> superseded_eod   (when a new EOD replaces it)
+--   official_eod --demote----> (run_label cleared, promoted_at cleared)
+--
+-- Constraints:
+--   - Only COMPLETED jobs can be promoted.
+--   - A job that is already promoted (promoted_at != null) cannot be
+--     promoted again.
+--   - At most one OFFICIAL_EOD per (book_id, valuation_date) at any time.
+--     Promoting a new one supersedes the existing one.
+--   - Once promoted, the job is immutable (PromotedJobsImmutable invariant
+--     from risk.allium).
 
 ------------------------------------------------------------
 -- Invariants
 ------------------------------------------------------------
 
 invariant AtMostOneOfficialEodPerBookPerDate {
-    for all book_id, date:
-        count(ValuationJob where
-            book_id = book_id and
-            valuation_date = date and
-            run_label = official_eod
-        ) <= 1
-
-    @guidance
-        -- Enforced by EodPromotionService.promoteCore(): before promoting,
-        -- it queries findOfficialEodByDate() and supersedes any existing
-        -- OFFICIAL_EOD for the same (book_id, valuation_date).
+    -- At any time, at most one ValuationJob per (book_id, valuation_date) is
+    -- labelled official_eod. Promoting a new one supersedes the existing one.
+    for a in ValuationJobs:
+        for b in ValuationJobs:
+            (a != b
+                and a.run_label = official_eod
+                and b.run_label = official_eod
+                and a.book_id = b.book_id
+                and a.valuation_date = b.valuation_date)
+                implies false
 }
 
-invariant AutoCloseIdempotent {
-    @guidance
-        -- If the auto-close tick fires multiple times for the same book
-        -- and date (e.g. scheduler restart, clock skew), the second and
-        -- subsequent invocations are no-ops because:
-        --   1. findOfficialEodByDate() returns the already-promoted job.
-        --   2. The book is skipped with a `continue`.
-        -- No duplicate VaR calculations or promotions occur.
-}
-
-invariant AutoCloseWeekdaysOnly {
-    @guidance
-        -- The auto-close tick exits early on Saturday and Sunday.
-        -- No VaR calculations or promotions are triggered on weekends.
-        -- This is a hard guard in tick(), not a config toggle.
-}
-
-invariant MarketDataCompletenessGate {
-    @guidance
-        -- Automatic promotion enforces market data completeness (force=false).
-        -- If the RunManifest contains any MarketDataRef with status=MISSING,
-        -- the promotion is rejected with IncompleteMarketDataException.
-        -- The job remains in PRE_CLOSE state.
-        -- Only manual promotion with force=true can override this gate.
-}
-
-invariant AutoCloseOutputCompleteness {
-    @guidance
-        -- The auto-close VaR request always includes all four output types:
-        -- VaR, Expected Shortfall, Greeks, and PV. This ensures the
-        -- resulting OFFICIAL_EOD job has a complete risk snapshot suitable
-        -- for regulatory reporting and P&L attribution.
-}
+-- Additional policy (not machine-checkable in this spec):
+--   - Auto-close runs only on weekdays; the scheduler exits on Saturday
+--     and Sunday.
+--   - Auto-close is idempotent: repeated ticks for the same
+--     (book_id, valuation_date) are no-ops once a job is promoted.
+--   - Automatic promotion enforces market-data completeness. Jobs with
+--     missing market data remain in pre_close; only manual promotion with
+--     force=true can override.
+--   - Auto-close VaR requests always include all four output types
+--     (VaR, Expected Shortfall, Greeks, PV) so the resulting official_eod
+--     job carries a complete risk snapshot.

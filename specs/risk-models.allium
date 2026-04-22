@@ -528,25 +528,12 @@ rule RunBacktest {
 -- Invariants
 ------------------------------------------------------------
 
-invariant VaRDeterministicWithSeed {
-    @guidance
-        -- Monte Carlo VaR with seed > 0 produces identical results
-        -- across repeated calculations with the same inputs.
-        -- Seed = 0 means non-deterministic.
-}
-
-invariant CorrelationMatrixPositiveDefinite {
-    @guidance
-        -- Correlation matrices must be positive semi-definite.
-        -- If Cholesky decomposition fails, nearest_positive_definite repair is applied.
-}
-
-invariant BacktestTrafficLightZones {
-    @guidance
-        -- GREEN: violation_count <= 4
-        -- YELLOW: 5 <= violation_count <= 9
-        -- RED: violation_count >= 10
-}
+-- Monte Carlo VaR with seed > 0 is deterministic: identical inputs and seed
+-- produce identical results. A seed of 0 selects non-deterministic behaviour.
+-- Correlation matrices must be positive semi-definite; non-PSD inputs are
+-- repaired via a nearest-PSD projection before sampling.
+-- Backtest traffic-light zones: GREEN for violation_count <= 4, YELLOW for
+-- 5..9, RED for >= 10 (Basel three-zone model).
 
 ------------------------------------------------------------
 -- Open Questions
