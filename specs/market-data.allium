@@ -50,15 +50,15 @@ entity YieldCurve {
 entity RiskFreeRate {
     currency: String
     tenor: String
-    rate: Double
+    rate: Decimal
     as_of_date: Timestamp
     source: core/RateSource
 
     @guidance
-        -- The database stores rate as decimal(18,8) for full precision,
-        -- but the domain model uses 64-bit floating point (Double).
-        -- This is adequate for interest rate values which are small
-        -- fractions (typically 0.00 to 0.20).
+        -- rate is Decimal at the spec level. Persistence stores decimal(18,8)
+        -- and the in-process Kotlin type is a 64-bit Double (adequate for
+        -- values typically in 0.00..0.20). Consumers must tolerate the
+        -- precision mismatch between spec and implementation.
 }
 
 entity ForwardCurve {

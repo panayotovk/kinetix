@@ -149,30 +149,30 @@ variant CommodityOption : Instrument {
 
 entity DividendYield {
     instrument_id: String
-    yield: Double
+    yield: Decimal
     ex_date: String?
     as_of_date: Timestamp
     source: core/ReferenceDataSource
 
     @guidance
-        -- The database stores yield as decimal(18,8) for full precision,
-        -- but the domain model uses 64-bit floating point (Double).
-        -- This is adequate for dividend yield values which are small
-        -- fractions (typically 0.00 to 0.10).
+        -- yield is Decimal at the spec level. Persistence stores decimal(18,8)
+        -- and the in-process Kotlin type is a 64-bit Double (adequate for
+        -- values typically in 0.00..0.10). Consumers must tolerate the
+        -- precision mismatch between spec and implementation.
 }
 
 entity CreditSpread {
     instrument_id: String
-    spread: Double
+    spread: Decimal
     rating: String?
     as_of_date: Timestamp
     source: core/ReferenceDataSource
 
     @guidance
-        -- The database stores spread as decimal(18,8) for full precision,
-        -- but the domain model uses 64-bit floating point (Double).
-        -- This is adequate for credit spread values which are small
-        -- fractions (typically 0.0001 to 0.05).
+        -- spread is Decimal at the spec level. Persistence stores decimal(18,8)
+        -- and the in-process Kotlin type is a 64-bit Double (adequate for
+        -- values typically in 0.0001..0.05). Consumers must tolerate the
+        -- precision mismatch between spec and implementation.
 }
 
 entity Counterparty {

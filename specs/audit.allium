@@ -78,10 +78,10 @@ entity AuditEvent {
 }
 
 entity VerificationCheckpoint {
-    last_event_id: Long
+    last_event_id: Integer
     last_hash: String
     verified_at: Timestamp
-    event_count: Long
+    event_count: Integer
 }
 
 ------------------------------------------------------------
