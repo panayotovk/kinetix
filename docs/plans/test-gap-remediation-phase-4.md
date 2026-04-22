@@ -111,9 +111,13 @@ Goal: close gaps where a silent regression could let bad data through a regulato
   2. A payload with an unexpected regime enum is routed to the DLQ, not swallowed.
   3. A payload with null required fields is rejected at deserialisation time.
 
-### 4B.4 `PagerDutyDeliveryServiceTest`
+### 4B.4 `PagerDutyDeliveryServiceTest` — DEFERRED (blocked on implementation)
 - **Module:** `notification-service`
-- **Cases (using MockEngine or equivalent):**
+- **Status:** Deferred. The current `PagerDutyDeliveryService` is a stub
+  (`TODO(ALT-04)` — no HTTP client, no retry, no routing key config). Testing
+  retry/error paths against a stub would be shallow coverage.
+- **Unblock when:** the real PagerDuty Events API v2 client lands. At that
+  point revive this item with the originally scoped cases:
   1. A successful delivery sends the correctly formatted PagerDuty Events API v2 payload.
   2. A 429 response triggers one retry, then backs off.
   3. A 401 response is logged as error and NOT retried.
