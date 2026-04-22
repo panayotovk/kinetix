@@ -351,6 +351,21 @@ rule SubmitSubmission {
     ensures: submission.submitted_at = now
 }
 
+rule AcknowledgeSubmission {
+    when: SubmissionAcknowledgedByRegulator(submission_id, acknowledged_at)
+    let submission = RegulatorySubmission{id: submission_id}
+    requires: submission.status = submitted
+    ensures: submission.status = acknowledged
+    ensures: submission.acknowledged_at = acknowledged_at
+
+    @guidance
+        -- Fired when the external regulator confirms receipt of a submitted
+        -- report. The ack arrives via the regulator's webhook or inbox;
+        -- the receiving service emits SubmissionAcknowledgedByRegulator
+        -- with the regulator-reported timestamp.
+        -- Witnesses the submitted -> acknowledged transition.
+}
+
 -- FRTB calculation storage
 
 rule StoreFrtbCalculation {

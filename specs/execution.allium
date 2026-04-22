@@ -83,11 +83,14 @@ entity Order {
         pending_risk_check -> approved
         pending_risk_check -> rejected
         approved -> sent
+        approved -> expired
         sent -> partial
         sent -> filled
         sent -> cancelled
+        sent -> expired
         partial -> filled
         partial -> cancelled
+        partial -> expired
         terminal: filled, cancelled, expired, rejected
     }
 
@@ -212,24 +215,52 @@ rule SubmitOrder {
         -- of order submission. If price is stale, reject the order.
 }
 
-rule PreTradeRiskCheck {
+rule PreTradeRiskCheckApproved {
+    when: PreTradeRiskCheckCompleted(order, outcome, details)
+    requires: outcome = "APPROVED" or outcome = "FLAGGED"
+
+    ensures: order.status = approved
+    ensures: order.risk_check_result = outcome
+    ensures: order.risk_check_details = details
+
+    @guidance
+        -- APPROVED: passed all checks; proceed to FIX submission.
+        -- FLAGGED: soft warnings present, status still transitions to approved
+        --          with details populated so the trader and audit trail see them.
+        -- Entering status=approved requires risk_check_result (when-qualified)
+        -- to be set — done here.
+}
+
+rule PreTradeRiskCheckRejected {
+    when: PreTradeRiskCheckCompleted(order, outcome, details)
+    requires: outcome = "REJECTED"
+
+    ensures: order.status = rejected
+    ensures: order.risk_check_result = outcome
+    ensures: order.risk_check_details = details
+
+    @guidance
+        -- Hard limit breach or risk-check timeout. Order is not sent.
+        -- Entering status=rejected requires risk_check_result to be set.
+}
+
+-- Risk-check execution (opaque to the spec: calls the hierarchy check).
+
+rule PerformPreTradeRiskCheck {
     when: PreTradeRiskCheckRequested(order)
 
     @guidance
-        -- Calls HierarchyBasedPreTradeCheckService with a timeout
-        -- of config.risk_check_timeout (100ms).
+        -- Calls HierarchyBasedPreTradeCheckService with a timeout of
+        -- config.risk_check_timeout (500ms). Check includes: position
+        -- limits, notional limits, concentration limits, and ADV
+        -- concentration limits (from liquidity.allium).
         --
-        -- Check includes: position limits, notional limits, concentration
-        -- limits, and ADV concentration limits (from liquidity.allium).
+        -- The check emits PreTradeRiskCheckCompleted(order, outcome, details)
+        -- where outcome is one of APPROVED | FLAGGED | REJECTED. On timeout
+        -- the outcome is REJECTED (fail-closed).
         --
-        -- Result: APPROVED, REJECTED, or FLAGGED (warnings).
-        -- APPROVED: order.status = approved, proceed to FIX submission.
-        -- REJECTED: order.status = rejected, do not submit.
-        -- FLAGGED: order.status = approved with risk_check_details showing warnings.
-        --
-        -- On timeout: fail safe. Default to REJECTED.
-        -- The existing limit check hits the database; limit definitions
-        -- should be cached in Redis (30s TTL) for the latency budget.
+        -- Limit definitions should be cached in Redis (30s TTL) to meet
+        -- the latency budget.
 }
 
 rule SendOrderToFIX {
@@ -425,6 +456,23 @@ rule MonitorFIXSession {
         -- Orders in approved/sent state cannot proceed while disconnected.
 }
 
+-- Day order expiry: live orders not terminal by end of session expire.
+
+rule ExpireDayOrder {
+    when: OrderExpiryTick(order_id)
+    let order = Order{order_id: order_id}
+    requires: order.status in {approved, sent, partial}
+
+    ensures: order.status = expired
+
+    @guidance
+        -- Fired by the end-of-session scheduled task for any order still in
+        -- a non-terminal working state (approved, sent, partial). The FIX
+        -- adapter publishes an OrderCancelReject (MsgType=9) to the venue
+        -- for the unfilled remainder. Partial fills already booked remain
+        -- as trades.
+}
+
 -- Validation
 
 rule RejectInvalidFill {
@@ -450,11 +498,11 @@ invariant FillDeduplication {
 
 invariant OrderStatusTransitions {
     @guidance
-        -- Valid transitions:
+        -- Valid transitions (enforced by the transitions graph above):
         --   pending_risk_check → approved | rejected
-        --   approved → sent
-        --   sent → partial | filled | cancelled
-        --   partial → filled | cancelled
+        --   approved → sent | expired
+        --   sent → partial | filled | cancelled | expired
+        --   partial → filled | cancelled | expired
         -- filled, cancelled, expired, rejected are terminal states.
 }
 
