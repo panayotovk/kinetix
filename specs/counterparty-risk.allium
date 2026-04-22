@@ -213,7 +213,7 @@ entity CounterpartyExposureSnapshot {
 config {
     cva_default_lgd: Decimal = 0.40
     pfe_num_simulations: Integer = 10000
-    pfe_tenors: List<String> = ["1M", "3M", "6M", "1Y", "2Y", "5Y"]
+    pfe_tenors: List<String> = {"1M", "3M", "6M", "1Y", "2Y", "5Y"}
     pfe_confidence: Decimal = 0.95
     cds_stale_threshold: Duration = 30.days
     rating_stale_threshold: Duration = 30.days
@@ -267,7 +267,7 @@ rule CalculateCounterpartyExposure {
     ensures: CounterpartyExposureSnapshot.created(
         counterparty_id: counterparty_id,
         calculated_at: now,
-        pfe_profile: [],
+        pfe_profile: {},
         current_net_exposure: total_net,
         peak_pfe: 0,
         cva: null,
@@ -331,6 +331,7 @@ rule CalculateCVA {
         --
         -- If no CDS spread and no PD: fall back to sector-average spread
         -- with a prominent "ESTIMATED" flag. CVA = 0 only if risk-free counterparty.
+}
 
 -- Wrong-way risk detection
 
@@ -450,10 +451,9 @@ rule ScheduledCounterpartyRisk {
 -- Invariants
 ------------------------------------------------------------
 
-@invariant NettingReducesExposure
-    -- Netting can only reduce or maintain exposure, never increase it.
-    -- Cannot be expressed as an expression invariant because gross_exposure
-    -- is not yet tracked on CounterpartyExposureSnapshot (aspirational field).
+-- NettingReducesExposure (not machine-checkable here: gross exposure is not
+-- tracked on CounterpartyExposureSnapshot). Netting can only reduce or
+-- maintain exposure, never increase it.
 
 invariant NetNetExposureFormula {
     for snapshot in CounterpartyExposureSnapshots:
@@ -461,39 +461,28 @@ invariant NetNetExposureFormula {
         snapshot.net_net_exposure = snapshot.current_net_exposure - snapshot.collateral_held + snapshot.collateral_posted
 }
 
-invariant PFEExceedsCurrentExposure {
-    @guidance
-        -- PFE at the 95th percentile should always be >= current net exposure
-        -- for risky counterparties. A PFE < current exposure indicates a model
-        -- error (the current state should be within the simulated distribution).
-}
-
-invariant CVAPositiveForRiskyCounterparties {
-    @guidance
-        -- CVA > 0 for any counterparty with PD > 0 and positive exposure.
-        -- CVA = 0 only for riskless counterparties (PD = 0).
-}
-
 invariant CollateralHaircutApplied {
     for c in CollateralBalances:
         c.value_after_haircut <= c.amount
 }
 
-invariant WrongWayRiskSectorMatch {
-    @guidance
-        -- Wrong-way risk flags only fire when the counterparty's sector
-        -- matches the position's sector. Cross-sector positions are not flagged.
-}
-
-invariant SaCcrIsRegulatory {
-    @guidance
-        -- SA-CCR EAD is a regulatory capital number computed under BCBS 279 rules.
-        -- It must NOT be confused with, or substituted by, the internal Monte Carlo PFE
-        -- figure in any regulatory report, capital adequacy filing, or supervisor-facing
-        -- disclosure. Systems that surface both numbers must label them unambiguously:
-        --   "SA-CCR EAD (regulatory)" vs "PFE 95th pct (internal model)".
-        -- Mixing the two in a single exposure figure is a material regulatory error.
-}
+-- Additional modelling properties (not expressible over current state):
+--
+-- PFEExceedsCurrentExposure. PFE at the 95th percentile should always be
+-- >= current net exposure for risky counterparties; a violation indicates
+-- a model error.
+--
+-- CVAPositiveForRiskyCounterparties. CVA > 0 for any counterparty with
+-- PD > 0 and positive exposure. CVA = 0 only for riskless counterparties.
+--
+-- WrongWayRiskSectorMatch. Wrong-way risk flags only fire when the
+-- counterparty's sector matches the position's sector; cross-sector
+-- positions are not flagged.
+--
+-- SaCcrIsRegulatory. SA-CCR EAD is the regulatory capital number (BCBS 279)
+-- and must be labelled unambiguously in reports ("SA-CCR EAD (regulatory)"
+-- vs "PFE 95th pct (internal model)"); mixing the two is a material
+-- regulatory error.
 
 ------------------------------------------------------------
 -- Open Questions

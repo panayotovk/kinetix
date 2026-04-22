@@ -433,7 +433,7 @@ rule ReconcilePositions {
 }
 
 rule AlertOnReconciliationBreaks {
-    when: PrimeBrokerReconciliation.created
+    when: reconciliation: PrimeBrokerReconciliation.created
     requires: reconciliation.break_count > 0
 
     for break in reconciliation.breaks:
@@ -490,60 +490,46 @@ rule RejectInvalidFill {
 ------------------------------------------------------------
 
 invariant FillDeduplication {
-    @guidance
-        -- At most one ExecutionFill per fix_exec_id.
-        -- Duplicate FIX execution reports (from resends during
-        -- gap fill) are discarded without booking a trade.
-}
-
-invariant OrderStatusTransitions {
-    @guidance
-        -- Valid transitions (enforced by the transitions graph above):
-        --   pending_risk_check → approved | rejected
-        --   approved → sent | expired
-        --   sent → partial | filled | cancelled | expired
-        --   partial → filled | cancelled | expired
-        -- filled, cancelled, expired, rejected are terminal states.
+    -- At most one ExecutionFill per (session, fix_exec_id) pair. Duplicate
+    -- FIX execution reports from resend/gap-fill sequences are discarded.
+    for a in ExecutionFills:
+        for b in ExecutionFills:
+            (a != b and a.session_id = b.session_id
+                and a.fix_exec_id = b.fix_exec_id)
+                implies false
 }
 
 invariant FillsMatchOrder {
+    -- The filled quantity never exceeds the ordered quantity; overfills
+    -- from the venue are rejected at fill ingestion.
     for order in Orders:
         order.filled_quantity <= order.quantity
-
-    @guidance
-        -- The sum of fill quantities for an order never exceeds
-        -- the order quantity. Overfills from the venue are rejected.
 }
 
-invariant PreTradeCheckOnAllPaths {
-    @guidance
-        -- Every order — whether originating from the UI, REST API,
-        -- or FIX adapter — must pass through PreTradeRiskCheck.
-        -- No path bypasses the limit check.
-}
-
-invariant ArrivalPriceFreshness {
+invariant ArrivalPriceCaptured {
+    -- Every order carries an arrival price captured at submission time.
+    -- Freshness (within config.arrival_price_staleness) is enforced by
+    -- the submission rule rather than retrospectively here.
     for order in Orders:
         order.arrival_price != null
-
-    @guidance
-        -- Every order has an arrival price captured at submission time.
-        -- The price must be within config.arrival_price_staleness (30s).
 }
 
-invariant DeterministicFillId {
-    @guidance
-        -- fill_id = hash(session_id, fix_exec_id).
-        -- This ensures that the same FIX fill always maps to the same
-        -- internal trade_id, making reprocessing idempotent.
-}
-
-invariant TradeNeverDeletedOnRecon {
-    @guidance
-        -- Reconciliation breaks are surfaced for investigation.
-        -- Internal trades are never deleted or modified based on
-        -- prime broker statements. Resolution is manual.
-}
+-- Additional properties (not expressed as machine-checkable invariants):
+--
+-- OrderStatusTransitions is already authoritative via the transitions
+-- status { ... } block on Order; the checker rejects out-of-graph
+-- transitions.
+--
+-- PreTradeCheckOnAllPaths. Every order - whether originated by UI, REST,
+-- or FIX - must pass through PreTradeRiskCheck. No path bypasses the
+-- limit check.
+--
+-- DeterministicFillId. fill_id = hash(session_id, fix_exec_id), making
+-- reprocessing of the same FIX fill idempotent.
+--
+-- TradeNeverDeletedOnRecon. Reconciliation breaks are surfaced for
+-- investigation; internal trades are never deleted or modified based on
+-- prime broker statements. Resolution is manual.
 
 ------------------------------------------------------------
 -- Open Questions

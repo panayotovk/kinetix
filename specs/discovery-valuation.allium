@@ -42,16 +42,11 @@ enum InstrumentTypeKey {
     commodity_option |
     interest_rate_swap
 }
-
-    @guidance
-        -- These values mirror the Instrument variant discriminator in
-        -- reference-data.allium (CashEquity, EquityOption, etc.).
-        -- The two representations must stay in sync: this enum is used for
-        -- dependency registry lookup (snake_case keys), while reference-data
-        -- uses Allium variant subtypes (PascalCase entity names).
-        -- Any new instrument type added to reference-data.allium must also
-        -- be added here and have a corresponding entry in the dependency
-        -- registry guidance table on DiscoverMarketDataDependencies below.
+-- These values mirror the Instrument variant discriminator in
+-- reference-data.allium (CashEquity, EquityOption, ...). New instrument
+-- types in reference-data must also be added here and have a corresponding
+-- entry in the dependency registry documented on
+-- DiscoverMarketDataDependencies.
 
 enum FetchOutcome { fetched | not_found | client_unavailable | exception }
 
@@ -65,11 +60,9 @@ value DependencyParameter {
     key: String
     value: String
 }
-
-    @guidance
-        -- A single key/value pair inside a MarketDataDependency.parameters list.
-        -- Modelled as a value type list rather than Map<K,V> because Allium
-        -- has no first-class Map compound type.
+-- A single key/value pair inside a MarketDataDependency.parameters list.
+-- Modelled as a value type list rather than Map<K,V> because Allium has no
+-- first-class Map compound type.
 
 value MarketDataDependency {
     data_type: MarketDataType
@@ -78,14 +71,12 @@ value MarketDataDependency {
     required: Boolean
     description: String
     parameters: List<DependencyParameter>
-
-    @guidance
-        -- parameters carries context-specific entries:
-        --   lookbackDays  for HISTORICAL_PRICES (default "252")
-        --   curveId       for YIELD_CURVE (typically the position currency)
-        --   currency      for RISK_FREE_RATE
-        --   tenor         for RISK_FREE_RATE (default "3M")
 }
+-- MarketDataDependency.parameters carries context-specific entries:
+--   lookbackDays for historical_prices (default "252")
+--   curveId     for yield_curve (typically the position currency)
+--   currency    for risk_free_rate
+--   tenor       for risk_free_rate (default "3M")
 
 value DependencyManifest {
     dependencies: List<MarketDataDependency>
@@ -118,31 +109,21 @@ value ResolvedExposure {
 -- behavioural rule. It lives in risk-orchestrator MarketDataFetcher and is
 -- documented here for reference.
 
-@invariant DataServiceRouting
-    -- Each MarketDataType is served by exactly one data service:
-    --
-    --   spot_price           -> price-service
-    --     GET /api/prices/{id}/latest
-    --   historical_prices    -> price-service
-    --     GET /api/prices/{id}/history
-    --   yield_curve          -> rates-service
-    --     GET /api/rates/yield-curves/{curveId}/latest
-    --   risk_free_rate       -> rates-service
-    --     GET /api/rates/risk-free/{currency}/{tenor}
-    --   forward_curve        -> rates-service
-    --     GET /api/rates/forward-curves/{id}/latest
-    --   dividend_yield       -> reference-data-service
-    --     GET /api/reference-data/{id}/dividend-yield
-    --   credit_spread        -> reference-data-service
-    --     GET /api/reference-data/{id}/credit-spread
-    --   volatility_surface   -> volatility-service
-    --     GET /api/volatility/{id}/surface/latest
-    --   correlation_matrix   -> correlation-service
-    --     GET /api/correlation/matrix
-    --
-    -- The MarketDataFetcher holds optional clients for rates, reference-data,
-    -- volatility, and correlation services. When a client is null the fetch
-    -- returns client_unavailable outcome. Price-service is always available.
+-- DataServiceRouting: each MarketDataType is served by exactly one upstream
+-- data service.
+--
+--   spot_price           -> price-service
+--   historical_prices    -> price-service
+--   yield_curve          -> rates-service
+--   risk_free_rate       -> rates-service
+--   forward_curve        -> rates-service
+--   dividend_yield       -> reference-data-service
+--   credit_spread        -> reference-data-service
+--   volatility_surface   -> volatility-service
+--   correlation_matrix   -> correlation-service
+--
+-- When an upstream client is unavailable the fetch returns the
+-- client_unavailable outcome rather than blocking the pipeline.
 
 ------------------------------------------------------------
 -- Config
@@ -163,7 +144,7 @@ config {
 -- Phase 1: discover what market data each position needs.
 
 rule DiscoverMarketDataDependencies {
-    when: risk/CalculateVaRRequested(book_id, calculation_type, confidence_level, time_horizon_days, num_simulations, requested_outputs, correlation_id, trigger_type)
+    when: CalculateVaRRequested(book_id, calculation_type, confidence_level, time_horizon_days, num_simulations, requested_outputs, correlation_id, trigger_type)
 
     ensures: DependenciesDiscovered(book_id: book_id, correlation_id: correlation_id)
 
@@ -361,64 +342,32 @@ rule ResolvePositions {
 -- Invariants
 ------------------------------------------------------------
 
-invariant DependencyDeduplication {
-    @guidance
-        -- Within a single DependencyManifest, no two dependencies share the
-        -- same (data_type, instrument_id, parameters) tuple.
-        -- The discover() function tracks a seen set keyed on
-        -- (data_type, instrument_id, frozenset(parameters.items())).
-        -- Duplicate dependencies are suppressed. This is important when
-        -- multiple options share the same underlying: only one spot_price
-        -- and one volatility_surface dependency is emitted per underlying.
-}
-
-invariant RiskEngineHasZeroDataKnowledge {
-    @guidance
-        -- The risk-engine must have zero knowledge of how or where market data
-        -- is sourced. It declares what it needs (discovery) and computes with
-        -- what it receives (valuation). The orchestrator owns all data
-        -- acquisition, caching, fallback, and resilience logic.
-        --
-        -- This means:
-        --   - No HTTP clients in the risk-engine
-        --   - No service URLs or connection strings in engine config
-        --   - No import of requests, httpx, aiohttp, or any HTTP library
-        --   - No Kafka consumers for market data in the engine
-        --   - All market data arrives via the gRPC Valuate request payload
-        --
-        -- If a new calculation type requires additional market data, the
-        -- correct response is to extend the dependency registry and the
-        -- proto contract -- never to add a network call inside the engine.
-}
-
-invariant DiscoveryBeforeValuation {
-    @guidance
-        -- The orchestrator must call DiscoverDependencies before Valuate.
-        -- Static pre-computation of dependencies is prohibited because the
-        -- engine owns the domain knowledge of which pricing models require
-        -- which data. Duplicating that knowledge in the orchestrator would
-        -- create a maintenance burden and divergence risk.
-}
-
-invariant GracefulDegradationOnMissingData {
-    @guidance
-        -- Missing market data does not abort the pipeline. The orchestrator
-        -- logs warnings for failed fetches and proceeds to valuation with
-        -- whatever data was successfully retrieved. The engine applies
-        -- fallback defaults where possible:
-        --   - Options with missing vol: default implied vol = 0.25
-        --   - Swaps with missing yield curve: pass through at market_value
-        --   - Missing optional dependencies (historical_prices, dividend_yield,
-        --     forward_curve): silently omitted
-}
-
-invariant InstrumentTypeTakesPrecedence {
-    @guidance
-        -- When a position has a non-empty instrument_type, the instrument-type
-        -- emitter is used for dependency discovery. The asset-class fallback
-        -- registry is only consulted when instrument_type is empty.
-        --
-        -- Instrument-type emitters produce more precise dependencies because
-        -- they can inspect typed position fields (underlying_id, base_currency,
-        -- quote_currency, etc.) that generic templates cannot access.
-}
+-- Architectural properties of the discovery/valuation pipeline (policy
+-- rather than state invariants):
+--
+-- DependencyDeduplication. Within a DependencyManifest, no two dependencies
+-- share the same (data_type, instrument_id, parameters) tuple. When
+-- multiple options share the same underlying, the manifest emits only one
+-- spot_price and one volatility_surface entry per underlying.
+--
+-- RiskEngineHasZeroDataKnowledge. The risk-engine declares what it needs
+-- (DiscoverMarketDataDependencies) and computes with what it receives
+-- (ValuatePositions). The orchestrator owns all data acquisition, caching,
+-- fallback and resilience. No HTTP or Kafka clients live inside the
+-- risk-engine.
+--
+-- DiscoveryBeforeValuation. The orchestrator must call discovery before
+-- valuation. Static pre-computation of dependencies in the orchestrator is
+-- prohibited: the engine owns the model-specific knowledge of which
+-- dependencies a calculation needs.
+--
+-- GracefulDegradationOnMissingData. Missing market data does not abort the
+-- pipeline. Fetch failures are logged and valuation proceeds with the
+-- available inputs. Options fall back to a default implied vol; swaps with
+-- missing yield curves pass through at market_value; optional dependencies
+-- are silently omitted.
+--
+-- InstrumentTypeTakesPrecedence. When a position has a non-empty
+-- instrument_type, dependency discovery uses the instrument-type emitter.
+-- The asset-class fallback registry is consulted only when instrument_type
+-- is empty.
