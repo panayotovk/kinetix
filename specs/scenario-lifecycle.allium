@@ -182,16 +182,11 @@ rule RejectRetireFromNonApproved {
         -- scenarios cannot be retired directly.
 }
 
-rule RejectTransitionFromRetired {
-    when: any transition on scenario_id
-    let scenario = scenarios/SavedScenario{id: scenario_id}
-    requires: scenario.status = retired
-
-    @guidance
-        -- RETIRED is a terminal state. No transitions are permitted.
-        -- submit, approve, and retire all check status preconditions and will
-        -- throw IllegalStateException. Update explicitly rejects RETIRED scenarios.
-}
+-- RETIRED is terminal and rejected implicitly by the individual rules:
+-- SubmitForApproval requires draft, ApproveScenario requires pending_approval,
+-- RetireScenario requires approved, UpdateScenario requires status != retired.
+-- No separate catch-all rule is needed (and "when: any transition" is not
+-- language-supported).
 
 ------------------------------------------------------------
 -- Rules — Update and Versioning
@@ -453,27 +448,20 @@ invariant VersionMonotonicallyIncreasing {
         -- Version never decreases.
 }
 
-invariant RetiredIsTerminal {
-    for s in scenarios/SavedScenarios where s.status = retired:
-        no transition is valid
+@invariant RetiredIsTerminal
+    -- A retired scenario cannot be submitted, approved, retired again,
+    -- or updated. Any attempt throws IllegalStateException.
+    -- To re-use a retired scenario, create a new scenario with
+    -- parent_scenario_id pointing to the retired one.
+    -- (Also declared structurally via the terminal: retired clause in
+    -- the transitions status graph on scenarios/SavedScenario.)
 
-    @guidance
-        -- A retired scenario cannot be submitted, approved, retired again,
-        -- or updated. Any attempt throws IllegalStateException.
-        -- To re-use a retired scenario, create a new scenario with
-        -- parent_scenario_id pointing to the retired one.
-}
-
-invariant OnlyApprovedScenariosExecutable {
-    for s in scenarios/SavedScenarios:
-        run(s) requires s.status = approved
-
-    @guidance
-        -- StressScenarioService.runScenario() checks status == APPROVED
-        -- before delegating to the risk engine.
-        -- This gate ensures that only scenarios that have passed the
-        -- governance review can produce official stress test results.
-}
+@invariant OnlyApprovedScenariosExecutable
+    -- Every run of a SavedScenario requires status = approved.
+    -- StressScenarioService.runScenario() checks the precondition before
+    -- delegating to the risk engine. This gate ensures that only
+    -- scenarios that have passed the governance review can produce
+    -- official stress test results.
 
 invariant UpdateResetsApproval {
     @guidance

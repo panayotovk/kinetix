@@ -227,12 +227,14 @@ rule GenerateSuggestedAction {
         -- If no contributors: no suggestion.
         --
         -- Inputs:
-        --   current_var = event.varValue (parsed as Double)
-        --   target_var = rule.threshold
-        --   var_excess = current_var - target_var
+        --   current_var = job.var_value (from the ValuationJob bound by
+        --                 the triggering RiskResultPublished)
+        --   target_var  = alert_rule.threshold
+        --   var_excess  = current_var - target_var
         --   If var_excess <= 0: no suggestion (alert is marginal).
         --
-        -- Top contributor = contributors sorted by |varContribution| descending, first.
+        -- Top contributor = contributors sorted by |var_contribution|
+        -- descending, first.
         --
         -- Nonlinearity detection:
         --   If top contributor has gamma != null or vega != null, AND
