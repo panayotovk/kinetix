@@ -4,6 +4,46 @@ Follow-on to the three phases in `docs/test-gap-remediation-plan.md` (all comple
 
 Audit source: QA review run on 2026-04-22. See `docs/evolution-report.md` for the full context of the work this plan covers.
 
+## Progress (as of 2026-04-22)
+
+**Phase 4A — COMPLETE (6/6)**
+- [x] 4A.1 LimitRoutesAcceptanceTest — 8 tests green (`position-service`)
+- [x] 4A.2 BookHierarchyRoutesAcceptanceTest — 7 tests green (`position-service`)
+- [x] 4A.3 InternalRoutesAcceptanceTest — 4 tests green (`position-service`)
+- [x] 4A.4 AlertLifecycleEvent schema compat — 4 tests green (`schema-tests`)
+- [x] 4A.5 BookVaRContributionEvent schema compat — 3 tests green (`schema-tests`)
+- [x] 4A.6 CrossBookRiskResult + LiquidityRisk schema compat — 6 tests green (`schema-tests`)
+
+**Phase 4B — IN PROGRESS (7/8, 1 deferred)**
+- [x] 4B.1 ExposedModelVersionRepositoryIntegrationTest — 5 tests green (`regulatory-service`)
+- [x] 4B.2 ExposedSubmissionRepositoryIntegrationTest — 5 tests green (`regulatory-service`)
+- [x] 4B.3 MarketRegimeEventConsumerTest — 5 tests green (`notification-service`)
+- [ ] 4B.4 PagerDutyDeliveryServiceTest — **DEFERRED** (stub implementation, no HTTP client)
+- [x] 4B.5 GatewayExecutionProxyContractAcceptanceTest — 6 tests green (`gateway`)
+- [x] 4B.6 Gateway regime contract — 5 tests green; **margin sub-item deferred** (route not wired)
+- [x] 4B.7 KafkaFIXSessionEventPublisherIntegrationTest — 2 tests green (`position-service`)
+- [x] 4B.8 KafkaReconciliationAlertPublisherIntegrationTest — 3 tests green (`position-service`)
+
+**Phase 4C — IN PROGRESS (2/5 done, 2 partial)**
+- [x] 4C.1 Reference-data repos — Instrument (7) + NettingAgreement (5) integration tests green
+- [ ] 4C.2 UI component Vitest — AlertDrillDownPanel (11) + VaRAttributionPanel (8) green; EodTimelineTab still to do
+- [ ] 4C.3 UI API module tests — execution.ts + regime.ts still to do
+- [ ] 4C.4 margin.spec.ts Playwright — **DEFERRED** (UI has no margin panel)
+- [ ] 4C.5 limit-management.spec.ts Playwright — still to do
+
+**Phase 4D (P3) — NOT STARTED (0/3)**
+- [ ] 4D.1 CounterpartyRoutesAcceptanceTest
+- [ ] 4D.2 Regulatory-service HTTP client unit tests
+- [ ] 4D.3 Cross-service limit-breach → alert-escalation E2E
+
+**Totals so far:** 12 test classes landed across 6 services, **79 new tests**, all green.
+Deferred with documented rationale: 4B.4 PagerDuty, 4B.6 margin sub-item, 4C.4 UI margin spec.
+
+### Findings surfaced during implementation
+1. **`PagerDutyDeliveryService` is a stub** (`TODO(ALT-04)`) — no HTTP client, no retries. Testing would be shallow.
+2. **`Route.marginRoutes` is orphaned** — defined in `MarginRoutes.kt` but not referenced from any `Application.module(...)` overload. The gateway `/api/v1/books/{bookId}/margin` endpoint returns 404 at runtime. UI doesn't call it either. Requires wiring fix before its tests are meaningful.
+3. **`countSince` in `TradeEventRepository` filters on row `createdAt`, not trade `tradedAt`** — test in 4A.3 was adjusted to reflect this. The reconciliation job depends on this semantics; documenting here in case it drives a later feature decision.
+
 ---
 
 ## Guiding principles
