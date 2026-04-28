@@ -29,7 +29,7 @@ Audit source: QA review run on 2026-04-22. See `docs/evolution-report.md` for th
 - [ ] 4C.2 UI component Vitest — AlertDrillDownPanel (11) + VaRAttributionPanel (8) green; EodTimelineTab still to do
 - [ ] 4C.3 UI API module tests — execution.ts + regime.ts still to do
 - [ ] 4C.4 margin.spec.ts Playwright — **DEFERRED** (UI has no margin panel)
-- [ ] 4C.5 limit-management.spec.ts Playwright — still to do
+- [ ] 4C.5 limit-management.spec.ts Playwright — **DEFERRED** (no limit-management UI surface)
 
 **Phase 4D (P3) — NOT STARTED (0/3)**
 - [ ] 4D.1 CounterpartyRoutesAcceptanceTest
@@ -37,12 +37,14 @@ Audit source: QA review run on 2026-04-22. See `docs/evolution-report.md` for th
 - [ ] 4D.3 Cross-service limit-breach → alert-escalation E2E
 
 **Totals so far:** 12 test classes landed across 6 services, **79 new tests**, all green.
-Deferred with documented rationale: 4B.4 PagerDuty, 4B.6 margin sub-item, 4C.4 UI margin spec.
+Deferred with documented rationale: 4B.4 PagerDuty, 4B.6 margin sub-item, 4C.4 UI margin spec, 4C.5 UI limit-management spec.
 
 ### Findings surfaced during implementation
 1. **`PagerDutyDeliveryService` is a stub** (`TODO(ALT-04)`) — no HTTP client, no retries. Testing would be shallow.
 2. **`Route.marginRoutes` is orphaned** — defined in `MarginRoutes.kt` but not referenced from any `Application.module(...)` overload. The gateway `/api/v1/books/{bookId}/margin` endpoint returns 404 at runtime. UI doesn't call it either. Requires wiring fix before its tests are meaningful.
 3. **`countSince` in `TradeEventRepository` filters on row `createdAt`, not trade `tradedAt`** — test in 4A.3 was adjusted to reflect this. The reconciliation job depends on this semantics; documenting here in case it drives a later feature decision.
+4. **No limit-management UI surface exists** — 4C.5 was scoped on the assumption that the FIRM/DESK/TRADER/COUNTERPARTY limit hierarchy from the position-service backend is rendered somewhere in the UI. It is not. The only limit-related UI is `LimitBreachCard` (stress-scenario breaches under `ScenarioDetailPanel`) and `useVarLimit` (reads VAR_BREACH alert-rule threshold). Revive 4C.5 once a limit-management UI lands.
+5. **`/api/v1/counterparty-exposure` does not 404 on unknown bookId** — the route returns an empty list. 4D.1 was written to assert the actual behaviour; if the contract should change to 404, that's a separate decision.
 
 ---
 
