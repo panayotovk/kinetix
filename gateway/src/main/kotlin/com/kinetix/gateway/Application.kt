@@ -55,6 +55,7 @@ import com.kinetix.gateway.routes.hierarchyRiskRoutes
 import com.kinetix.gateway.routes.riskBudgetRoutes
 import com.kinetix.gateway.routes.executionProxyRoutes
 import com.kinetix.gateway.routes.liquidityRiskRoutes
+import com.kinetix.gateway.routes.limitsRoutes
 import com.kinetix.gateway.routes.marginRoutes
 import com.kinetix.gateway.routes.marketRegimeRoutes
 import com.kinetix.gateway.routes.varRoutes
@@ -477,6 +478,7 @@ fun Application.devModule() {
                     hedgeRecommendationRoutes(riskClient)
                 }
                 // Non-bookId routes
+                limitsRoutes(httpClient, positionUrl)
                 marketRegimeRoutes(riskClient)
                 counterpartyRiskRoutes(riskClient)
                 saCcrRoutes(riskClient)
