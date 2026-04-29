@@ -86,7 +86,7 @@ Source: `docs/test-gap-remediation-plan.md`
 - [x] CircuitBreaker HTTP integration test (5 tests, embedded HttpServer)
 - [x] gRPC contract integration test (5 tests, real Python risk-engine in Docker)
 
-### Phase 4: Post-Remediation Follow-on -- COMPLETE (start 2026-04-22, completed 2026-04-29)
+### Phase 4: Post-Remediation Follow-on -- COMPLETE (start 2026-04-22, completed 2026-04-29 incl. prod-gap closeout)
 Source: `docs/plans/test-gap-remediation-phase-4.md`
 
 #### 4A: Critical (P0) -- COMPLETE
@@ -101,32 +101,32 @@ Source: `docs/plans/test-gap-remediation-phase-4.md`
 - [x] 4B.1 ExposedModelVersionRepositoryIntegrationTest (5 tests) — state machine lives in ModelRegistry service, not repo
 - [x] 4B.2 ExposedSubmissionRepositoryIntegrationTest (5 tests) — four-eyes lives in SubmissionService, not repo
 - [x] 4B.3 MarketRegimeEventConsumerTest (5 tests)
-- [ ] 4B.4 PagerDutyDeliveryServiceTest -- DEFERRED (stub implementation, no HTTP client yet)
+- [ ] 4B.4 PagerDutyDeliveryServiceTest -- DEFERRED (stub implementation, broader external-delivery story out of phase-4 scope)
 - [x] 4B.5 GatewayExecutionProxyContractAcceptanceTest (6 tests)
-- [x] 4B.6 GatewayMarketRegimeContractAcceptanceTest (5 tests) — margin sub-item deferred (route orphaned)
+- [x] 4B.6 GatewayMarketRegimeContractAcceptanceTest (5 tests) + GatewayMarginContractAcceptanceTest (4 tests) — margin route NOW WIRED in risk-orchestrator + gateway during closeout
 - [x] 4B.7 KafkaFIXSessionEventPublisherIntegrationTest (2 tests)
 - [x] 4B.8 KafkaReconciliationAlertPublisherIntegrationTest (3 tests)
 
-#### 4C: Moderate (P2) -- COMPLETE (3 done, 2 deferred)
+#### 4C: Moderate (P2) -- COMPLETE (5/5)
 - [x] 4C.1 ExposedInstrumentRepository (7) + ExposedNettingAgreementRepository (5) integration tests
-- [x] 4C.2 UI components: AlertDrillDownPanel (11) + VaRAttributionPanel (8) + EodTimelineTab (7)
-- [x] 4C.3 UI API modules: execution.ts (8) + regime.ts (7)
-- [ ] 4C.4 Playwright margin.spec.ts -- DEFERRED (UI has no margin panel)
-- [ ] 4C.5 Playwright limit-management.spec.ts -- DEFERRED (no limit-management UI surface)
+- [x] 4C.2 UI components: AlertDrillDownPanel (11) + VaRAttributionPanel (8) + EodTimelineTab (7) + MarginPanel (6) + LimitsPanel (7)
+- [x] 4C.3 UI API modules: execution.ts (8) + regime.ts (7) + margin.ts (5) + limits.ts (4)
+- [x] 4C.4 Playwright margin.spec.ts (3 tests) — new MarginPanel rendered under Risk tab during closeout
+- [x] 4C.5 Playwright limit-management.spec.ts (4 tests) — new LimitsPanel + gateway /api/v1/limits forwarding during closeout
 
-#### 4D: P3 -- COMPLETE (2/3, 1 deferred)
+#### 4D: P3 -- COMPLETE (3/3)
 - [x] 4D.1 CounterpartyRoutesAcceptanceTest (5 tests)
 - [x] 4D.2 Regulatory-service HTTP client unit tests (Correlation 6, Price 6, RiskOrchestrator 7)
-- [ ] 4D.3 Cross-service limit-breach → alert-escalation E2E -- DEFERRED (no LimitBreachEvent on Kafka)
+- [x] 4D.3 Cross-service limit-breach → alert-escalation E2E (1 test) — built the full Kafka chain (LimitBreachEvent in common, KafkaLimitBreachEventPublisher in position-service publishing before throwing, LimitBreachEventConsumer in notification-service mapping to a CRITICAL LIMIT_BREACH alert) plus 4 schema-compat + 3 publisher integration + 5 consumer unit + 1 acceptance tests
 
-**Final total: 18 test classes, 127 tests, all green** across 7 services. Commits: one per test class per the plan's convention.
+**Final total: 27 test classes, 177 tests, all green** across 8 services. Commits: one per test class per the plan's convention. Phase-4 closeout also delivered three production fixes (margin route wiring, limits UI + gateway forward, LimitBreachEvent Kafka chain) that lifted four previously-deferred items.
 
 ### Phase 4 Findings (surfaced during implementation)
-- **Orphaned `marginRoutes`**: defined in `gateway/src/main/kotlin/com/kinetix/gateway/routes/MarginRoutes.kt` but not referenced from any `Application.module(...)` overload. `/api/v1/books/{bookId}/margin` returns 404 on a running gateway. UI doesn't call it. Either wire into `module(riskClient)` or remove route + client method + DTO.
-- **`PagerDutyDeliveryService` is a stub** (`TODO(ALT-04)`): no HTTP client, routing key, or retry logic. Real Events API v2 integration needed before meaningful retry/error tests.
+- ~~**Orphaned `marginRoutes`**~~ — FIXED in closeout. Wired in both risk-orchestrator and gateway; new MarginPanel renders the result.
+- **`PagerDutyDeliveryService` is a stub** (`TODO(ALT-04)`): no HTTP client, routing key, or retry logic. **Email and Webhook delivery are also stubs** — fixing only PagerDuty would be inconsistent. Park until the broader external-delivery question is on the roadmap.
 - **`countSince` semantics** in `TradeEventRepository` filters on row `createdAt` (persistence time), not `tradedAt` — correct for reconciliation but worth keeping in mind if future features need trade-time filtering.
-- **No limit-management UI surface**: only `LimitBreachCard` (stress-scenario breaches) and `useVarLimit` (alert rule threshold) exist. The FIRM/DESK/TRADER/COUNTERPARTY limits hierarchy from position-service is not rendered anywhere — 4C.5 cannot be tested until a limit-management UI lands.
-- **No `LimitBreachEvent` Kafka chain**: position-service throws `LimitBreachException` synchronously on breach; no Kafka topic for limit breaches, no risk-orchestrator consumer, no notification-service rule for limit-breach alerts. Synchronous enforcement is already covered by `LimitEnforcementAcceptanceTest`. 4D.3 needs the breach-event flow to be built first.
+- ~~**No limit-management UI surface**~~ — FIXED in closeout. Gateway now forwards `/api/v1/limits` under READ_RISK; LimitsPanel renders the FIRM→COUNTERPARTY hierarchy with a level filter. UI is read-only for now; full CRUD UX is a follow-on.
+- ~~**No `LimitBreachEvent` Kafka chain**~~ — FIXED in closeout. New event in `common`, `limits.breaches` topic, position-service publishes one event per HARD breach before throwing, notification-service consumes and creates a CRITICAL `LIMIT_BREACH` alert. Synchronous 422 booking response preserved.
 - **`/api/v1/counterparty-exposure` returns empty list (not 404) on unknown bookId** — 4D.1 asserts the actual behaviour; if the contract should change, that's a separate decision.
 
 ### Known Issues
