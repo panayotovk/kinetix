@@ -495,6 +495,12 @@ export async function mockBackendApiRoutes(page: Page): Promise<void> {
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
   })
 
+  // Default margin endpoint — return 404 so the panel shows its empty state.
+  // Tests that need real margin data must call mockMarginRoutes() afterward.
+  await page.route('**/api/v1/books/*/margin*', (route: Route) => {
+    route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
+  })
+
   // Default counterparty risk endpoint — return empty list so the tab shows its empty state.
   // Tests that need real counterparty data must call mockCounterpartyRiskRoutes() afterward.
   await page.route('**/api/v1/counterparty-risk*', (route: Route) => {
@@ -973,6 +979,43 @@ export async function mockPositionRisk(page: Page, risk: PositionRiskFixture[]):
       contentType: 'application/json',
       body: JSON.stringify(risk),
     })
+  })
+}
+
+export interface MarginEstimateFixture {
+  initialMargin: string
+  variationMargin: string
+  totalMargin: string
+  currency: string
+}
+
+/**
+ * Overrides the margin endpoint to return the given estimate, or to return a
+ * specific status (404 for empty, 5xx for error). Call AFTER mockAllApiRoutes.
+ */
+export async function mockMarginRoutes(
+  page: Page,
+  opts: { estimate?: MarginEstimateFixture; status?: number } = {},
+): Promise<void> {
+  await page.unroute('**/api/v1/books/*/margin*')
+  await page.route('**/api/v1/books/*/margin*', (route: Route) => {
+    if (opts.status != null && opts.status >= 400) {
+      route.fulfill({
+        status: opts.status,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'upstream' }),
+      })
+      return
+    }
+    if (opts.estimate) {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(opts.estimate),
+      })
+      return
+    }
+    route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
   })
 }
 
