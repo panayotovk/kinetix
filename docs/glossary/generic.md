@@ -8,7 +8,7 @@ General financial terms, acronyms, and concepts referenced throughout the Kineti
 
 | Term | Definition |
 |------|-----------|
-| **VaR (Value-at-Risk)** | Maximum expected loss at a given confidence level over a specified time horizon. Common levels: 95%, 99%, 99.7%. |
+| **VaR (Value-at-Risk)** | Maximum expected loss at a given confidence level over a specified time horizon. Common regulatory and internal levels: 95%, 97.5% (FRTB Expected Shortfall reference), 99% (Basel market-risk standard), 99.9% (IRB credit). |
 | **Expected Shortfall (ES)** | Average loss beyond the VaR threshold. Also called Conditional VaR (CVaR). Captures tail risk that VaR misses. |
 | **Historical VaR** | VaR computed by replaying actual historical returns against current positions. |
 | **Parametric VaR** | VaR assuming returns follow a normal distribution. Uses mean and covariance matrix. |
@@ -35,7 +35,7 @@ General financial terms, acronyms, and concepts referenced throughout the Kineti
 
 | Term | Definition |
 |------|-----------|
-| **Black-Scholes** | Analytical closed-form model for pricing European options. Assumes lognormal price distribution, constant volatility, and no dividends. |
+| **Black-Scholes** | Analytical closed-form model for pricing European options. Original 1973 formulation assumes lognormal price distribution, constant volatility, no dividends, and frictionless markets. Modern implementations (including Kinetix's) routinely extend it to handle a continuous dividend yield (the Black-Scholes-Merton form). |
 | **Black-Scholes-Merton** | Extension of Black-Scholes incorporating continuous dividend yields. |
 | **Present Value (PV)** | Current worth of future cash flows, discounted at an appropriate rate. |
 | **Mark-to-Market (MtM)** | Valuing positions at current market prices rather than historical cost. |
@@ -59,14 +59,14 @@ General financial terms, acronyms, and concepts referenced throughout the Kineti
 |------|-----------|
 | **Spot Price** | Current market price for immediate delivery. |
 | **Yield Curve** | Term structure of interest rates across maturities. Basis for discounting and forward rate derivation. |
-| **Tenor** | Standard time period on a curve (e.g. 1M, 3M, 6M, 1Y, 2Y, 5Y, 10Y, 30Y). |
+| **Tenor** | Standard time period on a curve (e.g. 1W, 2W, 1M, 3M, 6M, 1Y, 2Y, 5Y, 10Y, 30Y). |
 | **Risk-Free Rate** | Theoretical return on a zero-risk investment. Typically derived from government bond yields or overnight rates (e.g. SOFR). |
-| **Forward Curve** | Expected future prices or rates for a given instrument, derived from the spot curve. |
+| **Forward Curve** | Expected future prices or rates for a given instrument, derived from the spot curve plus the cost-of-carry (interest rates, dividends, storage, convenience yield) appropriate to the asset class. |
 | **Credit Spread** | Yield premium above the risk-free rate, compensating for credit risk. |
 | **Basis Points (bps)** | 1/100th of a percentage point. 100 bps = 1%. Standard unit for spreads and rate changes. |
 | **CDS Spread (Credit Default Swap)** | Annual premium paid to buy protection against a credit default. Indicator of counterparty credit risk. |
 | **Dividend Yield** | Annual dividends as a percentage of price. Affects option pricing via the cost-of-carry model. |
-| **Day-Count Convention** | Rules for counting days between dates for interest accrual (e.g. Actual/360, 30/360, Actual/Actual). |
+| **Day-Count Convention** | Rules for counting days between dates for interest accrual (e.g. Actual/360 — USD money market, Actual/365 — GBP/AUD/JPY money market, 30/360 — bond market, Actual/Actual — government bonds). |
 
 ## Trading
 
@@ -124,7 +124,7 @@ General financial terms, acronyms, and concepts referenced throughout the Kineti
 | **PFE (Potential Future Exposure)** | Maximum expected credit exposure at a future date at a given confidence level. |
 | **EPE (Expected Positive Exposure)** | Time-weighted average of expected positive exposures to a counterparty. |
 | **CVA (Credit Valuation Adjustment)** | Adjustment to fair value accounting for the possibility that a counterparty defaults. |
-| **LGD (Loss Given Default)** | Percentage of exposure lost if a counterparty defaults. Typically 40-60%. |
+| **LGD (Loss Given Default)** | Percentage of exposure lost if a counterparty defaults. Basel foundation-IRB defaults: 45% for senior unsecured exposures, 75% for subordinated. Empirically, LGDs vary widely by seniority, collateral, and jurisdiction. |
 | **PD (Probability of Default)** | Likelihood that a counterparty defaults within a given time period. |
 | **EAD (Exposure at Default)** | Total exposure to a counterparty at the time of default. |
 | **Netting Agreement** | Legal contract (e.g. ISDA Master Agreement) allowing offsetting of mutual obligations in a default. |
@@ -142,7 +142,7 @@ General financial terms, acronyms, and concepts referenced throughout the Kineti
 | **DRC (Default Risk Charge)** | FRTB capital charge for the risk of obligor default. Uses jump-to-default methodology. |
 | **JTD (Jump-to-Default)** | Loss incurred if an obligor defaults immediately. |
 | **RRAO (Residual Risk Add-On)** | FRTB additional charge for risks not captured by other components. |
-| **SBM (Standardised Boundary Method)** | FRTB simplified approach for calculating sensitivities-based capital charges. |
+| **SBM (Sensitivities-Based Method)** | FRTB Standardised Approach component that computes market risk capital from delta, vega, and curvature sensitivities aggregated across seven risk classes (GIRR, CSR non-securitisation, CSR securitisation, CSR correlation-trading, equity, commodity, FX) using prescribed risk weights and correlations. |
 | **Basel III** | International banking regulation framework covering capital adequacy, stress testing, and liquidity. |
 | **SPAN (Standard Portfolio Analysis of Risk)** | Margin methodology used by exchanges to calculate initial margin for futures and options. |
 | **SIMM (Standard Initial Margin Model)** | ISDA methodology for calculating initial margin on uncleared OTC derivatives. |
