@@ -11,15 +11,25 @@ import io.kotest.matchers.shouldBe
 
 class DevDataSeederTest : FunSpec({
 
-    test("seeds 6 rules and 25 alert events when empty") {
+    test("seeds 7 rules and 25 alert events when empty") {
         val engine = RulesEngine(InMemoryAlertRuleRepository())
         val eventRepo = InMemoryAlertEventRepository()
         val seeder = DevDataSeeder(engine, eventRepo)
 
         seeder.seed()
 
-        engine.listRules() shouldHaveSize 6
+        engine.listRules() shouldHaveSize 7
         eventRepo.findRecent(50) shouldHaveSize 25
+    }
+
+    test("seeds limit breach rule with CRITICAL severity") {
+        val engine = RulesEngine(InMemoryAlertRuleRepository())
+        val eventRepo = InMemoryAlertEventRepository()
+        DevDataSeeder(engine, eventRepo).seed()
+
+        val limitBreachRule = engine.listRules().find { it.id == "seed-rule-limit-breach" }!!
+        limitBreachRule.type shouldBe AlertType.LIMIT_BREACH
+        limitBreachRule.severity shouldBe Severity.CRITICAL
     }
 
     test("skips seeding when rules already exist") {
