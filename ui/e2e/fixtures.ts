@@ -501,6 +501,12 @@ export async function mockBackendApiRoutes(page: Page): Promise<void> {
     route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
   })
 
+  // Default limits endpoint — return an empty list so the panel shows its empty state.
+  // Tests that need real limit data must call mockLimitsRoutes() afterward.
+  await page.route('**/api/v1/limits', (route: Route) => {
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+  })
+
   // Default counterparty risk endpoint — return empty list so the tab shows its empty state.
   // Tests that need real counterparty data must call mockCounterpartyRiskRoutes() afterward.
   await page.route('**/api/v1/counterparty-risk*', (route: Route) => {
@@ -978,6 +984,43 @@ export async function mockPositionRisk(page: Page, risk: PositionRiskFixture[]):
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify(risk),
+    })
+  })
+}
+
+export interface LimitDefinitionFixture {
+  id: string
+  level: 'FIRM' | 'DIVISION' | 'DESK' | 'BOOK' | 'TRADER' | 'COUNTERPARTY'
+  entityId: string
+  limitType: 'POSITION' | 'NOTIONAL' | 'VAR' | 'CONCENTRATION' | 'ADV_CONCENTRATION' | 'VAR_BUDGET'
+  limitValue: string
+  intradayLimit: string | null
+  overnightLimit: string | null
+  active: boolean
+}
+
+/**
+ * Overrides the limits endpoint with the given limit definitions, or with
+ * a specific status code (e.g. 500 for error). Call AFTER mockAllApiRoutes.
+ */
+export async function mockLimitsRoutes(
+  page: Page,
+  opts: { limits?: LimitDefinitionFixture[]; status?: number } = {},
+): Promise<void> {
+  await page.unroute('**/api/v1/limits')
+  await page.route('**/api/v1/limits', (route: Route) => {
+    if (opts.status != null && opts.status >= 400) {
+      route.fulfill({
+        status: opts.status,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'upstream' }),
+      })
+      return
+    }
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(opts.limits ?? []),
     })
   })
 }
