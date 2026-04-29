@@ -55,6 +55,7 @@ import com.kinetix.gateway.routes.hierarchyRiskRoutes
 import com.kinetix.gateway.routes.riskBudgetRoutes
 import com.kinetix.gateway.routes.executionProxyRoutes
 import com.kinetix.gateway.routes.liquidityRiskRoutes
+import com.kinetix.gateway.routes.marginRoutes
 import com.kinetix.gateway.routes.marketRegimeRoutes
 import com.kinetix.gateway.routes.varRoutes
 import com.kinetix.gateway.routes.hedgeRecommendationRoutes
@@ -223,6 +224,7 @@ fun Application.module(riskClient: RiskServiceClient) {
         riskBudgetRoutes(riskClient)
         croReportRoutes(riskClient)
         liquidityRiskRoutes(riskClient)
+        marginRoutes(riskClient)
         factorRiskRoutes(riskClient)
         stressTestRoutes(riskClient)
         whatIfRoutes(riskClient)
@@ -273,6 +275,7 @@ fun Application.module(
         riskBudgetRoutes(riskClient)
         croReportRoutes(riskClient)
         liquidityRiskRoutes(riskClient)
+        marginRoutes(riskClient)
         factorRiskRoutes(riskClient)
         stressTestRoutes(riskClient)
         whatIfRoutes(riskClient)
@@ -447,6 +450,7 @@ fun Application.devModule() {
                 requireBookAccess(bookAccessService) {
                     varRoutes(riskClient)
                     liquidityRiskRoutes(riskClient)
+                    marginRoutes(riskClient)
                     factorRiskRoutes(riskClient)
                     whatIfRoutes(riskClient)
                     positionRiskRoutes(riskClient)
@@ -604,6 +608,7 @@ fun Application.module(
                 requirePermission(Permission.CALCULATE_RISK, auditPublisher) {
                     requireBookAccess(bookAccessService, auditPublisher) {
                         varRoutes(riskClient)
+                        marginRoutes(riskClient)
                         whatIfRoutes(riskClient)
                         positionRiskRoutes(riskClient)
                         dependenciesRoutes(riskClient)

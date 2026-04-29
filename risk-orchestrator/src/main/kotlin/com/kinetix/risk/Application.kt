@@ -16,6 +16,7 @@ import com.kinetix.risk.cache.RedisQuantDiffCache
 import com.kinetix.risk.cache.RedisVaRCache
 import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.mapper.toValuationResult
+import com.kinetix.risk.margin.MarginCalculator
 import com.kinetix.risk.client.GrpcLiquidityClient
 import com.kinetix.risk.client.GrpcRiskEngineClient
 import com.kinetix.risk.client.HttpAuditServiceClient
@@ -57,6 +58,7 @@ import com.kinetix.risk.routes.intradayPnlRoutes
 import com.kinetix.risk.routes.intradayVaRTimelineRoutes
 import com.kinetix.risk.routes.factorRiskRoutes
 import com.kinetix.risk.routes.liquidityRiskRoutes
+import com.kinetix.risk.routes.marginRoutes
 import com.kinetix.risk.routes.riskRoutes
 import com.kinetix.risk.routes.jobHistoryRoutes
 import com.kinetix.risk.routes.eodPromotionRoutes
@@ -703,6 +705,7 @@ fun Application.moduleWithRoutes() {
             )
         )
         liquidityRiskRoutes(liquidityRiskService, liquidityRiskSnapshotRepository)
+        marginRoutes(effectivePositionProvider, MarginCalculator())
         factorRiskRoutes(factorDecompositionRepository)
         jobHistoryRoutes(jobRecorder)
         eodPromotionRoutes(eodPromotionService)
