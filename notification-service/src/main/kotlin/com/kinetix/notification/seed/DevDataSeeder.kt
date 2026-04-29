@@ -76,6 +76,15 @@ class DevDataSeeder(
                 channels = listOf(DeliveryChannel.IN_APP, DeliveryChannel.EMAIL),
             ),
             AlertRule(
+                id = "seed-rule-limit-breach",
+                name = "Limit Breach Alert",
+                type = AlertType.LIMIT_BREACH,
+                threshold = 0.0,
+                operator = ComparisonOperator.GREATER_THAN,
+                severity = Severity.CRITICAL,
+                channels = listOf(DeliveryChannel.IN_APP, DeliveryChannel.EMAIL),
+            ),
+            AlertRule(
                 id = "seed-rule-daily-pnl",
                 name = "Daily PnL Alert",
                 type = AlertType.PNL_THRESHOLD,
