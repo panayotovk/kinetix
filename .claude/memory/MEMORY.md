@@ -86,6 +86,49 @@ Source: `docs/test-gap-remediation-plan.md`
 - [x] CircuitBreaker HTTP integration test (5 tests, embedded HttpServer)
 - [x] gRPC contract integration test (5 tests, real Python risk-engine in Docker)
 
+### Phase 4: Post-Remediation Follow-on -- COMPLETE (start 2026-04-22, completed 2026-04-29)
+Source: `docs/plans/test-gap-remediation-phase-4.md`
+
+#### 4A: Critical (P0) -- COMPLETE
+- [x] 4A.1 LimitRoutesAcceptanceTest (8 tests) — hierarchy limit routes
+- [x] 4A.2 BookHierarchyRoutesAcceptanceTest (7 tests)
+- [x] 4A.3 InternalRoutesAcceptanceTest (4 tests) — note: countSince filters on row createdAt, not tradedAt
+- [x] 4A.4 AlertLifecycleEventSchemaCompatibilityTest (4 tests)
+- [x] 4A.5 BookVaRContributionEventSchemaCompatibilityTest (3 tests)
+- [x] 4A.6 CrossBookRiskResult + LiquidityRisk schema compat tests (6 tests)
+
+#### 4B: High (P1) -- COMPLETE (7/8, 1 deferred)
+- [x] 4B.1 ExposedModelVersionRepositoryIntegrationTest (5 tests) — state machine lives in ModelRegistry service, not repo
+- [x] 4B.2 ExposedSubmissionRepositoryIntegrationTest (5 tests) — four-eyes lives in SubmissionService, not repo
+- [x] 4B.3 MarketRegimeEventConsumerTest (5 tests)
+- [ ] 4B.4 PagerDutyDeliveryServiceTest -- DEFERRED (stub implementation, no HTTP client yet)
+- [x] 4B.5 GatewayExecutionProxyContractAcceptanceTest (6 tests)
+- [x] 4B.6 GatewayMarketRegimeContractAcceptanceTest (5 tests) — margin sub-item deferred (route orphaned)
+- [x] 4B.7 KafkaFIXSessionEventPublisherIntegrationTest (2 tests)
+- [x] 4B.8 KafkaReconciliationAlertPublisherIntegrationTest (3 tests)
+
+#### 4C: Moderate (P2) -- COMPLETE (3 done, 2 deferred)
+- [x] 4C.1 ExposedInstrumentRepository (7) + ExposedNettingAgreementRepository (5) integration tests
+- [x] 4C.2 UI components: AlertDrillDownPanel (11) + VaRAttributionPanel (8) + EodTimelineTab (7)
+- [x] 4C.3 UI API modules: execution.ts (8) + regime.ts (7)
+- [ ] 4C.4 Playwright margin.spec.ts -- DEFERRED (UI has no margin panel)
+- [ ] 4C.5 Playwright limit-management.spec.ts -- DEFERRED (no limit-management UI surface)
+
+#### 4D: P3 -- COMPLETE (2/3, 1 deferred)
+- [x] 4D.1 CounterpartyRoutesAcceptanceTest (5 tests)
+- [x] 4D.2 Regulatory-service HTTP client unit tests (Correlation 6, Price 6, RiskOrchestrator 7)
+- [ ] 4D.3 Cross-service limit-breach → alert-escalation E2E -- DEFERRED (no LimitBreachEvent on Kafka)
+
+**Final total: 18 test classes, 127 tests, all green** across 7 services. Commits: one per test class per the plan's convention.
+
+### Phase 4 Findings (surfaced during implementation)
+- **Orphaned `marginRoutes`**: defined in `gateway/src/main/kotlin/com/kinetix/gateway/routes/MarginRoutes.kt` but not referenced from any `Application.module(...)` overload. `/api/v1/books/{bookId}/margin` returns 404 on a running gateway. UI doesn't call it. Either wire into `module(riskClient)` or remove route + client method + DTO.
+- **`PagerDutyDeliveryService` is a stub** (`TODO(ALT-04)`): no HTTP client, routing key, or retry logic. Real Events API v2 integration needed before meaningful retry/error tests.
+- **`countSince` semantics** in `TradeEventRepository` filters on row `createdAt` (persistence time), not `tradedAt` — correct for reconciliation but worth keeping in mind if future features need trade-time filtering.
+- **No limit-management UI surface**: only `LimitBreachCard` (stress-scenario breaches) and `useVarLimit` (alert rule threshold) exist. The FIRM/DESK/TRADER/COUNTERPARTY limits hierarchy from position-service is not rendered anywhere — 4C.5 cannot be tested until a limit-management UI lands.
+- **No `LimitBreachEvent` Kafka chain**: position-service throws `LimitBreachException` synchronously on breach; no Kafka topic for limit breaches, no risk-orchestrator consumer, no notification-service rule for limit-breach alerts. Synchronous enforcement is already covered by `LimitEnforcementAcceptanceTest`. 4D.3 needs the breach-event flow to be built first.
+- **`/api/v1/counterparty-exposure` returns empty list (not 404) on unknown bookId** — 4D.1 asserts the actual behaviour; if the contract should change, that's a separate decision.
+
 ### Known Issues
 - Testcontainers Docker connectivity fails in common module (library module classpath missing Docker client deps). Workaround: place integration tests in service modules.
 - Exposed 0.58.0 + Kotest: exceptions inside newSuspendedTransaction cannot be caught by shouldThrow. Workaround: move validation before transactional.run{} block.

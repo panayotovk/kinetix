@@ -24,20 +24,20 @@ Audit source: QA review run on 2026-04-22. See `docs/evolution-report.md` for th
 - [x] 4B.7 KafkaFIXSessionEventPublisherIntegrationTest — 2 tests green (`position-service`)
 - [x] 4B.8 KafkaReconciliationAlertPublisherIntegrationTest — 3 tests green (`position-service`)
 
-**Phase 4C — IN PROGRESS (2/5 done, 2 partial)**
+**Phase 4C — COMPLETE (3/5 done, 2 deferred)**
 - [x] 4C.1 Reference-data repos — Instrument (7) + NettingAgreement (5) integration tests green
-- [ ] 4C.2 UI component Vitest — AlertDrillDownPanel (11) + VaRAttributionPanel (8) green; EodTimelineTab still to do
-- [ ] 4C.3 UI API module tests — execution.ts + regime.ts still to do
+- [x] 4C.2 UI component Vitest — AlertDrillDownPanel (11) + VaRAttributionPanel (8) + EodTimelineTab (7) green
+- [x] 4C.3 UI API module tests — execution.ts (8) + regime.ts (7) green
 - [ ] 4C.4 margin.spec.ts Playwright — **DEFERRED** (UI has no margin panel)
 - [ ] 4C.5 limit-management.spec.ts Playwright — **DEFERRED** (no limit-management UI surface)
 
-**Phase 4D (P3) — NOT STARTED (0/3)**
-- [ ] 4D.1 CounterpartyRoutesAcceptanceTest
-- [ ] 4D.2 Regulatory-service HTTP client unit tests
-- [ ] 4D.3 Cross-service limit-breach → alert-escalation E2E
+**Phase 4D (P3) — COMPLETE (2/3, 1 deferred)**
+- [x] 4D.1 CounterpartyRoutesAcceptanceTest — 5 tests green (`position-service`)
+- [x] 4D.2 Regulatory-service HTTP client unit tests — Correlation (6) + Price (6) + RiskOrchestrator (7) = 19 tests green
+- [ ] 4D.3 Cross-service limit-breach → alert-escalation E2E — **DEFERRED** (no LimitBreachEvent on Kafka; breaches are thrown synchronously)
 
-**Totals so far:** 12 test classes landed across 6 services, **79 new tests**, all green.
-Deferred with documented rationale: 4B.4 PagerDuty, 4B.6 margin sub-item, 4C.4 UI margin spec, 4C.5 UI limit-management spec.
+**Totals:** 18 test classes landed across 7 services, **127 new tests**, all green.
+Deferred with documented rationale: 4B.4 PagerDuty, 4B.6 margin sub-item, 4C.4 UI margin spec, 4C.5 UI limit-management spec, 4D.3 limit-breach → alert E2E.
 
 ### Findings surfaced during implementation
 1. **`PagerDutyDeliveryService` is a stub** (`TODO(ALT-04)`) — no HTTP client, no retries. Testing would be shallow.
@@ -45,6 +45,7 @@ Deferred with documented rationale: 4B.4 PagerDuty, 4B.6 margin sub-item, 4C.4 U
 3. **`countSince` in `TradeEventRepository` filters on row `createdAt`, not trade `tradedAt`** — test in 4A.3 was adjusted to reflect this. The reconciliation job depends on this semantics; documenting here in case it drives a later feature decision.
 4. **No limit-management UI surface exists** — 4C.5 was scoped on the assumption that the FIRM/DESK/TRADER/COUNTERPARTY limit hierarchy from the position-service backend is rendered somewhere in the UI. It is not. The only limit-related UI is `LimitBreachCard` (stress-scenario breaches under `ScenarioDetailPanel`) and `useVarLimit` (reads VAR_BREACH alert-rule threshold). Revive 4C.5 once a limit-management UI lands.
 5. **`/api/v1/counterparty-exposure` does not 404 on unknown bookId** — the route returns an empty list. 4D.1 was written to assert the actual behaviour; if the contract should change to 404, that's a separate decision.
+6. **No `LimitBreachEvent` Kafka chain exists** — 4D.3 was scoped on the assumption that a FIRM-limit breach during trade booking publishes a Kafka event consumed by risk-orchestrator and routed to notification-service for an in-app alert with an escalation timer. In reality, position-service throws `LimitBreachException` synchronously and the request fails with 4xx; there is no Kafka topic for limit breaches, no risk-orchestrator consumer, and no notification-service rule for limit-breach alerts (the existing `VAR_BREACH` rule fires off risk-result events instead). Synchronous enforcement is already covered by `LimitEnforcementAcceptanceTest` in position-service. Revive 4D.3 once the breach-event flow is built — it would be a meaningful end-to-end test once the wiring exists.
 
 ---
 
