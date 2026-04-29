@@ -1,6 +1,8 @@
 package com.kinetix.position
 
+import com.kinetix.common.kafka.events.LimitBreachEvent
 import com.kinetix.common.model.*
+import com.kinetix.position.kafka.LimitBreachEventPublisher
 import com.kinetix.position.kafka.TradeEventPublisher
 import com.kinetix.position.model.LimitDefinition
 import com.kinetix.position.model.LimitLevel
@@ -157,6 +159,67 @@ class LimitEnforcementAcceptanceTest : BehaviorSpec({
                 concEx!!.result.blocked shouldBe true
                 concEx.result.breaches.any { it.limitType == "CONCENTRATION" } shouldBe true
                 tradeRepo.findByTradeId(TradeId("t-conc-1")) shouldBe null
+            }
+        }
+    }
+
+    // Phase-4 closeout: limit-breach observability
+    given("a HARD limit breach during booking and a configured LimitBreachEventPublisher") {
+        `when`("a trade is rejected for breaching the limit") {
+            then("a LimitBreachEvent is published before the LimitBreachException is thrown") {
+                val tradePublisher = mockk<TradeEventPublisher>(relaxed = true)
+                val capturedBreaches = mutableListOf<LimitBreachEvent>()
+                val breachPublisher = object : LimitBreachEventPublisher {
+                    override suspend fun publish(event: LimitBreachEvent) {
+                        capturedBreaches.add(event)
+                    }
+                }
+                limitDefinitionRepo.save(
+                    LimitDefinition(
+                        id = UUID.randomUUID().toString(),
+                        level = LimitLevel.BOOK,
+                        entityId = "port-publish-1",
+                        limitType = LimitType.NOTIONAL,
+                        limitValue = BigDecimal("100000"),
+                        intradayLimit = null,
+                        overnightLimit = null,
+                        active = true,
+                    ),
+                )
+                val service = TradeBookingService(
+                    tradeRepo,
+                    positionRepo,
+                    transactional,
+                    tradePublisher,
+                    preTradeCheck(),
+                    limitBreachEventPublisher = breachPublisher,
+                )
+
+                var thrown: LimitBreachException? = null
+                try {
+                    service.handle(
+                        BookTradeCommand(
+                            tradeId = TradeId("t-publish-1"),
+                            bookId = BookId("port-publish-1"),
+                            instrumentId = InstrumentId("AAPL"),
+                            assetClass = AssetClass.EQUITY,
+                            side = Side.BUY,
+                            quantity = BigDecimal("3000"),
+                            price = Money(BigDecimal("100.00"), USD),
+                            tradedAt = TRADED_AT,
+                        ),
+                    )
+                } catch (e: LimitBreachException) {
+                    thrown = e
+                }
+
+                (thrown is LimitBreachException) shouldBe true
+                capturedBreaches.size shouldBe 1
+                capturedBreaches[0].bookId shouldBe "port-publish-1"
+                capturedBreaches[0].tradeId shouldBe "t-publish-1"
+                capturedBreaches[0].limitType shouldBe "NOTIONAL"
+                capturedBreaches[0].severity shouldBe "HARD"
+                tradeRepo.findByTradeId(TradeId("t-publish-1")) shouldBe null
             }
         }
     }
