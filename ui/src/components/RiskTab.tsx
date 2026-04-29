@@ -22,6 +22,7 @@ import { RiskAlertBanner } from './RiskAlertBanner'
 import { StressSummaryCard } from './StressSummaryCard'
 import { PnlSummaryCard } from './PnlSummaryCard'
 import { LiquidityRiskPanel } from './LiquidityRiskPanel'
+import { LimitsPanel } from './LimitsPanel'
 import { MarginPanel } from './MarginPanel'
 import { FactorDecompositionPanel } from './FactorDecompositionPanel'
 import { FactorAttributionHistoryChart } from './FactorAttributionHistoryChart'
@@ -337,6 +338,11 @@ export function RiskTab({
           <div className="mt-4">
             <ErrorBoundary fallback={<SectionErrorCard name="Margin" />}>
               <MarginPanel bookId={bookId} />
+            </ErrorBoundary>
+          </div>
+          <div className="mt-4">
+            <ErrorBoundary fallback={<SectionErrorCard name="Limits" />}>
+              <LimitsPanel />
             </ErrorBoundary>
           </div>
           <div className="mt-4">
