@@ -1,7 +1,10 @@
 package com.kinetix.position.service
 
+import com.kinetix.common.kafka.events.LimitBreachEvent
 import com.kinetix.common.model.*
 import com.kinetix.common.model.instrument.InstrumentTypeCode
+import com.kinetix.position.kafka.LimitBreachEventPublisher
+import com.kinetix.position.kafka.NoOpLimitBreachEventPublisher
 import com.kinetix.position.kafka.TradeEventPublisher
 import com.kinetix.position.model.LimitBreach
 import com.kinetix.position.persistence.PositionRepository
@@ -9,6 +12,7 @@ import com.kinetix.position.persistence.TradeEventRepository
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.time.Instant
+import java.util.UUID
 
 data class BookTradeCommand(
     val tradeId: TradeId,
@@ -39,6 +43,7 @@ class TradeBookingService(
     private val tradeEventPublisher: TradeEventPublisher,
     private val limitCheckService: PreTradeCheckService? = null,
     private val nettingSetAssigner: NettingSetAssigner? = null,
+    private val limitBreachEventPublisher: LimitBreachEventPublisher = NoOpLimitBreachEventPublisher(),
 ) {
     private val logger = LoggerFactory.getLogger(TradeBookingService::class.java)
 
@@ -48,6 +53,26 @@ class TradeBookingService(
             command.side, command.quantity, command.price.amount)
         val limitResult = limitCheckService?.check(command)
         if (limitResult != null && limitResult.blocked) {
+            // Publish each breach as its own event before throwing so the synchronous
+            // 422 response is preserved AND the breach becomes durable + observable.
+            val breachedAt = Instant.now().toString()
+            limitResult.breaches
+                .filter { it.severity.name == "HARD" }
+                .forEach { breach ->
+                    limitBreachEventPublisher.publish(
+                        LimitBreachEvent(
+                            eventId = UUID.randomUUID().toString(),
+                            tradeId = command.tradeId.value,
+                            bookId = command.bookId.value,
+                            limitType = breach.limitType,
+                            severity = breach.severity.name,
+                            currentValue = breach.currentValue,
+                            limitValue = breach.limitValue,
+                            message = breach.message,
+                            breachedAt = breachedAt,
+                        ),
+                    )
+                }
             throw LimitBreachException(limitResult)
         }
         val warnings = limitResult?.breaches ?: emptyList()
