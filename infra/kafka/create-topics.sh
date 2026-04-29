@@ -50,6 +50,9 @@ create_topic "risk.audit"          3
 create_topic "risk.pnl.intraday"   3
 create_topic "risk.regime.changes" 1
 
+# ── Limits ───────────────────────────────────────────────────────────
+create_topic "limits.breaches"     3
+
 # ── Rates ────────────────────────────────────────────────────────────
 create_topic "rates.yield-curves" 3
 create_topic "rates.risk-free"    3
@@ -71,6 +74,7 @@ create_topic "trades.lifecycle.dlq"  1
 create_topic "price.updates.dlq"    1
 create_topic "risk.results.dlq"     1
 create_topic "risk.anomalies.dlq"   1
+create_topic "limits.breaches.dlq"  1
 create_topic "governance.audit.dlq" 1
 
 echo ""
