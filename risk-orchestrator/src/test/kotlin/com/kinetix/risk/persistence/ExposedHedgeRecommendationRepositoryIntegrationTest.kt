@@ -183,4 +183,33 @@ class ExposedHedgeRecommendationRepositoryIntegrationTest : FunSpec({
         repository.findById(expired.id)!!.status shouldBe HedgeStatus.EXPIRED
         repository.findById(current.id)!!.status shouldBe HedgeStatus.PENDING
     }
+
+    test("expirePending atomically marks all pending past-deadline rows in a single batch") {
+        // Spec hedge.allium expire_all_pending_past_deadline: one statement, not N+1.
+        val expired1 = sampleRecommendation()
+            .copy(id = UUID.randomUUID(), expiresAt = Instant.now().minusSeconds(120))
+        val expired2 = sampleRecommendation()
+            .copy(id = UUID.randomUUID(), expiresAt = Instant.now().minusSeconds(60))
+        val expired3 = sampleRecommendation()
+            .copy(id = UUID.randomUUID(), expiresAt = Instant.now().minusSeconds(30))
+        val pendingCurrent = sampleRecommendation()
+            .copy(id = UUID.randomUUID(), expiresAt = Instant.now().plusSeconds(1800))
+        val alreadyAccepted = sampleRecommendation(status = HedgeStatus.ACCEPTED)
+            .copy(id = UUID.randomUUID(), expiresAt = Instant.now().minusSeconds(60))
+        repository.save(expired1)
+        repository.save(expired2)
+        repository.save(expired3)
+        repository.save(pendingCurrent)
+        repository.save(alreadyAccepted)
+
+        val count = repository.expirePending()
+
+        count shouldBe 3
+        repository.findById(expired1.id)!!.status shouldBe HedgeStatus.EXPIRED
+        repository.findById(expired2.id)!!.status shouldBe HedgeStatus.EXPIRED
+        repository.findById(expired3.id)!!.status shouldBe HedgeStatus.EXPIRED
+        repository.findById(pendingCurrent.id)!!.status shouldBe HedgeStatus.PENDING
+        // ACCEPTED rows must NOT be touched even when past their expiresAt.
+        repository.findById(alreadyAccepted.id)!!.status shouldBe HedgeStatus.ACCEPTED
+    }
 })

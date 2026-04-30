@@ -61,7 +61,7 @@ This document is the work-tracking source of truth for resolving the divergences
 
 19. ☐ **Hedge `staleness warning` (30min ≤ age < 2h) not implemented.** `risk-orchestrator/.../HedgeRecommendationService.kt:58-64` only enforces 2h hard cap. Spec `hedge.allium:172-175`.
 
-20. ☐ **`expire_all_pending_past_deadline` does N+1 updates instead of single UPDATE.** `risk-orchestrator/.../ExposedHedgeRecommendationRepository.kt:88-104`. Spec `hedge.allium:304-308`.
+20. ✓ **`expire_all_pending_past_deadline` does N+1 updates instead of single UPDATE.** `risk-orchestrator/.../ExposedHedgeRecommendationRepository.kt:88-104`. Spec `hedge.allium:304-308`.
 
 21. ☐ **Hedge accept/reject endpoints not proxied through gateway.** `gateway/.../HedgeRecommendationRoutes.kt` only proxies POST (suggest), GET (list/single). Risk-orchestrator exposes accept/reject at `HedgeRecommendationRoutes.kt:80,106`.
 

@@ -87,20 +87,14 @@ class ExposedHedgeRecommendationRepository(
 
     override suspend fun expirePending(): Int = newSuspendedTransaction(db = db) {
         val now = OffsetDateTime.now(ZoneOffset.UTC)
-        var count = 0
-        HedgeRecommendationsTable
-            .selectAll()
-            .where {
+        HedgeRecommendationsTable.update(
+            where = {
                 (HedgeRecommendationsTable.status eq "PENDING") and
                     (HedgeRecommendationsTable.expiresAt lessEq now)
-            }
-            .forEach { row ->
-                HedgeRecommendationsTable.update({ HedgeRecommendationsTable.id eq row[HedgeRecommendationsTable.id] }) {
-                    it[status] = HedgeStatus.EXPIRED.name
-                }
-                count++
-            }
-        count
+            },
+        ) {
+            it[status] = HedgeStatus.EXPIRED.name
+        }
     }
 
     private fun rowToRecommendation(row: org.jetbrains.exposed.sql.ResultRow): HedgeRecommendation {
