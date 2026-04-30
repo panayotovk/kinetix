@@ -138,8 +138,12 @@ rule CheckPositionLimit {
     @guidance
         -- Check: abs(new_quantity) > effective_limit
         -- If abs(new_quantity) > effective: BREACHED (blocks trade)
-        -- If abs(new_quantity) > effective * 0.80: WARNING (soft, trade proceeds)
+        -- If abs(new_quantity) >= effective * 0.80: WARNING (soft, trade proceeds)
         -- Otherwise: OK
+        --
+        -- The 80% boundary is inclusive: at exactly 80% utilisation the
+        -- check resolves to WARNING (matches CheckLimitHierarchy below and
+        -- LimitHierarchyService.kt:138 which both use >=).
 }
 
 rule CheckNotionalLimit {

@@ -65,7 +65,7 @@ This document is the work-tracking source of truth for resolving the divergences
 
 21. ☐ **Hedge accept/reject endpoints not proxied through gateway.** `gateway/.../HedgeRecommendationRoutes.kt` only proxies POST (suggest), GET (list/single). Risk-orchestrator exposes accept/reject at `HedgeRecommendationRoutes.kt:80,106`.
 
-22. ☐ **Pre-trade warning threshold off-by-one.** Spec text says `>` strict (`limits.allium:142`), invariant says `>=` (`limits.allium:184`). Code `LimitHierarchyService.kt:138` uses `>=`. Reconcile spec internally; code matches one of the two readings.
+22. ✓ **Pre-trade warning threshold off-by-one.** Spec text said `>` strict (`limits.allium:141`), invariant said `>=` (`limits.allium:184`). Code `LimitHierarchyService.kt:138` uses `>=`. Reconciled by editing the `CheckPositionLimit` guidance to `>=` so the spec is internally consistent and matches code. **Spec edit only.**
 
 23. ☐ **`UpdateLimit` rule full-PUT vs partial-PATCH.** Spec implies full overwrite (`limits.allium:104-111`); code treats nullable fields as preserve-existing (`LimitRoutes.kt:155-161`). Spec or code.
 
