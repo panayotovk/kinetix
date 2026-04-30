@@ -3,6 +3,10 @@ package com.kinetix.position.persistence
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 
+// UNIQUE (level, entity_id, limit_type) is enforced by Flyway migration
+// V5__create_limit_hierarchy_tables.sql, satisfying the limits.allium
+// UniqueLimitDefinition invariant. The constraint is exercised by
+// LimitDefinitionUniqueConstraintIntegrationTest.
 object LimitDefinitionsTable : Table("limit_definitions") {
     val id = varchar("id", 255)
     val level = varchar("level", 20)

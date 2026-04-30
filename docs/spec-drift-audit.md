@@ -21,7 +21,7 @@ This document is the work-tracking source of truth for resolving the divergences
 
 3. ⚠ **VaR-vs-pricing Greeks confusion in intraday P&L.** `risk-orchestrator/.../IntradayPnlService.kt:190-195` reads `delta/gamma/vega/theta/rho` from `DailyRiskSnapshot` (VaR sensitivities). Spec explicitly warns "Use PRICING sensitivities, NOT VaR sensitivities from greeks.py" (`intraday-pnl.allium:225-231`). Attribution numbers are arithmetically wrong. Needs `SodGreekSnapshot` infrastructure that doesn't exist; possibly aspirational.
 
-4. ☐ **Missing input validation across market-data ingestion.** Spec `requires` clauses unenforced in routes:
+4. ✓ **Missing input validation across market-data ingestion.** Spec `requires` clauses unenforced in routes:
    - Price `>= 0` — `price-service/.../PriceRoutes.kt:115-122` (spec `market-data.allium:148-149`).
    - Yield curve `tenors.count >= 1` — `rates-service/.../RatesRoutes.kt:81-91` (spec `market-data.allium:165-167`).
    - Risk-free rate `tenor != ""` — `RatesRoutes.kt:118-198` (spec `market-data.allium:184-194`).
@@ -31,7 +31,7 @@ This document is the work-tracking source of truth for resolving the divergences
 
 5. ✓ **`LIMIT_BREACH` alert pipeline absent from `alerts.allium`.** Whole flow exists in code (`LimitBreachEventConsumer`, `LimitBreachRule`, `limits.breaches` Kafka topic, in-app delivery, `AlertType.LIMIT_BREACH` in `core.allium:101`) but the spec doesn't model it. **Spec edit only** — distill the flow into `alerts.allium`.
 
-6. ☐ **`UniqueLimitDefinition` invariant not enforced.** `position-service/.../persistence/LimitDefinitionsTable.kt:18` has no unique constraint on `(level, entity_id, limit_type)`. `singleOrNull()` lookup throws if duplicates appear. Fix: Flyway migration adding the unique constraint.
+6. ✓ **`UniqueLimitDefinition` invariant.** Audit miss — the unique constraint *is* present in `V5__create_limit_hierarchy_tables.sql:12` (`UNIQUE (level, entity_id, limit_type)`); only the Exposed Kotlin table object failed to mirror it, which is what the audit picked up on. Resolved by adding `LimitDefinitionUniqueConstraintIntegrationTest` to lock the DB-level constraint in as a regression guard, and a doc comment on `LimitDefinitionsTable` pointing at the migration. No new Flyway migration needed.
 
 7. ✓ **`AlertOnBudgetBreach` unimplemented.** Explicit `TODO(HIER-03)` in `risk-orchestrator/.../BudgetUtilisationService.kt:63-71` — breach is logged, no alert published. Spec rule (`hierarchy-risk.allium:241-255`) mandates `RISK_BUDGET_EXCEEDED` via notification-service.
 
