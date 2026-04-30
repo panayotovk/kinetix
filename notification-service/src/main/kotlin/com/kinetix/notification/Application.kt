@@ -18,6 +18,7 @@ import com.kinetix.notification.persistence.ExposedAlertAcknowledgementRepositor
 import com.kinetix.notification.persistence.InMemoryAlertAcknowledgementRepository
 import com.kinetix.notification.kafka.AnomalyEventConsumer
 import com.kinetix.notification.kafka.LimitBreachEventConsumer
+import com.kinetix.notification.kafka.MarketRegimeEventConsumer
 import com.kinetix.notification.kafka.RiskResultConsumer
 import com.kinetix.notification.model.AlertRule
 import com.kinetix.notification.model.AlertStatus
@@ -200,11 +201,28 @@ fun Application.moduleWithRoutes() {
         retryableConsumer = RetryableConsumer(topic = "limits.breaches", dlqProducer = dlqProducer, livenessTracker = limitBreachTracker),
     )
 
+    val regimeConsumerProps = Properties().apply {
+        put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
+        put(ConsumerConfig.GROUP_ID_CONFIG, "notification-service-regime-group")
+        put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
+        put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
+        put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+        put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, "org.apache.kafka.clients.consumer.CooperativeStickyAssignor")
+        put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+    }
+    val regimeTracker = ConsumerLivenessTracker(topic = "risk.regime.changes", groupId = "notification-service-regime-group")
+    val regimeEventConsumer = MarketRegimeEventConsumer(
+        consumer = KafkaConsumer<String, String>(regimeConsumerProps),
+        deliveryService = inAppDelivery,
+        eventRepository = inAppDelivery.repository,
+        retryableConsumer = RetryableConsumer(topic = "risk.regime.changes", dlqProducer = dlqProducer, livenessTracker = regimeTracker),
+    )
+
     val seedDone = AtomicBoolean(false)
     val readinessChecker = ReadinessChecker(
         dataSource = DatabaseFactory.dataSource,
         flywayLocation = DatabaseFactory.FLYWAY_LOCATION,
-        consumerTrackers = listOf(riskResultTracker, anomalyTracker, limitBreachTracker),
+        consumerTrackers = listOf(riskResultTracker, anomalyTracker, limitBreachTracker, regimeTracker),
         seedComplete = { seedDone.get() },
     )
 
@@ -235,6 +253,7 @@ fun Application.moduleWithRoutes() {
     launch { riskResultConsumer.start() }
     launch { anomalyEventConsumer.start() }
     launch { limitBreachEventConsumer.start() }
+    launch { regimeEventConsumer.start() }
 
     val auditProducerProps = Properties().apply {
         put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)

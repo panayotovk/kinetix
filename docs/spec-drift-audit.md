@@ -15,7 +15,7 @@ This document is the work-tracking source of truth for resolving the divergences
 
 ## P0 — Production correctness (highest priority)
 
-1. ☐ **`MarketRegimeEventConsumer` defined but never started.** `notification-service/src/main/kotlin/com/kinetix/notification/Application.kt:235` boots `riskResultConsumer`, `anomalyEventConsumer`, `limitBreachEventConsumer` but not `MarketRegimeEventConsumer`. Regime-change alerts never fire. Fix: add to startup. Spec: `alerts.allium:413-454`.
+1. ✓ **`MarketRegimeEventConsumer` defined but never started.** `notification-service/src/main/kotlin/com/kinetix/notification/Application.kt:235` boots `riskResultConsumer`, `anomalyEventConsumer`, `limitBreachEventConsumer` but not `MarketRegimeEventConsumer`. Regime-change alerts never fire. Fix: add to startup. Spec: `alerts.allium:413-454`.
 
 2. ⚠ **Wrong-way risk logic ignores position sector.** `risk-orchestrator/src/main/kotlin/com/kinetix/risk/service/CounterpartyRiskOrchestrationService.kt:219-229` fires `FINANCIAL_SECTOR_WRONG_WAY_RISK` whenever counterparty is financial; `SOVEREIGN_WRONG_WAY_RISK` whenever counterparty sector is sovereign — ignoring position sector entirely. Spec invariant `WrongWayRiskSectorMatch` (`counterparty-risk.allium:478-480`) requires counterparty sector to *match* position sector. Needs quant call to confirm taxonomy.
 
