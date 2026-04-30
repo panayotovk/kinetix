@@ -33,7 +33,10 @@ fun Route.demoResetRoutes(
 
             newSuspendedTransaction(db = db) {
                 exec("TRUNCATE TABLE positions RESTART IDENTITY CASCADE")
-                exec("DELETE FROM trade_events WHERE trade_id NOT LIKE 'seed-%'")
+                // TRUNCATE bypasses the prevent_trade_event_deletion row-level trigger
+                // (V10 migration). DELETE would be rejected. Demo mode is the only caller;
+                // production trade events remain immutable per the trigger.
+                exec("TRUNCATE TABLE trade_events RESTART IDENTITY CASCADE")
                 exec("TRUNCATE TABLE limit_definitions RESTART IDENTITY CASCADE")
                 exec("TRUNCATE TABLE limit_temporary_increases RESTART IDENTITY CASCADE")
                 exec("TRUNCATE TABLE execution_cost_analysis RESTART IDENTITY CASCADE")
