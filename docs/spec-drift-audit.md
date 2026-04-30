@@ -53,7 +53,7 @@ This document is the work-tracking source of truth for resolving the divergences
 
 15. ⚠ **Vol-surface diff uses nearest-neighbour instead of interpolation.** `volatility-service/.../VolatilityRoutes.kt:153-195` (`computeUnionGridDiff`/`nearestVol`). Spec `market-data.allium:91-93,244-249` says interpolate. Methodology choice — needs quant call.
 
-16. ☐ **FIX correlation chain breaks.** `position-service/.../FIXExecutionReportProcessor.kt:111-121` builds `BookTradeCommand` without `correlationId`; downstream `TradeEvent` defaults to fresh UUID. Spec `execution.allium:328` requires `correlation_id: order.order_id`.
+16. ✓ **FIX correlation chain breaks.** `position-service/.../FIXExecutionReportProcessor.kt:111-121` builds `BookTradeCommand` without `correlationId`; downstream `TradeEvent` defaults to fresh UUID. Spec `execution.allium:328` requires `correlation_id: order.order_id`.
 
 17. ⚠ **`HandleDegradedSignals` stricter than spec.** `risk-engine/.../regime_detector.py:298-312` always holds regime on degraded inputs; spec says transition allowed if both available signals agree (`regime.allium:362-365`). Possibly intentional safety bias.
 

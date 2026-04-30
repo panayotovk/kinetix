@@ -312,4 +312,22 @@ class FIXExecutionReportProcessorTest : FunSpec({
         coVerify(exactly = 0) { executionCostService.compute(any(), any()) }
         coVerify(exactly = 0) { executionCostRepository.save(any()) }
     }
+
+    // ── FIX correlation chain (audit A-16, spec execution.allium:328) ─────────
+
+    test("fill stamps BookTradeCommand.correlationId with the originating order id") {
+        val order = makeOrder("ord-corr-1", quantity = BigDecimal("100"))
+        coEvery { orderRepository.findById("ord-corr-1") } returns order
+        coEvery { fillRepository.existsByFixExecId("exec-corr-1") } returns false
+        coEvery { fillRepository.findByOrderId("ord-corr-1") } returns emptyList()
+
+        processor.process(fillEvent("ord-corr-1", "exec-corr-1", "F",
+            lastQty = BigDecimal("100"),
+            cumulativeQty = BigDecimal("100"),
+        ))
+
+        coVerify(exactly = 1) {
+            tradeBookingService.handle(match<BookTradeCommand> { it.correlationId == "ord-corr-1" })
+        }
+    }
 })

@@ -28,6 +28,12 @@ data class BookTradeCommand(
     val userRole: String? = null,
     val strategyId: String? = null,
     val counterpartyId: String? = null,
+    /**
+     * Identifier of the originating action (e.g. order id for FIX-driven fills) so the
+     * correlation chain Order -> Trade -> downstream events stays intact.
+     * Spec: execution.allium TradeBookedFromFill (correlation_id: order.order_id).
+     */
+    val correlationId: String? = null,
 )
 
 data class BookTradeResult(
@@ -112,7 +118,17 @@ class TradeBookingService(
         }
 
         if (isNewTrade) {
-            tradeEventPublisher.publish(TradeEvent(trade = result.trade, userId = command.userId, userRole = command.userRole))
+            val tradeEvent = if (command.correlationId != null) {
+                TradeEvent(
+                    trade = result.trade,
+                    correlationId = command.correlationId,
+                    userId = command.userId,
+                    userRole = command.userRole,
+                )
+            } else {
+                TradeEvent(trade = result.trade, userId = command.userId, userRole = command.userRole)
+            }
+            tradeEventPublisher.publish(tradeEvent)
             logger.info("Trade booked: tradeId={}, book={}, newPosition={}",
                 result.trade.tradeId.value, result.trade.bookId.value, result.position.quantity)
             nettingSetAssigner?.assignIfApplicable(
