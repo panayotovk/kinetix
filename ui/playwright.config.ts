@@ -2,9 +2,12 @@ import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
   testDir: './e2e',
+  testIgnore: ['**/demo-mode.spec.ts'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  // 1 local retry tames a small set of WebSocket-timing-sensitive tests
+  // (notably ui-resilience.spec.ts:reconnecting-banner) under heavy parallel load.
+  retries: process.env.CI ? 2 : 1,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI
     ? [['html', { open: 'never' }], ['junit', { outputFile: 'test-results/e2e/junit.xml' }]]

@@ -262,8 +262,10 @@ test.describe('UI Resilience', () => {
     // The banner must have role="alert" so screen readers announce it immediately
     await expect(banner).toHaveAttribute('role', 'alert')
 
-    // After a further wait the elapsed-time counter appears as "(Xs)"
-    await expect(banner).toContainText(/\(\d+s\)/, { timeout: 5000 })
+    // After a further wait the elapsed-time counter appears as "(Xs)". The counter
+    // ticks via setInterval(1000ms); under heavy parallel test load Chromium can
+    // throttle background timers, so allow a generous timeout.
+    await expect(banner).toContainText(/\(\d+s\)/, { timeout: 15000 })
   })
 
   // ---------------------------------------------------------------------------

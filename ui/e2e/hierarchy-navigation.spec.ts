@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { mockKeycloakAuth } from './fixtures'
 
 const TEST_BOOKS = [
   { bookId: 'book-1' },
@@ -163,6 +164,7 @@ async function mockHierarchyRoutes(page: Page): Promise<void> {
 
 test.describe('Hierarchy Navigation', () => {
   test.beforeEach(async ({ page }) => {
+    await mockKeycloakAuth(page)
     await mockHierarchyRoutes(page)
   })
 

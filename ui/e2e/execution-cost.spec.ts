@@ -12,8 +12,8 @@ async function navigateToExecutionCostTab(page: Page) {
 test.describe('Execution Cost Panel', () => {
   test('shows empty state when no cost data exists for book', async ({ page }) => {
     await navigateToExecutionCostTab(page)
-    // Empty list is mocked by default — select a book to trigger fetch
-    await page.locator('[data-testid="book-selector"]').first().click().catch(() => {})
+    // Default fixture stub returns []; the first book is auto-selected so the
+    // panel renders the "no execution cost data" empty state.
     await expect(page.getByText(/no execution cost data|select a book/i)).toBeVisible()
   })
 

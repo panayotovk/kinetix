@@ -57,8 +57,11 @@ test.describe('Risk tab — VaR error state', () => {
       jobHistory: TEST_JOB_HISTORY,
     })
 
-    // First call fails, second call succeeds
-    await page.route('**/api/v1/risk/var/*', (route: Route) => {
+    // First call fails, second call succeeds. Pattern is scoped to the specific
+    // bookId so we don't accidentally intercept /risk/var/cross-book — that endpoint
+    // returns a different DTO (with bookContributions) and the broad pattern would
+    // crash BookContributionTable on undefined.length.
+    await page.route('**/api/v1/risk/var/port-1*', (route: Route) => {
       callCount++
       if (callCount === 1) {
         route.fulfill({

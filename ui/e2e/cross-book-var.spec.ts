@@ -117,11 +117,11 @@ test.describe('Cross-Book VaR', () => {
     // Diversification summary should be visible
     await expect(page.getByTestId('diversification-summary')).toBeVisible()
 
-    // Sum of books: $250,000.00
-    await expect(page.getByTestId('sum-of-books-var')).toContainText('$250,000.00')
+    // Sum of books: $250,000.00 (rendered compact as $250K with full value in title)
+    await expect(page.getByTestId('sum-of-books-var')).toHaveAttribute('title', '$250,000.00')
 
-    // Diversification benefit: -$50,000.00 (20.0%)
-    await expect(page.getByTestId('diversification-benefit-value')).toContainText('$50,000.00')
+    // Diversification benefit: -$50,000.00 (20.0%) — rendered compact as -$50K with full value in title
+    await expect(page.getByTestId('diversification-benefit-value')).toHaveAttribute('title', '$50,000.00')
     await expect(page.getByTestId('diversification-benefit-value')).toContainText('20.0%')
   })
 

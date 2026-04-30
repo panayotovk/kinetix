@@ -706,10 +706,15 @@ test.describe('Scenarios Tab - Custom Scenario Builder', () => {
 
     await goToScenariosTab(page)
     await page.getByTestId('custom-scenario-btn').click()
-    await expect(page.getByTestId('scenario-builder-panel')).toBeVisible()
+    const panel = page.getByTestId('scenario-builder-panel')
+    await expect(panel).toBeVisible()
 
+    // Click the panel to ensure document focus is inside it before pressing Escape;
+    // when other suites have run first, focus can sit on a stale element and the
+    // Escape listener (attached to document) misses the keydown.
+    await panel.click({ position: { x: 5, y: 5 } })
     await page.keyboard.press('Escape')
-    await expect(page.getByTestId('scenario-builder-panel')).not.toBeVisible()
+    await expect(panel).not.toBeVisible()
   })
 
   test('closing builder panel via backdrop click', async ({ page }) => {

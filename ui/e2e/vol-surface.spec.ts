@@ -44,6 +44,12 @@ const TEST_POSITION_RISK_AAPL = [
 ]
 
 async function mockVolSurfaceRoutes(page: Page): Promise<void> {
+  // Register wildcard 404 first; AAPL-specific routes register later so they win
+  // (Playwright gives priority to the LAST registered matching route).
+  await page.route('**/api/v1/volatility/*/surface', (route: Route) => {
+    route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
+  })
+
   await page.route('**/api/v1/volatility/AAPL/surface', (route: Route) => {
     route.fulfill({
       status: 200,
@@ -58,11 +64,6 @@ async function mockVolSurfaceRoutes(page: Page): Promise<void> {
       contentType: 'application/json',
       body: JSON.stringify(VOL_SURFACE_DIFF),
     })
-  })
-
-  // 404 for any other instrument
-  await page.route('**/api/v1/volatility/*/surface', (route: Route) => {
-    route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify(null) })
   })
 }
 
@@ -175,8 +176,10 @@ test.describe('Vol Surface - Market Data tab', () => {
     // Set a compare date
     await page.getByTestId('compare-date-picker').fill('2026-03-24')
 
-    // After setting date, the diff should be fetched and dashed lines should appear
+    // After setting date, the diff should be fetched and a dashed polyline overlay should appear.
+    // Target polyline specifically — chart axis grid lines also use stroke-dasharray, so
+    // a generic `[stroke-dasharray]` selector matches non-overlay elements as well.
     const skewSvg = page.getByTestId('vol-skew-chart').locator('svg')
-    await expect(skewSvg.locator('[stroke-dasharray]').first()).toBeVisible()
+    await expect(skewSvg.locator('polyline[stroke-dasharray]').first()).toBeVisible()
   })
 })
