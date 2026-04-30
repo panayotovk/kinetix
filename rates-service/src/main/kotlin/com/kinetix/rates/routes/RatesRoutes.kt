@@ -79,10 +79,15 @@ fun Route.ratesRoutes(
                 }
             }) {
                 val request = call.receive<IngestYieldCurveRequest>()
+                require(request.tenors.isNotEmpty()) { "tenors must contain at least one entry" }
+                val tenors = request.tenors.map { Tenor(it.label, it.days, BigDecimal(it.rate)) }
+                require(tenors.zipWithNext().all { (a, b) -> a.days < b.days }) {
+                    "tenors must be strictly monotonic in days"
+                }
                 val curve = YieldCurve(
                     curveId = request.curveId,
                     currency = Currency.getInstance(request.currency),
-                    tenors = request.tenors.map { Tenor(it.label, it.days, BigDecimal(it.rate)) },
+                    tenors = tenors,
                     asOf = Instant.now(),
                     source = RateSource.valueOf(request.source),
                 )
@@ -124,6 +129,7 @@ fun Route.ratesRoutes(
                 }
             }) {
                 val request = call.receive<IngestRiskFreeRateRequest>()
+                require(request.tenor.isNotBlank()) { "tenor must not be blank" }
                 val rate = RiskFreeRate(
                     currency = Currency.getInstance(request.currency),
                     tenor = request.tenor,
@@ -185,6 +191,7 @@ fun Route.ratesRoutes(
                 }
             }) {
                 val request = call.receive<IngestForwardCurveRequest>()
+                require(request.points.isNotEmpty()) { "points must contain at least one entry" }
                 val curve = ForwardCurve(
                     instrumentId = InstrumentId(request.instrumentId),
                     assetClass = request.assetClass,

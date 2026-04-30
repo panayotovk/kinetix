@@ -229,6 +229,89 @@ class RatesRoutesTest : FunSpec({
         }
     }
 
+    test("POST yield-curves returns 400 for empty tenors") {
+        testApplication {
+            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
+
+            val response = client.post("/api/v1/rates/yield-curves") {
+                contentType(ContentType.Application.Json)
+                setBody("""
+                    {
+                        "curveId": "USD-TREASURY",
+                        "currency": "USD",
+                        "tenors": [],
+                        "source": "CENTRAL_BANK"
+                    }
+                """.trimIndent())
+            }
+            response.status shouldBe HttpStatusCode.BadRequest
+            response.bodyAsText() shouldContain "tenors must contain at least one entry"
+        }
+    }
+
+    test("POST yield-curves returns 400 for non-monotonic tenor days") {
+        testApplication {
+            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
+
+            val response = client.post("/api/v1/rates/yield-curves") {
+                contentType(ContentType.Application.Json)
+                setBody("""
+                    {
+                        "curveId": "USD-TREASURY",
+                        "currency": "USD",
+                        "tenors": [
+                            {"label": "1Y", "days": 365, "rate": "0.05"},
+                            {"label": "1M", "days": 30, "rate": "0.04"}
+                        ],
+                        "source": "CENTRAL_BANK"
+                    }
+                """.trimIndent())
+            }
+            response.status shouldBe HttpStatusCode.BadRequest
+            response.bodyAsText() shouldContain "tenors must be strictly monotonic in days"
+        }
+    }
+
+    test("POST risk-free returns 400 for blank tenor") {
+        testApplication {
+            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
+
+            val response = client.post("/api/v1/rates/risk-free") {
+                contentType(ContentType.Application.Json)
+                setBody("""
+                    {
+                        "currency": "USD",
+                        "tenor": "",
+                        "rate": "0.0525",
+                        "source": "CENTRAL_BANK"
+                    }
+                """.trimIndent())
+            }
+            response.status shouldBe HttpStatusCode.BadRequest
+            response.bodyAsText() shouldContain "tenor must not be blank"
+        }
+    }
+
+    test("POST forwards returns 400 for empty points") {
+        testApplication {
+            application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
+
+            val response = client.post("/api/v1/rates/forwards") {
+                contentType(ContentType.Application.Json)
+                setBody("""
+                    {
+                        "instrumentId": "EURUSD",
+                        "assetClass": "FX",
+                        "points": [],
+                        "source": "REUTERS"
+                    }
+                """.trimIndent())
+            }
+            response.status shouldBe HttpStatusCode.BadRequest
+            response.bodyAsText() shouldContain "points must contain at least one entry"
+        }
+    }
+
     test("GET forwards history returns 200 with curves") {
         val curves = listOf(
             ForwardCurve(
