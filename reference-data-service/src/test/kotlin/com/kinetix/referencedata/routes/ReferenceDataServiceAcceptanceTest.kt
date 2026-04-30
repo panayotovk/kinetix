@@ -4,9 +4,12 @@ import com.kinetix.common.model.CreditSpread
 import com.kinetix.common.model.DividendYield
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.ReferenceDataSource
+import com.kinetix.referencedata.cache.ReferenceDataCache
+import com.kinetix.referencedata.kafka.ReferenceDataPublisher
 import com.kinetix.referencedata.module
-import com.kinetix.referencedata.persistence.CreditSpreadRepository
-import com.kinetix.referencedata.persistence.DividendYieldRepository
+import com.kinetix.referencedata.persistence.DatabaseTestSetup
+import com.kinetix.referencedata.persistence.ExposedCreditSpreadRepository
+import com.kinetix.referencedata.persistence.ExposedDividendYieldRepository
 import com.kinetix.referencedata.service.ReferenceDataIngestionService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -14,13 +17,13 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
-import io.mockk.coEvery
-import io.mockk.mockk
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.Instant
 import java.time.LocalDate
 
@@ -34,11 +37,32 @@ import java.time.LocalDate
  */
 class ReferenceDataServiceAcceptanceTest : FunSpec({
 
-    val dividendYieldRepo = mockk<DividendYieldRepository>()
-    val creditSpreadRepo = mockk<CreditSpreadRepository>()
-    val ingestionService = mockk<ReferenceDataIngestionService>()
+    val db = DatabaseTestSetup.startAndMigrate()
+    val dividendYieldRepo = ExposedDividendYieldRepository(db)
+    val creditSpreadRepo = ExposedCreditSpreadRepository(db)
+    val noOpCache = object : ReferenceDataCache {
+        override suspend fun putDividendYield(dividendYield: DividendYield) = Unit
+        override suspend fun getDividendYield(instrumentId: InstrumentId): DividendYield? = null
+        override suspend fun putCreditSpread(creditSpread: CreditSpread) = Unit
+        override suspend fun getCreditSpread(instrumentId: InstrumentId): CreditSpread? = null
+    }
+    val noOpPublisher = object : ReferenceDataPublisher {
+        override suspend fun publishDividendYield(dividendYield: DividendYield) = Unit
+        override suspend fun publishCreditSpread(creditSpread: CreditSpread) = Unit
+    }
+    val ingestionService = ReferenceDataIngestionService(
+        dividendYieldRepo, creditSpreadRepo, noOpCache, noOpPublisher,
+    )
 
     val AS_OF = Instant.parse("2026-01-15T12:00:00Z")
+
+    beforeEach {
+        runBlocking {
+            newSuspendedTransaction(db = db) {
+                exec("TRUNCATE TABLE dividend_yields, credit_spreads RESTART IDENTITY CASCADE")
+            }
+        }
+    }
 
     test("dividend yield response shape matches DividendYieldDto consumed by risk-orchestrator") {
         val dividendYield = DividendYield(
@@ -48,7 +72,7 @@ class ReferenceDataServiceAcceptanceTest : FunSpec({
             asOfDate = AS_OF,
             source = ReferenceDataSource.BLOOMBERG,
         )
-        coEvery { dividendYieldRepo.findLatest(InstrumentId("AAPL")) } returns dividendYield
+        dividendYieldRepo.save(dividendYield)
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService) }
@@ -76,7 +100,7 @@ class ReferenceDataServiceAcceptanceTest : FunSpec({
             asOfDate = AS_OF,
             source = ReferenceDataSource.REUTERS,
         )
-        coEvery { dividendYieldRepo.findLatest(InstrumentId("MSFT")) } returns dividendYield
+        dividendYieldRepo.save(dividendYield)
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService) }
@@ -102,7 +126,7 @@ class ReferenceDataServiceAcceptanceTest : FunSpec({
             asOfDate = AS_OF,
             source = ReferenceDataSource.RATING_AGENCY,
         )
-        coEvery { creditSpreadRepo.findLatest(InstrumentId("CORP-BOND-1")) } returns creditSpread
+        creditSpreadRepo.save(creditSpread)
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService) }
@@ -129,7 +153,7 @@ class ReferenceDataServiceAcceptanceTest : FunSpec({
             asOfDate = AS_OF,
             source = ReferenceDataSource.INTERNAL,
         )
-        coEvery { creditSpreadRepo.findLatest(InstrumentId("BOND-NR")) } returns creditSpread
+        creditSpreadRepo.save(creditSpread)
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService) }
@@ -148,8 +172,6 @@ class ReferenceDataServiceAcceptanceTest : FunSpec({
     }
 
     test("dividend yield endpoint returns 404 when instrument does not exist") {
-        coEvery { dividendYieldRepo.findLatest(InstrumentId("UNKNOWN")) } returns null
-
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService) }
 
@@ -159,8 +181,6 @@ class ReferenceDataServiceAcceptanceTest : FunSpec({
     }
 
     test("credit spread endpoint returns 404 when instrument does not exist") {
-        coEvery { creditSpreadRepo.findLatest(InstrumentId("UNKNOWN")) } returns null
-
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService) }
 
