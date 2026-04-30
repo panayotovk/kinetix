@@ -1,0 +1,156 @@
+# Spec/Code Drift Audit — 2026-04-30
+
+Read-only audit of all 24 Allium specs (`specs/*.allium`) against implementation code, run via four parallel `weed` agents in check mode. ~110 divergences flagged. Nothing modified by the audit.
+
+This document is the work-tracking source of truth for resolving the divergences. Sessions that pick up this work should re-read this file before starting.
+
+## Status legend
+
+- ☐ open
+- ⚠ needs-decision (quant/business/architecture call required)
+- ✓ done
+- ↪ deferred (aspirational; out of scope for current cleanup)
+
+---
+
+## P0 — Production correctness (highest priority)
+
+1. ☐ **`MarketRegimeEventConsumer` defined but never started.** `notification-service/src/main/kotlin/com/kinetix/notification/Application.kt:235` boots `riskResultConsumer`, `anomalyEventConsumer`, `limitBreachEventConsumer` but not `MarketRegimeEventConsumer`. Regime-change alerts never fire. Fix: add to startup. Spec: `alerts.allium:413-454`.
+
+2. ⚠ **Wrong-way risk logic ignores position sector.** `risk-orchestrator/src/main/kotlin/com/kinetix/risk/service/CounterpartyRiskOrchestrationService.kt:219-229` fires `FINANCIAL_SECTOR_WRONG_WAY_RISK` whenever counterparty is financial; `SOVEREIGN_WRONG_WAY_RISK` whenever counterparty sector is sovereign — ignoring position sector entirely. Spec invariant `WrongWayRiskSectorMatch` (`counterparty-risk.allium:478-480`) requires counterparty sector to *match* position sector. Needs quant call to confirm taxonomy.
+
+3. ⚠ **VaR-vs-pricing Greeks confusion in intraday P&L.** `risk-orchestrator/.../IntradayPnlService.kt:190-195` reads `delta/gamma/vega/theta/rho` from `DailyRiskSnapshot` (VaR sensitivities). Spec explicitly warns "Use PRICING sensitivities, NOT VaR sensitivities from greeks.py" (`intraday-pnl.allium:225-231`). Attribution numbers are arithmetically wrong. Needs `SodGreekSnapshot` infrastructure that doesn't exist; possibly aspirational.
+
+4. ☐ **Missing input validation across market-data ingestion.** Spec `requires` clauses unenforced in routes:
+   - Price `>= 0` — `price-service/.../PriceRoutes.kt:115-122` (spec `market-data.allium:148-149`).
+   - Yield curve `tenors.count >= 1` — `rates-service/.../RatesRoutes.kt:81-91` (spec `market-data.allium:165-167`).
+   - Risk-free rate `tenor != ""` — `RatesRoutes.kt:118-198` (spec `market-data.allium:184-194`).
+   - Forward curve `points.count >= 1` — same file (spec `market-data.allium:202-213`).
+   - Vol surface `points.count >= 1` + positive vols — `volatility-service/.../VolatilityRoutes.kt:121-133` (spec `market-data.allium:217-227`).
+   - Correlation matrix `values.count = labels.count^2` — `correlation-service/.../CorrelationRoutes.kt:43-62` (spec `market-data.allium:253-264`).
+
+5. ☐ **`LIMIT_BREACH` alert pipeline absent from `alerts.allium`.** Whole flow exists in code (`LimitBreachEventConsumer`, `LimitBreachRule`, `limits.breaches` Kafka topic, in-app delivery, `AlertType.LIMIT_BREACH` in `core.allium:101`) but the spec doesn't model it. **Spec edit only** — distill the flow into `alerts.allium`.
+
+6. ☐ **`UniqueLimitDefinition` invariant not enforced.** `position-service/.../persistence/LimitDefinitionsTable.kt:18` has no unique constraint on `(level, entity_id, limit_type)`. `singleOrNull()` lookup throws if duplicates appear. Fix: Flyway migration adding the unique constraint.
+
+7. ☐ **`AlertOnBudgetBreach` unimplemented.** Explicit `TODO(HIER-03)` in `risk-orchestrator/.../BudgetUtilisationService.kt:63-71` — breach is logged, no alert published. Spec rule (`hierarchy-risk.allium:241-255`) mandates `RISK_BUDGET_EXCEEDED` via notification-service.
+
+8. ☐ **`AcknowledgeSubmission` discards regulator timestamp.** `regulatory-service/.../SubmissionService.kt:78-98` uses `Instant.now()` instead of regulator-supplied `acknowledged_at`. Route at `SubmissionRoutes.kt:74-87` accepts no body. Spec rule `AcknowledgeSubmission` (`regulatory.allium:354-359`).
+
+## P1 — Behavioural divergence
+
+9. ⚠ **Three coexisting `LiquidityTier` enums.** `common/.../LiquidityTier.kt` (canonical: `HIGH_LIQUID/LIQUID/SEMI_LIQUID/ILLIQUID`) vs `reference-data-service/.../InstrumentLiquidityTier.kt` (`TIER_1/TIER_2/TIER_3/ILLIQUID`) vs protobuf (canonical). Hedge filter `LIQUID_TIERS = setOf("TIER_1", "TIER_2")` (`AnalyticalHedgeCalculator.kt:117`, `HedgeRecommendationService.kt:306-309`) uses wrong names. Reference-data API leaks wrong names into UI. Fix: collapse to one enum, prefer the canonical names. Touches Liquidity, Hedge, Reference-data domains.
+
+10. ⚠ **`PositionPriceUpdated` event referenced but doesn't exist.** Spec chains `MarkToMarket → PositionPriceUpdated → intraday recompute` (`positions.allium:127`, `intraday-pnl.allium:285-297`). Code consumer reads `price.updates` directly (`PriceEventConsumer.kt:88-92`). Likely spec bug — chained event is conceptual.
+
+11. ⚠ **`TradeEvent` Kafka payload drops `counterpartyId` and `strategyId`.** `common/.../TradeEventMessage.from()` (`TradeEventMessage.kt:32-50`) populates 17 fields but omits these. Downstream consumers can't see counterparty/strategy. Either restore the fields or update spec to acknowledge omission.
+
+12. ⚠ **EOD self-promotion bypass for AUTO_CLOSE.** `EodPromotionService.promoteToOfficialEodAutomatically` skips the `triggered_by != promoted_by` check (`EodPromotionService.kt:47-59`). Spec invariant unconditional (`risk.allium:546`). Likely intentional — spec needs an `AUTO_CLOSE` carve-out.
+
+13. ☐ **`ExpireDayOrder` rule has no implementation.** `OrderStatus.EXPIRED` enum exists; no service or scheduled job ever transitions to it. Spec `execution.allium:461-474`.
+
+14. ☐ **Arrival-price staleness check is dead code via HTTP.** `position-service/.../OrderRoutes.kt:45-56` doesn't accept `arrivalPriceTimestamp`; `OrderSubmissionService.kt:65-70` only checks staleness when timestamp non-null. Fix: wire the field through the request DTO.
+
+15. ⚠ **Vol-surface diff uses nearest-neighbour instead of interpolation.** `volatility-service/.../VolatilityRoutes.kt:153-195` (`computeUnionGridDiff`/`nearestVol`). Spec `market-data.allium:91-93,244-249` says interpolate. Methodology choice — needs quant call.
+
+16. ☐ **FIX correlation chain breaks.** `position-service/.../FIXExecutionReportProcessor.kt:111-121` builds `BookTradeCommand` without `correlationId`; downstream `TradeEvent` defaults to fresh UUID. Spec `execution.allium:328` requires `correlation_id: order.order_id`.
+
+17. ⚠ **`HandleDegradedSignals` stricter than spec.** `risk-engine/.../regime_detector.py:298-312` always holds regime on degraded inputs; spec says transition allowed if both available signals agree (`regime.allium:362-365`). Possibly intentional safety bias.
+
+18. ☐ **Reconciliation alert severity tiers wrong.** `position-service/.../PrimeBrokerReconciliationService.kt:53-56` uses `$10K manual_review` threshold; spec `execution.allium` describes `WARNING < $100K < CRITICAL`. Spec or code; needs decision.
+
+19. ☐ **Hedge `staleness warning` (30min ≤ age < 2h) not implemented.** `risk-orchestrator/.../HedgeRecommendationService.kt:58-64` only enforces 2h hard cap. Spec `hedge.allium:172-175`.
+
+20. ☐ **`expire_all_pending_past_deadline` does N+1 updates instead of single UPDATE.** `risk-orchestrator/.../ExposedHedgeRecommendationRepository.kt:88-104`. Spec `hedge.allium:304-308`.
+
+21. ☐ **Hedge accept/reject endpoints not proxied through gateway.** `gateway/.../HedgeRecommendationRoutes.kt` only proxies POST (suggest), GET (list/single). Risk-orchestrator exposes accept/reject at `HedgeRecommendationRoutes.kt:80,106`.
+
+22. ☐ **Pre-trade warning threshold off-by-one.** Spec text says `>` strict (`limits.allium:142`), invariant says `>=` (`limits.allium:184`). Code `LimitHierarchyService.kt:138` uses `>=`. Reconcile spec internally; code matches one of the two readings.
+
+23. ☐ **`UpdateLimit` rule full-PUT vs partial-PATCH.** Spec implies full overwrite (`limits.allium:104-111`); code treats nullable fields as preserve-existing (`LimitRoutes.kt:155-161`). Spec or code.
+
+24. ☐ **`AlertOnReconciliationBreaks` per-break threshold check.** Spec `execution.allium:439-441` requires per-break filter; code alerts on any CRITICAL.
+
+## P2 — Aspirational/missing rules
+
+25. ↪ `ScheduledHierarchyAggregation` — no scheduler exists. Spec `hierarchy-risk.allium:310-321`.
+26. ↪ `ScheduledLiquidityComputation` and `RecomputeLiquidityOnTrade` — neither wired. Spec `liquidity.allium:392-414`.
+27. ↪ `FactorPnlAttribution` end-to-end — Python computes; Kotlin never persists/surfaces. Spec `factor-model.allium:117-129,230-248`.
+28. ↪ `RegimeModelConfig` entity + four-eyes governance — entirely absent. Spec `regime.allium:103-118`.
+29. ↪ `data_quality_flag = stale_greeks` — never produced; 2-hour staleness check missing. Spec `risk.allium:531-533`.
+30. ↪ `IntradayPnlState` (frozen SOD cache) — entity doesn't exist; SOD re-read every recompute. Spec `intraday-pnl.allium:133-158`.
+31. ↪ `ComputeStressedLiquidity` rule — no HTTP/Kafka trigger; only inline. Spec `liquidity.allium:316-344`.
+32. ↪ `ScheduledCounterpartyRisk` separate `Requested` events — code calls one inline method. Spec `counterparty-risk.allium:437-448`.
+33. ↪ `CalculatePFE` and `CalculateCounterpartyExposure` separate in spec, merged in code (`CounterpartyRiskOrchestrationService.computeAndPersistPFE`). Spec `counterparty-risk.allium:236,286`.
+34. ↪ `IngestInstrumentLiquidity` daily batch flow — only HTTP, no Kafka subscriber.
+35. ↪ `RunReverseStressTest` shape — per-asset-class with vol_shock/iterations/tolerance_met (spec) vs per-instrument (code).
+36. ↪ `ReplayResult` summary metrics — drawdown/breach count/proxy coverage missing.
+37. ↪ `VerifyAuditChain` scheduled trigger — only ad-hoc verification.
+38. ↪ `TriggerCROReport` scheduled report — no handler.
+39. ↪ `AutoClosePromoteOnRiskResult` event-bridge — synchronous in code.
+40. ↪ `SendOrderToFIX` event-driven trigger — synchronous in code.
+41. ↪ `fill_retention` and `reconciliation_retention` cleanup jobs — none.
+
+## P3 — Stale spec / spec drift (low-risk spec edits)
+
+42. ☐ **Four-eyes principle spec stale.** `scenario-lifecycle.allium:124-127,448` says "current implementation does NOT enforce" but `regulatory-service/.../StressScenarioService.kt:73-75` does enforce it. Open question #1 silently resolved. **Spec edit only.**
+43. ☐ **`computePnlImpact` stub bug claim outdated.** `regulatory.allium:240-243` says it's broken; `StressScenarioService.kt:183-192` now delegates to `riskOrchestratorClient.runStressTest`. **Spec edit only.**
+44. ☐ **`PAGER_DUTY` note obsolete.** `alerts.allium:338-340` says PAGER_DUTY missing from `core.allium`; it's been there. **Spec edit only.**
+45. ☐ **"Sequential fetch" guidance stale.** `discovery-valuation.allium:268` says sequential; `MarketDataFetcher.kt:62-69` is async/parallel up to 10. **Spec edit only.**
+46. ☐ **`StressTestResultRecord` rename guidance never executed.** `scenarios.allium:226` says rename to avoid collision; code didn't. Either rename code or drop guidance. **Likely spec edit.**
+47. ☐ **`HierarchyRiskSnapshot.missing_books` field.** Spec property `PartialAggregationOnFailure` references it; snapshot only persists `isPartial`. Spec edit *or* code addition.
+48. ☐ **`AuditEvent.sequence_number` not in spec.** Real column, real gap-detection route, absent from spec entity (`audit.allium:39-65`). **Spec edit.**
+49. ☐ **`ReconciliationBreak.status` lifecycle absent from spec.** Full state machine in code (`ReconciliationBreak.kt:14`, `ReconciliationBreakStatus`); spec `execution.allium:42-49` stops at `severity`. **Spec edit.**
+50. ☐ **`fail-open vs fail-closed` open question stale.** `execution.allium:540` lists this as open; code has fail-closed (`OrderSubmissionService.kt:113-120`). **Spec edit.**
+51. ☐ **`MarketRegimeHistory` extra fields.** Code adds `id`, `confidence`, `degradedInputs`, `consecutiveObservations`, `durationMs`. Spec `regime.allium:94-101` doesn't model these. **Spec edit.**
+52. ☐ **`IntradayPnlSnapshot` extra fields `missingFxRates` and `dataQualityWarning`.** Real fields, undocumented. **Spec edit.**
+53. ☐ **`DailyRiskSnapshot` extra fields `varContribution`/`esContribution`/`sodVol`/`sodRate`.** Real columns, undocumented. **Spec edit.**
+54. ☐ **`FactorDecompositionSnapshot.concentration_warning`.** Real field, undocumented. **Spec edit.**
+55. ☐ **`InstrumentLiquidity` redundant enum** — see P1 #9; spec collapses, code splits.
+56. ☐ **`auto_close_time` env-var override** — spec mentions; verify wiring exists in `Application.kt`.
+
+## P4 — Type/nullability/cosmetic
+
+57. ☐ `SodBaseline.source_job_id` String non-null (spec) vs UUID? (code).
+58. ☐ `SavedScenario.description` nullability mismatch.
+59. ☐ `SavedScenario.correlation_override` and `shocks` types disagree with JSON-string storage.
+60. ☐ `StressTestResult.var_impact` Decimal? vs Double?.
+61. ☐ `InstrumentFactorLoading.factor` enum (spec) vs String (code).
+62. ☐ `FxRate.as_of` vs `updated_at` field naming.
+63. ☐ `NettingSetSummary` (spec) vs `NettingSetExposure` (code) value-type naming.
+64. ☐ `RegimeState.degraded_inputs` default differs.
+65. ☐ Counterparty exposure `Decimal` (spec) vs `Double` (code) — pervasive.
+66. ☐ `LiquidityRiskSnapshot.adv_data_as_of` nullability mismatch.
+67. ☐ `Counterparty.sector` nullable in orchestrator DTO but non-null at source.
+68. ☐ Enum casing convention `buy/sell` (spec lowercase) vs `BUY/SELL` (code Kotlin uppercase) — uniform translation; document once.
+
+## Specs in good shape
+
+- `audit.allium` — hash chain matches exactly; only `sequence_number` field gap (#48).
+- `scenario-lifecycle.allium` — tight; only stale four-eyes note (#42).
+- `core.allium` — pure declarative; only the enum casing note (#68).
+- `eod-close.allium` — promotion/supersession/mat-view retry/completeness gate match.
+
+## Counts
+
+- P0: 8 items
+- P1: 16 items
+- P2: 17 items (deferred / aspirational)
+- P3: 15 items (spec edits)
+- P4: 12 items (cosmetic)
+
+Total: 68 actionable + 17 deferred ≈ 85 (the four reports flagged ~110 raw observations; consolidated dedups overlapping liquidity-tier mentions etc.).
+
+## Recommended execution order
+
+1. **Batch A — P3 stale-spec edits** (#42-50, #68): parallel `tend` agents, no code change, no tests needed. Lowest risk.
+2. **Batch B — P3 distillation edits** (#51-54): add code-only fields back into spec via `tend`. Low risk.
+3. **Batch C — P0 trivial code fixes** (#1, #7, #8, #14, #16, #20, #22 if user picks `>=`): each is a single-file change with TDD.
+4. **Batch D — P0 input validation** (#4): six routes, one validation pattern. TDD.
+5. **Batch E — P0 schema/data integrity** (#6): Flyway migration + service-layer guards.
+6. **Batch F — P1 quant decisions** (#2, #3, #15, #17): need quant call before fixes.
+7. **Batch G — P1 contract drift** (#10, #11, #12, #18, #19, #21, #23, #24): mix of code + spec.
+8. **Batch H — P4 cosmetic type drift** (#57-67): mostly spec edits.
+9. **Batch I — P2 aspirational triage**: per-item decision: implement, defer, or deprecate from spec.
+
+Clear context between batches.
