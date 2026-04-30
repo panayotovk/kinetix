@@ -11,6 +11,12 @@ This document is the work-tracking source of truth for resolving the divergences
 - ✓ done
 - ↪ deferred (aspirational; out of scope for current cleanup)
 
+P2 aspirational items carry a Batch-I triage suffix:
+
+- **(triage: implement)** — keep in spec; queue real implementation work in a future sprint.
+- **(triage: defer)** — keep in spec; not on the current roadmap; revisit when a concrete consumer materializes.
+- **(triage: deprecate-from-spec)** — current code is the desired behaviour; spec is wrong. Remove or rewrite the spec rule.
+
 ---
 
 ## P0 — Production correctness (highest priority)
@@ -73,23 +79,23 @@ This document is the work-tracking source of truth for resolving the divergences
 
 ## P2 — Aspirational/missing rules
 
-25. ↪ `ScheduledHierarchyAggregation` — no scheduler exists. Spec `hierarchy-risk.allium:310-321`.
-26. ↪ `ScheduledLiquidityComputation` and `RecomputeLiquidityOnTrade` — neither wired. Spec `liquidity.allium:392-414`.
-27. ↪ `FactorPnlAttribution` end-to-end — Python computes; Kotlin never persists/surfaces. Spec `factor-model.allium:117-129,230-248`.
-28. ↪ `RegimeModelConfig` entity + four-eyes governance — entirely absent. Spec `regime.allium:103-118`.
-29. ↪ `data_quality_flag = stale_greeks` — never produced; 2-hour staleness check missing. Spec `risk.allium:531-533`.
-30. ↪ `IntradayPnlState` (frozen SOD cache) — entity doesn't exist; SOD re-read every recompute. Spec `intraday-pnl.allium:133-158`.
-31. ↪ `ComputeStressedLiquidity` rule — no HTTP/Kafka trigger; only inline. Spec `liquidity.allium:316-344`.
-32. ↪ `ScheduledCounterpartyRisk` separate `Requested` events — code calls one inline method. Spec `counterparty-risk.allium:437-448`.
-33. ↪ `CalculatePFE` and `CalculateCounterpartyExposure` separate in spec, merged in code (`CounterpartyRiskOrchestrationService.computeAndPersistPFE`). Spec `counterparty-risk.allium:236,286`.
-34. ↪ `IngestInstrumentLiquidity` daily batch flow — only HTTP, no Kafka subscriber.
-35. ↪ `RunReverseStressTest` shape — per-asset-class with vol_shock/iterations/tolerance_met (spec) vs per-instrument (code).
-36. ↪ `ReplayResult` summary metrics — drawdown/breach count/proxy coverage missing.
-37. ↪ `VerifyAuditChain` scheduled trigger — only ad-hoc verification.
-38. ↪ `TriggerCROReport` scheduled report — no handler.
-39. ↪ `AutoClosePromoteOnRiskResult` event-bridge — synchronous in code.
-40. ↪ `SendOrderToFIX` event-driven trigger — synchronous in code.
-41. ↪ `fill_retention` and `reconciliation_retention` cleanup jobs — none.
+25. ↪ `ScheduledHierarchyAggregation` — no scheduler exists. Spec `hierarchy-risk.allium:310-321`. **(triage: defer)** — on-demand aggregation already covers desk needs; scheduled run only matters when hierarchy view is the primary morning artefact, which it isn't yet.
+26. ↪ `ScheduledLiquidityComputation` and `RecomputeLiquidityOnTrade` — neither wired. Spec `liquidity.allium:392-414`. **(triage: defer)** — liquidity recomputed on-demand via `ComputePositionLiquidity`; scheduled refresh becomes useful only once liquidity drives an automated decision (e.g. hedge auto-accept), which it does not today.
+27. ↪ `FactorPnlAttribution` end-to-end — Python computes; Kotlin never persists/surfaces. Spec `factor-model.allium:117-129,230-248`. **(triage: implement)** — factor P&L attribution is the natural next step after factor decomposition and is already half-built; queue for a dedicated sprint after Q2 risk-budget work lands.
+28. ↪ `RegimeModelConfig` entity + four-eyes governance — entirely absent. Spec `regime.allium:103-118`. **(triage: implement)** — regulatory-relevant (model governance); promote to P1 when ADR-0034 is decided so the config and the classifier behaviour ship together.
+29. ↪ `data_quality_flag = stale_greeks` — never produced; 2-hour staleness check missing. Spec `risk.allium:531-533`. **(triage: implement)** — falls out of ADR-0032 (intraday Greek source). Implement the staleness flag in the same change set when A-3 is unblocked.
+30. ↪ `IntradayPnlState` (frozen SOD cache) — entity doesn't exist; SOD re-read every recompute. Spec `intraday-pnl.allium:133-158`. **(triage: defer)** — DB read on every recompute is acceptable today; revisit only when intraday recompute frequency or count of books makes the round-trip a measurable cost. Linked to ADR-0032.
+31. ↪ `ComputeStressedLiquidity` rule — no HTTP/Kafka trigger; only inline. Spec `liquidity.allium:316-344`. **(triage: defer)** — inline use is the only consumer; expose externally only when a downstream requester appears.
+32. ↪ `ScheduledCounterpartyRisk` separate `Requested` events — code calls one inline method. Spec `counterparty-risk.allium:437-448`. **(triage: deprecate-from-spec)** — splitting into per-counterparty events adds queue and observability cost without changing observable behaviour; rewrite the rule to model the inline orchestration.
+33. ↪ `CalculatePFE` and `CalculateCounterpartyExposure` separate in spec, merged in code (`CounterpartyRiskOrchestrationService.computeAndPersistPFE`). Spec `counterparty-risk.allium:236,286`. **(triage: deprecate-from-spec)** — the merge is intentional (single transaction; PFE and exposure share inputs and must be persisted together to keep snapshots consistent). Spec should describe one combined rule.
+34. ↪ `IngestInstrumentLiquidity` daily batch flow — only HTTP, no Kafka subscriber. **(triage: defer)** — current HTTP ingestion serves dev seeding and one-off corrections; revisit when a real daily vendor feed is wired.
+35. ↪ `RunReverseStressTest` shape — per-asset-class with vol_shock/iterations/tolerance_met (spec) vs per-instrument (code). **(triage: implement)** — spec shape is the right one for regulatory disclosure; align the code on the next reverse-stress-test feature pass and migrate persisted shape under a feature flag.
+36. ↪ `ReplayResult` summary metrics — drawdown/breach count/proxy coverage missing. **(triage: implement)** — these summary metrics are required for backtest sign-off; add when the backtest reporting page lands.
+37. ↪ `VerifyAuditChain` scheduled trigger — only ad-hoc verification. **(triage: implement)** — small lift, large assurance value; add once we have a generic recurring-job runner (or piggyback on the EOD scheduler).
+38. ↪ `TriggerCROReport` scheduled report — no handler. **(triage: defer)** — manual trigger is currently sufficient; promote when CRO function asks for a recurring cadence.
+39. ↪ `AutoClosePromoteOnRiskResult` event-bridge — synchronous in code. **(triage: deprecate-from-spec)** — synchronous in-process call is simpler, equivalent, and avoids an additional Kafka topic with its own ordering and retry semantics for what is a 1-to-1 trigger.
+40. ↪ `SendOrderToFIX` event-driven trigger — synchronous in code. **(triage: deprecate-from-spec)** — order submission is inherently synchronous (the trader needs the FIX `ExecutionReport` reply on the same call); modelling it as event-driven adds latency without functional benefit.
+41. ↪ `fill_retention` and `reconciliation_retention` cleanup jobs — none. **(triage: implement)** — DB hygiene + compliance retention rules require this; implement under a single lifecycle-jobs effort that also handles audit chain (#37) and any other recurring sweeps.
 
 ## P3 — Stale spec / spec drift (low-risk spec edits)
 
@@ -106,8 +112,8 @@ This document is the work-tracking source of truth for resolving the divergences
 52. ✓ **`IntradayPnlSnapshot` extra fields `missingFxRates` and `dataQualityWarning`.** Real fields, undocumented. **Spec edit.**
 53. ✓ **`DailyRiskSnapshot` extra fields `varContribution`/`esContribution`/`sodVol`/`sodRate`.** Real columns, undocumented. **Spec edit.**
 54. ✓ **`FactorDecompositionSnapshot.concentration_warning`.** Real field, undocumented. **Spec edit.**
-55. ☐ **`InstrumentLiquidity` redundant enum** — see P1 #9; spec collapses, code splits.
-56. ☐ **`auto_close_time` env-var override** — spec mentions; verify wiring exists in `Application.kt`.
+55. ↪ **`InstrumentLiquidity` redundant enum** — see P1 #9; spec collapses, code splits. **(triage: implement)** — closes automatically when A-9 lands; no separate work.
+56. ↪ **`auto_close_time` env-var override** — spec mentions; verify wiring exists in `Application.kt`. **(triage: implement)** — small verification ticket; if the wiring is missing, it is a 5-line config read; if present, just confirm and tick off.
 
 ## P4 — Type/nullability/cosmetic
 
