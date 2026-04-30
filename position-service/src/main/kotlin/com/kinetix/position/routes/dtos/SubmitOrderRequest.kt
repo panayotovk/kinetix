@@ -14,4 +14,11 @@ data class SubmitOrderRequest(
     val fixSessionId: String? = null,
     val assetClass: String = "EQUITY",
     val currency: String = "USD",
+    /**
+     * Optional ISO-8601 instant when the arrival price was observed. When supplied,
+     * orders are rejected with 400 if the price is stale per
+     * `OrderSubmissionService.ARRIVAL_PRICE_MAX_AGE_MS`. Spec: execution.allium
+     * arrival-price staleness check.
+     */
+    val arrivalPriceTimestamp: String? = null,
 )

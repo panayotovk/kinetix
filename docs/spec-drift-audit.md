@@ -49,7 +49,7 @@ This document is the work-tracking source of truth for resolving the divergences
 
 13. ☐ **`ExpireDayOrder` rule has no implementation.** `OrderStatus.EXPIRED` enum exists; no service or scheduled job ever transitions to it. Spec `execution.allium:461-474`.
 
-14. ☐ **Arrival-price staleness check is dead code via HTTP.** `position-service/.../OrderRoutes.kt:45-56` doesn't accept `arrivalPriceTimestamp`; `OrderSubmissionService.kt:65-70` only checks staleness when timestamp non-null. Fix: wire the field through the request DTO.
+14. ✓ **Arrival-price staleness check is dead code via HTTP.** `position-service/.../OrderRoutes.kt:45-56` doesn't accept `arrivalPriceTimestamp`; `OrderSubmissionService.kt:65-70` only checks staleness when timestamp non-null. Fix: wire the field through the request DTO.
 
 15. ⚠ **Vol-surface diff uses nearest-neighbour instead of interpolation.** `volatility-service/.../VolatilityRoutes.kt:153-195` (`computeUnionGridDiff`/`nearestVol`). Spec `market-data.allium:91-93,244-249` says interpolate. Methodology choice — needs quant call.
 

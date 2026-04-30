@@ -11,6 +11,8 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.math.BigDecimal
+import java.time.Instant
+import java.time.format.DateTimeParseException
 
 fun Route.orderRoutes(orderSubmissionService: OrderSubmissionService) {
     route("/api/v1/orders") {
@@ -42,6 +44,14 @@ fun Route.orderRoutes(orderSubmissionService: OrderSubmissionService) {
                     ?: throw IllegalArgumentException("Invalid limitPrice '$it'")
             }
 
+            val arrivalPriceTimestamp = request.arrivalPriceTimestamp?.let {
+                try {
+                    Instant.parse(it)
+                } catch (e: DateTimeParseException) {
+                    throw IllegalArgumentException("Invalid arrivalPriceTimestamp '$it'")
+                }
+            }
+
             val order = orderSubmissionService.submit(
                 bookId = request.bookId,
                 instrumentId = request.instrumentId,
@@ -53,6 +63,7 @@ fun Route.orderRoutes(orderSubmissionService: OrderSubmissionService) {
                 fixSessionId = request.fixSessionId,
                 assetClass = request.assetClass,
                 currency = request.currency,
+                arrivalPriceTimestamp = arrivalPriceTimestamp,
             )
 
             call.respond(HttpStatusCode.Created, order.toResponse())
