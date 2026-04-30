@@ -558,8 +558,12 @@ rule PromoteToOfficialEod {
     let job = ValuationJob{job_id: job_id}
     requires: job.status = completed
     requires: job.promoted_at = null
-    -- triggered_by is always populated; this is an unconditional four-eyes check.
-    requires: promoted_by != job.triggered_by
+    -- Four-eyes check: a human promoter must differ from the human who
+    -- triggered the run. The system promoter "AUTO_CLOSE" is the EOD
+    -- scheduler and is exempt — automated end-of-day close is, by
+    -- design, not a human approval and the audit trail records the
+    -- promotion as system-initiated.
+    requires: promoted_by = "AUTO_CLOSE" or promoted_by != job.triggered_by
 
     ensures: job.run_label = official_eod
     ensures: job.promoted_at = now
@@ -573,6 +577,13 @@ rule PromoteToOfficialEod {
         --   If exists and different job_id, call supersedeOfficialEod().
         -- Post-promotion: refresh daily_official_eod_summary materialized view.
         -- Promoted jobs are immutable; subsequent updates throw.
+        --
+        -- AUTO_CLOSE carve-out: when the EOD scheduler promotes
+        -- automatically (promoted_by = "AUTO_CLOSE"), the four-eyes
+        -- requires above is satisfied vacuously. The audit_log entry
+        -- records user_role = "AUTO_CLOSE" so a human reviewer can
+        -- distinguish system-promoted from human-promoted runs.
+        -- Implemented by EodPromotionService.promoteToOfficialEodAutomatically.
 }
 
 rule PromoteToEodRejectedNotCompleted {

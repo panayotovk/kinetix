@@ -45,7 +45,7 @@ This document is the work-tracking source of truth for resolving the divergences
 
 11. ⚠ **`TradeEvent` Kafka payload drops `counterpartyId` and `strategyId`.** `common/.../TradeEventMessage.from()` (`TradeEventMessage.kt:32-50`) populates 17 fields but omits these. Downstream consumers can't see counterparty/strategy. Either restore the fields or update spec to acknowledge omission.
 
-12. ⚠ **EOD self-promotion bypass for AUTO_CLOSE.** `EodPromotionService.promoteToOfficialEodAutomatically` skips the `triggered_by != promoted_by` check (`EodPromotionService.kt:47-59`). Spec invariant unconditional (`risk.allium:546`). Likely intentional — spec needs an `AUTO_CLOSE` carve-out.
+12. ✓ **EOD self-promotion bypass for AUTO_CLOSE.** `EodPromotionService.promoteToOfficialEodAutomatically` skips the `triggered_by != promoted_by` check (`EodPromotionService.kt:47-59`). Spec invariant unconditional (`risk.allium:546`). Resolved by editing the `PromoteToOfficialEod` rule to carve `AUTO_CLOSE` out of the four-eyes guard with explanatory guidance pointing back at the implementation. **Spec edit only.**
 
 13. ☐ **`ExpireDayOrder` rule has no implementation.** `OrderStatus.EXPIRED` enum exists; no service or scheduled job ever transitions to it. Spec `execution.allium:461-474`.
 
