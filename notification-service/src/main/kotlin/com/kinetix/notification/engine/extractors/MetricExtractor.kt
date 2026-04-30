@@ -98,6 +98,33 @@ class FactorConcentrationExtractor : MetricExtractor {
     }
 }
 
+/**
+ * Extracts risk budget utilisation as a percentage when a budget breach event arrives.
+ *
+ * The risk-orchestrator publishes a [RiskResultEvent] with a sentinel
+ * [com.kinetix.common.kafka.events.ConcentrationItem] (instrumentId = "VAR_BUDGET")
+ * carrying the entity's utilisation percentage. This extractor returns the
+ * percentage when the sentinel is present, null otherwise.
+ *
+ * A rule with type=RISK_BUDGET_EXCEEDED, threshold=100, operator=GREATER_THAN
+ * fires whenever VaR exceeds the allocated budget.
+ *
+ * Spec: hierarchy-risk.allium AlertOnBudgetBreach.
+ */
+class BudgetBreachExtractor : MetricExtractor {
+    override val type = AlertType.RISK_BUDGET_EXCEEDED
+
+    override fun extract(event: RiskResultEvent): Double? {
+        return event.concentrationByInstrument
+            ?.firstOrNull { it.instrumentId == BUDGET_BREACH_SENTINEL_ID }
+            ?.percentage
+    }
+
+    companion object {
+        const val BUDGET_BREACH_SENTINEL_ID = "VAR_BUDGET"
+    }
+}
+
 val DEFAULT_EXTRACTORS: List<MetricExtractor> = listOf(
     VarBreachExtractor(),
     PnlThresholdExtractor(),
@@ -109,4 +136,5 @@ val DEFAULT_EXTRACTORS: List<MetricExtractor> = listOf(
     DataStalenessExtractor(),
     LiquidityConcentrationExtractor(),
     FactorConcentrationExtractor(),
+    BudgetBreachExtractor(),
 )

@@ -104,9 +104,11 @@ enum RunLabel { adhoc | sod | intraday | overnight | pre_close | official_eod | 
 
 enum ManifestStatus { inputs_frozen | complete | partial | failed }
 
-enum AlertType { var_breach | pnl_threshold | risk_limit | delta_breach | vega_breach | concentration | margin_breach | data_staleness | liquidity_concentration | regime_change | factor_concentration | limit_breach }
+enum AlertType { var_breach | pnl_threshold | risk_limit | delta_breach | vega_breach | concentration | margin_breach | data_staleness | liquidity_concentration | regime_change | factor_concentration | limit_breach | risk_budget_exceeded }
 -- limit_breach is emitted by alerts/EvaluateLimitBreach when a HARD pre-trade
 -- limit blocks a trade booking. Distinct from risk_limit (rule-engine driven).
+-- risk_budget_exceeded is emitted by hierarchy-risk/AlertOnBudgetBreach when
+-- a hierarchy entity's VaR exceeds its allocated VAR_BUDGET.
 
 enum AlertStatus { triggered | acknowledged | escalated | resolved }
 

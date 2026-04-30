@@ -483,8 +483,10 @@ fun Application.moduleWithRoutes() {
         referenceDataBaseUrl = referenceDataServiceBaseUrl,
         positionServiceBaseUrl = positionServiceBaseUrl,
     )
+    val budgetBreachAlertPublisher = com.kinetix.risk.kafka.KafkaBudgetBreachAlertPublisher(kafkaProducer)
     val budgetUtilisationService = com.kinetix.risk.service.BudgetUtilisationService(
         budgetRepository = riskBudgetAllocationRepository,
+        alertPublisher = budgetBreachAlertPublisher,
     )
     val hierarchyRiskService = HierarchyRiskService(
         hierarchyDataClient = hierarchyDataClient,

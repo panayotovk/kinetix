@@ -33,7 +33,7 @@ This document is the work-tracking source of truth for resolving the divergences
 
 6. ☐ **`UniqueLimitDefinition` invariant not enforced.** `position-service/.../persistence/LimitDefinitionsTable.kt:18` has no unique constraint on `(level, entity_id, limit_type)`. `singleOrNull()` lookup throws if duplicates appear. Fix: Flyway migration adding the unique constraint.
 
-7. ☐ **`AlertOnBudgetBreach` unimplemented.** Explicit `TODO(HIER-03)` in `risk-orchestrator/.../BudgetUtilisationService.kt:63-71` — breach is logged, no alert published. Spec rule (`hierarchy-risk.allium:241-255`) mandates `RISK_BUDGET_EXCEEDED` via notification-service.
+7. ✓ **`AlertOnBudgetBreach` unimplemented.** Explicit `TODO(HIER-03)` in `risk-orchestrator/.../BudgetUtilisationService.kt:63-71` — breach is logged, no alert published. Spec rule (`hierarchy-risk.allium:241-255`) mandates `RISK_BUDGET_EXCEEDED` via notification-service.
 
 8. ☐ **`AcknowledgeSubmission` discards regulator timestamp.** `regulatory-service/.../SubmissionService.kt:78-98` uses `Instant.now()` instead of regulator-supplied `acknowledged_at`. Route at `SubmissionRoutes.kt:74-87` accepts no body. Spec rule `AcknowledgeSubmission` (`regulatory.allium:354-359`).
 

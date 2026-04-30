@@ -1,7 +1,9 @@
 package com.kinetix.risk.service
 
+import com.kinetix.risk.kafka.BudgetBreachAlertPublisher
 import com.kinetix.risk.model.BreachStatus
 import com.kinetix.risk.model.BudgetPeriod
+import com.kinetix.risk.model.BudgetUtilisation
 import com.kinetix.risk.model.HierarchyLevel
 import com.kinetix.risk.model.RiskBudgetAllocation
 import com.kinetix.risk.persistence.RiskBudgetAllocationRepository
@@ -9,6 +11,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.clearMocks
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -16,14 +19,19 @@ import java.time.LocalDate
 class BudgetUtilisationServiceTest : FunSpec({
 
     val budgetRepository = mockk<RiskBudgetAllocationRepository>()
+    val alertPublisher = mockk<BudgetBreachAlertPublisher>(relaxed = true)
 
     val service = BudgetUtilisationService(
         budgetRepository = budgetRepository,
+        alertPublisher = alertPublisher,
         warningThreshold = 0.80,
         breachThreshold = 1.00,
     )
 
-    beforeEach { clearMocks(budgetRepository) }
+    beforeEach {
+        clearMocks(budgetRepository)
+        clearMocks(alertPublisher)
+    }
 
     // ── Status determination ──────────────────────────────────────────────────
 
@@ -109,6 +117,48 @@ class BudgetUtilisationServiceTest : FunSpec({
         result.entityId shouldBe "div-equities"
         result.budgetType shouldBe "VAR_BUDGET"
         result.currentVar.compareTo(currentVar) shouldBe 0
+    }
+
+    // ── AlertOnBudgetBreach (audit A-7) ───────────────────────────────────────
+
+    test("publishes a RISK_BUDGET_EXCEEDED alert when breach status is BREACH") {
+        stubBudget(budgetRepository, HierarchyLevel.DESK, "desk-rates", budgetAmount = 5_000_000.0)
+
+        service.computeUtilisation(
+            level = HierarchyLevel.DESK,
+            entityId = "desk-rates",
+            currentVar = BigDecimal("5500000.0"),
+        )
+
+        coVerify(exactly = 1) {
+            alertPublisher.publishBreach(
+                match<BudgetUtilisation> { it.breachStatus == BreachStatus.BREACH },
+            )
+        }
+    }
+
+    test("does not publish an alert when status is WITHIN_BUDGET") {
+        stubBudget(budgetRepository, HierarchyLevel.DESK, "desk-rates", budgetAmount = 5_000_000.0)
+
+        service.computeUtilisation(
+            level = HierarchyLevel.DESK,
+            entityId = "desk-rates",
+            currentVar = BigDecimal("3000000.0"),
+        )
+
+        coVerify(exactly = 0) { alertPublisher.publishBreach(any()) }
+    }
+
+    test("does not publish an alert when status is WARNING (only BREACH triggers)") {
+        stubBudget(budgetRepository, HierarchyLevel.DESK, "desk-rates", budgetAmount = 5_000_000.0)
+
+        service.computeUtilisation(
+            level = HierarchyLevel.DESK,
+            entityId = "desk-rates",
+            currentVar = BigDecimal("4000000.0"),
+        )
+
+        coVerify(exactly = 0) { alertPublisher.publishBreach(any()) }
     }
 })
 

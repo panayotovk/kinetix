@@ -1,5 +1,7 @@
 package com.kinetix.risk.service
 
+import com.kinetix.risk.kafka.BudgetBreachAlertPublisher
+import com.kinetix.risk.kafka.NoOpBudgetBreachAlertPublisher
 import com.kinetix.risk.model.BreachStatus
 import com.kinetix.risk.model.BudgetUtilisation
 import com.kinetix.risk.model.HierarchyLevel
@@ -17,10 +19,14 @@ import java.time.LocalDate
  *  - WARNING at [warningThreshold] (default 0.80 = 80%)
  *  - BREACH at [breachThreshold] (default 1.00 = 100%)
  *
+ * On BREACH the service publishes a `RISK_BUDGET_EXCEEDED` alert via
+ * [alertPublisher] (spec: hierarchy-risk.allium AlertOnBudgetBreach).
+ *
  * Returns null when no active budget is configured for the entity.
  */
 class BudgetUtilisationService(
     private val budgetRepository: RiskBudgetAllocationRepository,
+    private val alertPublisher: BudgetBreachAlertPublisher = NoOpBudgetBreachAlertPublisher,
     private val warningThreshold: Double = 0.80,
     private val breachThreshold: Double = 1.00,
 ) {
@@ -65,12 +71,9 @@ class BudgetUtilisationService(
                 "Budget utilisation {} for {} {}: currentVar={}, budget={}, utilisation={}%",
                 breachStatus, level, entityId, currentVar, budgetAmount, utilisationPct,
             )
-            // TODO(HIER-03): publish a VAR_BUDGET_BREACH alert event to the notification-service
-            // via an AlertEventPublisher when breachStatus == BreachStatus.BREACH.
-            // Include entityLevel, entityId, utilisationPct, and a breach timestamp.
         }
 
-        return BudgetUtilisation(
+        val utilisation = BudgetUtilisation(
             entityLevel = level,
             entityId = entityId,
             budgetType = allocation.budgetType,
@@ -80,5 +83,11 @@ class BudgetUtilisationService(
             breachStatus = breachStatus,
             updatedAt = Instant.now(),
         )
+
+        if (breachStatus == BreachStatus.BREACH) {
+            alertPublisher.publishBreach(utilisation)
+        }
+
+        return utilisation
     }
 }
