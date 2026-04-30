@@ -95,7 +95,7 @@ class SubmissionRoutesTest : FunSpec({
         }
     }
 
-    test("PATCH /api/v1/submissions/{id}/acknowledge transitions to ACKNOWLEDGED") {
+    test("PATCH /api/v1/submissions/{id}/acknowledge persists the regulator-supplied timestamp verbatim") {
         val id = UUID.randomUUID().toString()
         val submission = RegulatorySubmission(
             id = id,
@@ -116,11 +116,14 @@ class SubmissionRoutesTest : FunSpec({
                 module(mockk<FrtbCalculationRepository>(), mockk<RiskOrchestratorClient>())
                 routing { submissionRoutes(service) }
             }
-            val response = client.patch("/api/v1/submissions/$id/acknowledge")
+            val response = client.patch("/api/v1/submissions/$id/acknowledge") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"acknowledgedAt":"2026-04-15T09:30:00Z"}""")
+            }
             response.status shouldBe HttpStatusCode.OK
             val body = response.bodyAsText()
             body shouldContain "\"status\":\"ACKNOWLEDGED\""
-            body shouldContain "\"acknowledgedAt\":"
+            body shouldContain "\"acknowledgedAt\":\"2026-04-15T09:30:00Z\""
         }
     }
 
@@ -144,7 +147,26 @@ class SubmissionRoutesTest : FunSpec({
                 module(mockk<FrtbCalculationRepository>(), mockk<RiskOrchestratorClient>())
                 routing { submissionRoutes(service) }
             }
-            val response = client.patch("/api/v1/submissions/$id/acknowledge")
+            val response = client.patch("/api/v1/submissions/$id/acknowledge") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"acknowledgedAt":"2026-04-15T09:30:00Z"}""")
+            }
+            response.status shouldBe HttpStatusCode.BadRequest
+        }
+    }
+
+    test("PATCH /api/v1/submissions/{id}/acknowledge rejects an unparseable timestamp with 400") {
+        val id = UUID.randomUUID().toString()
+
+        testApplication {
+            application {
+                module(mockk<FrtbCalculationRepository>(), mockk<RiskOrchestratorClient>())
+                routing { submissionRoutes(service) }
+            }
+            val response = client.patch("/api/v1/submissions/$id/acknowledge") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"acknowledgedAt":"not-a-timestamp"}""")
+            }
             response.status shouldBe HttpStatusCode.BadRequest
         }
     }

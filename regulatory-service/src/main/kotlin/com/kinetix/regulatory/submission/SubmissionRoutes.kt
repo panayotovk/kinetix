@@ -1,5 +1,6 @@
 package com.kinetix.regulatory.submission
 
+import com.kinetix.regulatory.submission.dtos.AcknowledgeSubmissionRequest
 import com.kinetix.regulatory.submission.dtos.ApproveSubmissionRequest
 import com.kinetix.regulatory.submission.dtos.CreateSubmissionRequest
 import com.kinetix.regulatory.submission.dtos.SubmissionResponse
@@ -72,16 +73,23 @@ fun Route.submissionRoutes(service: SubmissionService) {
         }
 
         patch("/{id}/acknowledge", {
-            summary = "Acknowledge a submitted submission"
+            summary = "Acknowledge a submitted submission with the regulator-supplied timestamp"
             tags = listOf("Submissions")
             request {
                 pathParameter<String>("id") { description = "Submission identifier" }
+                body<AcknowledgeSubmissionRequest>()
             }
         }) {
             val id = call.parameters["id"]
                 ?: throw IllegalArgumentException("Missing required path parameter: id")
-            logger.info("Acknowledgement requested: id={}", id)
-            val updated = service.acknowledge(id)
+            val request = call.receive<AcknowledgeSubmissionRequest>()
+            val acknowledgedAt = try {
+                Instant.parse(request.acknowledgedAt)
+            } catch (e: java.time.format.DateTimeParseException) {
+                throw IllegalArgumentException("Invalid acknowledgedAt timestamp: ${request.acknowledgedAt}")
+            }
+            logger.info("Acknowledgement requested: id={}, acknowledgedAt={}", id, acknowledgedAt)
+            val updated = service.acknowledge(id, acknowledgedAt)
             logger.info("Submission acknowledged: id={}, acknowledgedAt={}", updated.id, updated.acknowledgedAt)
             call.respond(updated.toResponse())
         }

@@ -75,14 +75,14 @@ class SubmissionService(
         return updated
     }
 
-    suspend fun acknowledge(id: String): RegulatorySubmission {
+    suspend fun acknowledge(id: String, acknowledgedAt: Instant): RegulatorySubmission {
         val submission = findOrThrow(id)
         if (submission.status != SubmissionStatus.SUBMITTED) {
             throw IllegalStateException("Can only acknowledge from SUBMITTED status, current: ${submission.status}")
         }
         val updated = submission.copy(
             status = SubmissionStatus.ACKNOWLEDGED,
-            acknowledgedAt = Instant.now(),
+            acknowledgedAt = acknowledgedAt,
         )
         repository.save(updated)
         auditPublisher?.publish(

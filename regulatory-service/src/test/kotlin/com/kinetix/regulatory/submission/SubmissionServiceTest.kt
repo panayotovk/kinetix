@@ -131,15 +131,32 @@ class SubmissionServiceTest : FunSpec({
         }
     }
 
-    test("transitions from SUBMITTED to ACKNOWLEDGED") {
+    test("transitions from SUBMITTED to ACKNOWLEDGED with regulator-supplied timestamp") {
         val id = UUID.randomUUID().toString()
         val submission = aSubmission(id = id, status = SubmissionStatus.SUBMITTED)
         coEvery { repository.findById(id) } returns submission
         coEvery { repository.save(any()) } returns Unit
 
-        val result = service.acknowledge(id)
+        val regulatorTimestamp = Instant.parse("2026-04-15T09:30:00Z")
+        val result = service.acknowledge(id, acknowledgedAt = regulatorTimestamp)
 
         result.status shouldBe SubmissionStatus.ACKNOWLEDGED
+        result.acknowledgedAt shouldBe regulatorTimestamp
+    }
+
+    test("preserves regulator timestamp distinct from system clock") {
+        // The regulator's clock and the receiving service's clock differ; the
+        // regulator-supplied value must be persisted verbatim per spec
+        // AcknowledgeSubmission (regulatory.allium:351-356).
+        val id = UUID.randomUUID().toString()
+        val submission = aSubmission(id = id, status = SubmissionStatus.SUBMITTED)
+        coEvery { repository.findById(id) } returns submission
+        coEvery { repository.save(any()) } returns Unit
+
+        val pastTimestamp = Instant.parse("2026-04-10T08:00:00Z")
+        val result = service.acknowledge(id, acknowledgedAt = pastTimestamp)
+
+        result.acknowledgedAt shouldBe pastTimestamp
         result.acknowledgedAt shouldNotBe null
     }
 
@@ -149,7 +166,7 @@ class SubmissionServiceTest : FunSpec({
         coEvery { repository.findById(id) } returns submission
 
         shouldThrow<IllegalStateException> {
-            service.acknowledge(id)
+            service.acknowledge(id, acknowledgedAt = Instant.parse("2026-04-15T09:30:00Z"))
         }.message shouldBe "Can only acknowledge from SUBMITTED status, current: APPROVED"
     }
 

@@ -35,7 +35,7 @@ This document is the work-tracking source of truth for resolving the divergences
 
 7. ✓ **`AlertOnBudgetBreach` unimplemented.** Explicit `TODO(HIER-03)` in `risk-orchestrator/.../BudgetUtilisationService.kt:63-71` — breach is logged, no alert published. Spec rule (`hierarchy-risk.allium:241-255`) mandates `RISK_BUDGET_EXCEEDED` via notification-service.
 
-8. ☐ **`AcknowledgeSubmission` discards regulator timestamp.** `regulatory-service/.../SubmissionService.kt:78-98` uses `Instant.now()` instead of regulator-supplied `acknowledged_at`. Route at `SubmissionRoutes.kt:74-87` accepts no body. Spec rule `AcknowledgeSubmission` (`regulatory.allium:354-359`).
+8. ✓ **`AcknowledgeSubmission` discards regulator timestamp.** `regulatory-service/.../SubmissionService.kt:78-98` uses `Instant.now()` instead of regulator-supplied `acknowledged_at`. Route at `SubmissionRoutes.kt:74-87` accepts no body. Spec rule `AcknowledgeSubmission` (`regulatory.allium:354-359`).
 
 ## P1 — Behavioural divergence
 

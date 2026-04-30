@@ -59,7 +59,7 @@ class SubmissionAuditTest : FunSpec({
         val publishedSlot = slot<org.apache.kafka.clients.producer.ProducerRecord<String, String>>()
         every { producer.send(capture(publishedSlot)) } returns givenFuture()
 
-        service.acknowledge(id)
+        service.acknowledge(id, acknowledgedAt = Instant.parse("2026-04-15T09:30:00Z"))
 
         verify(exactly = 1) { producer.send(any()) }
         val decoded = Json { ignoreUnknownKeys = true }
