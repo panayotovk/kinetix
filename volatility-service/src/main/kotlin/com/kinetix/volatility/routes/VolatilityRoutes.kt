@@ -119,6 +119,12 @@ fun Route.volatilityRoutes(
                 }
             }) {
                 val request = call.receive<IngestVolSurfaceRequest>()
+                require(request.points.isNotEmpty()) { "points must contain at least one entry" }
+                request.points.forEach { p ->
+                    require(p.strike > 0.0) { "strike must be positive, was ${p.strike}" }
+                    require(p.maturityDays > 0) { "maturityDays must be positive, was ${p.maturityDays}" }
+                    require(p.impliedVol > 0.0) { "impliedVol must be positive, was ${p.impliedVol}" }
+                }
                 val surface = VolSurface(
                     instrumentId = InstrumentId(request.instrumentId),
                     asOf = Instant.now(),

@@ -113,6 +113,25 @@ class VolatilityRoutesTest : FunSpec({
         }
     }
 
+    test("POST surfaces returns 400 when points list is empty") {
+        testApplication {
+            application { module(volSurfaceRepo, ingestionService) }
+
+            val response = client.post("/api/v1/volatility/surfaces") {
+                contentType(ContentType.Application.Json)
+                setBody("""
+                    {
+                        "instrumentId": "AAPL",
+                        "points": [],
+                        "source": "BLOOMBERG"
+                    }
+                """.trimIndent())
+            }
+            response.status shouldBe HttpStatusCode.BadRequest
+            response.bodyAsText() shouldContain "points must contain at least one entry"
+        }
+    }
+
     test("POST surfaces returns 400 when any vol point has zero implied vol") {
         testApplication {
             application { module(volSurfaceRepo, ingestionService) }
@@ -131,6 +150,7 @@ class VolatilityRoutesTest : FunSpec({
                 """.trimIndent())
             }
             response.status shouldBe HttpStatusCode.BadRequest
+            response.bodyAsText() shouldContain "impliedVol must be positive"
         }
     }
 
@@ -149,6 +169,45 @@ class VolatilityRoutesTest : FunSpec({
                 """.trimIndent())
             }
             response.status shouldBe HttpStatusCode.BadRequest
+            response.bodyAsText() shouldContain "impliedVol must be positive"
+        }
+    }
+
+    test("POST surfaces returns 400 when any vol point has non-positive strike") {
+        testApplication {
+            application { module(volSurfaceRepo, ingestionService) }
+
+            val response = client.post("/api/v1/volatility/surfaces") {
+                contentType(ContentType.Application.Json)
+                setBody("""
+                    {
+                        "instrumentId": "AAPL",
+                        "points": [{"strike": 0.0, "maturityDays": 30, "impliedVol": 0.25}],
+                        "source": "BLOOMBERG"
+                    }
+                """.trimIndent())
+            }
+            response.status shouldBe HttpStatusCode.BadRequest
+            response.bodyAsText() shouldContain "strike must be positive"
+        }
+    }
+
+    test("POST surfaces returns 400 when any vol point has non-positive maturityDays") {
+        testApplication {
+            application { module(volSurfaceRepo, ingestionService) }
+
+            val response = client.post("/api/v1/volatility/surfaces") {
+                contentType(ContentType.Application.Json)
+                setBody("""
+                    {
+                        "instrumentId": "AAPL",
+                        "points": [{"strike": 100.0, "maturityDays": 0, "impliedVol": 0.25}],
+                        "source": "BLOOMBERG"
+                    }
+                """.trimIndent())
+            }
+            response.status shouldBe HttpStatusCode.BadRequest
+            response.bodyAsText() shouldContain "maturityDays must be positive"
         }
     }
 
