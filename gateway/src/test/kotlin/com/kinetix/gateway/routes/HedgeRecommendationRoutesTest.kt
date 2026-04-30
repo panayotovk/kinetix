@@ -130,4 +130,98 @@ class HedgeRecommendationRoutesTest : FunSpec({
             response.status shouldBe HttpStatusCode.NotFound
         }
     }
+
+    test("POST /api/v1/risk/hedge-suggest/{bookId}/{id}/accept proxies request and returns 200") {
+        val accepted = buildJsonObject {
+            put("id", "00000000-0000-0000-0000-000000000001")
+            put("bookId", "BOOK-1")
+            put("status", "ACCEPTED")
+            put("acceptedBy", "trader@example.com")
+        }
+        val bodySlot = mutableListOf<JsonObject>()
+        coEvery {
+            riskClient.acceptHedgeRecommendation(
+                "BOOK-1",
+                "00000000-0000-0000-0000-000000000001",
+                capture(bodySlot),
+            )
+        } returns accepted
+
+        testApplication {
+            application { module(riskClient) }
+            val response = client.post(
+                "/api/v1/risk/hedge-suggest/BOOK-1/00000000-0000-0000-0000-000000000001/accept",
+            ) {
+                contentType(ContentType.Application.Json)
+                setBody("""{"acceptedBy":"trader@example.com","suggestionIndices":[0,1]}""")
+            }
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["status"]?.jsonPrimitive?.content shouldBe "ACCEPTED"
+            body["acceptedBy"]?.jsonPrimitive?.content shouldBe "trader@example.com"
+            bodySlot.first()["acceptedBy"]?.jsonPrimitive?.content shouldBe "trader@example.com"
+        }
+    }
+
+    test("POST /api/v1/risk/hedge-suggest/{bookId}/{id}/accept returns 404 when not found") {
+        coEvery {
+            riskClient.acceptHedgeRecommendation(
+                "BOOK-1",
+                "99999999-9999-9999-9999-999999999999",
+                any(),
+            )
+        } returns null
+
+        testApplication {
+            application { module(riskClient) }
+            val response = client.post(
+                "/api/v1/risk/hedge-suggest/BOOK-1/99999999-9999-9999-9999-999999999999/accept",
+            ) {
+                contentType(ContentType.Application.Json)
+                setBody("""{"acceptedBy":"trader@example.com"}""")
+            }
+            response.status shouldBe HttpStatusCode.NotFound
+        }
+    }
+
+    test("POST /api/v1/risk/hedge-suggest/{bookId}/{id}/reject proxies request and returns 200") {
+        val rejected = buildJsonObject {
+            put("id", "00000000-0000-0000-0000-000000000001")
+            put("bookId", "BOOK-1")
+            put("status", "REJECTED")
+        }
+        coEvery {
+            riskClient.rejectHedgeRecommendation(
+                "BOOK-1",
+                "00000000-0000-0000-0000-000000000001",
+            )
+        } returns rejected
+
+        testApplication {
+            application { module(riskClient) }
+            val response = client.post(
+                "/api/v1/risk/hedge-suggest/BOOK-1/00000000-0000-0000-0000-000000000001/reject",
+            )
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["status"]?.jsonPrimitive?.content shouldBe "REJECTED"
+        }
+    }
+
+    test("POST /api/v1/risk/hedge-suggest/{bookId}/{id}/reject returns 404 when not found") {
+        coEvery {
+            riskClient.rejectHedgeRecommendation(
+                "BOOK-1",
+                "99999999-9999-9999-9999-999999999999",
+            )
+        } returns null
+
+        testApplication {
+            application { module(riskClient) }
+            val response = client.post(
+                "/api/v1/risk/hedge-suggest/BOOK-1/99999999-9999-9999-9999-999999999999/reject",
+            )
+            response.status shouldBe HttpStatusCode.NotFound
+        }
+    }
 })

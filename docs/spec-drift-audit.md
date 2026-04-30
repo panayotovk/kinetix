@@ -63,7 +63,7 @@ This document is the work-tracking source of truth for resolving the divergences
 
 20. ✓ **`expire_all_pending_past_deadline` does N+1 updates instead of single UPDATE.** `risk-orchestrator/.../ExposedHedgeRecommendationRepository.kt:88-104`. Spec `hedge.allium:304-308`.
 
-21. ☐ **Hedge accept/reject endpoints not proxied through gateway.** `gateway/.../HedgeRecommendationRoutes.kt` only proxies POST (suggest), GET (list/single). Risk-orchestrator exposes accept/reject at `HedgeRecommendationRoutes.kt:80,106`.
+21. ✓ **Hedge accept/reject endpoints not proxied through gateway.** Resolved by adding `acceptHedgeRecommendation` / `rejectHedgeRecommendation` methods to `RiskServiceClient` + `HttpRiskServiceClient` and wiring `POST /api/v1/risk/hedge-suggest/{bookId}/{id}/accept` and `…/reject` through the gateway. Acceptance tests in `HedgeRecommendationRoutesTest` pin both happy and 404 paths for each endpoint.
 
 22. ✓ **Pre-trade warning threshold off-by-one.** Spec text said `>` strict (`limits.allium:141`), invariant said `>=` (`limits.allium:184`). Code `LimitHierarchyService.kt:138` uses `>=`. Reconciled by editing the `CheckPositionLimit` guidance to `>=` so the spec is internally consistent and matches code. **Spec edit only.**
 

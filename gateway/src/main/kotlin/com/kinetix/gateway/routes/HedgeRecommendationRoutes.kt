@@ -33,4 +33,27 @@ fun Route.hedgeRecommendationRoutes(riskClient: RiskServiceClient) {
             call.respond(result)
         }
     }
+
+    post("/api/v1/risk/hedge-suggest/{bookId}/{id}/accept") {
+        val bookId = call.requirePathParam("bookId")
+        val id = call.requirePathParam("id")
+        val body = call.receive<JsonObject>()
+        val result = riskClient.acceptHedgeRecommendation(bookId, id, body)
+        if (result == null) {
+            call.respond(HttpStatusCode.NotFound)
+        } else {
+            call.respond(result)
+        }
+    }
+
+    post("/api/v1/risk/hedge-suggest/{bookId}/{id}/reject") {
+        val bookId = call.requirePathParam("bookId")
+        val id = call.requirePathParam("id")
+        val result = riskClient.rejectHedgeRecommendation(bookId, id)
+        if (result == null) {
+            call.respond(HttpStatusCode.NotFound)
+        } else {
+            call.respond(result)
+        }
+    }
 }

@@ -648,6 +648,30 @@ class HttpRiskServiceClient(
         return response.body()
     }
 
+    override suspend fun acceptHedgeRecommendation(
+        bookId: String,
+        id: String,
+        body: kotlinx.serialization.json.JsonObject,
+    ): kotlinx.serialization.json.JsonObject? {
+        val response = httpClient.post("$baseUrl/api/v1/risk/hedge-suggest/$bookId/$id/accept") {
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
+    override suspend fun rejectHedgeRecommendation(
+        bookId: String,
+        id: String,
+    ): kotlinx.serialization.json.JsonObject? {
+        val response = httpClient.post("$baseUrl/api/v1/risk/hedge-suggest/$bookId/$id/reject")
+        if (response.status == HttpStatusCode.NotFound) return null
+        if (!response.status.isSuccess()) handleErrorResponse(response)
+        return response.body()
+    }
+
     override suspend fun getAllCounterpartyExposures(): kotlinx.serialization.json.JsonArray {
         val response = httpClient.get("$baseUrl/api/v1/counterparty-risk/")
         if (!response.status.isSuccess()) handleErrorResponse(response)
