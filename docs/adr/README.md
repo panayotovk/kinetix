@@ -32,3 +32,7 @@
 | [0028](0028-key-rate-duration-tenor-buckets.md) | Key rate duration — 4-tenor internal vs 12-tenor FRTB GIRR | Accepted |
 | [0029](0029-discovery-valuation-two-phase-contract.md) | Discovery-valuation two-phase contract | Accepted |
 | [0030](0030-contextual-filter-dropdowns.md) | Contextual filter dropdowns for data-driven types | Accepted |
+| [0031](0031-wrong-way-risk-sector-taxonomy.md) | Wrong-way risk sector taxonomy | Proposed |
+| [0032](0032-intraday-pnl-greek-source.md) | Greek source for intraday P&L attribution | Proposed |
+| [0033](0033-vol-surface-diff-method.md) | Vol-surface diff method — interpolation vs nearest-neighbour | Proposed |
+| [0034](0034-regime-degraded-signal-policy.md) | Regime classifier behaviour on degraded inputs | Proposed |
