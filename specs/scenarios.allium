@@ -164,12 +164,18 @@ entity HistoricalScenarioReturn {
 
 entity SavedScenario {
     name: String
-    description: String?
+    -- Required in code (`StressScenario.description: String`); the storage
+    -- column tolerates empty strings but never null.
+    description: String
     scenario_type: ScenarioType
     version: Integer
     parent_scenario_id: String?
-    shocks: String?
-    correlation_override: List<Decimal>?
+    -- shocks is required (non-null) in code; correlation_override and
+    -- liquidity_stress_factors are stored as JSON-encoded strings in the
+    -- shocks/overrides columns. Modelled here as String? to reflect the
+    -- raw persistence form rather than the structured payload.
+    shocks: String
+    correlation_override: String?
     liquidity_stress_factors: String?
     historical_period_id: String?
     target_loss: Decimal?
@@ -226,6 +232,11 @@ entity StressTestResultRecord {
         -- Implemented as `StressTestResult` in regulatory-service code; the
         -- spec name `StressTestResultRecord` distinguishes this persisted
         -- record from the `StressTestResult` value type in risk-models.allium.
+        -- base_pv, stressed_pv, pnl_impact, and var_impact are modelled as
+        -- Decimal here but persisted as Double in the implementation
+        -- (`varImpact: Double?`, NUMERIC columns truncated to double precision).
+        -- This is the standard Decimal↔Double translation for risk metrics
+        -- where double precision is sufficient.
         -- Table: stress_test_results (V12 migration, V13 renamed portfolio_id to book_id).
         -- scenario_id references stress_scenarios(id).
         -- position_impacts is stored as JSONB — per-position breakdown of stress P&L.

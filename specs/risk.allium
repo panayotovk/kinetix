@@ -212,7 +212,9 @@ entity SodBaseline {
     book_id: String
     baseline_date: String
     snapshot_type: core/SnapshotType
-    source_job_id: String
+    -- Persisted as a UUID column. Nullable in code (`sourceJobId: UUID? = null`)
+    -- because pre-existing baselines have no recorded source job.
+    source_job_id: String?
     greek_snapshot_id: String?  -- legacy; SodGreekSnapshot is now flat per-instrument
     calculation_type: String?
     var_value: Decimal?

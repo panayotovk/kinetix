@@ -135,7 +135,9 @@ entity LiquidityRiskSnapshot {
     max_horizon: Decimal
     concentration_count: Integer
     data_completeness: Decimal
-    adv_data_as_of: Timestamp
+    -- Null when no ADV reference data was available at calculation time
+    -- (e.g. when liquidity inputs have not yet been ingested for the book).
+    adv_data_as_of: Timestamp?
     position_breakdown: List<PositionLiquidityResult>
 
     -- Derived

@@ -101,6 +101,12 @@ value HedgingSetAddon {
 
 -- Counterparty is authoritatively defined in reference-data.allium.
 -- This external entity references the fields used by counterparty risk calculations.
+--
+-- Note on numeric precision: spec models monetary and probability fields as
+-- Decimal; counterparty-risk code consumes them as `Double` (see
+-- CounterpartyDto, NettingSetExposure.netExposure/peakPfe, exposure-snapshot
+-- columns). Double precision is sufficient for the Monte Carlo PFE pipeline,
+-- and the Decimal↔Double translation is uniform across this domain.
 external entity Counterparty {
     counterparty_id: String
     legal_name: String
