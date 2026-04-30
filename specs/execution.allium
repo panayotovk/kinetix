@@ -537,4 +537,6 @@ invariant ArrivalPriceCaptured {
 
 open question "Should FIX fills for unknown instruments (no reference data entry) be booked with asset_class=UNKNOWN or rejected?"
 
-open question "Should the pre-trade risk check run with fail-open (allow with warning) or fail-closed (reject) on timeout?"
+-- Resolved: pre-trade risk checks fail-closed (reject on error/timeout).
+-- See OrderSubmissionService.kt:113-120 — submission is rejected when the
+-- limit-check call throws, with the failure surfaced to the caller.

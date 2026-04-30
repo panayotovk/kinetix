@@ -223,8 +223,9 @@ entity StressTestResultRecord {
 
     @guidance
         -- Persisted outcome of running a SavedScenario against a book.
-        -- Named StressTestResultRecord to avoid collision with the
-        -- StressTestResult value type in risk-models.allium.
+        -- Implemented as `StressTestResult` in regulatory-service code; the
+        -- spec name `StressTestResultRecord` distinguishes this persisted
+        -- record from the `StressTestResult` value type in risk-models.allium.
         -- Table: stress_test_results (V12 migration, V13 renamed portfolio_id to book_id).
         -- scenario_id references stress_scenarios(id).
         -- position_impacts is stored as JSONB — per-position breakdown of stress P&L.

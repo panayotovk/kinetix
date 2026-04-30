@@ -1,5 +1,11 @@
 -- allium: 3
 -- Core domain types shared across the Kinetix platform.
+--
+-- Enum casing convention: Allium enum members are written in lower_snake_case
+-- (e.g. `buy`, `sell`, `pending_approval`); Kotlin and Python implementations
+-- use UPPER_SNAKE_CASE (`BUY`, `SELL`, `PENDING_APPROVAL`); JSON wire formats
+-- normally match the implementation casing. This translation is uniform across
+-- the codebase and is not called out per-enum.
 
 ------------------------------------------------------------
 -- Value Types

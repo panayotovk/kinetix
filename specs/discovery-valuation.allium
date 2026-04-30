@@ -265,7 +265,9 @@ rule FetchDiscoveredDependencies {
         --
         -- Implementation: MarketDataFetcher.fetch()
         --
-        -- Fetches proceed sequentially per dependency (current implementation).
+        -- Fetches run in parallel via coroutines, bounded by a Semaphore(10)
+        -- concurrency limit (one permit per dependency, see
+        -- MarketDataFetcher.kt:62-69).
         -- Each fetch produces a FetchResult with outcome, timing, and error
         -- details. When a service client is null (not configured), the outcome
         -- is client_unavailable. When the resource is not found, not_found.

@@ -235,11 +235,8 @@ rule RunGovernedStressTest {
 
     @guidance
         -- Only APPROVED scenarios can be executed.
-        -- pnl_impact must be computed as sum(position_market_value * price_shock)
-        -- via the risk engine gRPC call — NOT by summing raw shock JSON values.
-        -- The current computePnlImpact stub is a known data integrity bug:
-        -- it reads shock magnitudes directly from the shocks JSON field without
-        -- repricing positions, producing incorrect P&L figures.
+        -- pnl_impact is computed as sum(position_market_value * price_shock)
+        -- via riskOrchestratorClient.runStressTest (delegated to risk-orchestrator).
         -- Creates scenarios/StressTestResultRecord with results.
 }
 

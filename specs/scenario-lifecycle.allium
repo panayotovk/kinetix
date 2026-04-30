@@ -117,14 +117,11 @@ rule ApproveScenario {
         -- Implementation: StressScenarioService.approve().
         -- HTTP: PATCH /api/v1/stress-scenarios/{id}/approve
         --       Body: { "approvedBy": "<user>" }
+        -- Throws IllegalArgumentException if approvedBy = scenario.created_by
+        -- (four-eyes violation).
         -- Throws IllegalStateException if current status is not PENDING_APPROVAL.
         -- Publishes SCENARIO_APPROVED governance audit event to Kafka topic
         -- "governance.audit" via GovernanceAuditPublisher.
-        --
-        -- IMPORTANT: The current implementation does NOT enforce the four-eyes
-        -- principle (approved_by != scenario.created_by). The submission workflow
-        -- (SubmissionService) does enforce this, but StressScenarioService.approve()
-        -- does not check. This is a known gap. See open question below.
 }
 
 rule RetireScenario {
@@ -444,16 +441,6 @@ invariant VersionAtLeastOne {
 ------------------------------------------------------------
 -- Open Questions
 ------------------------------------------------------------
-
-open question "Should scenario approval enforce the four-eyes principle (approved_by != created_by)?"
--- The submission workflow (SubmissionService) enforces four-eyes:
--- approver_id != preparer_id, throwing IllegalArgumentException on violation.
--- The scenario workflow (StressScenarioService) does NOT enforce this.
--- The regulatory.allium spec declares a ScenarioApprovalFourEyes invariant
--- (via the GovernedStressScenario entity's rules), but the implementation
--- does not check created_by against approved_by in the approve() method.
--- Resolution: This should be added to StressScenarioService.approve() for
--- consistency with the submission workflow and regulatory intent.
 
 open question "Should the retire action capture the actual user identity instead of hardcoding 'SYSTEM'?"
 -- Currently, StressScenarioService.retire() publishes the audit event with
