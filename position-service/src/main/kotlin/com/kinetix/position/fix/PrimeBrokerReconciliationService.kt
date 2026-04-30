@@ -12,8 +12,11 @@ import java.time.Instant
  * Auto-resolve threshold: breaks < 1 unit are treated as rounding artifacts.
  * Material breaks (>= 1 unit) are included in the result for investigation.
  *
- * After reconciliation, if any critical breaks (notional > $10,000) are found,
- * a RECONCILIATION_BREAK alert is published via [alertPublisher].
+ * After reconciliation, [alertPublisher] is invoked once per break whose
+ * absolute notional clears the manual-review threshold (currently $10,000;
+ * matches `CRITICAL_NOTIONAL_THRESHOLD`). This implements the per-break
+ * filter from `execution.allium:437-448`: each qualifying break is its own
+ * alert payload rather than a single bundled alert per reconciliation.
  */
 class PrimeBrokerReconciliationService(
     private val alertPublisher: ReconciliationAlertPublisher? = null,
@@ -87,9 +90,13 @@ class PrimeBrokerReconciliationService(
             reconciledAt = reconciledAt,
         )
 
-        val criticalBreaks = materialBreaks.filter { it.severity == ReconciliationBreakSeverity.CRITICAL }
-        if (criticalBreaks.isNotEmpty()) {
-            alertPublisher?.publishBreakAlert(reconciliation)
+        val publisher = alertPublisher
+        if (publisher != null) {
+            for (break_ in materialBreaks) {
+                if (break_.breakNotional.abs() >= CRITICAL_NOTIONAL_THRESHOLD) {
+                    publisher.publishBreakAlert(reconciliation, break_)
+                }
+            }
         }
 
         return reconciliation

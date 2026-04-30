@@ -41,75 +41,49 @@ class KafkaReconciliationAlertPublisherIntegrationTest : FunSpec({
 
     val bootstrapServers = KafkaTestSetup.start()
 
-    test("publishes RECONCILIATION_BREAK risk event when at least one CRITICAL break exists") {
-        val topic = "risk.results.reconciliation-critical-test"
+    test("publishes one RECONCILIATION_BREAK event per call (per-break delivery, execution.allium:437-448)") {
+        val topic = "risk.results.reconciliation-per-break-test"
         val producer = KafkaTestSetup.createProducer(bootstrapServers)
         val publisher = KafkaReconciliationAlertPublisher(producer, topic)
 
-        publisher.publishBreakAlert(
-            reconciliation(
-                breaks = listOf(
-                    breakRow(instrumentId = "AAPL", severity = ReconciliationBreakSeverity.CRITICAL),
-                    breakRow(instrumentId = "MSFT", severity = ReconciliationBreakSeverity.NORMAL),
-                )
+        val recon = reconciliation(
+            breaks = listOf(
+                breakRow(instrumentId = "AAPL"),
+                breakRow(instrumentId = "MSFT"),
             )
         )
+        // Service is responsible for the per-break threshold filter; the publisher
+        // simply emits whatever break it is given.
+        publisher.publishBreakAlert(recon, recon.breaks[0])
+        publisher.publishBreakAlert(recon, recon.breaks[1])
 
-        val consumer = KafkaTestSetup.createConsumer(bootstrapServers, "reconciliation-critical-group")
+        val consumer = KafkaTestSetup.createConsumer(bootstrapServers, "reconciliation-per-break-group")
         consumer.subscribe(listOf(topic))
 
         val records = consumer.poll(Duration.ofSeconds(10))
-        records.count() shouldBe 1
+        records.count() shouldBe 2
 
-        val record = records.first()
-        record.key() shouldBe "EQ-001"
+        val keys = records.map { it.key() }.toSet()
+        keys shouldBe setOf("EQ-001|AAPL", "EQ-001|MSFT")
 
-        val event = Json.decodeFromString<RiskResultEvent>(record.value())
-        event.bookId shouldBe "EQ-001"
-        event.calculationType shouldBe "RECONCILIATION_BREAK"
-
-        consumer.close()
-        producer.close()
-    }
-
-    test("publishes nothing when there are no CRITICAL breaks") {
-        val topic = "risk.results.reconciliation-noop-test"
-        val producer = KafkaTestSetup.createProducer(bootstrapServers)
-        val publisher = KafkaReconciliationAlertPublisher(producer, topic)
-
-        publisher.publishBreakAlert(
-            reconciliation(
-                breaks = listOf(
-                    breakRow(instrumentId = "AAPL", severity = ReconciliationBreakSeverity.NORMAL),
-                    breakRow(instrumentId = "MSFT", severity = ReconciliationBreakSeverity.NORMAL),
-                )
-            )
-        )
-        publisher.publishBreakAlert(
-            reconciliation(breaks = emptyList())
-        )
-
-        val consumer = KafkaTestSetup.createConsumer(bootstrapServers, "reconciliation-noop-group")
-        consumer.subscribe(listOf(topic))
-
-        val records = consumer.poll(Duration.ofSeconds(3))
-        records.count() shouldBe 0
+        records.forEach { record ->
+            val event = Json.decodeFromString<RiskResultEvent>(record.value())
+            event.bookId shouldBe "EQ-001"
+            event.calculationType shouldBe "RECONCILIATION_BREAK"
+        }
 
         consumer.close()
         producer.close()
     }
 
-    test("uses bookId as partition key so alerts for the same book land on the same partition") {
+    test("alerts for the same (book, instrument) land on the same partition for ordering") {
         val topic = "risk.results.reconciliation-ordering-test"
         val producer = KafkaTestSetup.createProducer(bootstrapServers)
         val publisher = KafkaReconciliationAlertPublisher(producer, topic)
 
-        publisher.publishBreakAlert(
-            reconciliation(bookId = "FX-001", breaks = listOf(breakRow()))
-        )
-        publisher.publishBreakAlert(
-            reconciliation(bookId = "FX-001", breaks = listOf(breakRow(instrumentId = "GBPUSD")))
-        )
+        val br = breakRow(instrumentId = "GBPUSD")
+        publisher.publishBreakAlert(reconciliation(bookId = "FX-001", breaks = listOf(br)), br)
+        publisher.publishBreakAlert(reconciliation(bookId = "FX-001", breaks = listOf(br)), br)
 
         val consumer = KafkaTestSetup.createConsumer(bootstrapServers, "reconciliation-ordering-group")
         consumer.subscribe(listOf(topic))

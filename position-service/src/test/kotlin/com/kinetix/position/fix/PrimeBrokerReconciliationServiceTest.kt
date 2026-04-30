@@ -6,6 +6,7 @@ import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import java.math.BigDecimal
@@ -183,7 +184,7 @@ class PrimeBrokerReconciliationServiceTest : FunSpec({
         val pbPositions = mapOf("AAPL" to pbPos("AAPL", "100", "200.00"))
         serviceWithPublisher.reconcile("book-1", "2026-03-24", internal, pbPositions, Instant.now())
 
-        coVerify(exactly = 1) { alertPublisher.publishBreakAlert(any()) }
+        coVerify(exactly = 1) { alertPublisher.publishBreakAlert(any(), any()) }
     }
 
     test("does not publish alert when all breaks are below 10000 notional") {
@@ -195,7 +196,7 @@ class PrimeBrokerReconciliationServiceTest : FunSpec({
         val pbPositions = mapOf("AAPL" to pbPos("AAPL", "100", "100.00"))
         serviceWithPublisher.reconcile("book-1", "2026-03-24", internal, pbPositions, Instant.now())
 
-        coVerify(exactly = 0) { alertPublisher.publishBreakAlert(any()) }
+        coVerify(exactly = 0) { alertPublisher.publishBreakAlert(any(), any()) }
     }
 
     test("does not publish alert when reconciliation is clean") {
@@ -206,6 +207,52 @@ class PrimeBrokerReconciliationServiceTest : FunSpec({
         val pbPositions = mapOf("AAPL" to pbPos("AAPL", "100", "150.00"))
         serviceWithPublisher.reconcile("book-1", "2026-03-24", internal, pbPositions, Instant.now())
 
-        coVerify(exactly = 0) { alertPublisher.publishBreakAlert(any()) }
+        coVerify(exactly = 0) { alertPublisher.publishBreakAlert(any(), any()) }
+    }
+
+    test("publishes one alert per break that exceeds the manual-review threshold (per-break filter, execution.allium:439-441)") {
+        val alertPublisher = mockk<ReconciliationAlertPublisher>(relaxed = true)
+        val serviceWithPublisher = PrimeBrokerReconciliationService(alertPublisher = alertPublisher)
+
+        // Three breaks: AAPL CRITICAL ($20K), MSFT NORMAL ($50), GOOGL CRITICAL ($60K).
+        // Per-break filter: only AAPL and GOOGL trigger alerts. MSFT is filtered out
+        // because its notional is below the manual-review threshold even though it
+        // qualifies as a material break (>1 unit).
+        val internal = mapOf(
+            "AAPL" to BigDecimal("200"),
+            "MSFT" to BigDecimal("105"),
+            "GOOGL" to BigDecimal("250"),
+        )
+        val pbPositions = mapOf(
+            "AAPL" to pbPos("AAPL", "100", "200.00"),
+            "MSFT" to pbPos("MSFT", "100", "10.00"),
+            "GOOGL" to pbPos("GOOGL", "100", "400.00"),
+        )
+        serviceWithPublisher.reconcile("book-1", "2026-03-24", internal, pbPositions, Instant.now())
+
+        // Two alerts (one per CRITICAL break), not one bundled alert.
+        coVerify(exactly = 2) { alertPublisher.publishBreakAlert(any(), any()) }
+    }
+
+    test("each per-break alert carries its own break payload (not the whole reconciliation)") {
+        val captured = mutableListOf<ReconciliationBreak>()
+        val alertPublisher = mockk<ReconciliationAlertPublisher>(relaxed = true)
+        coEvery {
+            alertPublisher.publishBreakAlert(any(), capture(captured))
+        } returns Unit
+        val serviceWithPublisher = PrimeBrokerReconciliationService(alertPublisher = alertPublisher)
+
+        val internal = mapOf(
+            "AAPL" to BigDecimal("200"),    // CRITICAL — $20K
+            "GOOGL" to BigDecimal("250"),   // CRITICAL — $60K
+        )
+        val pbPositions = mapOf(
+            "AAPL" to pbPos("AAPL", "100", "200.00"),
+            "GOOGL" to pbPos("GOOGL", "100", "400.00"),
+        )
+        serviceWithPublisher.reconcile("book-1", "2026-03-24", internal, pbPositions, Instant.now())
+
+        captured shouldHaveSize 2
+        captured.map { it.instrumentId }.toSet() shouldBe setOf("AAPL", "GOOGL")
     }
 })

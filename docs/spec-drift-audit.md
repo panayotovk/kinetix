@@ -69,7 +69,7 @@ This document is the work-tracking source of truth for resolving the divergences
 
 23. ☐ **`UpdateLimit` rule full-PUT vs partial-PATCH.** Spec implies full overwrite (`limits.allium:104-111`); code treats nullable fields as preserve-existing (`LimitRoutes.kt:155-161`). Spec or code.
 
-24. ☐ **`AlertOnReconciliationBreaks` per-break threshold check.** Spec `execution.allium:439-441` requires per-break filter; code alerts on any CRITICAL.
+24. ✓ **`AlertOnReconciliationBreaks` per-break threshold check.** Resolved by changing `ReconciliationAlertPublisher.publishBreakAlert` to `(reconciliation, break)` and having `PrimeBrokerReconciliationService` iterate material breaks, firing one alert per break whose abs notional ≥ the manual-review threshold. Kafka publisher partitions by `bookId|instrumentId` so per-break alerts for the same instrument stay ordered. Severity tier values themselves are still pending the A-18 quant call.
 
 ## P2 — Aspirational/missing rules
 
