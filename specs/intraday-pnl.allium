@@ -86,6 +86,16 @@ entity IntradayPnlSnapshot {
     -- Per-instrument breakdown
     instrument_pnl: List<InstrumentPnl>
 
+    -- Currencies for which no live FX rate was available at snapshot time.
+    -- A non-empty list means the P&L figures used a 1:1 fallback for those
+    -- currencies and should be treated as approximate until rates are restored.
+    missing_fx_rates: List<String>
+
+    -- Set when |attribution.unexplained_pnl / total_pnl| > 0.20, indicating
+    -- that Greek attribution cannot account for more than 20% of realised
+    -- P&L. Operators should investigate model gaps or missing Greeks.
+    data_quality_warning: String?
+
     -- Derived
     pnl_vs_sod: total_pnl - sod_total_pnl
     unexplained_pct: attribution.unexplained_pnl / total_pnl

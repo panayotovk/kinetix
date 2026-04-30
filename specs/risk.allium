@@ -191,6 +191,21 @@ entity DailyRiskSnapshot {
     vega: Decimal?
     theta: Decimal?
     rho: Decimal?
+
+    -- Per-instrument VaR contribution computed during portfolio aggregation.
+    -- Null until the daily aggregation step has run.
+    var_contribution: Decimal?
+
+    -- Per-instrument expected-shortfall contribution. Null until aggregation.
+    es_contribution: Decimal?
+
+    -- Implied volatility (ATM, 1-month tenor) captured at start-of-day.
+    -- Null when no vol surface exists for the instrument.
+    sod_vol: Decimal?
+
+    -- Risk-free rate (1Y tenor) captured at start-of-day.
+    -- Null when no rate data exists.
+    sod_rate: Decimal?
 }
 
 entity SodBaseline {

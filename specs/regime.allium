@@ -92,12 +92,27 @@ entity RegimeState {
 }
 
 entity RegimeHistory {
+    id: String
     regime: MarketRegime
     started_at: Timestamp
     ended_at: Timestamp?
+    -- Persisted as `duration_ms` (epoch-millis difference) in the DB; modelled
+    -- here as the equivalent Duration. Null while the regime is still active.
     duration: Duration?
     signals_at_transition: RegimeSignals
     var_parameters: AdaptiveVaRParameters
+
+    -- Confidence score from the regime detector at the moment of transition
+    -- (0.0–1.0). Higher values mean stronger signal agreement.
+    confidence: Decimal
+
+    -- True when one or more input signals were missing or stale at transition
+    -- time and the detector ran in degraded mode.
+    degraded_inputs: Boolean
+
+    -- Number of consecutive detection cycles that returned this regime before
+    -- the debounce threshold fired and the transition was confirmed.
+    consecutive_observations: Integer
 }
 
 entity RegimeModelConfig {

@@ -104,6 +104,11 @@ entity FactorDecompositionSnapshot {
     r_squared: Decimal
     factors: List<FactorContribution>
 
+    -- True when any single factor contributes more than 60% of total VaR
+    -- (computed in GrpcRiskEngineClient: factors.any { it.pct_of_total > 0.60 }).
+    -- When true, FactorRiskService publishes a FACTOR_CONCENTRATION alert.
+    concentration_warning: Boolean
+
     -- Derived
     systematic_pct: systematic_var / total_var
     idiosyncratic_pct: idiosyncratic_var / total_var

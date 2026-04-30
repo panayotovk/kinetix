@@ -45,6 +45,11 @@ entity AuditEvent {
     previous_hash: String?
     record_hash: String
 
+    -- Monotonic per-event sequence number assigned at insert time. Used to
+    -- detect missing events (gaps) independently of the hash chain. Nullable
+    -- only for events written before the sequence column existed.
+    sequence_number: Integer?
+
     -- Trade fields (present for trade_booked, trade_amended, trade_cancelled)
     trade_id: String?
     book_id: String?
@@ -279,6 +284,20 @@ rule VerifyAuditChain {
         --   3. Each event's record_hash matches recomputed hash from fields.
         -- Returns ChainVerificationResult(valid: Boolean, event_count: Integer).
         -- If any event fails: returns invalid with the first broken event ID.
+}
+
+rule DetectAuditSequenceGaps {
+    when: DetectAuditSequenceGapsRequested()
+
+    @guidance
+        -- Sorts every persisted sequence_number ascending and reports any
+        -- pair where next > current + 1 as a SequenceGap with
+        -- (after_sequence, before_sequence, missing_count).
+        -- Independent of the hash chain — gaps may indicate dropped writes
+        -- even when the hash chain is internally consistent.
+        -- HTTP: GET /api/v1/audit/gaps
+        -- Implementation: AuditRoutes.kt:105-130.
+        -- Returns GapDetectionResponse(gap_count, gaps).
 }
 
 ------------------------------------------------------------

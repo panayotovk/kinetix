@@ -73,6 +73,22 @@ entity AlertAcknowledgement {
     notes: String?
 }
 
+-- Limit breach pipeline (Kafka topic `limits.breaches`).
+entity LimitBreachEvent {
+    event_id: String
+    book_id: String
+    -- Which limit dimension tripped (e.g. position, notional, var, concentration).
+    limit_type: String
+    -- "HARD" (blocked the trade) or "SOFT" (warning only).
+    severity: String
+    current_value: String
+    limit_value: String
+    message: String
+    breached_at: Timestamp
+    trade_id: String?
+    correlation_id: String?
+}
+
 ------------------------------------------------------------
 -- Config
 ------------------------------------------------------------
@@ -447,6 +463,49 @@ rule EvaluateRegimeChange {
         -- Regime change alerts use book_id = "GLOBAL" (system-wide, not book-specific).
         -- They bypass the standard MetricExtractor pipeline entirely.
         -- Persisted via AlertEventRepository and delivered via DeliveryService.
+}
+
+-- Pre-trade limit breach alerts: subscribe to the limits.breaches Kafka topic.
+
+rule EvaluateLimitBreach {
+    when: LimitBreachEventReceived(event)
+
+    ensures: AlertEvent.created(
+        id: new_id,
+        rule_id: "LIMIT_BREACH",
+        rule_name: "Limit Breach",
+        type: limit_breach,
+        severity: limit_breach_severity(event.severity),
+        message: event.message,
+        current_value: event.current_value,
+        threshold: event.limit_value,
+        book_id: event.book_id,
+        triggered_at: now,
+        correlation_id: event.correlation_id,
+        status: triggered
+    )
+
+    @guidance
+        -- Producer: position-service emits one LimitBreachEvent per HARD
+        -- breach detected during pre-trade limit checks. The booking call
+        -- still fails synchronously with HTTP 422; the event is published
+        -- best-effort so the breach is durable and observable.
+        --
+        -- Implementation: KafkaLimitBreachEventPublisher publishes to topic
+        -- limits.breaches; LimitBreachEventConsumer in notification-service
+        -- decodes the event and runs LimitBreachRule.evaluate() to produce
+        -- the AlertEvent. Persisted via AlertEventRepository and delivered
+        -- in-app via DeliveryService.
+        --
+        -- Severity mapping (limit_breach_severity):
+        --   HARD -> critical
+        --   SOFT -> warning
+        --   any other value -> warning (defensive; future producers may emit
+        --                                richer severity codes)
+        --
+        -- Distinct from EvaluateAlertRules' risk_limit alerts: this rule
+        -- chains directly off the synchronous pre-trade check, not the
+        -- background metric-extraction pipeline.
 }
 
 -- Anomaly detection alerts (from risk.anomalies Kafka topic)

@@ -46,6 +46,8 @@ value ReconciliationBreak {
     break_qty: Decimal
     break_notional: Decimal
     severity: ReconciliationBreakSeverity
+    -- Lifecycle status. Newly created breaks default to `open`.
+    status: ReconciliationBreakStatus = open
 }
 
 ------------------------------------------------------------
@@ -443,6 +445,24 @@ rule AlertOnReconciliationBreaks {
             -- Fire RECONCILIATION_BREAK alert through notification-service.
             -- Severity: WARNING for breaks < $100K, CRITICAL for > $100K.
             -- A break older than T+2 is flagged as overdue.
+}
+
+-- Reconciliation break lifecycle
+
+rule UpdateReconciliationBreakStatus {
+    when: UpdateReconciliationBreakStatusRequested(reconciliation_id, instrument_id, new_status)
+
+    @guidance
+        -- Allowed transitions (enforced by ReconciliationBreakStatus enum
+        -- and the route handler):
+        --   open          -> investigating | resolved
+        --   investigating -> resolved | open
+        --   resolved      -> (terminal — no transitions)
+        --
+        -- HTTP: PATCH /api/v1/reconciliations/{reconciliationId}/breaks/{instrumentId}/status
+        --       Body: { "status": "OPEN | INVESTIGATING | RESOLVED" }
+        -- Implementation: ExecutionRoutes.kt:120-136 →
+        -- PrimeBrokerReconciliationRepository.updateBreakStatus().
 }
 
 -- FIX session health
