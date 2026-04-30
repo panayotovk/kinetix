@@ -113,9 +113,14 @@ fun Route.priceRoutes(repository: PriceRepository, ingestionService: PriceIngest
                 }
             }) {
                 val request = call.receive<IngestPriceRequest>()
+                require(request.instrumentId.isNotBlank()) { "instrumentId must not be blank" }
+                val priceAmount = BigDecimal(request.priceAmount)
+                require(priceAmount >= BigDecimal.ZERO) {
+                    "priceAmount must be non-negative, was ${request.priceAmount}"
+                }
                 val point = PricePoint(
                     instrumentId = InstrumentId(request.instrumentId),
-                    price = Money(BigDecimal(request.priceAmount), Currency.getInstance(request.priceCurrency)),
+                    price = Money(priceAmount, Currency.getInstance(request.priceCurrency)),
                     timestamp = Instant.now(),
                     source = PriceSource.valueOf(request.source),
                 )

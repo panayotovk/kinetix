@@ -179,7 +179,49 @@ class PriceRoutesTest : FunSpec({
             }
 
             response.status shouldBe HttpStatusCode.BadRequest
+
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["error"]!!.jsonPrimitive.content shouldBe "bad_request"
+            body["message"]!!.jsonPrimitive.content shouldBe "priceAmount must be non-negative, was -1.00"
         }
+
+        coVerify(exactly = 0) { ingestionService.ingest(any()) }
+    }
+
+    test("POST /api/v1/prices/ingest returns 400 for blank instrumentId") {
+        testApplication {
+            application { module(repository, ingestionService) }
+
+            val response = client.post("/api/v1/prices/ingest") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"instrumentId":"","priceAmount":"1.00","priceCurrency":"USD","source":"EXCHANGE"}""")
+            }
+
+            response.status shouldBe HttpStatusCode.BadRequest
+
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+            body["error"]!!.jsonPrimitive.content shouldBe "bad_request"
+            body["message"]!!.jsonPrimitive.content shouldBe "instrumentId must not be blank"
+        }
+
+        coVerify(exactly = 0) { ingestionService.ingest(any()) }
+    }
+
+    test("POST /api/v1/prices/ingest accepts price amount of zero") {
+        coEvery { ingestionService.ingest(any()) } returns Unit
+
+        testApplication {
+            application { module(repository, ingestionService) }
+
+            val response = client.post("/api/v1/prices/ingest") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"instrumentId":"AAPL","priceAmount":"0","priceCurrency":"USD","source":"EXCHANGE"}""")
+            }
+
+            response.status shouldBe HttpStatusCode.Created
+        }
+
+        coVerify(exactly = 1) { ingestionService.ingest(any()) }
     }
 
     test("GET /api/v1/prices/{id}/history returns 400 for missing query params") {
