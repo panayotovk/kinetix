@@ -36,10 +36,15 @@ kinetix/
 ./gradlew integrationTest                    # Integration tests (*IntegrationTest)
 ./gradlew :end2end-tests:end2EndTest         # End-to-end tests (*End2EndTest)
 
+# Run a single test in a single module
+./gradlew :position-service:test --tests "com.kinetix.position.FooTest"
+./gradlew :gateway:acceptanceTest --tests "*GatewayRoutesAcceptanceTest"
+
 # Risk engine (Python)
 cd risk-engine && uv run pytest              # All tests
 cd risk-engine && uv run pytest -m unit      # Unit only
 cd risk-engine && uv run pytest -m integration  # Integration only
+cd risk-engine && uv run pytest tests/test_greeks.py::test_delta  # Single test
 
 # UI
 cd ui && npm run dev                         # Dev server
@@ -48,24 +53,25 @@ cd ui && npx playwright test                 # Playwright browser tests
 cd ui && npx playwright test --ui            # Playwright UI mode
 ```
 
+## Local Dev
+
+- **Bring the platform up:** `./deploy/redeploy.sh` — rebuilds Kotlin images, starts infra (postgres, redis, kafka) and all services. Compose files live in `deploy/` and `deploy/infra/`.
+- **Local URLs:** UI `https://kinetixrisk.ai`, Gateway `https://api.kinetixrisk.ai`, Grafana `https://grafana.kinetixrisk.ai`.
+- **Observability stack:** Prometheus + Loki + Tempo (see ADR-0008). Configs in `deploy/observability/`.
+- **Useful slash commands:** `/health` (service health check), `/incident` (triage), `/deploy` (full redeploy), `/demo` (seed demo data).
+
 ## Testing Philosophy
 
 Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) practices:
 
 - **Write tests first.** Before implementing a feature or fixing a bug, write a failing test that describes the expected behaviour. Then write the minimal code to make it pass.
 - **Red-Green-Refactor.** Start with a failing test (red), make it pass (green), then refactor while keeping tests green.
-- **Design for testability.** Keep components loosely coupled, use dependency injection, and prefer pure functions where possible so that code is easy to test in isolation.
 - **Test behaviour, not implementation.** Tests should describe *what* the system does, not *how* it does it. Avoid coupling tests to internal details that may change.
 - **Name tests descriptively.** Test names should read as specifications — e.g. `"rejects a trade when the position limit is exceeded"` rather than `"testTradeLimit"`.
-- **Cover the right levels.** Use unit tests for business logic, integration tests for infrastructure boundaries (DB, Kafka, gRPC), and acceptance tests for end-to-end flows.
-- **Every new feature or change needs tests at all applicable levels.** Every new backend feature must have unit tests (Kotest/pytest), acceptance tests (route-level with Ktor testApplication or gateway contract tests), and — where infrastructure boundaries are involved — integration tests. Every UI change needs Vitest unit tests and Playwright E2E tests. Do not consider a feature complete until tests exist at every applicable level.
-- **Every meaningful UI feature needs browser-level E2E coverage.** Do not consider a new tab, panel, dialog, or significant interactive workflow complete without Playwright tests.
-- **Keep tests fast and independent.** Each test should be self-contained, set up its own state, and not depend on execution order.
-- **Run tests after every change.** After making changes, run the full test suite for every affected module — not just new tests. Do not consider work complete until all tests pass.
+- **Cover every applicable level.** Backend changes need unit tests (Kotest/pytest), acceptance tests (`*AcceptanceTest`), and integration tests where infrastructure boundaries are involved. UI changes need Vitest unit tests *and* Playwright E2E tests in `ui/e2e/` — every new tab, panel, dialog, or interactive workflow. Unit tests alone are never sufficient; higher-level tests prove the feature works as a user or consumer would experience it.
+- **Run the full suite for every affected module after each change.** Tests must be fast, independent, and self-contained — no execution-order dependencies.
 - **Run linting before pushing UI changes.** Always run `cd ui && npm run lint` before committing UI code. ESLint catches errors (e.g. `react-hooks/set-state-in-effect`) that unit tests do not.
-- **Validate Flyway migrations locally.** Flyway migrations run inside transactions — never use `CREATE INDEX CONCURRENTLY` or other transaction-incompatible statements. Review new migrations for this before committing.
-- **Every change needs test coverage.** New functionality must have tests that verify it works. Bug fixes must have a test that reproduces the bug before the fix. Refactors must not reduce existing test coverage. If changing behaviour that existing tests cover, update those tests to match — do not leave them failing.
-- **Every feature needs acceptance criteria verified by tests.** Before a feature is considered complete, define its acceptance criteria and ensure they are covered by at least one of: acceptance tests (`*AcceptanceTest`), end-to-end tests (`*End2EndTest`), or Playwright browser tests (`ui/e2e/`). Unit tests alone are not sufficient — higher-level tests prove the feature works as a user or consumer would experience it. This applies equally to new features and changes to existing ones: if you touch behaviour, verify it still works end-to-end. Regressions are unacceptable.
+- **Bug fixes need a reproducing test before the fix.** Refactors must not reduce coverage. If you change behaviour that existing tests cover, update those tests — do not leave them failing.
 
 ## Project Conventions
 
@@ -74,17 +80,16 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 - **UI unit tests** use Vitest.
 - **UI browser tests** use Playwright and live in `ui/e2e/`. Mock API routes using the patterns in `ui/e2e/fixtures.ts` and test user-visible behaviour: empty states, data rendering, user interactions, validation, and error paths.
 - **Acceptance tests** are named `*AcceptanceTest` and run via `./gradlew acceptanceTest`. These are contract and behaviour tests that live in each service module.
+- **Acceptance tests use real infrastructure — never mocks, in-memory fakes, H2, or embedded Kafka.** Postgres and Kafka run via Testcontainers. gRPC dependencies on *other* Kinetix services are stubbed by binding a fake `XxxServiceImplBase` to an in-JVM Netty gRPC server on a random localhost port (`NettyServerBuilder.forPort(0)`) and pointing the client under test at it with `ManagedChannelBuilder…usePlaintext()`, so calls still travel over real HTTP/2 — interceptors, serialization, and channel wiring all exercised. The goal is high-fidelity wire signal; mocking transport defeats the purpose.
 - **Integration tests** are named `*IntegrationTest` and run via `./gradlew integrationTest`.
 - **End-to-end tests** are named `*End2EndTest` and run via `./gradlew :end2end-tests:end2EndTest`.
 - Regular `./gradlew test` excludes acceptance, integration, and end-to-end tests.
 
 ## Design Principles
 
-- **Readability first.** Code is read far more often than it is written. Use clear, descriptive names for variables, functions, and classes. Keep functions short and focused. Prefer explicit, straightforward control flow over clever or terse constructs. Code should be understandable without needing comments to explain what it does.
-- **Single responsibility.** Each class or function should have one reason to change. If a class is doing parsing, validation, persistence, and notification, split it up. A service orchestrates; a repository persists; a mapper converts — don't blend these roles.
-- **Prefer small, composable units.** Favour multiple focused classes over one large class with many methods. When a new responsibility appears, introduce a new collaborator rather than growing an existing one.
-- **Depend on abstractions.** Use interfaces at module boundaries (repositories, clients, publishers) so implementations can be swapped and tested independently.
-- **Simplicity over complexity.** Choose the simplest solution that meets the current requirement. Avoid premature abstractions, speculative generality, and over-engineered designs. If a straightforward approach works, prefer it over a clever one. Add complexity only when a concrete need demands it — not because it might be useful someday.
+- **Service / repository / mapper roles stay separate.** A service orchestrates; a repository persists; a mapper converts. Don't blend them.
+- **Depend on abstractions at module boundaries.** Repositories, clients, publishers, and gRPC stubs are interfaces — concrete implementations swap behind them so tests can substitute fakes.
+- **Introduce a new collaborator before growing an existing class.** When a new responsibility appears, a new file is almost always the right answer.
 
 ## Code Organisation
 
@@ -102,7 +107,13 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 
 ## Architectural Decisions
 
-- **Existing decisions are documented in [`docs/adr/`](docs/adr/README.md).** Consult these before proposing changes that overlap with a recorded decision.
+- **30 ADRs are recorded in [`docs/adr/`](docs/adr/README.md).** Consult them before changes that overlap. Notable ones to know about:
+  - ADR-0001 monorepo structure
+  - ADR-0004 Kafka for async messaging
+  - ADR-0008 observability stack (Prometheus + Loki + Tempo)
+  - ADR-0013 Keycloak for authentication
+  - ADR-0018 run reproducibility via manifests
+  - ADR-0021 risk orchestration architecture
 - **Ask before changing architecture.** Before introducing a new service, module, library, messaging topic, database table, or API contract — or before significantly restructuring existing ones — explain the trade-offs and get my approval.
 - **Act autonomously within existing boundaries.** Adding a class/file within an existing service, writing tests, refactoring internals, or adding a route to an existing API — follow established patterns without asking.
 
@@ -120,13 +131,10 @@ Follow TDD (Test-Driven Development) and BDD (Behaviour-Driven Development) prac
 - **Testcontainers in `common` module** — Docker connectivity fails because `common` is a library module missing Docker client deps on its classpath. Place integration tests in service modules instead.
 - **Exposed + Kotest `shouldThrow`** — Exceptions thrown inside `newSuspendedTransaction` cannot be caught by `shouldThrow`. Workaround: move validation before the `transactional.run{}` block.
 - **Risk engine PYTHONPATH** — The Dockerfile needs `PYTHONPATH=/app/src` because `uv sync` doesn't install the project in editable mode.
+- **Flyway migrations run inside a transaction** — never use `CREATE INDEX CONCURRENTLY` or other transaction-incompatible statements in a migration. Review new migrations before committing.
 
 ## Commit Practices
 
 - **Commit frequently during implementation.** After completing each logical, working unit of change, create a commit. Do not wait until the entire task is finished to commit.
 - **Each commit should be self-contained.** The codebase must build and tests must pass after every commit. Never commit half-finished work that breaks the build.
 - **Don't batch unrelated changes.** Keep commits focused — one concern per commit. If a plan involves multiple steps, each step should typically be its own commit.
-
-## Communication Style
-
-- **Always end with a summary.** When a task is done, finish with a single short sentence summarising what was accomplished.
