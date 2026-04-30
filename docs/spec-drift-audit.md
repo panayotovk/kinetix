@@ -29,7 +29,7 @@ This document is the work-tracking source of truth for resolving the divergences
    - Vol surface `points.count >= 1` + positive vols — `volatility-service/.../VolatilityRoutes.kt:121-133` (spec `market-data.allium:217-227`).
    - Correlation matrix `values.count = labels.count^2` — `correlation-service/.../CorrelationRoutes.kt:43-62` (spec `market-data.allium:253-264`).
 
-5. ☐ **`LIMIT_BREACH` alert pipeline absent from `alerts.allium`.** Whole flow exists in code (`LimitBreachEventConsumer`, `LimitBreachRule`, `limits.breaches` Kafka topic, in-app delivery, `AlertType.LIMIT_BREACH` in `core.allium:101`) but the spec doesn't model it. **Spec edit only** — distill the flow into `alerts.allium`.
+5. ✓ **`LIMIT_BREACH` alert pipeline absent from `alerts.allium`.** Whole flow exists in code (`LimitBreachEventConsumer`, `LimitBreachRule`, `limits.breaches` Kafka topic, in-app delivery, `AlertType.LIMIT_BREACH` in `core.allium:101`) but the spec doesn't model it. **Spec edit only** — distill the flow into `alerts.allium`.
 
 6. ☐ **`UniqueLimitDefinition` invariant not enforced.** `position-service/.../persistence/LimitDefinitionsTable.kt:18` has no unique constraint on `(level, entity_id, limit_type)`. `singleOrNull()` lookup throws if duplicates appear. Fix: Flyway migration adding the unique constraint.
 
@@ -93,36 +93,36 @@ This document is the work-tracking source of truth for resolving the divergences
 
 ## P3 — Stale spec / spec drift (low-risk spec edits)
 
-42. ☐ **Four-eyes principle spec stale.** `scenario-lifecycle.allium:124-127,448` says "current implementation does NOT enforce" but `regulatory-service/.../StressScenarioService.kt:73-75` does enforce it. Open question #1 silently resolved. **Spec edit only.**
-43. ☐ **`computePnlImpact` stub bug claim outdated.** `regulatory.allium:240-243` says it's broken; `StressScenarioService.kt:183-192` now delegates to `riskOrchestratorClient.runStressTest`. **Spec edit only.**
-44. ☐ **`PAGER_DUTY` note obsolete.** `alerts.allium:338-340` says PAGER_DUTY missing from `core.allium`; it's been there. **Spec edit only.**
-45. ☐ **"Sequential fetch" guidance stale.** `discovery-valuation.allium:268` says sequential; `MarketDataFetcher.kt:62-69` is async/parallel up to 10. **Spec edit only.**
-46. ☐ **`StressTestResultRecord` rename guidance never executed.** `scenarios.allium:226` says rename to avoid collision; code didn't. Either rename code or drop guidance. **Likely spec edit.**
+42. ✓ **Four-eyes principle spec stale.** `scenario-lifecycle.allium:124-127,448` says "current implementation does NOT enforce" but `regulatory-service/.../StressScenarioService.kt:73-75` does enforce it. Open question #1 silently resolved. **Spec edit only.**
+43. ✓ **`computePnlImpact` stub bug claim outdated.** `regulatory.allium:240-243` says it's broken; `StressScenarioService.kt:183-192` now delegates to `riskOrchestratorClient.runStressTest`. **Spec edit only.**
+44. ✓ **`PAGER_DUTY` note obsolete.** `alerts.allium:338-340` says PAGER_DUTY missing from `core.allium`; it's been there. **Spec edit only.**
+45. ✓ **"Sequential fetch" guidance stale.** `discovery-valuation.allium:268` says sequential; `MarketDataFetcher.kt:62-69` is async/parallel up to 10. **Spec edit only.**
+46. ✓ **`StressTestResultRecord` rename guidance never executed.** `scenarios.allium:226` says rename to avoid collision; code didn't. Either rename code or drop guidance. **Likely spec edit.**
 47. ☐ **`HierarchyRiskSnapshot.missing_books` field.** Spec property `PartialAggregationOnFailure` references it; snapshot only persists `isPartial`. Spec edit *or* code addition.
-48. ☐ **`AuditEvent.sequence_number` not in spec.** Real column, real gap-detection route, absent from spec entity (`audit.allium:39-65`). **Spec edit.**
-49. ☐ **`ReconciliationBreak.status` lifecycle absent from spec.** Full state machine in code (`ReconciliationBreak.kt:14`, `ReconciliationBreakStatus`); spec `execution.allium:42-49` stops at `severity`. **Spec edit.**
-50. ☐ **`fail-open vs fail-closed` open question stale.** `execution.allium:540` lists this as open; code has fail-closed (`OrderSubmissionService.kt:113-120`). **Spec edit.**
-51. ☐ **`MarketRegimeHistory` extra fields.** Code adds `id`, `confidence`, `degradedInputs`, `consecutiveObservations`, `durationMs`. Spec `regime.allium:94-101` doesn't model these. **Spec edit.**
-52. ☐ **`IntradayPnlSnapshot` extra fields `missingFxRates` and `dataQualityWarning`.** Real fields, undocumented. **Spec edit.**
-53. ☐ **`DailyRiskSnapshot` extra fields `varContribution`/`esContribution`/`sodVol`/`sodRate`.** Real columns, undocumented. **Spec edit.**
-54. ☐ **`FactorDecompositionSnapshot.concentration_warning`.** Real field, undocumented. **Spec edit.**
+48. ✓ **`AuditEvent.sequence_number` not in spec.** Real column, real gap-detection route, absent from spec entity (`audit.allium:39-65`). **Spec edit.**
+49. ✓ **`ReconciliationBreak.status` lifecycle absent from spec.** Full state machine in code (`ReconciliationBreak.kt:14`, `ReconciliationBreakStatus`); spec `execution.allium:42-49` stops at `severity`. **Spec edit.**
+50. ✓ **`fail-open vs fail-closed` open question stale.** `execution.allium:540` lists this as open; code has fail-closed (`OrderSubmissionService.kt:113-120`). **Spec edit.**
+51. ✓ **`MarketRegimeHistory` extra fields.** Code adds `id`, `confidence`, `degradedInputs`, `consecutiveObservations`, `durationMs`. Spec `regime.allium:94-101` doesn't model these. **Spec edit.**
+52. ✓ **`IntradayPnlSnapshot` extra fields `missingFxRates` and `dataQualityWarning`.** Real fields, undocumented. **Spec edit.**
+53. ✓ **`DailyRiskSnapshot` extra fields `varContribution`/`esContribution`/`sodVol`/`sodRate`.** Real columns, undocumented. **Spec edit.**
+54. ✓ **`FactorDecompositionSnapshot.concentration_warning`.** Real field, undocumented. **Spec edit.**
 55. ☐ **`InstrumentLiquidity` redundant enum** — see P1 #9; spec collapses, code splits.
 56. ☐ **`auto_close_time` env-var override** — spec mentions; verify wiring exists in `Application.kt`.
 
 ## P4 — Type/nullability/cosmetic
 
-57. ☐ `SodBaseline.source_job_id` String non-null (spec) vs UUID? (code).
-58. ☐ `SavedScenario.description` nullability mismatch.
-59. ☐ `SavedScenario.correlation_override` and `shocks` types disagree with JSON-string storage.
-60. ☐ `StressTestResult.var_impact` Decimal? vs Double?.
-61. ☐ `InstrumentFactorLoading.factor` enum (spec) vs String (code).
-62. ☐ `FxRate.as_of` vs `updated_at` field naming.
-63. ☐ `NettingSetSummary` (spec) vs `NettingSetExposure` (code) value-type naming.
-64. ☐ `RegimeState.degraded_inputs` default differs.
-65. ☐ Counterparty exposure `Decimal` (spec) vs `Double` (code) — pervasive.
-66. ☐ `LiquidityRiskSnapshot.adv_data_as_of` nullability mismatch.
-67. ☐ `Counterparty.sector` nullable in orchestrator DTO but non-null at source.
-68. ☐ Enum casing convention `buy/sell` (spec lowercase) vs `BUY/SELL` (code Kotlin uppercase) — uniform translation; document once.
+57. ✓ `SodBaseline.source_job_id` String non-null (spec) vs UUID? (code).
+58. ✓ `SavedScenario.description` nullability mismatch.
+59. ✓ `SavedScenario.correlation_override` and `shocks` types disagree with JSON-string storage.
+60. ✓ `StressTestResult.var_impact` Decimal? vs Double?.
+61. ✓ `InstrumentFactorLoading.factor` enum (spec) vs String (code).
+62. ✓ `FxRate.as_of` vs `updated_at` field naming.
+63. ✓ `NettingSetSummary` (spec) vs `NettingSetExposure` (code) value-type naming.
+64. ✓ `RegimeState.degraded_inputs` default differs.
+65. ✓ Counterparty exposure `Decimal` (spec) vs `Double` (code) — pervasive.
+66. ✓ `LiquidityRiskSnapshot.adv_data_as_of` nullability mismatch.
+67. ☐ `Counterparty.sector` nullable in orchestrator DTO but non-null at source. *(deferred — code change with test fan-out, scheduled with Batch C/G).*
+68. ✓ Enum casing convention `buy/sell` (spec lowercase) vs `BUY/SELL` (code Kotlin uppercase) — uniform translation; document once.
 
 ## Specs in good shape
 
