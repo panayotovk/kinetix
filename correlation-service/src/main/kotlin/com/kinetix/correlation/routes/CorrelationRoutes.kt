@@ -49,6 +49,11 @@ fun Route.correlationRoutes(
                 }
             }) {
                 val request = call.receive<IngestCorrelationMatrixRequest>()
+                require(request.labels.isNotEmpty()) { "labels must contain at least one entry" }
+                val expected = request.labels.size * request.labels.size
+                require(request.values.size == expected) {
+                    "values size (${request.values.size}) must equal labels.size^2 ($expected)"
+                }
                 val matrix = CorrelationMatrix(
                     labels = request.labels,
                     values = request.values,

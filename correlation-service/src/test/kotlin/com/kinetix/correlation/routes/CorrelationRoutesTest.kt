@@ -89,4 +89,44 @@ class CorrelationRoutesTest : FunSpec({
             response.bodyAsText() shouldContain "AAPL"
         }
     }
+
+    test("POST ingest returns 400 when labels is empty") {
+        testApplication {
+            application { module(correlationRepo, ingestionService) }
+
+            val response = client.post("/api/v1/correlations/ingest") {
+                contentType(ContentType.Application.Json)
+                setBody("""
+                    {
+                        "labels": [],
+                        "values": [],
+                        "windowDays": 252,
+                        "method": "HISTORICAL"
+                    }
+                """.trimIndent())
+            }
+            response.status shouldBe HttpStatusCode.BadRequest
+            response.bodyAsText() shouldContain "labels must contain at least one entry"
+        }
+    }
+
+    test("POST ingest returns 400 when values size does not match labels.size squared") {
+        testApplication {
+            application { module(correlationRepo, ingestionService) }
+
+            val response = client.post("/api/v1/correlations/ingest") {
+                contentType(ContentType.Application.Json)
+                setBody("""
+                    {
+                        "labels": ["AAPL", "MSFT", "GOOG"],
+                        "values": [1.0, 0.65, 0.65, 1.0],
+                        "windowDays": 252,
+                        "method": "HISTORICAL"
+                    }
+                """.trimIndent())
+            }
+            response.status shouldBe HttpStatusCode.BadRequest
+            response.bodyAsText() shouldContain "values size (4) must equal labels.size^2 (9)"
+        }
+    }
 })
