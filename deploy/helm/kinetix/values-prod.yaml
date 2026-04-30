@@ -103,6 +103,7 @@ notification-service:
   env:
     PORT: "8086"
     SEED_DATA: "false"
+    DATABASE_URL: "jdbc:postgresql://kinetix-postgresql:5432/kinetix_notification"
   autoscaling:
     enabled: true
     minReplicas: 3

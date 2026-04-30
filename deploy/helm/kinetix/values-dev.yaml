@@ -64,6 +64,7 @@ notification-service:
   env:
     PORT: "8086"
     SEED_DATA: "true"
+    DATABASE_URL: "jdbc:postgresql://kinetix-postgresql:5432/kinetix_notification"
 
 risk-engine:
   replicaCount: 1
