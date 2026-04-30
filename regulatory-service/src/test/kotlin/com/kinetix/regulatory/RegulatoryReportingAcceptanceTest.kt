@@ -1,6 +1,12 @@
 package com.kinetix.regulatory
 
 import com.kinetix.common.model.AssetClass
+import com.kinetix.regulatory.fixtures.DrcResult
+import com.kinetix.regulatory.fixtures.FrtbResult
+import com.kinetix.regulatory.fixtures.FrtbRiskClass
+import com.kinetix.regulatory.fixtures.RiskClassCharge
+import com.kinetix.regulatory.fixtures.RraoResult
+import com.kinetix.regulatory.fixtures.SbmResult
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.doubles.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
@@ -9,17 +15,7 @@ import io.kotest.matchers.collections.shouldHaveSize
 import kotlin.math.abs
 import kotlin.math.sqrt
 
-// --- Stub FRTB risk classes ---
-
-private enum class FrtbRiskClass(val weight: Double, val vegaWeight: Double) {
-    GIRR(0.015, 0.01),
-    CSR_NON_SEC(0.03, 0.02),
-    CSR_SEC_CTP(0.04, 0.03),
-    CSR_SEC_NON_CTP(0.06, 0.04),
-    EQUITY(0.20, 0.15),
-    COMMODITY(0.15, 0.10),
-    FX(0.10, 0.08),
-}
+// --- Asset-class to FRTB risk-class mapping (test-only stub) ---
 
 private val ASSET_CLASS_TO_RISK_CLASSES = mapOf(
     AssetClass.EQUITY to listOf(FrtbRiskClass.EQUITY),
@@ -27,41 +23,6 @@ private val ASSET_CLASS_TO_RISK_CLASSES = mapOf(
     AssetClass.FX to listOf(FrtbRiskClass.FX),
     AssetClass.COMMODITY to listOf(FrtbRiskClass.COMMODITY),
     AssetClass.DERIVATIVE to listOf(FrtbRiskClass.EQUITY, FrtbRiskClass.FX),
-)
-
-// --- Stub domain models ---
-
-private data class RiskClassCharge(
-    val riskClass: FrtbRiskClass,
-    val deltaCharge: Double,
-    val vegaCharge: Double,
-    val curvatureCharge: Double,
-    val totalCharge: Double,
-)
-
-private data class SbmResult(
-    val riskClassCharges: List<RiskClassCharge>,
-    val totalSbmCharge: Double,
-)
-
-private data class DrcResult(
-    val grossJtd: Double,
-    val hedgeBenefit: Double,
-    val netDrc: Double,
-)
-
-private data class RraoResult(
-    val exoticNotional: Double,
-    val otherNotional: Double,
-    val totalRrao: Double,
-)
-
-private data class FrtbResult(
-    val bookId: String,
-    val sbm: SbmResult,
-    val drc: DrcResult,
-    val rrao: RraoResult,
-    val totalCapitalCharge: Double,
 )
 
 // --- Stub engines ---
