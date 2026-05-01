@@ -5,19 +5,24 @@ import com.kinetix.common.model.BookId
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.Money
 import com.kinetix.common.model.Position
-import com.kinetix.risk.client.AttributionEngineClient
-import com.kinetix.risk.client.BenchmarkServiceClient
-import com.kinetix.risk.client.ClientResponse
+import com.kinetix.proto.risk.AttributionServiceGrpcKt.AttributionServiceCoroutineStub
+import com.kinetix.proto.risk.BrinsonAttributionResponse as ProtoBrinsonAttributionResponse
+import com.kinetix.proto.risk.SectorAttributionResult
+import com.kinetix.risk.client.GrpcAttributionClient
+import com.kinetix.risk.client.HttpBenchmarkServiceClient
 import com.kinetix.risk.client.PositionProvider
-import com.kinetix.risk.client.SectorInput
 import com.kinetix.risk.client.dtos.BenchmarkConstituentDto
 import com.kinetix.risk.client.dtos.BenchmarkDetailDto
-import com.kinetix.risk.model.BrinsonAttributionResult
-import com.kinetix.risk.model.BrinsonSectorAttribution
+import com.kinetix.risk.grpc.FakeAttributionService
+import com.kinetix.risk.grpc.GrpcFakeServer
 import com.kinetix.risk.routes.dtos.BrinsonAttributionResponse
 import com.kinetix.risk.service.BenchmarkAttributionService
+import com.kinetix.risk.testing.BackendStubServer
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
@@ -25,20 +30,18 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.statuspages.StatusPages
+import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
-import io.mockk.clearMocks
-import io.mockk.coEvery
-import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import java.math.BigDecimal
-import java.time.LocalDate
 import java.util.Currency
 
 private val USD = Currency.getInstance("USD")
 private val BOOK_ID = BookId("BOOK-EQ-01")
-private val TODAY = LocalDate.of(2026, 3, 25)
 
 private fun position(instrumentId: String, marketValue: Double) = Position(
     bookId = BOOK_ID,
@@ -65,40 +68,42 @@ private val BENCHMARK_DETAIL = BenchmarkDetailDto(
     ),
 )
 
-private val ATTRIBUTION_RESULT = BrinsonAttributionResult(
-    sectors = listOf(
-        BrinsonSectorAttribution(
-            sectorLabel = "AAPL",
-            portfolioWeight = 0.70,
-            benchmarkWeight = 0.07,
-            portfolioReturn = 0.0,
-            benchmarkReturn = 0.0,
-            allocationEffect = 0.028,
-            selectionEffect = 0.0,
-            interactionEffect = 0.0,
-            totalActiveContribution = 0.028,
-        ),
-        BrinsonSectorAttribution(
-            sectorLabel = "MSFT",
-            portfolioWeight = 0.30,
-            benchmarkWeight = 0.065,
-            portfolioReturn = 0.0,
-            benchmarkReturn = 0.0,
-            allocationEffect = 0.012,
-            selectionEffect = 0.0,
-            interactionEffect = 0.0,
-            totalActiveContribution = 0.012,
-        ),
-    ),
-    totalActiveReturn = 0.040,
-    totalAllocationEffect = 0.040,
-    totalSelectionEffect = 0.0,
-    totalInteractionEffect = 0.0,
-)
+private fun brinsonProtoResponse() = ProtoBrinsonAttributionResponse.newBuilder()
+    .addSectors(
+        SectorAttributionResult.newBuilder()
+            .setSectorLabel("AAPL")
+            .setPortfolioWeight(0.70)
+            .setBenchmarkWeight(0.07)
+            .setPortfolioReturn(0.0)
+            .setBenchmarkReturn(0.0)
+            .setAllocationEffect(0.028)
+            .setSelectionEffect(0.0)
+            .setInteractionEffect(0.0)
+            .setTotalActiveContribution(0.028)
+            .build()
+    )
+    .addSectors(
+        SectorAttributionResult.newBuilder()
+            .setSectorLabel("MSFT")
+            .setPortfolioWeight(0.30)
+            .setBenchmarkWeight(0.065)
+            .setPortfolioReturn(0.0)
+            .setBenchmarkReturn(0.0)
+            .setAllocationEffect(0.012)
+            .setSelectionEffect(0.0)
+            .setInteractionEffect(0.0)
+            .setTotalActiveContribution(0.012)
+            .build()
+    )
+    .setTotalActiveReturn(0.040)
+    .setTotalAllocationEffect(0.040)
+    .setTotalSelectionEffect(0.0)
+    .setTotalInteractionEffect(0.0)
+    .build()
 
 private fun Application.configureTestApp(service: BenchmarkAttributionService) {
     install(ContentNegotiation) { json() }
-    install(io.ktor.server.plugins.statuspages.StatusPages) {
+    install(StatusPages) {
         exception<IllegalArgumentException> { call, cause ->
             call.respondText(
                 cause.message ?: "Bad request",
@@ -113,22 +118,51 @@ private fun Application.configureTestApp(service: BenchmarkAttributionService) {
 
 class BenchmarkAttributionRoutesAcceptanceTest : FunSpec({
 
-    val positionProvider = mockk<PositionProvider>()
-    val benchmarkServiceClient = mockk<BenchmarkServiceClient>()
-    val attributionEngineClient = mockk<AttributionEngineClient>()
+    val fakeAttributionService = FakeAttributionService()
+    val grpcServer = GrpcFakeServer(fakeAttributionService)
+    val attributionStub = AttributionServiceCoroutineStub(grpcServer.channel())
+    val attributionEngineClient = GrpcAttributionClient(attributionStub)
+
+    val httpClient = HttpClient(CIO) {
+        install(ClientContentNegotiation) { json() }
+    }
+
+    val benchmarkBackend = BackendStubServer {
+        get("/api/v1/benchmarks/{benchmarkId}") {
+            val id = call.parameters["benchmarkId"]
+            if (id == "MISSING") {
+                call.respond(HttpStatusCode.NotFound)
+            } else {
+                call.respond(BENCHMARK_DETAIL)
+            }
+        }
+    }
+
+    val benchmarkServiceClient = HttpBenchmarkServiceClient(httpClient, benchmarkBackend.baseUrl)
+
+    // Fixed position provider backed by an in-memory list of test positions
+    val standardPositionProvider = object : PositionProvider {
+        override suspend fun getPositions(bookId: BookId): List<Position> = POSITIONS
+    }
+
     val service = BenchmarkAttributionService(
-        positionProvider = positionProvider,
+        positionProvider = standardPositionProvider,
         benchmarkServiceClient = benchmarkServiceClient,
         attributionEngineClient = attributionEngineClient,
     )
 
-    beforeEach { clearMocks(positionProvider, benchmarkServiceClient, attributionEngineClient) }
+    beforeEach {
+        fakeAttributionService.calculateBrinsonAttributionRequests.clear()
+        fakeAttributionService.calculateBrinsonAttributionHandler = { brinsonProtoResponse() }
+    }
+
+    afterSpec {
+        grpcServer.close()
+        benchmarkBackend.close()
+        httpClient.close()
+    }
 
     test("GET /api/v1/books/{bookId}/attribution returns Brinson attribution result") {
-        coEvery { positionProvider.getPositions(BOOK_ID) } returns POSITIONS
-        coEvery { benchmarkServiceClient.getBenchmarkDetail("SP500", TODAY) } returns ClientResponse.Success(BENCHMARK_DETAIL)
-        coEvery { attributionEngineClient.calculateBrinsonAttribution(any()) } returns ATTRIBUTION_RESULT
-
         testApplication {
             application { configureTestApp(service) }
             val response = client.get("/api/v1/books/BOOK-EQ-01/attribution?benchmarkId=SP500&asOfDate=2026-03-25")
@@ -145,10 +179,6 @@ class BenchmarkAttributionRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/books/{bookId}/attribution returns sectors with allocation and selection effects") {
-        coEvery { positionProvider.getPositions(BOOK_ID) } returns POSITIONS
-        coEvery { benchmarkServiceClient.getBenchmarkDetail("SP500", TODAY) } returns ClientResponse.Success(BENCHMARK_DETAIL)
-        coEvery { attributionEngineClient.calculateBrinsonAttribution(any()) } returns ATTRIBUTION_RESULT
-
         testApplication {
             application { configureTestApp(service) }
             val response = client.get("/api/v1/books/BOOK-EQ-01/attribution?benchmarkId=SP500&asOfDate=2026-03-25")
@@ -163,10 +193,6 @@ class BenchmarkAttributionRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/books/{bookId}/attribution uses today when asOfDate is omitted") {
-        coEvery { positionProvider.getPositions(BOOK_ID) } returns POSITIONS
-        coEvery { benchmarkServiceClient.getBenchmarkDetail("SP500", any()) } returns ClientResponse.Success(BENCHMARK_DETAIL)
-        coEvery { attributionEngineClient.calculateBrinsonAttribution(any()) } returns ATTRIBUTION_RESULT
-
         testApplication {
             application { configureTestApp(service) }
             val response = client.get("/api/v1/books/BOOK-EQ-01/attribution?benchmarkId=SP500")
@@ -191,9 +217,6 @@ class BenchmarkAttributionRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/books/{bookId}/attribution returns 400 when benchmark not found") {
-        coEvery { positionProvider.getPositions(BOOK_ID) } returns POSITIONS
-        coEvery { benchmarkServiceClient.getBenchmarkDetail("MISSING", TODAY) } returns ClientResponse.NotFound(404)
-
         testApplication {
             application { configureTestApp(service) }
             val response = client.get("/api/v1/books/BOOK-EQ-01/attribution?benchmarkId=MISSING&asOfDate=2026-03-25")
@@ -202,10 +225,17 @@ class BenchmarkAttributionRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/books/{bookId}/attribution returns 400 when book has no positions") {
-        coEvery { positionProvider.getPositions(BOOK_ID) } returns emptyList()
+        val emptyPositionProvider = object : PositionProvider {
+            override suspend fun getPositions(bookId: BookId): List<Position> = emptyList()
+        }
+        val serviceWithEmpty = BenchmarkAttributionService(
+            positionProvider = emptyPositionProvider,
+            benchmarkServiceClient = benchmarkServiceClient,
+            attributionEngineClient = attributionEngineClient,
+        )
 
         testApplication {
-            application { configureTestApp(service) }
+            application { configureTestApp(serviceWithEmpty) }
             val response = client.get("/api/v1/books/BOOK-EQ-01/attribution?benchmarkId=SP500&asOfDate=2026-03-25")
             response.status shouldBe HttpStatusCode.BadRequest
         }
