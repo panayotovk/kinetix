@@ -137,6 +137,47 @@ class TradeEventSchemaCompatibilityTest : FunSpec({
         deserialized.bookId shouldBe "book-101"
     }
 
+    test("counterpartyId and strategyId round-trip when set") {
+        val event = TradeEventMessage(
+            tradeId = "trade-cp-1",
+            bookId = "port-cp",
+            instrumentId = "USDJPY",
+            assetClass = "FX",
+            side = "BUY",
+            quantity = "1000000",
+            priceAmount = "150.25",
+            priceCurrency = "JPY",
+            tradedAt = "2025-01-15T14:00:00Z",
+            counterpartyId = "CP-DEUTSCHE",
+            strategyId = "STRAT-CARRY",
+        )
+        val serialized = Json.encodeToString(TradeEventMessage.serializer(), event)
+        val deserialized = json.decodeFromString<TradeEventMessage>(serialized)
+
+        deserialized.counterpartyId shouldBe "CP-DEUTSCHE"
+        deserialized.strategyId shouldBe "STRAT-CARRY"
+    }
+
+    test("backward compatibility: counterpartyId and strategyId default to null") {
+        val minimalJson = """
+            {
+                "tradeId": "trade-legacy-1",
+                "bookId": "port-legacy",
+                "instrumentId": "AAPL",
+                "assetClass": "EQUITY",
+                "side": "BUY",
+                "quantity": "10",
+                "priceAmount": "150.00",
+                "priceCurrency": "USD",
+                "tradedAt": "2025-01-15T10:00:00Z"
+            }
+        """.trimIndent()
+
+        val event = json.decodeFromString<TradeEventMessage>(minimalJson)
+        event.counterpartyId shouldBe null
+        event.strategyId shouldBe null
+    }
+
     test("old JSON with portfolioId instead of bookId is tolerated with ignoreUnknownKeys") {
         val oldJson = """
             {

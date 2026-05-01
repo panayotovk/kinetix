@@ -58,4 +58,46 @@ class TradeEventCorrelationIdTest : FunSpec({
 
         event.correlationId shouldBe null
     }
+
+    test("TradeEventMessage carries counterpartyId and strategyId from Trade") {
+        val tradeWithCounterparty = trade().copy(
+            counterpartyId = "CP-ACME",
+            strategyId = "STRAT-MOMENTUM",
+        )
+        val event = TradeEvent(trade = tradeWithCounterparty)
+        val message = TradeEventMessage.from(event)
+
+        message.counterpartyId shouldBe "CP-ACME"
+        message.strategyId shouldBe "STRAT-MOMENTUM"
+    }
+
+    test("counterpartyId and strategyId survive JSON round-trip") {
+        val tradeWithCounterparty = trade().copy(
+            counterpartyId = "CP-BANK",
+            strategyId = "STRAT-VOL",
+        )
+        val event = TradeEvent(trade = tradeWithCounterparty)
+        val message = TradeEventMessage.from(event)
+        val json = Json.encodeToString(message)
+        val deserialized = Json.decodeFromString<TradeEventMessage>(json)
+
+        deserialized.counterpartyId shouldBe "CP-BANK"
+        deserialized.strategyId shouldBe "STRAT-VOL"
+    }
+
+    test("counterpartyId and strategyId default to null when absent from Trade") {
+        val event = TradeEvent(trade = trade())
+        val message = TradeEventMessage.from(event)
+
+        message.counterpartyId shouldBe null
+        message.strategyId shouldBe null
+    }
+
+    test("counterpartyId/strategyId default to null for backward-compatible deserialization") {
+        val jsonWithoutFields = """{"tradeId":"t-1","bookId":"port-1","instrumentId":"AAPL","assetClass":"EQUITY","side":"BUY","quantity":"100","priceAmount":"150.00","priceCurrency":"USD","tradedAt":"2025-01-15T10:00:00Z"}"""
+        val event = Json.decodeFromString<TradeEventMessage>(jsonWithoutFields)
+
+        event.counterpartyId shouldBe null
+        event.strategyId shouldBe null
+    }
 })
