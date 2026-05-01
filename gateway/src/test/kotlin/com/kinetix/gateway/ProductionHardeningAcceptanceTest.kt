@@ -1,119 +1,141 @@
 package com.kinetix.gateway
 
-import com.kinetix.common.model.*
 import com.kinetix.common.persistence.ConnectionPoolConfig
 import com.kinetix.common.security.Role
 import com.kinetix.gateway.auth.InMemoryBookAccessService
 import com.kinetix.gateway.auth.TestJwtHelper
-import com.kinetix.gateway.client.*
+import com.kinetix.gateway.client.HttpPositionServiceClient
+import com.kinetix.gateway.client.HttpRiskServiceClient
 import com.kinetix.gateway.ratelimit.RateLimit
 import com.kinetix.gateway.ratelimit.RateLimiterConfig
 import com.kinetix.gateway.ratelimit.TokenBucketRateLimiter
+import com.kinetix.gateway.testing.BackendStubServer
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
-import io.mockk.*
-import java.math.BigDecimal
-import java.time.Instant
-import java.util.Currency
 
 private fun testJwtConfig() = TestJwtHelper.testJwtConfig()
 private fun testJwkProvider() = TestJwtHelper.testJwkProvider()
 private fun generateToken(roles: List<Role>): String = TestJwtHelper.generateToken(roles = roles)
 
+private val bookTradeResponseJson = """
+    {
+      "trade":{
+        "tradeId":"t-acc-1","bookId":"port-1","instrumentId":"AAPL","assetClass":"EQUITY",
+        "side":"BUY","quantity":"100","price":{"amount":"150.00","currency":"USD"},
+        "tradedAt":"2025-01-15T10:00:00Z"
+      },
+      "position":{
+        "bookId":"port-1","instrumentId":"AAPL","assetClass":"EQUITY","quantity":"100",
+        "averageCost":{"amount":"150.00","currency":"USD"},
+        "marketPrice":{"amount":"155.00","currency":"USD"},
+        "marketValue":{"amount":"15500.00","currency":"USD"},
+        "unrealizedPnl":{"amount":"500.00","currency":"USD"}
+      }
+    }
+""".trimIndent()
+
+private val frtbResultJson = """
+    {
+      "bookId":"port-1","sbmCharges":[],"totalSbmCharge":"100000.0","grossJtd":"50000.0",
+      "hedgeBenefit":"10000.0","netDrc":"40000.0","exoticNotional":"5000.0",
+      "otherNotional":"3000.0","totalRrao":"8000.0","totalCapitalCharge":"148000.0",
+      "calculatedAt":"2025-01-15T10:00:00Z"
+    }
+""".trimIndent()
+
 class ProductionHardeningAcceptanceTest : FunSpec({
 
-    val positionClient = mockk<PositionServiceClient>()
-    val riskClient = mockk<RiskServiceClient>()
     val jwtConfig = testJwtConfig()
-    val jwkProvider = TestJwtHelper.testJwkProvider()
-
-    beforeEach { clearMocks(positionClient, riskClient) }
+    val jwkProvider = testJwkProvider()
 
     test("JWT authentication configured with RBAC roles — a TRADER requests to book a trade — authorized — TRADER has WRITE_TRADES permission") {
-        val trade = Trade(
-            tradeId = TradeId("t-acc-1"),
-            bookId = BookId("port-1"),
-            instrumentId = InstrumentId("AAPL"),
-            assetClass = AssetClass.EQUITY,
-            side = Side.BUY,
-            quantity = BigDecimal("100"),
-            price = Money(BigDecimal("150.00"), Currency.getInstance("USD")),
-            tradedAt = Instant.parse("2025-01-15T10:00:00Z"),
-        )
-        val position = Position(
-            bookId = BookId("port-1"),
-            instrumentId = InstrumentId("AAPL"),
-            assetClass = AssetClass.EQUITY,
-            quantity = BigDecimal("100"),
-            averageCost = Money(BigDecimal("150.00"), Currency.getInstance("USD")),
-            marketPrice = Money(BigDecimal("155.00"), Currency.getInstance("USD")),
-        )
-        coEvery { positionClient.bookTrade(any()) } returns BookTradeResult(trade, position)
-        val token = generateToken(listOf(Role.TRADER))
+        val backend = BackendStubServer {
+            post("/api/v1/books/port-1/trades") {
+                call.respond(HttpStatusCode.Created, bookTradeResponseJson)
+            }
+        }
+        val httpClient = HttpClient(CIO) { install(ContentNegotiation) { json() } }
+        try {
+            val positionClient = HttpPositionServiceClient(httpClient, backend.baseUrl)
+            val token = generateToken(listOf(Role.TRADER))
 
-        testApplication {
-            application {
-                module(
-                    jwtConfig,
-                    positionClient = positionClient,
-                    bookAccessService = InMemoryBookAccessService(traderBooks = mapOf("user-1" to setOf("port-1"))),
-                    jwkProvider = jwkProvider,
-                )
+            testApplication {
+                application {
+                    module(
+                        jwtConfig,
+                        positionClient = positionClient,
+                        bookAccessService = InMemoryBookAccessService(traderBooks = mapOf("user-1" to setOf("port-1"))),
+                        jwkProvider = jwkProvider,
+                    )
+                }
+                val response = client.post("/api/v1/books/port-1/trades") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"tradeId":"t-acc-1","instrumentId":"AAPL","assetClass":"EQUITY","side":"BUY","quantity":"100","priceAmount":"150.00","priceCurrency":"USD","tradedAt":"2025-01-15T10:00:00Z"}""")
+                }
+                response.status shouldBe HttpStatusCode.Created
             }
-            val response = client.post("/api/v1/books/port-1/trades") {
-                header(HttpHeaders.Authorization, "Bearer $token")
-                contentType(ContentType.Application.Json)
-                setBody("""{"tradeId":"t-acc-1","instrumentId":"AAPL","assetClass":"EQUITY","side":"BUY","quantity":"100","priceAmount":"150.00","priceCurrency":"USD","tradedAt":"2025-01-15T10:00:00Z"}""")
-            }
-            response.status shouldBe HttpStatusCode.Created
+        } finally {
+            httpClient.close()
+            backend.close()
         }
     }
 
     test("JWT authentication configured with RBAC roles — a VIEWER requests to book a trade — denied — VIEWER lacks WRITE_TRADES permission") {
-        val token = generateToken(listOf(Role.VIEWER))
+        val backend = BackendStubServer { }
+        val httpClient = HttpClient(CIO) { install(ContentNegotiation) { json() } }
+        try {
+            val positionClient = HttpPositionServiceClient(httpClient, backend.baseUrl)
+            val token = generateToken(listOf(Role.VIEWER))
 
-        testApplication {
-            application { module(jwtConfig, positionClient = positionClient, jwkProvider = jwkProvider) }
-            val response = client.post("/api/v1/books/port-1/trades") {
-                header(HttpHeaders.Authorization, "Bearer $token")
-                contentType(ContentType.Application.Json)
-                setBody("""{"tradeId":"t-acc-2","instrumentId":"AAPL","assetClass":"EQUITY","side":"BUY","quantity":"100","priceAmount":"150.00","priceCurrency":"USD","tradedAt":"2025-01-15T10:00:00Z"}""")
+            testApplication {
+                application { module(jwtConfig, positionClient = positionClient, jwkProvider = jwkProvider) }
+                val response = client.post("/api/v1/books/port-1/trades") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"tradeId":"t-acc-2","instrumentId":"AAPL","assetClass":"EQUITY","side":"BUY","quantity":"100","priceAmount":"150.00","priceCurrency":"USD","tradedAt":"2025-01-15T10:00:00Z"}""")
+                }
+                response.status shouldBe HttpStatusCode.Forbidden
             }
-            response.status shouldBe HttpStatusCode.Forbidden
+        } finally {
+            httpClient.close()
+            backend.close()
         }
     }
 
     test("JWT authentication configured with RBAC roles — a COMPLIANCE user requests regulatory reports — authorized — COMPLIANCE has GENERATE_REPORTS permission") {
-        coEvery { riskClient.calculateFrtb(any<String>()) } returns FrtbResultSummary(
-            bookId = "port-1",
-            sbmCharges = emptyList(),
-            totalSbmCharge = 100000.0,
-            grossJtd = 50000.0,
-            hedgeBenefit = 10000.0,
-            netDrc = 40000.0,
-            exoticNotional = 5000.0,
-            otherNotional = 3000.0,
-            totalRrao = 8000.0,
-            totalCapitalCharge = 148000.0,
-            calculatedAt = Instant.parse("2025-01-15T10:00:00Z"),
-        )
-        val token = generateToken(listOf(Role.COMPLIANCE))
-
-        testApplication {
-            application { module(jwtConfig, riskClient = riskClient, jwkProvider = jwkProvider) }
-            val response = client.post("/api/v1/regulatory/frtb/port-1") {
-                header(HttpHeaders.Authorization, "Bearer $token")
-                contentType(ContentType.Application.Json)
-                setBody("{}")
+        val backend = BackendStubServer {
+            post("/api/v1/regulatory/frtb/port-1") {
+                call.respond(HttpStatusCode.OK, frtbResultJson)
             }
-            response.status shouldBe HttpStatusCode.OK
+        }
+        val httpClient = HttpClient(CIO) { install(ContentNegotiation) { json() } }
+        try {
+            val riskClient = HttpRiskServiceClient(httpClient, backend.baseUrl)
+            val token = generateToken(listOf(Role.COMPLIANCE))
+
+            testApplication {
+                application { module(jwtConfig, riskClient = riskClient, jwkProvider = jwkProvider) }
+                val response = client.post("/api/v1/regulatory/frtb/port-1") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    contentType(ContentType.Application.Json)
+                    setBody("{}")
+                }
+                response.status shouldBe HttpStatusCode.OK
+            }
+        } finally {
+            httpClient.close()
+            backend.close()
         }
     }
 
