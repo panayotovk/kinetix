@@ -5,7 +5,8 @@ import com.kinetix.common.model.VolPoint
 import com.kinetix.common.model.VolSurface
 import com.kinetix.common.model.VolatilitySource
 import com.kinetix.volatility.module
-import com.kinetix.volatility.persistence.VolSurfaceRepository
+import com.kinetix.volatility.persistence.DatabaseTestSetup
+import com.kinetix.volatility.persistence.ExposedVolSurfaceRepository
 import com.kinetix.volatility.service.VolatilityIngestionService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -13,7 +14,6 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
-import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -23,6 +23,7 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
 import java.time.Instant
 
@@ -35,10 +36,17 @@ import java.time.Instant
  */
 class VolatilityServiceAcceptanceTest : FunSpec({
 
-    val volSurfaceRepo = mockk<VolSurfaceRepository>()
-    val ingestionService = mockk<VolatilityIngestionService>()
+    val db = DatabaseTestSetup.startAndMigrate()
+    val volSurfaceRepo = ExposedVolSurfaceRepository(db)
+    val ingestionService = mockk<VolatilityIngestionService>(relaxed = true)
 
     val AS_OF = Instant.parse("2026-01-15T12:00:00Z")
+
+    beforeEach {
+        newSuspendedTransaction(db = db) {
+            exec("TRUNCATE TABLE volatility_surface_points, volatility_surfaces RESTART IDENTITY CASCADE")
+        }
+    }
 
     test("vol surface response shape matches VolSurfaceDto consumed by risk-orchestrator") {
         val surface = VolSurface(
@@ -51,7 +59,7 @@ class VolatilityServiceAcceptanceTest : FunSpec({
             ),
             source = VolatilitySource.BLOOMBERG,
         )
-        coEvery { volSurfaceRepo.findLatest(InstrumentId("AAPL")) } returns surface
+        volSurfaceRepo.save(surface)
 
         testApplication {
             application { module(volSurfaceRepo, ingestionService) }
@@ -87,7 +95,7 @@ class VolatilityServiceAcceptanceTest : FunSpec({
             ),
             source = VolatilitySource.EXCHANGE,
         )
-        coEvery { volSurfaceRepo.findLatest(InstrumentId("SPX")) } returns surface
+        volSurfaceRepo.save(surface)
 
         testApplication {
             application { module(volSurfaceRepo, ingestionService) }
@@ -111,8 +119,6 @@ class VolatilityServiceAcceptanceTest : FunSpec({
     }
 
     test("vol surface endpoint returns 404 when no surface exists for the instrument") {
-        coEvery { volSurfaceRepo.findLatest(InstrumentId("UNKNOWN")) } returns null
-
         testApplication {
             application { module(volSurfaceRepo, ingestionService) }
 
