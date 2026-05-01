@@ -1,3 +1,7 @@
+plugins {
+    id("kinetix.acceptance-test-conventions")
+}
+
 val libs = versionCatalogs.named("libs")
 
 dependencies {
@@ -42,6 +46,7 @@ val acceptanceTest by tasks.registering(Test::class) {
         includeTestsMatching("*AcceptanceTest")
         isFailOnNoMatchingTests = false
     }
+    dependsOn(tasks.named("verifyAcceptanceTestCompliance"))
 }
 
 val end2EndTest by tasks.registering(Test::class) {
