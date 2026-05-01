@@ -1,16 +1,20 @@
 package com.kinetix.referencedata.routes
 
+import com.kinetix.common.model.CreditSpread
 import com.kinetix.common.model.Division
 import com.kinetix.common.model.DivisionId
+import com.kinetix.common.model.DividendYield
+import com.kinetix.common.model.InstrumentId
+import com.kinetix.referencedata.cache.ReferenceDataCache
+import com.kinetix.referencedata.kafka.ReferenceDataPublisher
 import com.kinetix.referencedata.module
-import com.kinetix.referencedata.persistence.CreditSpreadRepository
-import com.kinetix.referencedata.persistence.DeskRepository
-import com.kinetix.referencedata.persistence.DivisionRepository
-import com.kinetix.referencedata.persistence.DividendYieldRepository
-import com.kinetix.referencedata.persistence.InstrumentRepository
+import com.kinetix.referencedata.persistence.DatabaseTestSetup
+import com.kinetix.referencedata.persistence.ExposedCreditSpreadRepository
+import com.kinetix.referencedata.persistence.ExposedDeskRepository
+import com.kinetix.referencedata.persistence.ExposedDividendYieldRepository
+import com.kinetix.referencedata.persistence.ExposedDivisionRepository
 import com.kinetix.referencedata.service.DeskService
 import com.kinetix.referencedata.service.DivisionService
-import com.kinetix.referencedata.service.InstrumentService
 import com.kinetix.referencedata.service.ReferenceDataIngestionService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -22,33 +26,46 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
-import io.mockk.coEvery
-import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 class DivisionRoutesAcceptanceTest : FunSpec({
 
-    val dividendYieldRepo = mockk<DividendYieldRepository>()
-    val creditSpreadRepo = mockk<CreditSpreadRepository>()
-    val ingestionService = mockk<ReferenceDataIngestionService>()
-    val divisionRepo = mockk<DivisionRepository>()
-    val deskRepo = mockk<DeskRepository>()
+    val db = DatabaseTestSetup.startAndMigrate()
+    val dividendYieldRepo = ExposedDividendYieldRepository(db)
+    val creditSpreadRepo = ExposedCreditSpreadRepository(db)
+    val noOpCache = object : ReferenceDataCache {
+        override suspend fun putDividendYield(dividendYield: DividendYield) = Unit
+        override suspend fun getDividendYield(instrumentId: InstrumentId): DividendYield? = null
+        override suspend fun putCreditSpread(creditSpread: CreditSpread) = Unit
+        override suspend fun getCreditSpread(instrumentId: InstrumentId): CreditSpread? = null
+    }
+    val noOpPublisher = object : ReferenceDataPublisher {
+        override suspend fun publishDividendYield(dividendYield: DividendYield) = Unit
+        override suspend fun publishCreditSpread(creditSpread: CreditSpread) = Unit
+    }
+    val ingestionService = ReferenceDataIngestionService(
+        dividendYieldRepo, creditSpreadRepo, noOpCache, noOpPublisher,
+    )
+    val divisionRepo = ExposedDivisionRepository(db)
+    val deskRepo = ExposedDeskRepository(db)
     val divisionService = DivisionService(divisionRepo)
     val deskService = DeskService(deskRepo, divisionRepo)
 
+    beforeEach {
+        newSuspendedTransaction(db = db) {
+            exec("TRUNCATE TABLE desks, divisions RESTART IDENTITY CASCADE")
+        }
+    }
+
     test("GET /api/v1/divisions returns list of divisions") {
-        val divisions = listOf(
-            Division(id = DivisionId("equities"), name = "Equities"),
-            Division(id = DivisionId("fixed-income"), name = "Fixed Income & Rates"),
-        )
-        coEvery { divisionRepo.findAll() } returns divisions
-        coEvery { deskRepo.findByDivisionId(DivisionId("equities")) } returns emptyList()
-        coEvery { deskRepo.findByDivisionId(DivisionId("fixed-income")) } returns emptyList()
+        divisionRepo.save(Division(id = DivisionId("equities"), name = "Equities"))
+        divisionRepo.save(Division(id = DivisionId("fixed-income"), name = "Fixed Income & Rates"))
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, divisionService = divisionService, deskService = deskService) }
@@ -65,9 +82,7 @@ class DivisionRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/divisions/{id} returns division by ID") {
-        val division = Division(id = DivisionId("equities"), name = "Equities", description = "Equity trading desks")
-        coEvery { divisionRepo.findById(DivisionId("equities")) } returns division
-        coEvery { deskRepo.findByDivisionId(DivisionId("equities")) } returns emptyList()
+        divisionRepo.save(Division(id = DivisionId("equities"), name = "Equities", description = "Equity trading desks"))
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, divisionService = divisionService, deskService = deskService) }
@@ -84,8 +99,6 @@ class DivisionRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/divisions/{id} returns 404 when not found") {
-        coEvery { divisionRepo.findById(DivisionId("unknown")) } returns null
-
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, divisionService = divisionService, deskService = deskService) }
 
@@ -95,9 +108,6 @@ class DivisionRoutesAcceptanceTest : FunSpec({
     }
 
     test("POST /api/v1/divisions creates a division and returns 201") {
-        coEvery { divisionRepo.findByName("Equities") } returns null
-        coEvery { divisionRepo.save(any()) } returns Unit
-
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, divisionService = divisionService, deskService = deskService) }
 
@@ -114,8 +124,7 @@ class DivisionRoutesAcceptanceTest : FunSpec({
     }
 
     test("POST /api/v1/divisions returns 400 when name already exists") {
-        val existing = Division(id = DivisionId("equities-2"), name = "Equities")
-        coEvery { divisionRepo.findByName("Equities") } returns existing
+        divisionRepo.save(Division(id = DivisionId("equities-2"), name = "Equities"))
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, divisionService = divisionService, deskService = deskService) }
@@ -129,7 +138,7 @@ class DivisionRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/divisions/{divisionId}/desks returns desks in division") {
-        coEvery { deskRepo.findByDivisionId(DivisionId("equities")) } returns emptyList()
+        divisionRepo.save(Division(id = DivisionId("equities"), name = "Equities"))
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, divisionService = divisionService, deskService = deskService) }
