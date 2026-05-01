@@ -2,8 +2,9 @@ package com.kinetix.position
 
 import com.kinetix.common.kafka.events.LimitBreachEvent
 import com.kinetix.common.model.*
+import com.kinetix.position.kafka.KafkaTestSetup
+import com.kinetix.position.kafka.KafkaTradeEventPublisher
 import com.kinetix.position.kafka.LimitBreachEventPublisher
-import com.kinetix.position.kafka.TradeEventPublisher
 import com.kinetix.position.model.LimitDefinition
 import com.kinetix.position.model.LimitLevel
 import com.kinetix.position.model.LimitType
@@ -20,7 +21,6 @@ import com.kinetix.position.service.LimitHierarchyService
 import com.kinetix.position.service.TradeBookingService
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
-import io.mockk.mockk
 
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
@@ -43,6 +43,11 @@ class LimitEnforcementAcceptanceTest : BehaviorSpec({
 
     fun preTradeCheck() = HierarchyBasedPreTradeCheckService(positionRepo, limitHierarchyService)
 
+    val bootstrapServers = KafkaTestSetup.start()
+    val producer = KafkaTestSetup.createProducer(bootstrapServers)
+
+    fun publisherFor(topic: String) = KafkaTradeEventPublisher(producer, topic)
+
     beforeEach {
         newSuspendedTransaction(db = db) {
             exec("TRUNCATE TABLE trade_events, positions, limit_definitions, limit_temporary_increases RESTART IDENTITY CASCADE")
@@ -53,7 +58,7 @@ class LimitEnforcementAcceptanceTest : BehaviorSpec({
     given("a BOOK-level notional limit of \$200,000") {
         `when`("a trade with \$300,000 notional is submitted (3000 shares at \$100)") {
             then("LimitBreachException is thrown with NOTIONAL breach and no trade is persisted") {
-                val publisher = mockk<TradeEventPublisher>(relaxed = true)
+                val publisher = publisherFor("trades.lifecycle.le-notional-1")
                 limitDefinitionRepo.save(
                     LimitDefinition(
                         id = UUID.randomUUID().toString(),
@@ -102,7 +107,7 @@ class LimitEnforcementAcceptanceTest : BehaviorSpec({
             //   instrumentValue = 4001 * $100 = $400,100
             //   concentrationPct ≈ 50.006% > 50% → breach
             then("LimitBreachException is thrown with CONCENTRATION breach and no trade is persisted") {
-                val publisher = mockk<TradeEventPublisher>(relaxed = true)
+                val publisher = publisherFor("trades.lifecycle.le-concentration-1")
                 limitDefinitionRepo.save(
                     LimitDefinition(
                         id = UUID.randomUUID().toString(),
@@ -167,7 +172,7 @@ class LimitEnforcementAcceptanceTest : BehaviorSpec({
     given("a HARD limit breach during booking and a configured LimitBreachEventPublisher") {
         `when`("a trade is rejected for breaching the limit") {
             then("a LimitBreachEvent is published before the LimitBreachException is thrown") {
-                val tradePublisher = mockk<TradeEventPublisher>(relaxed = true)
+                val tradePublisher = publisherFor("trades.lifecycle.le-publish-1")
                 val capturedBreaches = mutableListOf<LimitBreachEvent>()
                 val breachPublisher = object : LimitBreachEventPublisher {
                     override suspend fun publish(event: LimitBreachEvent) {
@@ -222,5 +227,9 @@ class LimitEnforcementAcceptanceTest : BehaviorSpec({
                 tradeRepo.findByTradeId(TradeId("t-publish-1")) shouldBe null
             }
         }
+    }
+
+    afterSpec {
+        producer.close()
     }
 })
