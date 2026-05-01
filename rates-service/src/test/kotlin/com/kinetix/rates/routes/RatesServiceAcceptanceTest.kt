@@ -8,9 +8,10 @@ import com.kinetix.common.model.RiskFreeRate
 import com.kinetix.common.model.Tenor
 import com.kinetix.common.model.YieldCurve
 import com.kinetix.rates.module
-import com.kinetix.rates.persistence.ForwardCurveRepository
-import com.kinetix.rates.persistence.RiskFreeRateRepository
-import com.kinetix.rates.persistence.YieldCurveRepository
+import com.kinetix.rates.persistence.DatabaseTestSetup
+import com.kinetix.rates.persistence.ExposedForwardCurveRepository
+import com.kinetix.rates.persistence.ExposedRiskFreeRateRepository
+import com.kinetix.rates.persistence.ExposedYieldCurveRepository
 import com.kinetix.rates.service.RateIngestionService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -19,7 +20,6 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
-import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -29,6 +29,7 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.Currency
@@ -44,13 +45,20 @@ import java.util.Currency
  */
 class RatesServiceAcceptanceTest : FunSpec({
 
-    val yieldCurveRepo = mockk<YieldCurveRepository>()
-    val riskFreeRateRepo = mockk<RiskFreeRateRepository>()
-    val forwardCurveRepo = mockk<ForwardCurveRepository>()
-    val ingestionService = mockk<RateIngestionService>()
+    val db = DatabaseTestSetup.startAndMigrate()
+    val yieldCurveRepo = ExposedYieldCurveRepository(db)
+    val riskFreeRateRepo = ExposedRiskFreeRateRepository(db)
+    val forwardCurveRepo = ExposedForwardCurveRepository(db)
+    val ingestionService = mockk<RateIngestionService>(relaxed = true)
 
     val USD = Currency.getInstance("USD")
     val AS_OF = Instant.parse("2026-01-15T12:00:00Z")
+
+    beforeEach {
+        newSuspendedTransaction(db = db) {
+            exec("TRUNCATE TABLE yield_curve_tenors, yield_curves, risk_free_rates, forward_curve_points, forward_curves RESTART IDENTITY CASCADE")
+        }
+    }
 
     test("yield curve response shape matches YieldCurveDto consumed by risk-orchestrator") {
         val curve = YieldCurve(
@@ -63,7 +71,7 @@ class RatesServiceAcceptanceTest : FunSpec({
             asOf = AS_OF,
             source = RateSource.CENTRAL_BANK,
         )
-        coEvery { yieldCurveRepo.findLatest("USD-TREASURY") } returns curve
+        yieldCurveRepo.save(curve)
 
         testApplication {
             application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
@@ -98,7 +106,7 @@ class RatesServiceAcceptanceTest : FunSpec({
             asOfDate = AS_OF,
             source = RateSource.CENTRAL_BANK,
         )
-        coEvery { riskFreeRateRepo.findLatest(USD, "3M") } returns rate
+        riskFreeRateRepo.save(rate)
 
         testApplication {
             application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
@@ -129,7 +137,7 @@ class RatesServiceAcceptanceTest : FunSpec({
             asOfDate = AS_OF,
             source = RateSource.REUTERS,
         )
-        coEvery { forwardCurveRepo.findLatest(InstrumentId("EURUSD")) } returns curve
+        forwardCurveRepo.save(curve)
 
         testApplication {
             application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
@@ -156,8 +164,6 @@ class RatesServiceAcceptanceTest : FunSpec({
     }
 
     test("yield curve endpoint returns 404 when curve does not exist") {
-        coEvery { yieldCurveRepo.findLatest("UNKNOWN") } returns null
-
         testApplication {
             application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
 
@@ -167,8 +173,6 @@ class RatesServiceAcceptanceTest : FunSpec({
     }
 
     test("risk-free rate endpoint returns 404 when rate does not exist") {
-        coEvery { riskFreeRateRepo.findLatest(any(), any()) } returns null
-
         testApplication {
             application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
 
@@ -178,8 +182,6 @@ class RatesServiceAcceptanceTest : FunSpec({
     }
 
     test("forward curve endpoint returns 404 when instrument does not exist") {
-        coEvery { forwardCurveRepo.findLatest(InstrumentId("UNKNOWN")) } returns null
-
         testApplication {
             application { module(yieldCurveRepo, riskFreeRateRepo, forwardCurveRepo, ingestionService) }
 
