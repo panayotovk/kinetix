@@ -21,7 +21,7 @@ class LiquidityRiskEventSchemaCompatibilityTest : FunSpec({
                 PositionLiquidityRiskItem(
                     instrumentId = "AAPL",
                     assetClass = "EQUITY",
-                    tier = "TIER_1",
+                    tier = "HIGH_LIQUID",
                     horizonDays = 1,
                     advMissing = false,
                     advStale = false,
@@ -31,7 +31,7 @@ class LiquidityRiskEventSchemaCompatibilityTest : FunSpec({
                 PositionLiquidityRiskItem(
                     instrumentId = "ILLIQUID-CORP",
                     assetClass = "CREDIT",
-                    tier = "TIER_3",
+                    tier = "SEMI_LIQUID",
                     horizonDays = 10,
                     advMissing = true,
                     advStale = false,
@@ -51,7 +51,7 @@ class LiquidityRiskEventSchemaCompatibilityTest : FunSpec({
         deserialized.calculatedAt shouldBe "2025-01-15T14:00:00Z"
         deserialized.positionRisks.size shouldBe 2
         deserialized.positionRisks[0].instrumentId shouldBe "AAPL"
-        deserialized.positionRisks[0].tier shouldBe "TIER_1"
+        deserialized.positionRisks[0].tier shouldBe "HIGH_LIQUID"
         deserialized.positionRisks[1].advMissing shouldBe true
         deserialized.positionRisks[1].concentrationStatus shouldBe "BREACH"
         deserialized.correlationId shouldBe "corr-liquidity-1"
@@ -88,7 +88,7 @@ class LiquidityRiskEventSchemaCompatibilityTest : FunSpec({
                     {
                         "instrumentId": "GOOG",
                         "assetClass": "EQUITY",
-                        "tier": "TIER_1",
+                        "tier": "HIGH_LIQUID",
                         "horizonDays": 1,
                         "advMissing": false,
                         "advStale": false,

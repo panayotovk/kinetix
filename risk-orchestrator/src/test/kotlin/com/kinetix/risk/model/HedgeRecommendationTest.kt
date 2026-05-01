@@ -32,7 +32,7 @@ private fun sampleSuggestion(estimatedCost: Double = 12_000.0) = HedgeSuggestion
     targetReductionPct = 0.95,
     residualMetric = 50.0,
     greekImpact = sampleGreekImpact(),
-    liquidityTier = "TIER_1",
+    liquidityTier = "HIGH_LIQUID",
     dataQuality = "FRESH",
 )
 

@@ -1,7 +1,7 @@
 package com.kinetix.referencedata.persistence
 
+import com.kinetix.common.model.LiquidityTier
 import com.kinetix.referencedata.model.InstrumentLiquidity
-import com.kinetix.referencedata.model.InstrumentLiquidityTier
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.selectAll
@@ -65,7 +65,7 @@ class ExposedInstrumentLiquidityRepository(
         adv = this[InstrumentLiquidityTable.adv].toDouble(),
         bidAskSpreadBps = this[InstrumentLiquidityTable.bidAskSpreadBps].toDouble(),
         assetClass = this[InstrumentLiquidityTable.assetClass],
-        liquidityTier = InstrumentLiquidityTier.valueOf(this[InstrumentLiquidityTable.liquidityTier]),
+        liquidityTier = LiquidityTier.valueOf(this[InstrumentLiquidityTable.liquidityTier]),
         advUpdatedAt = this[InstrumentLiquidityTable.advUpdatedAt].toInstant(),
         createdAt = this[InstrumentLiquidityTable.createdAt].toInstant(),
         updatedAt = this[InstrumentLiquidityTable.updatedAt].toInstant(),

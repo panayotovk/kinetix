@@ -2164,7 +2164,7 @@ export const TEST_HEDGE_RECOMMENDATION = {
         rhoBefore: 10,
         rhoAfter: 9.8,
       },
-      liquidityTier: 'TIER_1',
+      liquidityTier: 'HIGH_LIQUID',
       dataQuality: 'FRESH',
     },
   ],

@@ -42,7 +42,7 @@ private fun candidate(
     vegaPerUnit: Double = 0.0,
     thetaPerUnit: Double = 0.0,
     rhoPerUnit: Double = 0.0,
-    liquidityTier: String = "TIER_1",
+    liquidityTier: String = "HIGH_LIQUID",
     priceAgeMinutes: Int = 5,
 ) = CandidateInstrument(
     instrumentId = instrumentId,

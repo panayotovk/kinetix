@@ -46,7 +46,7 @@ class ExposedHedgeRecommendationRepositoryIntegrationTest : FunSpec({
         targetReductionPct = 0.95,
         residualMetric = 50.0,
         greekImpact = sampleGreekImpact(),
-        liquidityTier = "TIER_1",
+        liquidityTier = "HIGH_LIQUID",
         dataQuality = "FRESH",
     )
 
@@ -106,7 +106,7 @@ class ExposedHedgeRecommendationRepositoryIntegrationTest : FunSpec({
         suggestion.instrumentId shouldBe "AAPL-P-2026"
         suggestion.side shouldBe "BUY"
         suggestion.estimatedCost.shouldBeWithinPercentageOf(12_000.0, 0.01)
-        suggestion.liquidityTier shouldBe "TIER_1"
+        suggestion.liquidityTier shouldBe "HIGH_LIQUID"
         suggestion.dataQuality shouldBe "FRESH"
         suggestion.greekImpact.deltaBefore.shouldBeWithinPercentageOf(1000.0, 0.01)
         suggestion.greekImpact.deltaAfter.shouldBeWithinPercentageOf(50.0, 0.01)

@@ -64,7 +64,7 @@ class HedgeRecommendationRoutesAcceptanceTest : FunSpec({
         targetReductionPct = 0.95,
         residualMetric = 50.0,
         greekImpact = sampleGreekImpact(),
-        liquidityTier = "TIER_1",
+        liquidityTier = "HIGH_LIQUID",
         dataQuality = "FRESH",
     )
 
@@ -127,7 +127,7 @@ class HedgeRecommendationRoutesAcceptanceTest : FunSpec({
             val first = suggestions?.first()?.jsonObject
             first?.get("instrumentId")?.jsonPrimitive?.content shouldBe "AAPL-P-2026"
             first?.get("side")?.jsonPrimitive?.content shouldBe "BUY"
-            first?.get("liquidityTier")?.jsonPrimitive?.content shouldBe "TIER_1"
+            first?.get("liquidityTier")?.jsonPrimitive?.content shouldBe "HIGH_LIQUID"
             first?.get("dataQuality")?.jsonPrimitive?.content shouldBe "FRESH"
 
             val greekImpact = first?.get("greekImpact")?.jsonObject

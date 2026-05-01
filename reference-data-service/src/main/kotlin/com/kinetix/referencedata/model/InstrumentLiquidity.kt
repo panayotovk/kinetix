@@ -1,5 +1,6 @@
 package com.kinetix.referencedata.model
 
+import com.kinetix.common.model.LiquidityTier
 import java.time.Instant
 
 data class InstrumentLiquidity(
@@ -7,7 +8,7 @@ data class InstrumentLiquidity(
     val adv: Double,
     val bidAskSpreadBps: Double,
     val assetClass: String,
-    val liquidityTier: InstrumentLiquidityTier,
+    val liquidityTier: LiquidityTier,
     val advUpdatedAt: Instant,
     val createdAt: Instant,
     val updatedAt: Instant,

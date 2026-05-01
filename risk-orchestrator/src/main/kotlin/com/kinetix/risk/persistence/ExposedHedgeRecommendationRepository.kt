@@ -182,7 +182,7 @@ class ExposedHedgeRecommendationRepository(
             targetReduction = obj["targetReduction"]?.jsonPrimitive?.double ?: 0.0,
             targetReductionPct = obj["targetReductionPct"]?.jsonPrimitive?.double ?: 0.0,
             residualMetric = obj["residualMetric"]?.jsonPrimitive?.double ?: 0.0,
-            liquidityTier = obj["liquidityTier"]?.jsonPrimitive?.content ?: "TIER_1",
+            liquidityTier = obj["liquidityTier"]?.jsonPrimitive?.content ?: "HIGH_LIQUID",
             dataQuality = obj["dataQuality"]?.jsonPrimitive?.content ?: "FRESH",
             warnings = obj["warnings"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList(),
             greekImpact = GreekImpact(
