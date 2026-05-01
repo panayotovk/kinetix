@@ -4,7 +4,9 @@ import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.BookId
 import com.kinetix.common.resilience.CircuitBreakerOpenException
 import com.kinetix.risk.ErrorBody
-import com.kinetix.risk.cache.InMemoryVaRCache
+import com.kinetix.risk.cache.RedisTestSetup
+import com.kinetix.risk.cache.RedisVaRCache
+import com.kinetix.risk.cache.VaRCache
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ComponentBreakdown
 import com.kinetix.risk.model.ConfidenceLevel
@@ -42,8 +44,13 @@ import java.time.Instant
 class StaleCacheVaRFallbackAcceptanceTest : FunSpec({
 
     val varCalculationService = mockk<VaRCalculationService>()
+    val redisConnection = RedisTestSetup.start()
+    val varCache: VaRCache = RedisVaRCache(redisConnection)
 
-    beforeEach { clearMocks(varCalculationService) }
+    beforeEach {
+        clearMocks(varCalculationService)
+        redisConnection.sync().flushdb()
+    }
 
     val cachedResult = ValuationResult(
         bookId = BookId("port-1"),
@@ -60,7 +67,6 @@ class StaleCacheVaRFallbackAcceptanceTest : FunSpec({
     )
 
     fun testApp(
-        varCache: InMemoryVaRCache,
         block: suspend ApplicationTestBuilder.() -> Unit,
     ) {
         testApplication {
@@ -88,13 +94,12 @@ class StaleCacheVaRFallbackAcceptanceTest : FunSpec({
     }
 
     test("returns stale cached VaR with Warning header when circuit breaker is open and cache is populated") {
-        val varCache = InMemoryVaRCache()
         varCache.put("port-1", cachedResult)
 
         coEvery { varCalculationService.calculateVaR(any(), any(), any(), any(), any()) } throws
             CircuitBreakerOpenException("risk-engine")
 
-        testApp(varCache) {
+        testApp {
             val response = client.post("/api/v1/risk/var/port-1") {
                 contentType(ContentType.Application.Json)
                 setBody("""{"calculationType":"PARAMETRIC","confidenceLevel":"CL_95"}""")
@@ -111,12 +116,10 @@ class StaleCacheVaRFallbackAcceptanceTest : FunSpec({
     }
 
     test("returns 503 with Retry-After when circuit breaker is open and cache is empty") {
-        val varCache = InMemoryVaRCache()
-
         coEvery { varCalculationService.calculateVaR(any(), any(), any(), any(), any()) } throws
             CircuitBreakerOpenException("risk-engine")
 
-        testApp(varCache) {
+        testApp {
             val response = client.post("/api/v1/risk/var/port-1") {
                 contentType(ContentType.Application.Json)
                 setBody("""{"calculationType":"PARAMETRIC","confidenceLevel":"CL_95"}""")
@@ -128,11 +131,9 @@ class StaleCacheVaRFallbackAcceptanceTest : FunSpec({
     }
 
     test("returns fresh VaR without Warning header when circuit breaker is closed") {
-        val varCache = InMemoryVaRCache()
-
         coEvery { varCalculationService.calculateVaR(any(), any(), any(), any(), any()) } returns cachedResult
 
-        testApp(varCache) {
+        testApp {
             val response = client.post("/api/v1/risk/var/port-1") {
                 contentType(ContentType.Application.Json)
                 setBody("""{"calculationType":"PARAMETRIC","confidenceLevel":"CL_95"}""")

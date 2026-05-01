@@ -87,6 +87,16 @@ internal data class CachedPositionRisk(
 )
 
 @Serializable
+internal data class CachedPositionGreek(
+    val instrumentId: String,
+    val delta: Double,
+    val gamma: Double,
+    val vega: Double,
+    val theta: Double,
+    val rho: Double,
+)
+
+@Serializable
 internal data class CachedValuationResult(
     val bookId: String,
     val calculationType: String,
@@ -101,6 +111,7 @@ internal data class CachedValuationResult(
     val positionRisk: List<CachedPositionRisk>,
     val jobId: String?,
     val marketDataComplete: Boolean = true,
+    val positionGreeks: List<CachedPositionGreek> = emptyList(),
 ) {
     fun toValuationResult(): ValuationResult = ValuationResult(
         bookId = BookId(bookId),
@@ -138,6 +149,16 @@ internal data class CachedValuationResult(
         },
         jobId = jobId?.let { UUID.fromString(it) },
         marketDataComplete = marketDataComplete,
+        positionGreeks = positionGreeks.map {
+            PositionGreek(
+                instrumentId = it.instrumentId,
+                delta = it.delta,
+                gamma = it.gamma,
+                vega = it.vega,
+                theta = it.theta,
+                rho = it.rho,
+            )
+        },
     )
 
     companion object {
