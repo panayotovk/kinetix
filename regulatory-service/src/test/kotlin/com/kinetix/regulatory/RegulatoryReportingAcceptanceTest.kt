@@ -7,7 +7,7 @@ import com.kinetix.regulatory.fixtures.FrtbRiskClass
 import com.kinetix.regulatory.fixtures.RiskClassCharge
 import com.kinetix.regulatory.fixtures.RraoResult
 import com.kinetix.regulatory.fixtures.SbmResult
-import io.kotest.core.spec.style.BehaviorSpec
+import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.doubles.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -130,86 +130,86 @@ private fun generateXbrlReport(result: FrtbResult): String {
 
 // --- Test ---
 
-class RegulatoryReportingAcceptanceTest : BehaviorSpec({
+class RegulatoryReportingAcceptanceTest : FunSpec({
 
-    given("a portfolio with positions across multiple asset classes") {
-        val exposures = mapOf(
-            AssetClass.EQUITY to 1_000_000.0,
-            AssetClass.FIXED_INCOME to 500_000.0,
-            AssetClass.COMMODITY to 200_000.0,
-            AssetClass.DERIVATIVE to 400_000.0,
-            AssetClass.FX to 300_000.0,
-        )
-        val calculator = StubFrtbCalculator()
+    val exposures = mapOf(
+        AssetClass.EQUITY to 1_000_000.0,
+        AssetClass.FIXED_INCOME to 500_000.0,
+        AssetClass.COMMODITY to 200_000.0,
+        AssetClass.DERIVATIVE to 400_000.0,
+        AssetClass.FX to 300_000.0,
+    )
+    val calculator = StubFrtbCalculator()
 
-        `when`("FRTB report is generated") {
-            val result = calculator.calculate("port-regulatory", exposures)
+    test("a portfolio with positions across multiple asset classes — FRTB report is generated — capital requirement calculated across all seven risk classes") {
+        val result = calculator.calculate("port-regulatory", exposures)
+        result.sbm.riskClassCharges shouldHaveSize 7
+    }
 
-            then("capital requirement calculated across all seven risk classes") {
-                result.sbm.riskClassCharges shouldHaveSize 7
-            }
+    test("a portfolio with positions across multiple asset classes — FRTB report is generated — SbM charge is positive for equity risk class") {
+        val result = calculator.calculate("port-regulatory", exposures)
+        val equityCharge = result.sbm.riskClassCharges.first { it.riskClass == FrtbRiskClass.EQUITY }
+        equityCharge.totalCharge shouldBeGreaterThan 0.0
+    }
 
-            then("SbM charge is positive for equity risk class") {
-                val equityCharge = result.sbm.riskClassCharges.first { it.riskClass == FrtbRiskClass.EQUITY }
-                equityCharge.totalCharge shouldBeGreaterThan 0.0
-            }
+    test("a portfolio with positions across multiple asset classes — FRTB report is generated — SbM charge is positive for commodity risk class") {
+        val result = calculator.calculate("port-regulatory", exposures)
+        val commodityCharge = result.sbm.riskClassCharges.first { it.riskClass == FrtbRiskClass.COMMODITY }
+        commodityCharge.totalCharge shouldBeGreaterThan 0.0
+    }
 
-            then("SbM charge is positive for commodity risk class") {
-                val commodityCharge = result.sbm.riskClassCharges.first { it.riskClass == FrtbRiskClass.COMMODITY }
-                commodityCharge.totalCharge shouldBeGreaterThan 0.0
-            }
+    test("a portfolio with positions across multiple asset classes — FRTB report is generated — DRC charge applies to fixed income positions") {
+        val result = calculator.calculate("port-regulatory", exposures)
+        result.drc.netDrc shouldBeGreaterThan 0.0
+    }
 
-            then("DRC charge applies to fixed income positions") {
-                result.drc.netDrc shouldBeGreaterThan 0.0
-            }
+    test("a portfolio with positions across multiple asset classes — FRTB report is generated — RRAO charge applies to derivative positions") {
+        val result = calculator.calculate("port-regulatory", exposures)
+        result.rrao.exoticNotional shouldBeGreaterThan 0.0
+        result.rrao.totalRrao shouldBeGreaterThan 0.0
+    }
 
-            then("RRAO charge applies to derivative positions") {
-                result.rrao.exoticNotional shouldBeGreaterThan 0.0
-                result.rrao.totalRrao shouldBeGreaterThan 0.0
-            }
+    test("a portfolio with positions across multiple asset classes — FRTB report is generated — total capital charge equals SbM + DRC + RRAO") {
+        val result = calculator.calculate("port-regulatory", exposures)
+        val expected = result.sbm.totalSbmCharge + result.drc.netDrc + result.rrao.totalRrao
+        result.totalCapitalCharge shouldBe expected
+    }
 
-            then("total capital charge equals SbM + DRC + RRAO") {
-                val expected = result.sbm.totalSbmCharge + result.drc.netDrc + result.rrao.totalRrao
-                result.totalCapitalCharge shouldBe expected
-            }
+    test("a portfolio with positions across multiple asset classes — CSV report is generated — report contains header row") {
+        val result = calculator.calculate("port-regulatory", exposures)
+        val csv = generateCsvReport(result)
+        csv shouldContain "Component"
+        csv shouldContain "Risk Class"
+    }
+
+    test("a portfolio with positions across multiple asset classes — CSV report is generated — report contains rows for all risk classes") {
+        val result = calculator.calculate("port-regulatory", exposures)
+        val csv = generateCsvReport(result)
+        for (rc in FrtbRiskClass.entries) {
+            csv shouldContain rc.name
         }
+    }
 
-        `when`("CSV report is generated") {
-            val result = calculator.calculate("port-regulatory", exposures)
-            val csv = generateCsvReport(result)
+    test("a portfolio with positions across multiple asset classes — CSV report is generated — report contains total capital charge") {
+        val result = calculator.calculate("port-regulatory", exposures)
+        val csv = generateCsvReport(result)
+        csv shouldContain "Total"
+        csv shouldContain "%.2f".format(result.totalCapitalCharge)
+    }
 
-            then("report contains header row") {
-                csv shouldContain "Component"
-                csv shouldContain "Risk Class"
-            }
+    test("a portfolio with positions across multiple asset classes — XBRL report is generated — report is valid XML") {
+        val result = calculator.calculate("port-regulatory", exposures)
+        val xbrl = generateXbrlReport(result)
+        xbrl shouldContain "<?xml"
+        xbrl shouldContain "FRTBReport"
+    }
 
-            then("report contains rows for all risk classes") {
-                for (rc in FrtbRiskClass.entries) {
-                    csv shouldContain rc.name
-                }
-            }
-
-            then("report contains total capital charge") {
-                csv shouldContain "Total"
-                csv shouldContain "%.2f".format(result.totalCapitalCharge)
-            }
-        }
-
-        `when`("XBRL report is generated") {
-            val result = calculator.calculate("port-regulatory", exposures)
-            val xbrl = generateXbrlReport(result)
-
-            then("report is valid XML") {
-                xbrl shouldContain "<?xml"
-                xbrl shouldContain "FRTBReport"
-            }
-
-            then("report contains FRTB structure") {
-                xbrl shouldContain "SensitivitiesBasedMethod"
-                xbrl shouldContain "DefaultRiskCharge"
-                xbrl shouldContain "ResidualRiskAddOn"
-                xbrl shouldContain "TotalCapitalCharge"
-            }
-        }
+    test("a portfolio with positions across multiple asset classes — XBRL report is generated — report contains FRTB structure") {
+        val result = calculator.calculate("port-regulatory", exposures)
+        val xbrl = generateXbrlReport(result)
+        xbrl shouldContain "SensitivitiesBasedMethod"
+        xbrl shouldContain "DefaultRiskCharge"
+        xbrl shouldContain "ResidualRiskAddOn"
+        xbrl shouldContain "TotalCapitalCharge"
     }
 })
