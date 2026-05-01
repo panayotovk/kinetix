@@ -1,15 +1,14 @@
 package com.kinetix.gateway.routes
 
-import com.kinetix.common.model.BookId
-import com.kinetix.common.model.Position
-import com.kinetix.gateway.client.PositionServiceClient
-import com.kinetix.gateway.client.RiskServiceClient
-import com.kinetix.gateway.client.ServiceUnavailableException
+import com.kinetix.gateway.client.HttpPositionServiceClient
+import com.kinetix.gateway.client.HttpRiskServiceClient
 import com.kinetix.gateway.module
+import com.kinetix.gateway.testing.BackendStubServer
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -25,14 +24,11 @@ import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
-import io.ktor.server.response.respondText
+import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
-import io.mockk.clearMocks
-import io.mockk.coEvery
-import io.mockk.mockk
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withTimeoutOrNull
@@ -50,60 +46,96 @@ import kotlinx.serialization.json.jsonPrimitive
  */
 class PartialFailureAcceptanceTest : FunSpec({
 
-    val positionClient = mockk<PositionServiceClient>()
-    val riskClient = mockk<RiskServiceClient>()
-
-    beforeEach { clearMocks(positionClient, riskClient) }
-
     test("GET positions succeeds when risk-orchestrator is unavailable") {
-        // Position client returns normally
-        coEvery { positionClient.getPositions(BookId("port-1")) } returns emptyList()
-        coEvery { positionClient.listPortfolios() } returns emptyList()
+        val positionBackend = BackendStubServer {
+            get("/api/v1/books/port-1/positions") {
+                call.respond(HttpStatusCode.OK, "[]")
+            }
+            get("/api/v1/books") {
+                call.respond(HttpStatusCode.OK, "[]")
+            }
+        }
+        val httpClient = HttpClient(CIO) {
+            install(ContentNegotiation) { json() }
+        }
+        try {
+            val positionClient = HttpPositionServiceClient(httpClient, positionBackend.baseUrl)
 
-        // Risk client throws ServiceUnavailableException (circuit breaker open)
-        coEvery { riskClient.calculateVaR(any()) } throws
-            ServiceUnavailableException(30, "Risk engine temporarily unavailable")
+            testApplication {
+                application { module(positionClient) }
 
-        testApplication {
-            application { module(positionClient) }
-
-            val response = client.get("/api/v1/books/port-1/positions")
-            response.status shouldBe HttpStatusCode.OK
+                val response = client.get("/api/v1/books/port-1/positions")
+                response.status shouldBe HttpStatusCode.OK
+            }
+        } finally {
+            httpClient.close()
+            positionBackend.close()
         }
     }
 
     test("GET /api/v1/risk/var/{bookId} returns 503 with Retry-After when risk-orchestrator is down") {
-        coEvery { riskClient.calculateVaR(any()) } throws
-            ServiceUnavailableException(30, "Risk engine temporarily unavailable")
-
-        testApplication {
-            application { module(riskClient) }
-
-            val response = client.post("/api/v1/risk/var/port-1") {
-                contentType(ContentType.Application.Json)
-                setBody("""{"calculationType":"PARAMETRIC","confidenceLevel":"CL_95"}""")
+        val riskBackend = BackendStubServer {
+            post("/api/v1/risk/var/port-1") {
+                call.response.headers.append(HttpHeaders.RetryAfter, "30")
+                call.respond(
+                    HttpStatusCode.ServiceUnavailable,
+                    """{"code":"service_unavailable","message":"Risk engine temporarily unavailable"}""",
+                )
             }
-            response.status shouldBe HttpStatusCode.ServiceUnavailable
-            response.headers[HttpHeaders.RetryAfter] shouldBe "30"
-            val body = response.bodyAsText()
-            body shouldContain "service_unavailable"
+        }
+        val httpClient = HttpClient(CIO) {
+            install(ContentNegotiation) { json() }
+        }
+        try {
+            val riskClient = HttpRiskServiceClient(httpClient, riskBackend.baseUrl)
+
+            testApplication {
+                application { module(riskClient) }
+
+                val response = client.post("/api/v1/risk/var/port-1") {
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"calculationType":"PARAMETRIC","confidenceLevel":"CL_95"}""")
+                }
+                response.status shouldBe HttpStatusCode.ServiceUnavailable
+                response.headers[HttpHeaders.RetryAfter] shouldBe "30"
+                val body = response.bodyAsText()
+                body shouldContain "service_unavailable"
+            }
+        } finally {
+            httpClient.close()
+            riskBackend.close()
         }
     }
 
     test("risk-orchestrator 503 does not affect position service endpoints") {
-        coEvery { positionClient.getPositions(BookId("port-1")) } returns emptyList()
-        coEvery { positionClient.listPortfolios() } returns emptyList()
+        val positionBackend = BackendStubServer {
+            get("/api/v1/books/port-1/positions") {
+                call.respond(HttpStatusCode.OK, "[]")
+            }
+            get("/api/v1/books") {
+                call.respond(HttpStatusCode.OK, "[]")
+            }
+        }
+        val httpClient = HttpClient(CIO) {
+            install(ContentNegotiation) { json() }
+        }
+        try {
+            val positionClient = HttpPositionServiceClient(httpClient, positionBackend.baseUrl)
 
-        testApplication {
-            application { module(positionClient) }
+            testApplication {
+                application { module(positionClient) }
 
-            // Positions endpoint should remain functional
-            val positionResponse = client.get("/api/v1/books/port-1/positions")
-            positionResponse.status shouldBe HttpStatusCode.OK
+                // Positions endpoint should remain functional
+                val positionResponse = client.get("/api/v1/books/port-1/positions")
+                positionResponse.status shouldBe HttpStatusCode.OK
 
-            // Books listing also works
-            val booksResponse = client.get("/api/v1/books")
-            booksResponse.status shouldBe HttpStatusCode.OK
+                // Books listing also works
+                val booksResponse = client.get("/api/v1/books")
+                booksResponse.status shouldBe HttpStatusCode.OK
+            }
+        } finally {
+            httpClient.close()
+            positionBackend.close()
         }
     }
 
@@ -212,7 +244,7 @@ internal fun Route.systemHealthRoute(
             }.map { (name, deferred) -> name to deferred.await() }
         }
         val overall = if (results.all { it.second == "READY" }) "UP" else "DEGRADED"
-        call.respondText(
+        call.respond(
             """{"status":"$overall","services":{${results.joinToString(",") { (name, status) -> """"$name":{"status":"$status"}""" }}}}""",
             ContentType.Application.Json,
         )
