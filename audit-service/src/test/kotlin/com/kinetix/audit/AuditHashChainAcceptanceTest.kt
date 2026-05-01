@@ -5,7 +5,7 @@ import com.kinetix.audit.persistence.AuditEventRepository
 import com.kinetix.audit.persistence.AuditHasher
 import com.kinetix.audit.persistence.DatabaseTestSetup
 import com.kinetix.audit.persistence.ExposedAuditEventRepository
-import io.kotest.core.spec.style.BehaviorSpec
+import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.nulls.shouldNotBeNull
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -43,7 +43,7 @@ private fun tradeEvent(
     eventType = eventType,
 )
 
-class AuditHashChainAcceptanceTest : BehaviorSpec({
+class AuditHashChainAcceptanceTest : FunSpec({
 
     val db = DatabaseTestSetup.startAndMigrate()
     val repository: AuditEventRepository = ExposedAuditEventRepository(db)
@@ -54,135 +54,119 @@ class AuditHashChainAcceptanceTest : BehaviorSpec({
         }
     }
 
-    given("5 trade events published in sequence") {
-        `when`("all 5 are saved") {
-            then("all have non-null recordHash, verify returns valid=true, and each previousHash links correctly") {
-                repeat(5) { i ->
-                    repository.save(tradeEvent(tradeId = "t-${i + 1}", receivedAt = BASE_TIME.plusSeconds(i.toLong())))
-                }
-
-                val events = repository.findAll()
-                events.size shouldBe 5
-
-                events.forEach { event ->
-                    event.recordHash.shouldNotBeNull()
-                    event.recordHash.length shouldBe 64
-                }
-
-                // First event has no previous
-                events[0].previousHash shouldBe null
-
-                // Each subsequent event's previousHash equals the preceding event's recordHash
-                for (i in 1 until events.size) {
-                    events[i].previousHash shouldBe events[i - 1].recordHash
-                }
-
-                val result = AuditHasher.verifyChain(events)
-                result.valid shouldBe true
-                result.eventCount shouldBe 5
-            }
+    test("5 trade events published in sequence — all 5 are saved — all have non-null recordHash, verify returns valid=true, and each previousHash links correctly") {
+        repeat(5) { i ->
+            repository.save(tradeEvent(tradeId = "t-${i + 1}", receivedAt = BASE_TIME.plusSeconds(i.toLong())))
         }
+
+        val events = repository.findAll()
+        events.size shouldBe 5
+
+        events.forEach { event ->
+            event.recordHash.shouldNotBeNull()
+            event.recordHash.length shouldBe 64
+        }
+
+        // First event has no previous
+        events[0].previousHash shouldBe null
+
+        // Each subsequent event's previousHash equals the preceding event's recordHash
+        for (i in 1 until events.size) {
+            events[i].previousHash shouldBe events[i - 1].recordHash
+        }
+
+        val result = AuditHasher.verifyChain(events)
+        result.valid shouldBe true
+        result.eventCount shouldBe 5
     }
 
-    given("3 audit events with valid hash links") {
-        `when`("the priceAmount of the second event is modified directly in the database") {
-            then("verifyChain returns valid=false") {
-                repeat(3) { i ->
-                    repository.save(tradeEvent(tradeId = "t-${i + 1}", receivedAt = BASE_TIME.plusSeconds(i.toLong())))
-                }
-
-                val before = repository.findAll()
-                before.size shouldBe 3
-                AuditHasher.verifyChain(before).valid shouldBe true
-
-                val secondId = before[1].id
-
-                // Drop triggers, tamper, re-create triggers to bypass immutability protection
-                newSuspendedTransaction(db = db) {
-                    exec("DROP TRIGGER IF EXISTS prevent_audit_update ON audit_events")
-                    exec(
-                        "UPDATE audit_events SET price_amount = 9999.00 WHERE id = $secondId"
-                    )
-                    exec(
-                        """
-                        CREATE TRIGGER prevent_audit_update
-                            BEFORE UPDATE ON audit_events
-                            FOR EACH ROW EXECUTE FUNCTION prevent_audit_mutation()
-                        """.trimIndent()
-                    )
-                }
-
-                val after = repository.findAll()
-                val result = AuditHasher.verifyChain(after)
-                result.valid shouldBe false
-            }
+    test("3 audit events with valid hash links — the priceAmount of the second event is modified directly in the database — verifyChain returns valid=false") {
+        repeat(3) { i ->
+            repository.save(tradeEvent(tradeId = "t-${i + 1}", receivedAt = BASE_TIME.plusSeconds(i.toLong())))
         }
+
+        val before = repository.findAll()
+        before.size shouldBe 3
+        AuditHasher.verifyChain(before).valid shouldBe true
+
+        val secondId = before[1].id
+
+        // Drop triggers, tamper, re-create triggers to bypass immutability protection
+        newSuspendedTransaction(db = db) {
+            exec("DROP TRIGGER IF EXISTS prevent_audit_update ON audit_events")
+            exec(
+                "UPDATE audit_events SET price_amount = 9999.00 WHERE id = $secondId"
+            )
+            exec(
+                """
+                CREATE TRIGGER prevent_audit_update
+                    BEFORE UPDATE ON audit_events
+                    FOR EACH ROW EXECUTE FUNCTION prevent_audit_mutation()
+                """.trimIndent()
+            )
+        }
+
+        val after = repository.findAll()
+        val result = AuditHasher.verifyChain(after)
+        result.valid shouldBe false
     }
 
-    given("a trade event whose tradedAt has nanosecond precision") {
-        `when`("the event is persisted and read back") {
-            then("hash chain verification still passes after the TIMESTAMPTZ round-trip") {
-                repository.save(
-                    tradeEvent(
-                        tradeId = "t-nano",
-                        tradedAt = "2026-03-19T12:00:00.123456789Z",
-                        receivedAt = BASE_TIME.plusNanos(123456789),
-                    )
-                )
+    test("a trade event whose tradedAt has nanosecond precision — the event is persisted and read back — hash chain verification still passes after the TIMESTAMPTZ round-trip") {
+        repository.save(
+            tradeEvent(
+                tradeId = "t-nano",
+                tradedAt = "2026-03-19T12:00:00.123456789Z",
+                receivedAt = BASE_TIME.plusNanos(123456789),
+            )
+        )
 
-                val events = repository.findAll()
-                events.size shouldBe 1
-                events[0].tradedAt shouldBe "2026-03-19T12:00:00.123456Z"
+        val events = repository.findAll()
+        events.size shouldBe 1
+        events[0].tradedAt shouldBe "2026-03-19T12:00:00.123456Z"
 
-                val result = AuditHasher.verifyChain(events)
-                result.valid shouldBe true
-            }
-        }
+        val result = AuditHasher.verifyChain(events)
+        result.valid shouldBe true
     }
 
-    given("a trade event with userId and userRole") {
-        `when`("the event is persisted") {
-            then("userId and userRole are stored correctly, and modifying userId causes verifyChain to fail") {
-                repository.save(
-                    tradeEvent(
-                        tradeId = "t-marcus",
-                        userId = "trader-marcus",
-                        userRole = "TRADER",
-                    )
-                )
+    test("a trade event with userId and userRole — the event is persisted — userId and userRole are stored correctly, and modifying userId causes verifyChain to fail") {
+        repository.save(
+            tradeEvent(
+                tradeId = "t-marcus",
+                userId = "trader-marcus",
+                userRole = "TRADER",
+            )
+        )
 
-                val events = repository.findAll()
-                events.size shouldBe 1
+        val events = repository.findAll()
+        events.size shouldBe 1
 
-                events[0].userId shouldBe "trader-marcus"
-                events[0].userRole shouldBe "TRADER"
+        events[0].userId shouldBe "trader-marcus"
+        events[0].userRole shouldBe "TRADER"
 
-                // Verify the chain is initially valid
-                AuditHasher.verifyChain(events).valid shouldBe true
+        // Verify the chain is initially valid
+        AuditHasher.verifyChain(events).valid shouldBe true
 
-                val eventId = events[0].id
+        val eventId = events[0].id
 
-                // Tamper with userId — drop trigger, modify, re-create
-                newSuspendedTransaction(db = db) {
-                    exec("DROP TRIGGER IF EXISTS prevent_audit_update ON audit_events")
-                    exec(
-                        "UPDATE audit_events SET user_id = 'attacker' WHERE id = $eventId"
-                    )
-                    exec(
-                        """
-                        CREATE TRIGGER prevent_audit_update
-                            BEFORE UPDATE ON audit_events
-                            FOR EACH ROW EXECUTE FUNCTION prevent_audit_mutation()
-                        """.trimIndent()
-                    )
-                }
-
-                val tampered = repository.findAll()
-                tampered[0].userId shouldBe "attacker"
-
-                val result = AuditHasher.verifyChain(tampered)
-                result.valid shouldBe false
-            }
+        // Tamper with userId — drop trigger, modify, re-create
+        newSuspendedTransaction(db = db) {
+            exec("DROP TRIGGER IF EXISTS prevent_audit_update ON audit_events")
+            exec(
+                "UPDATE audit_events SET user_id = 'attacker' WHERE id = $eventId"
+            )
+            exec(
+                """
+                CREATE TRIGGER prevent_audit_update
+                    BEFORE UPDATE ON audit_events
+                    FOR EACH ROW EXECUTE FUNCTION prevent_audit_mutation()
+                """.trimIndent()
+            )
         }
+
+        val tampered = repository.findAll()
+        tampered[0].userId shouldBe "attacker"
+
+        val result = AuditHasher.verifyChain(tampered)
+        result.valid shouldBe false
     }
 })
