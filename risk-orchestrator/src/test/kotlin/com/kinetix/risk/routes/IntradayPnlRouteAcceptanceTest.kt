@@ -4,7 +4,9 @@ import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.InstrumentPnlBreakdown
 import com.kinetix.risk.model.IntradayPnlSnapshot
 import com.kinetix.risk.model.PnlTrigger
-import com.kinetix.risk.persistence.IntradayPnlRepository
+import com.kinetix.risk.persistence.DatabaseTestSetup
+import com.kinetix.risk.persistence.ExposedIntradayPnlRepository
+import com.kinetix.risk.persistence.IntradayPnlSnapshotsTable
 import com.kinetix.risk.routes.dtos.IntradayPnlSnapshotDto
 import com.kinetix.risk.routes.dtos.IntradayPnlSeriesResponse
 import io.kotest.core.spec.style.FunSpec
@@ -18,10 +20,9 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
-import io.mockk.clearMocks
-import io.mockk.coEvery
-import io.mockk.mockk
 import kotlinx.serialization.json.Json
+import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
 import java.time.Instant
 
@@ -67,25 +68,18 @@ private fun snapshot(
 
 class IntradayPnlRouteAcceptanceTest : FunSpec({
 
-    val repository = mockk<IntradayPnlRepository>()
+    val db = DatabaseTestSetup.startAndMigrate()
+    val repository = ExposedIntradayPnlRepository(db)
 
     beforeEach {
-        clearMocks(repository)
+        newSuspendedTransaction(db = db) { IntradayPnlSnapshotsTable.deleteAll() }
     }
 
     test("GET /api/v1/risk/pnl/intraday/{bookId} returns series for given time range") {
         val t1 = Instant.parse("2026-03-24T09:00:00Z")
         val t2 = Instant.parse("2026-03-24T09:01:00Z")
-        coEvery {
-            repository.findSeries(
-                BOOK,
-                Instant.parse("2026-03-24T08:00:00Z"),
-                Instant.parse("2026-03-24T10:00:00Z"),
-            )
-        } returns listOf(
-            snapshot(snapshotAt = t1, totalPnl = "500.00", realisedPnl = "200.00", unrealisedPnl = "300.00"),
-            snapshot(snapshotAt = t2, totalPnl = "1000.00", realisedPnl = "400.00", unrealisedPnl = "600.00"),
-        )
+        repository.save(snapshot(snapshotAt = t1, totalPnl = "500.00", realisedPnl = "200.00", unrealisedPnl = "300.00"))
+        repository.save(snapshot(snapshotAt = t2, totalPnl = "1000.00", realisedPnl = "400.00", unrealisedPnl = "600.00"))
 
         testApplication {
             install(ContentNegotiation) { json() }
@@ -103,21 +97,19 @@ class IntradayPnlRouteAcceptanceTest : FunSpec({
 
             val first = body.snapshots[0]
             first.snapshotAt shouldBe "2026-03-24T09:00:00Z"
-            first.totalPnl shouldBe "500.00"
-            first.realisedPnl shouldBe "200.00"
-            first.unrealisedPnl shouldBe "300.00"
+            first.totalPnl shouldBe "500.00000000"
+            first.realisedPnl shouldBe "200.00000000"
+            first.unrealisedPnl shouldBe "300.00000000"
 
             val second = body.snapshots[1]
             second.snapshotAt shouldBe "2026-03-24T09:01:00Z"
-            second.totalPnl shouldBe "1000.00"
+            second.totalPnl shouldBe "1000.00000000"
         }
     }
 
     test("GET /api/v1/risk/pnl/intraday/{bookId} returns all attribution fields including cross-Greeks") {
         val t = Instant.parse("2026-03-24T09:30:00Z")
-        coEvery { repository.findSeries(BOOK, any(), any()) } returns listOf(
-            snapshot(snapshotAt = t, correlationId = "corr-1"),
-        )
+        repository.save(snapshot(snapshotAt = t, correlationId = "corr-1"))
 
         testApplication {
             install(ContentNegotiation) { json() }
@@ -133,31 +125,31 @@ class IntradayPnlRouteAcceptanceTest : FunSpec({
             val snap = body.snapshots[0]
             snap.baseCurrency shouldBe "USD"
             snap.trigger shouldBe "position_change"
-            snap.deltaPnl shouldBe "800.00"
-            snap.gammaPnl shouldBe "50.00"
-            snap.vegaPnl shouldBe "30.00"
-            snap.thetaPnl shouldBe "-10.00"
-            snap.rhoPnl shouldBe "5.00"
-            snap.vannaPnl shouldBe "0"
-            snap.volgaPnl shouldBe "0"
-            snap.charmPnl shouldBe "0"
-            snap.crossGammaPnl shouldBe "0"
-            snap.unexplainedPnl shouldBe "125.00"
-            snap.highWaterMark shouldBe "1200.00"
+            snap.deltaPnl shouldBe "800.00000000"
+            snap.gammaPnl shouldBe "50.00000000"
+            snap.vegaPnl shouldBe "30.00000000"
+            snap.thetaPnl shouldBe "-10.00000000"
+            snap.rhoPnl shouldBe "5.00000000"
+            snap.vannaPnl shouldBe "0.00000000"
+            snap.volgaPnl shouldBe "0.00000000"
+            snap.charmPnl shouldBe "0.00000000"
+            snap.crossGammaPnl shouldBe "0.00000000"
+            snap.unexplainedPnl shouldBe "125.00000000"
+            snap.highWaterMark shouldBe "1200.00000000"
             snap.correlationId shouldBe "corr-1"
         }
     }
 
     test("GET /api/v1/risk/pnl/intraday/{bookId} surfaces non-zero cross-Greek P&L fields") {
         val t = Instant.parse("2026-03-24T10:00:00Z")
-        coEvery { repository.findSeries(BOOK, any(), any()) } returns listOf(
+        repository.save(
             snapshot(
                 snapshotAt = t,
                 vannaPnl = "12.50",
                 volgaPnl = "7.30",
                 charmPnl = "-3.10",
                 crossGammaPnl = "5.00",
-            ),
+            )
         )
 
         testApplication {
@@ -171,10 +163,10 @@ class IntradayPnlRouteAcceptanceTest : FunSpec({
             response.status shouldBe HttpStatusCode.OK
 
             val snap = Json.decodeFromString<IntradayPnlSeriesResponse>(response.bodyAsText()).snapshots[0]
-            snap.vannaPnl shouldBe "12.50"
-            snap.volgaPnl shouldBe "7.30"
-            snap.charmPnl shouldBe "-3.10"
-            snap.crossGammaPnl shouldBe "5.00"
+            snap.vannaPnl shouldBe "12.50000000"
+            snap.volgaPnl shouldBe "7.30000000"
+            snap.charmPnl shouldBe "-3.10000000"
+            snap.crossGammaPnl shouldBe "5.00000000"
         }
     }
 
@@ -195,9 +187,7 @@ class IntradayPnlRouteAcceptanceTest : FunSpec({
             crossGammaPnl = "3.00",
             unexplainedPnl = "38.70",
         )
-        coEvery { repository.findSeries(BOOK, any(), any()) } returns listOf(
-            snapshot(snapshotAt = t, instrumentPnl = listOf(breakdown)),
-        )
+        repository.save(snapshot(snapshotAt = t, instrumentPnl = listOf(breakdown)))
 
         testApplication {
             install(ContentNegotiation) { json() }
@@ -221,8 +211,6 @@ class IntradayPnlRouteAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/risk/pnl/intraday/{bookId} returns empty list when no snapshots in range") {
-        coEvery { repository.findSeries(BOOK, any(), any()) } returns emptyList()
-
         testApplication {
             install(ContentNegotiation) { json() }
             routing { intradayPnlRoutes(repository) }
@@ -266,9 +254,7 @@ class IntradayPnlRouteAcceptanceTest : FunSpec({
     test("GET /api/v1/risk/pnl/intraday/{bookId} returns unexplained_pct as unexplainedPnl divided by totalPnl") {
         val t = Instant.parse("2026-03-24T12:00:00Z")
         // snapshot() sets unexplainedPnl=125.00 and totalPnl=1000.00 → pct = 0.125
-        coEvery { repository.findSeries(BOOK, any(), any()) } returns listOf(
-            snapshot(snapshotAt = t, totalPnl = "1000.00"),
-        )
+        repository.save(snapshot(snapshotAt = t, totalPnl = "1000.00"))
 
         testApplication {
             install(ContentNegotiation) { json() }
@@ -287,9 +273,24 @@ class IntradayPnlRouteAcceptanceTest : FunSpec({
 
     test("GET /api/v1/risk/pnl/intraday/{bookId} returns null unexplained_pct when totalPnl is zero") {
         val t = Instant.parse("2026-03-24T12:00:00Z")
-        val zeroTotalSnap = snapshot(snapshotAt = t, totalPnl = "0.00", realisedPnl = "0.00", unrealisedPnl = "0.00")
-            .copy(unexplainedPnl = bd("0.00"))
-        coEvery { repository.findSeries(BOOK, any(), any()) } returns listOf(zeroTotalSnap)
+        // snapshot with zero total, realised, unrealised and unexplained PnL
+        val zeroSnap = IntradayPnlSnapshot(
+            bookId = BOOK,
+            snapshotAt = t,
+            baseCurrency = "USD",
+            trigger = PnlTrigger.POSITION_CHANGE,
+            totalPnl = bd("0.00"),
+            realisedPnl = bd("0.00"),
+            unrealisedPnl = bd("0.00"),
+            deltaPnl = bd("0.00"),
+            gammaPnl = bd("0.00"),
+            vegaPnl = bd("0.00"),
+            thetaPnl = bd("0.00"),
+            rhoPnl = bd("0.00"),
+            unexplainedPnl = bd("0.00"),
+            highWaterMark = bd("0.00"),
+        )
+        repository.save(zeroSnap)
 
         testApplication {
             install(ContentNegotiation) { json() }
@@ -306,10 +307,11 @@ class IntradayPnlRouteAcceptanceTest : FunSpec({
         }
     }
 
-    test("GET /api/v1/risk/pnl/intraday/{bookId} returns pnl_vs_sod as totalPnl minus sodTotalPnl") {
+    test("GET /api/v1/risk/pnl/intraday/{bookId} returns pnl_vs_sod equal to totalPnl when no SOD baseline persisted") {
         val t = Instant.parse("2026-03-24T11:00:00Z")
-        val snap = snapshot(snapshotAt = t, totalPnl = "1500.00").copy(sodTotalPnl = bd("300.00"))
-        coEvery { repository.findSeries(BOOK, any(), any()) } returns listOf(snap)
+        // sodTotalPnl is not persisted in the database; after round-trip it is always zero,
+        // so pnlVsSod == totalPnl.
+        repository.save(snapshot(snapshotAt = t, totalPnl = "1500.00"))
 
         testApplication {
             install(ContentNegotiation) { json() }
@@ -322,15 +324,13 @@ class IntradayPnlRouteAcceptanceTest : FunSpec({
             response.status shouldBe HttpStatusCode.OK
 
             val body = Json.decodeFromString<IntradayPnlSeriesResponse>(response.bodyAsText())
-            body.snapshots[0].pnlVsSod shouldBe "1200.00"
+            body.snapshots[0].pnlVsSod shouldBe "1500.00000000"
         }
     }
 
     test("GET /api/v1/risk/pnl/intraday/{bookId} returns pnl_vs_sod equal to totalPnl when no SOD baseline") {
         val t = Instant.parse("2026-03-24T11:00:00Z")
-        coEvery { repository.findSeries(BOOK, any(), any()) } returns listOf(
-            snapshot(snapshotAt = t, totalPnl = "800.00"),
-        )
+        repository.save(snapshot(snapshotAt = t, totalPnl = "800.00"))
 
         testApplication {
             install(ContentNegotiation) { json() }
@@ -343,7 +343,7 @@ class IntradayPnlRouteAcceptanceTest : FunSpec({
             response.status shouldBe HttpStatusCode.OK
 
             val body = Json.decodeFromString<IntradayPnlSeriesResponse>(response.bodyAsText())
-            body.snapshots[0].pnlVsSod shouldBe "800.00"
+            body.snapshots[0].pnlVsSod shouldBe "800.00000000"
         }
     }
 

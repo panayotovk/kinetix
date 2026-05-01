@@ -8,7 +8,9 @@ import com.kinetix.risk.model.MarketRegime
 import com.kinetix.risk.model.MarketRegimeHistory
 import com.kinetix.risk.model.RegimeSignals
 import com.kinetix.risk.model.RegimeState
-import com.kinetix.risk.persistence.MarketRegimeRepository
+import com.kinetix.risk.persistence.DatabaseTestSetup
+import com.kinetix.risk.persistence.ExposedMarketRegimeRepository
+import com.kinetix.risk.persistence.MarketRegimeHistoryTable
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.request.*
@@ -18,12 +20,12 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
-import io.mockk.coEvery
-import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.Instant
 import java.util.UUID
 
@@ -49,28 +51,14 @@ private fun crisisState() = RegimeState(
     degradedInputs = false,
 )
 
-private fun historyItem(id: UUID = UUID.randomUUID(), regime: String = "CRISIS") = MarketRegimeHistory(
-    id = id,
-    regime = MarketRegime.valueOf(regime),
-    startedAt = Instant.parse("2026-03-24T14:30:00Z"),
-    endedAt = null,
-    durationMs = null,
-    signals = RegimeSignals(realisedVol20d = 0.28, crossAssetCorrelation = 0.80),
-    varParameters = AdaptiveVaRParameters(
-        calculationType = CalculationType.MONTE_CARLO,
-        confidenceLevel = ConfidenceLevel.CL_99,
-        timeHorizonDays = 5,
-        correlationMethod = "stressed",
-        numSimulations = 50_000,
-    ),
-    confidence = 0.87,
-    degradedInputs = false,
-    consecutiveObservations = 3,
-)
-
 class MarketRegimeRoutesAcceptanceTest : FunSpec({
 
-    val repository = mockk<MarketRegimeRepository>()
+    val db = DatabaseTestSetup.startAndMigrate()
+    val repository = ExposedMarketRegimeRepository(db)
+
+    beforeEach {
+        newSuspendedTransaction(db = db) { MarketRegimeHistoryTable.deleteAll() }
+    }
 
     fun testApp(currentState: RegimeState, block: suspend ApplicationTestBuilder.() -> Unit) {
         testApplication {
@@ -123,9 +111,11 @@ class MarketRegimeRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/risk/regime/history returns 200 with items array") {
-        coEvery { repository.findRecent(any()) } returns listOf(historyItem(), historyItem())
+        val state = crisisState()
+        repository.insert(state, UUID.randomUUID())
+        repository.insert(state, UUID.randomUUID())
 
-        testApp(currentState = crisisState()) {
+        testApp(currentState = state) {
             val response = client.get("/api/v1/risk/regime/history")
 
             response.status shouldBe HttpStatusCode.OK
@@ -135,9 +125,12 @@ class MarketRegimeRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/risk/regime/history respects limit query parameter") {
-        coEvery { repository.findRecent(5) } returns listOf(historyItem())
+        val state = crisisState()
+        repository.insert(state, UUID.randomUUID())
+        repository.insert(state, UUID.randomUUID())
+        repository.insert(state, UUID.randomUUID())
 
-        testApp(currentState = crisisState()) {
+        testApp(currentState = state) {
             val response = client.get("/api/v1/risk/regime/history?limit=5")
 
             response.status shouldBe HttpStatusCode.OK
@@ -145,9 +138,12 @@ class MarketRegimeRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/risk/regime/history total matches items size") {
-        coEvery { repository.findRecent(any()) } returns listOf(historyItem(), historyItem(), historyItem())
+        val state = crisisState()
+        repository.insert(state, UUID.randomUUID())
+        repository.insert(state, UUID.randomUUID())
+        repository.insert(state, UUID.randomUUID())
 
-        testApp(currentState = crisisState()) {
+        testApp(currentState = state) {
             val response = client.get("/api/v1/risk/regime/history")
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
 
