@@ -1,7 +1,6 @@
 package com.kinetix.regulatory.stress
 
 import com.kinetix.regulatory.client.RiskOrchestratorClient
-import com.kinetix.regulatory.client.StressTestResultDto
 import com.kinetix.regulatory.module
 import com.kinetix.regulatory.persistence.DatabaseTestSetup
 import com.kinetix.regulatory.persistence.ExposedFrtbCalculationRepository
@@ -9,15 +8,21 @@ import com.kinetix.regulatory.persistence.ExposedStressScenarioRepository
 import com.kinetix.regulatory.persistence.ExposedStressTestResultRepository
 import com.kinetix.regulatory.persistence.StressScenariosTable
 import com.kinetix.regulatory.persistence.StressTestResultsTable
+import com.kinetix.regulatory.testing.BackendStubServer
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 import io.ktor.server.testing.*
-import io.mockk.coEvery
-import io.mockk.mockk
 import kotlinx.serialization.json.*
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -26,9 +31,24 @@ class StressTestResultPersistenceAcceptanceTest : FunSpec({
 
     val db = DatabaseTestSetup.startAndMigrate()
     val frtbRepo = ExposedFrtbCalculationRepository(db)
-    val riskClient = mockk<RiskOrchestratorClient>()
     val stressScenarioRepo = ExposedStressScenarioRepository(db)
     val stressTestResultRepo = ExposedStressTestResultRepository(db)
+
+    // Mutable holder so each test can set the pnlImpact the stub returns
+    var stubPnlImpact = "-300000.00"
+
+    val riskBackend = BackendStubServer {
+        post("/api/v1/risk/stress/{bookId}") {
+            call.respond(HttpStatusCode.OK, """{"pnlImpact":"$stubPnlImpact"}""")
+        }
+    }
+    val httpClient = HttpClient(CIO) { install(ContentNegotiation) { json() } }
+    val riskClient = RiskOrchestratorClient(httpClient, riskBackend.baseUrl)
+
+    afterSpec {
+        riskBackend.close()
+        httpClient.close()
+    }
 
     beforeEach {
         newSuspendedTransaction(db = db) {
@@ -38,8 +58,7 @@ class StressTestResultPersistenceAcceptanceTest : FunSpec({
     }
 
     test("an approved stress scenario — POST /{id}/run is called — returns 201 with engine-computed pnlImpact and persists to database") {
-        coEvery { riskClient.runStressTest(any(), any(), any()) } returns
-            StressTestResultDto(pnlImpact = "-300000.00")
+        stubPnlImpact = "-300000.00"
 
         testApplication {
             application {
@@ -124,8 +143,7 @@ class StressTestResultPersistenceAcceptanceTest : FunSpec({
         // A portfolio with $1M in equities under a -30% shock should produce
         // approximately -$300K of P&L impact -- not -0.29 (the raw shock sum).
         val engineComputedPnl = "-295000.00"
-        coEvery { riskClient.runStressTest(any(), any(), any()) } returns
-            StressTestResultDto(pnlImpact = engineComputedPnl)
+        stubPnlImpact = engineComputedPnl
 
         testApplication {
             application {
