@@ -1,7 +1,8 @@
 package com.kinetix.position
 
 import com.kinetix.common.model.*
-import com.kinetix.position.kafka.TradeEventPublisher
+import com.kinetix.position.kafka.KafkaTestSetup
+import com.kinetix.position.kafka.KafkaTradeEventPublisher
 import com.kinetix.position.persistence.DatabaseTestSetup
 import com.kinetix.position.persistence.ExposedPositionRepository
 import com.kinetix.position.persistence.ExposedTradeEventRepository
@@ -14,7 +15,6 @@ import com.kinetix.position.service.TradeLifecycleService
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
-import io.mockk.mockk
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
 import java.time.Instant
@@ -30,6 +30,11 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
     val positionRepo = ExposedPositionRepository(db)
     val transactional = ExposedTransactionalRunner(db)
 
+    val bootstrapServers = KafkaTestSetup.start()
+    val producer = KafkaTestSetup.createProducer(bootstrapServers)
+
+    fun publisherFor(topic: String) = KafkaTradeEventPublisher(producer, topic)
+
     beforeEach {
         newSuspendedTransaction(db = db) {
             exec("TRUNCATE TABLE trade_events, positions RESTART IDENTITY CASCADE")
@@ -40,7 +45,7 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
     given("a booked trade of 100 AAPL at \$150") {
         `when`("the trade is amended to 200 shares at \$160") {
             then("original is AMENDED, amend trade references original, and position is 200 shares at \$160 avg cost") {
-                val publisher = mockk<TradeEventPublisher>(relaxed = true)
+                val publisher = publisherFor("trades.lifecycle.tl-amend-1")
                 val booking = TradeBookingService(tradeRepo, positionRepo, transactional, publisher)
                 val lifecycle = TradeLifecycleService(tradeRepo, positionRepo, transactional, publisher)
 
@@ -91,7 +96,7 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
     given("a booked trade of 100 AAPL at \$150 (for cancel)") {
         `when`("the trade is cancelled") {
             then("trade is CANCELLED and position quantity is zero") {
-                val publisher = mockk<TradeEventPublisher>(relaxed = true)
+                val publisher = publisherFor("trades.lifecycle.tl-cancel-1")
                 val booking = TradeBookingService(tradeRepo, positionRepo, transactional, publisher)
                 val lifecycle = TradeLifecycleService(tradeRepo, positionRepo, transactional, publisher)
 
@@ -126,7 +131,7 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
     given("a BUY position of 200 AAPL at \$100 average cost") {
         `when`("50 shares are SOLD at \$120") {
             then("realized P&L is \$1000 and remaining position is 150 shares") {
-                val publisher = mockk<TradeEventPublisher>(relaxed = true)
+                val publisher = publisherFor("trades.lifecycle.tl-pnl-1")
                 val booking = TradeBookingService(tradeRepo, positionRepo, transactional, publisher)
 
                 booking.handle(
@@ -160,5 +165,9 @@ class TradeLifecycleAcceptanceTest : BehaviorSpec({
                 position.quantity.compareTo(BigDecimal("150")) shouldBe 0
             }
         }
+    }
+
+    afterSpec {
+        producer.close()
     }
 })
