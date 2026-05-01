@@ -6,13 +6,17 @@ import com.kinetix.regulatory.persistence.DatabaseTestSetup
 import com.kinetix.regulatory.persistence.ExposedFrtbCalculationRepository
 import com.kinetix.regulatory.persistence.ExposedStressScenarioRepository
 import com.kinetix.regulatory.persistence.StressScenariosTable
+import com.kinetix.regulatory.testing.BackendStubServer
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.*
-import io.mockk.mockk
 import kotlinx.serialization.json.*
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -21,8 +25,16 @@ class StressScenarioGovernanceAcceptanceTest : FunSpec({
 
     val db = DatabaseTestSetup.startAndMigrate()
     val frtbRepo = ExposedFrtbCalculationRepository(db)
-    val riskClient = mockk<RiskOrchestratorClient>()
+    // Minimal stub backend — these tests never call through RiskOrchestratorClient
+    val riskBackend = BackendStubServer { }
+    val httpClient = HttpClient(CIO) { install(ContentNegotiation) { json() } }
+    val riskClient = RiskOrchestratorClient(httpClient, riskBackend.baseUrl)
     val stressScenarioRepo = ExposedStressScenarioRepository(db)
+
+    afterSpec {
+        riskBackend.close()
+        httpClient.close()
+    }
 
     beforeEach {
         newSuspendedTransaction(db = db) { StressScenariosTable.deleteAll() }
