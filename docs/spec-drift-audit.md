@@ -45,7 +45,7 @@ P2 aspirational items carry a Batch-I triage suffix:
 
 ## P1 — Behavioural divergence
 
-9. ⚠ **Three coexisting `LiquidityTier` enums.** `common/.../LiquidityTier.kt` (canonical: `HIGH_LIQUID/LIQUID/SEMI_LIQUID/ILLIQUID`) vs `reference-data-service/.../InstrumentLiquidityTier.kt` (`TIER_1/TIER_2/TIER_3/ILLIQUID`) vs protobuf (canonical). Hedge filter `LIQUID_TIERS = setOf("TIER_1", "TIER_2")` (`AnalyticalHedgeCalculator.kt:117`, `HedgeRecommendationService.kt:306-309`) uses wrong names. Reference-data API leaks wrong names into UI. Fix: collapse to one enum, prefer the canonical names. Touches Liquidity, Hedge, Reference-data domains.
+9. ✓ **Three coexisting `LiquidityTier` enums.** Resolved: `InstrumentLiquidityTier.kt` (`TIER_1/TIER_2/TIER_3`) deleted; `LiquidityTier` extracted to its own `common/.../LiquidityTier.kt`; `LIQUID_TIERS` in `HedgeRecommendationService` updated to `{HIGH_LIQUID, LIQUID}`; V12 migration renames DB rows; `InstrumentLiquidityService.classifyTier` uses canonical names; Playwright E2E guards canonical labels in the hedge panel.
 
 10. ⚠ **`PositionPriceUpdated` event referenced but doesn't exist.** Spec chains `MarkToMarket → PositionPriceUpdated → intraday recompute` (`positions.allium:127`, `intraday-pnl.allium:285-297`). Code consumer reads `price.updates` directly (`PriceEventConsumer.kt:88-92`). Likely spec bug — chained event is conceptual.
 
