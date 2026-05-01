@@ -1,7 +1,9 @@
 package com.kinetix.risk.routes
 
 import com.kinetix.risk.model.FactorDefinition
-import com.kinetix.risk.persistence.FactorDefinitionRepository
+import com.kinetix.risk.persistence.DatabaseTestSetup
+import com.kinetix.risk.persistence.ExposedFactorDefinitionRepository
+import com.kinetix.risk.persistence.FactorDefinitionsTable
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.request.*
@@ -11,20 +13,21 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
-import io.mockk.clearMocks
-import io.mockk.coEvery
-import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 class FactorDefinitionRoutesAcceptanceTest : FunSpec({
 
-    val repository = mockk<FactorDefinitionRepository>()
+    val db = DatabaseTestSetup.startAndMigrate()
+    val repository = ExposedFactorDefinitionRepository(db)
 
     beforeEach {
-        clearMocks(repository)
+        newSuspendedTransaction(db = db) { FactorDefinitionsTable.deleteAll() }
     }
 
     fun testApp(block: suspend ApplicationTestBuilder.() -> Unit) {
@@ -45,8 +48,20 @@ class FactorDefinitionRoutesAcceptanceTest : FunSpec({
         FactorDefinition("VOL_EXPOSURE", "VIX", "Volatility exposure — proxy: VIX"),
     )
 
+    suspend fun seed(definitions: List<FactorDefinition>) {
+        newSuspendedTransaction(db = db) {
+            definitions.forEach { def ->
+                FactorDefinitionsTable.insert {
+                    it[factorName] = def.factorName
+                    it[proxyInstrumentId] = def.proxyInstrumentId
+                    it[description] = def.description
+                }
+            }
+        }
+    }
+
     test("GET /api/v1/factor-definitions returns all factor definitions") {
-        coEvery { repository.findAll() } returns seedDefinitions
+        seed(seedDefinitions)
 
         testApp {
             val response = client.get("/api/v1/factor-definitions")
@@ -59,7 +74,7 @@ class FactorDefinitionRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/factor-definitions returns correct fields for each definition") {
-        coEvery { repository.findAll() } returns seedDefinitions
+        seed(seedDefinitions)
 
         testApp {
             val response = client.get("/api/v1/factor-definitions")
@@ -73,8 +88,6 @@ class FactorDefinitionRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/factor-definitions returns empty array when no definitions exist") {
-        coEvery { repository.findAll() } returns emptyList()
-
         testApp {
             val response = client.get("/api/v1/factor-definitions")
 
@@ -84,7 +97,7 @@ class FactorDefinitionRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/factor-definitions/{name} returns a single definition") {
-        coEvery { repository.findByName("EQUITY_BETA") } returns seedDefinitions.first()
+        seed(seedDefinitions)
 
         testApp {
             val response = client.get("/api/v1/factor-definitions/EQUITY_BETA")
@@ -97,8 +110,6 @@ class FactorDefinitionRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/factor-definitions/{name} returns 404 for unknown factor") {
-        coEvery { repository.findByName("UNKNOWN") } returns null
-
         testApp {
             val response = client.get("/api/v1/factor-definitions/UNKNOWN")
 

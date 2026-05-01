@@ -1,7 +1,9 @@
 package com.kinetix.risk.routes
 
 import com.kinetix.risk.model.FactorReturn
-import com.kinetix.risk.persistence.FactorReturnRepository
+import com.kinetix.risk.persistence.DatabaseTestSetup
+import com.kinetix.risk.persistence.ExposedFactorReturnRepository
+import com.kinetix.risk.persistence.FactorReturnsTable
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.request.*
@@ -11,23 +13,22 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
-import io.mockk.clearMocks
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.LocalDate
 
 class FactorReturnRoutesAcceptanceTest : FunSpec({
 
-    val repository = mockk<FactorReturnRepository>()
+    val db = DatabaseTestSetup.startAndMigrate()
+    val repository = ExposedFactorReturnRepository(db)
 
     beforeEach {
-        clearMocks(repository)
+        newSuspendedTransaction(db = db) { FactorReturnsTable.deleteAll() }
     }
 
     fun testApp(block: suspend ApplicationTestBuilder.() -> Unit) {
@@ -48,7 +49,7 @@ class FactorReturnRoutesAcceptanceTest : FunSpec({
     )
 
     test("GET /api/v1/factor-returns/{name}/{date} returns the factor return") {
-        coEvery { repository.findByFactorAndDate("EQUITY_BETA", LocalDate.of(2026, 3, 24)) } returns sampleReturn
+        repository.save(sampleReturn)
 
         testApp {
             val response = client.get("/api/v1/factor-returns/EQUITY_BETA/2026-03-24")
@@ -63,8 +64,6 @@ class FactorReturnRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/factor-returns/{name}/{date} returns 404 when not found") {
-        coEvery { repository.findByFactorAndDate("EQUITY_BETA", LocalDate.of(2026, 3, 24)) } returns null
-
         testApp {
             val response = client.get("/api/v1/factor-returns/EQUITY_BETA/2026-03-24")
 
@@ -86,9 +85,7 @@ class FactorReturnRoutesAcceptanceTest : FunSpec({
             FactorReturn("EQUITY_BETA", LocalDate.of(2026, 3, 23), 0.011, "feed"),
             FactorReturn("EQUITY_BETA", LocalDate.of(2026, 3, 24), 0.012, "feed"),
         )
-        coEvery {
-            repository.findByFactorAndDateRange("EQUITY_BETA", LocalDate.of(2026, 3, 22), LocalDate.of(2026, 3, 24))
-        } returns returns
+        repository.saveBatch(returns)
 
         testApp {
             val response = client.get("/api/v1/factor-returns/EQUITY_BETA?from=2026-03-22&to=2026-03-24")
@@ -110,8 +107,6 @@ class FactorReturnRoutesAcceptanceTest : FunSpec({
     }
 
     test("PUT /api/v1/factor-returns upserts a factor return") {
-        coEvery { repository.save(any()) } returns Unit
-
         testApp {
             val response = client.put("/api/v1/factor-returns") {
                 contentType(ContentType.Application.Json)
@@ -119,7 +114,13 @@ class FactorReturnRoutesAcceptanceTest : FunSpec({
             }
 
             response.status shouldBe HttpStatusCode.NoContent
-            coVerify(exactly = 1) { repository.save(any()) }
+            val saved = repository.findByFactorAndDate("EQUITY_BETA", LocalDate.of(2026, 3, 24))
+            saved shouldBe FactorReturn(
+                factorName = "EQUITY_BETA",
+                asOfDate = LocalDate.of(2026, 3, 24),
+                returnValue = 0.012,
+                source = "manual",
+            )
         }
     }
 })

@@ -2,7 +2,9 @@ package com.kinetix.risk.routes
 
 import com.kinetix.risk.model.FactorContribution
 import com.kinetix.risk.model.FactorDecompositionSnapshot
-import com.kinetix.risk.persistence.FactorDecompositionRepository
+import com.kinetix.risk.persistence.DatabaseTestSetup
+import com.kinetix.risk.persistence.ExposedFactorDecompositionRepository
+import com.kinetix.risk.persistence.FactorDecompositionSnapshotsTable
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.request.*
@@ -12,23 +14,23 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
-import io.mockk.clearMocks
-import io.mockk.coEvery
-import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.Instant
 
 class FactorRiskRoutesAcceptanceTest : FunSpec({
 
-    val repository = mockk<FactorDecompositionRepository>()
+    val db = DatabaseTestSetup.startAndMigrate()
+    val repository = ExposedFactorDecompositionRepository(db)
 
     beforeEach {
-        clearMocks(repository)
+        newSuspendedTransaction(db = db) { FactorDecompositionSnapshotsTable.deleteAll() }
     }
 
     fun testApp(block: suspend ApplicationTestBuilder.() -> Unit) {
@@ -68,7 +70,7 @@ class FactorRiskRoutesAcceptanceTest : FunSpec({
     )
 
     test("GET /api/v1/books/{bookId}/factor-risk/latest returns the most recent snapshot") {
-        coEvery { repository.findLatestByBookId("BOOK-1") } returns sampleSnapshot
+        repository.save(sampleSnapshot)
 
         testApp {
             val response = client.get("/api/v1/books/BOOK-1/factor-risk/latest")
@@ -87,8 +89,6 @@ class FactorRiskRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/books/{bookId}/factor-risk/latest returns 404 when no snapshot exists") {
-        coEvery { repository.findLatestByBookId("UNKNOWN") } returns null
-
         testApp {
             val response = client.get("/api/v1/books/UNKNOWN/factor-risk/latest")
 
@@ -97,7 +97,7 @@ class FactorRiskRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/books/{bookId}/factor-risk/latest includes factor contributions") {
-        coEvery { repository.findLatestByBookId("BOOK-1") } returns sampleSnapshot
+        repository.save(sampleSnapshot)
 
         testApp {
             val response = client.get("/api/v1/books/BOOK-1/factor-risk/latest")
@@ -114,11 +114,8 @@ class FactorRiskRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/books/{bookId}/factor-risk returns history in descending order") {
-        val history = listOf(
-            sampleSnapshot.copy(totalVar = 60_000.0, calculatedAt = Instant.parse("2026-03-24T10:00:00Z")),
-            sampleSnapshot.copy(totalVar = 50_000.0, calculatedAt = Instant.parse("2026-03-23T10:00:00Z")),
-        )
-        coEvery { repository.findAllByBookId("BOOK-1", any()) } returns history
+        repository.save(sampleSnapshot.copy(totalVar = 50_000.0, calculatedAt = Instant.parse("2026-03-23T10:00:00Z")))
+        repository.save(sampleSnapshot.copy(totalVar = 60_000.0, calculatedAt = Instant.parse("2026-03-24T10:00:00Z")))
 
         testApp {
             val response = client.get("/api/v1/books/BOOK-1/factor-risk")
@@ -133,18 +130,19 @@ class FactorRiskRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/books/{bookId}/factor-risk respects the limit query parameter") {
-        coEvery { repository.findAllByBookId("BOOK-1", 5) } returns listOf(sampleSnapshot)
+        repository.save(sampleSnapshot.copy(calculatedAt = Instant.parse("2026-03-22T10:00:00Z")))
+        repository.save(sampleSnapshot.copy(calculatedAt = Instant.parse("2026-03-23T10:00:00Z")))
+        repository.save(sampleSnapshot.copy(calculatedAt = Instant.parse("2026-03-24T10:00:00Z")))
 
         testApp {
-            val response = client.get("/api/v1/books/BOOK-1/factor-risk?limit=5")
+            val response = client.get("/api/v1/books/BOOK-1/factor-risk?limit=2")
 
             response.status shouldBe HttpStatusCode.OK
+            Json.parseToJsonElement(response.bodyAsText()).jsonArray.size shouldBe 2
         }
     }
 
     test("GET /api/v1/books/{bookId}/factor-risk returns an empty array when no snapshots exist") {
-        coEvery { repository.findAllByBookId("EMPTY-BOOK", any()) } returns emptyList()
-
         testApp {
             val response = client.get("/api/v1/books/EMPTY-BOOK/factor-risk")
 

@@ -6,28 +6,46 @@ import com.kinetix.notification.model.AlertEvent
 import com.kinetix.notification.model.AlertStatus
 import com.kinetix.notification.model.AlertType
 import com.kinetix.notification.model.Severity
-import com.kinetix.notification.persistence.InMemoryAlertAcknowledgementRepository
-import com.kinetix.notification.persistence.InMemoryAlertEventRepository
-import com.kinetix.notification.persistence.InMemoryAlertRuleRepository
-import io.kotest.core.spec.style.BehaviorSpec
+import com.kinetix.notification.persistence.AlertAcknowledgementsTable
+import com.kinetix.notification.persistence.AlertEventsTable
+import com.kinetix.notification.persistence.AlertRulesTable
+import com.kinetix.notification.persistence.DatabaseTestSetup
+import com.kinetix.notification.persistence.ExposedAlertAcknowledgementRepository
+import com.kinetix.notification.persistence.ExposedAlertEventRepository
+import com.kinetix.notification.persistence.ExposedAlertRuleRepository
+import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
 import kotlinx.serialization.json.*
+import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Instant
 
-class AlertEscalationAcceptanceTest : BehaviorSpec({
+class AlertEscalationAcceptanceTest : FunSpec({
 
-    fun setup(): Pair<InMemoryAlertEventRepository, RulesEngine> {
-        val eventRepo = InMemoryAlertEventRepository()
-        val rulesEngine = RulesEngine(InMemoryAlertRuleRepository(), eventRepository = eventRepo)
-        return Pair(eventRepo, rulesEngine)
+    val db = DatabaseTestSetup.startAndMigrate()
+
+    beforeEach {
+        transaction(db) {
+            AlertAcknowledgementsTable.deleteAll()
+            AlertEventsTable.deleteAll()
+            AlertRulesTable.deleteAll()
+        }
     }
 
-    given("escalated alerts exist in the repository") {
-        val (eventRepo, rulesEngine) = setup()
+    fun newRepos(): Triple<ExposedAlertEventRepository, ExposedAlertAcknowledgementRepository, RulesEngine> {
+        val eventRepo = ExposedAlertEventRepository(db)
+        val ackRepo = ExposedAlertAcknowledgementRepository(db)
+        val ruleRepo = ExposedAlertRuleRepository(db)
+        val rulesEngine = RulesEngine(ruleRepo, eventRepository = eventRepo)
+        return Triple(eventRepo, ackRepo, rulesEngine)
+    }
+
+    test("escalated alerts exist in the repository — GET /api/v1/notifications/alerts/escalated — returns only escalated alerts") {
+        val (eventRepo, ackRepo, rulesEngine) = newRepos()
 
         val escalatedAlert = AlertEvent(
             id = "esc-1",
@@ -61,42 +79,50 @@ class AlertEscalationAcceptanceTest : BehaviorSpec({
         eventRepo.save(escalatedAlert)
         eventRepo.save(triggeredAlert)
 
-        `when`("GET /api/v1/notifications/alerts/escalated") {
-            then("returns only escalated alerts") {
-                testApplication {
-                    application {
-                        module(rulesEngine, InAppDeliveryService(eventRepo), InMemoryAlertAcknowledgementRepository())
-                    }
-                    val response = client.get("/api/v1/notifications/alerts/escalated")
-                    response.status shouldBe HttpStatusCode.OK
-                    val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
-                    body.size shouldBe 1
-                    body[0].jsonObject["id"]?.jsonPrimitive?.content shouldBe "esc-1"
-                    body[0].jsonObject["status"]?.jsonPrimitive?.content shouldBe "ESCALATED"
-                }
+        testApplication {
+            application {
+                module(rulesEngine, InAppDeliveryService(eventRepo), ackRepo)
             }
-        }
-
-        `when`("GET /api/v1/notifications/alerts/escalated with no escalated alerts") {
-            then("returns an empty list") {
-                val (emptyRepo, freshRulesEngine) = setup()
-                emptyRepo.save(triggeredAlert)
-
-                testApplication {
-                    application {
-                        module(freshRulesEngine, InAppDeliveryService(emptyRepo), InMemoryAlertAcknowledgementRepository())
-                    }
-                    val response = client.get("/api/v1/notifications/alerts/escalated")
-                    response.status shouldBe HttpStatusCode.OK
-                    val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
-                    body.size shouldBe 0
-                }
-            }
+            val response = client.get("/api/v1/notifications/alerts/escalated")
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
+            body.size shouldBe 1
+            body[0].jsonObject["id"]?.jsonPrimitive?.content shouldBe "esc-1"
+            body[0].jsonObject["status"]?.jsonPrimitive?.content shouldBe "ESCALATED"
         }
     }
 
-    given("escalated alert response includes escalatedTo and escalatedAt fields") {
-        val (eventRepo, rulesEngine) = setup()
+    test("escalated alerts exist in the repository — GET /api/v1/notifications/alerts/escalated with no escalated alerts — returns an empty list") {
+        val (eventRepo, ackRepo, rulesEngine) = newRepos()
+
+        val triggeredAlert = AlertEvent(
+            id = "trig-1",
+            ruleId = "r2",
+            ruleName = "P&L Warning",
+            type = AlertType.PNL_THRESHOLD,
+            severity = Severity.WARNING,
+            message = "P&L threshold exceeded",
+            currentValue = 200_000.0,
+            threshold = 150_000.0,
+            bookId = "book-2",
+            triggeredAt = Instant.parse("2025-01-15T10:00:00Z"),
+            status = AlertStatus.TRIGGERED,
+        )
+        eventRepo.save(triggeredAlert)
+
+        testApplication {
+            application {
+                module(rulesEngine, InAppDeliveryService(eventRepo), ackRepo)
+            }
+            val response = client.get("/api/v1/notifications/alerts/escalated")
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
+            body.size shouldBe 0
+        }
+    }
+
+    test("escalated alert response includes escalatedTo and escalatedAt fields — GET /api/v1/notifications/alerts returns all alerts — escalated alert includes escalatedTo and escalatedAt in response") {
+        val (eventRepo, ackRepo, rulesEngine) = newRepos()
 
         val escalatedAlert = AlertEvent(
             id = "esc-2",
@@ -116,25 +142,21 @@ class AlertEscalationAcceptanceTest : BehaviorSpec({
         )
         eventRepo.save(escalatedAlert)
 
-        `when`("GET /api/v1/notifications/alerts returns all alerts") {
-            then("escalated alert includes escalatedTo and escalatedAt in response") {
-                testApplication {
-                    application {
-                        module(rulesEngine, InAppDeliveryService(eventRepo), InMemoryAlertAcknowledgementRepository())
-                    }
-                    val response = client.get("/api/v1/notifications/alerts")
-                    response.status shouldBe HttpStatusCode.OK
-                    val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
-                    val alert = body.first { it.jsonObject["id"]?.jsonPrimitive?.content == "esc-2" }.jsonObject
-                    alert["escalatedTo"]?.jsonPrimitive?.content shouldBe "risk-manager,cro"
-                    alert["escalatedAt"]?.jsonPrimitive?.content shouldBe "2025-01-15T09:35:00Z"
-                }
+        testApplication {
+            application {
+                module(rulesEngine, InAppDeliveryService(eventRepo), ackRepo)
             }
+            val response = client.get("/api/v1/notifications/alerts")
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
+            val alert = body.first { it.jsonObject["id"]?.jsonPrimitive?.content == "esc-2" }.jsonObject
+            alert["escalatedTo"]?.jsonPrimitive?.content shouldBe "risk-manager,cro"
+            alert["escalatedAt"]?.jsonPrimitive?.content shouldBe "2025-01-15T09:35:00Z"
         }
     }
 
-    given("attempting to acknowledge an already ESCALATED alert") {
-        val (eventRepo, rulesEngine) = setup()
+    test("attempting to acknowledge an already ESCALATED alert — POST /alerts/{alertId}/acknowledge on ESCALATED alert — returns 409 Conflict, ESCALATED alerts must be resolved, not re-acknowledged") {
+        val (eventRepo, ackRepo, rulesEngine) = newRepos()
 
         val escalatedAlert = AlertEvent(
             id = "esc-3",
@@ -154,24 +176,20 @@ class AlertEscalationAcceptanceTest : BehaviorSpec({
         )
         eventRepo.save(escalatedAlert)
 
-        `when`("POST /alerts/{alertId}/acknowledge on ESCALATED alert") {
-            then("returns 409 Conflict — ESCALATED alerts must be resolved, not re-acknowledged") {
-                testApplication {
-                    application {
-                        module(rulesEngine, InAppDeliveryService(eventRepo), InMemoryAlertAcknowledgementRepository())
-                    }
-                    val response = client.post("/api/v1/notifications/alerts/esc-3/acknowledge") {
-                        contentType(ContentType.Application.Json)
-                        setBody("""{"acknowledgedBy":"trader-1"}""")
-                    }
-                    response.status shouldBe HttpStatusCode.Conflict
-                }
+        testApplication {
+            application {
+                module(rulesEngine, InAppDeliveryService(eventRepo), ackRepo)
             }
+            val response = client.post("/api/v1/notifications/alerts/esc-3/acknowledge") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"acknowledgedBy":"trader-1"}""")
+            }
+            response.status shouldBe HttpStatusCode.Conflict
         }
     }
 
-    given("GET /api/v1/notifications/alerts with status=ESCALATED filter") {
-        val (eventRepo, rulesEngine) = setup()
+    test("GET /api/v1/notifications/alerts with status=ESCALATED filter — GET /api/v1/notifications/alerts?status=ESCALATED — returns only escalated alerts") {
+        val (eventRepo, ackRepo, rulesEngine) = newRepos()
 
         val escalatedAlert = AlertEvent(
             id = "esc-4",
@@ -204,19 +222,15 @@ class AlertEscalationAcceptanceTest : BehaviorSpec({
         eventRepo.save(escalatedAlert)
         eventRepo.save(triggeredAlert)
 
-        `when`("GET /api/v1/notifications/alerts?status=ESCALATED") {
-            then("returns only escalated alerts") {
-                testApplication {
-                    application {
-                        module(rulesEngine, InAppDeliveryService(eventRepo), InMemoryAlertAcknowledgementRepository())
-                    }
-                    val response = client.get("/api/v1/notifications/alerts?status=ESCALATED")
-                    response.status shouldBe HttpStatusCode.OK
-                    val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
-                    body.size shouldBe 1
-                    body[0].jsonObject["id"]?.jsonPrimitive?.content shouldBe "esc-4"
-                }
+        testApplication {
+            application {
+                module(rulesEngine, InAppDeliveryService(eventRepo), ackRepo)
             }
+            val response = client.get("/api/v1/notifications/alerts?status=ESCALATED")
+            response.status shouldBe HttpStatusCode.OK
+            val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
+            body.size shouldBe 1
+            body[0].jsonObject["id"]?.jsonPrimitive?.content shouldBe "esc-4"
         }
     }
 })

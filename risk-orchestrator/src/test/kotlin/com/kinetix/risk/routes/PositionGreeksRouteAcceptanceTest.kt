@@ -2,7 +2,8 @@ package com.kinetix.risk.routes
 
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.BookId
-import com.kinetix.risk.cache.InMemoryVaRCache
+import com.kinetix.risk.cache.RedisTestSetup
+import com.kinetix.risk.cache.RedisVaRCache
 import com.kinetix.risk.model.CalculationType
 import com.kinetix.risk.model.ComponentBreakdown
 import com.kinetix.risk.model.ConfidenceLevel
@@ -34,7 +35,7 @@ private val TEST_INSTANT = Instant.parse("2025-06-01T12:00:00Z")
  */
 class PositionGreeksRouteAcceptanceTest : FunSpec({
 
-    val varCache = InMemoryVaRCache()
+    val varCache = RedisVaRCache(RedisTestSetup.start())
 
     test("VaR response includes positionGreeks when valuation result has option position Greeks") {
         val result = ValuationResult(

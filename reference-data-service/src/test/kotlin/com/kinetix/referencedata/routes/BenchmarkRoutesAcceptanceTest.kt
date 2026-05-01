@@ -1,11 +1,17 @@
 package com.kinetix.referencedata.routes
 
+import com.kinetix.common.model.CreditSpread
+import com.kinetix.common.model.DividendYield
+import com.kinetix.common.model.InstrumentId
+import com.kinetix.referencedata.cache.ReferenceDataCache
+import com.kinetix.referencedata.kafka.ReferenceDataPublisher
 import com.kinetix.referencedata.model.Benchmark
 import com.kinetix.referencedata.model.BenchmarkConstituent
 import com.kinetix.referencedata.module
-import com.kinetix.referencedata.persistence.BenchmarkRepository
-import com.kinetix.referencedata.persistence.CreditSpreadRepository
-import com.kinetix.referencedata.persistence.DividendYieldRepository
+import com.kinetix.referencedata.persistence.DatabaseTestSetup
+import com.kinetix.referencedata.persistence.ExposedBenchmarkRepository
+import com.kinetix.referencedata.persistence.ExposedCreditSpreadRepository
+import com.kinetix.referencedata.persistence.ExposedDividendYieldRepository
 import com.kinetix.referencedata.service.BenchmarkService
 import com.kinetix.referencedata.service.ReferenceDataIngestionService
 import io.kotest.core.spec.style.FunSpec
@@ -19,26 +25,36 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.mockk
-import io.mockk.slot
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 
 class BenchmarkRoutesAcceptanceTest : FunSpec({
 
-    val dividendYieldRepo = mockk<DividendYieldRepository>()
-    val creditSpreadRepo = mockk<CreditSpreadRepository>()
-    val ingestionService = mockk<ReferenceDataIngestionService>()
-    val benchmarkRepo = mockk<BenchmarkRepository>()
+    val db = DatabaseTestSetup.startAndMigrate()
+    val dividendYieldRepo = ExposedDividendYieldRepository(db)
+    val creditSpreadRepo = ExposedCreditSpreadRepository(db)
+    val noOpCache = object : ReferenceDataCache {
+        override suspend fun putDividendYield(dividendYield: DividendYield) = Unit
+        override suspend fun getDividendYield(instrumentId: InstrumentId): DividendYield? = null
+        override suspend fun putCreditSpread(creditSpread: CreditSpread) = Unit
+        override suspend fun getCreditSpread(instrumentId: InstrumentId): CreditSpread? = null
+    }
+    val noOpPublisher = object : ReferenceDataPublisher {
+        override suspend fun publishDividendYield(dividendYield: DividendYield) = Unit
+        override suspend fun publishCreditSpread(creditSpread: CreditSpread) = Unit
+    }
+    val ingestionService = ReferenceDataIngestionService(
+        dividendYieldRepo, creditSpreadRepo, noOpCache, noOpPublisher,
+    )
+    val benchmarkRepo = ExposedBenchmarkRepository(db)
     val benchmarkService = BenchmarkService(benchmarkRepo)
 
     val NOW = Instant.parse("2026-03-25T09:00:00Z")
@@ -57,9 +73,13 @@ class BenchmarkRoutesAcceptanceTest : FunSpec({
         BenchmarkConstituent(benchmarkId, "NVDA", BigDecimal("0.0600"), TODAY),
     )
 
-    test("GET /api/v1/benchmarks returns empty list when no benchmarks exist") {
-        coEvery { benchmarkRepo.findAll() } returns emptyList()
+    beforeEach {
+        newSuspendedTransaction(db = db) {
+            exec("TRUNCATE TABLE benchmark_returns, benchmark_constituents, benchmarks RESTART IDENTITY CASCADE")
+        }
+    }
 
+    test("GET /api/v1/benchmarks returns empty list when no benchmarks exist") {
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, benchmarkService = benchmarkService) }
 
@@ -71,7 +91,7 @@ class BenchmarkRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/benchmarks returns list of benchmarks") {
-        coEvery { benchmarkRepo.findAll() } returns listOf(sampleBenchmark())
+        benchmarkRepo.save(sampleBenchmark())
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, benchmarkService = benchmarkService) }
@@ -88,9 +108,6 @@ class BenchmarkRoutesAcceptanceTest : FunSpec({
     }
 
     test("POST /api/v1/benchmarks creates a benchmark and returns 201") {
-        val saved = slot<Benchmark>()
-        coEvery { benchmarkRepo.save(capture(saved)) } returns Unit
-
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, benchmarkService = benchmarkService) }
 
@@ -104,16 +121,14 @@ class BenchmarkRoutesAcceptanceTest : FunSpec({
             body["benchmarkId"]?.jsonPrimitive?.content shouldBe "MSCIW"
             body["name"]?.jsonPrimitive?.content shouldBe "MSCI World"
 
-            coVerify { benchmarkRepo.save(any()) }
-            saved.captured.benchmarkId shouldBe "MSCIW"
-            saved.captured.name shouldBe "MSCI World"
+            val saved = benchmarkRepo.findById("MSCIW")!!
+            saved.benchmarkId shouldBe "MSCIW"
+            saved.name shouldBe "MSCI World"
+            saved.description shouldBe "Global developed market index"
         }
     }
 
     test("POST /api/v1/benchmarks creates a benchmark without description") {
-        val saved = slot<Benchmark>()
-        coEvery { benchmarkRepo.save(capture(saved)) } returns Unit
-
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, benchmarkService = benchmarkService) }
 
@@ -125,13 +140,13 @@ class BenchmarkRoutesAcceptanceTest : FunSpec({
 
             val body: JsonObject = Json.parseToJsonElement(response.bodyAsText()).jsonObject
             body["benchmarkId"]?.jsonPrimitive?.content shouldBe "SPXTR"
-            saved.captured.description shouldBe null
+
+            val saved = benchmarkRepo.findById("SPXTR")!!
+            saved.description shouldBe null
         }
     }
 
     test("GET /api/v1/benchmarks/{id} returns 404 when benchmark does not exist") {
-        coEvery { benchmarkRepo.findById("MISSING") } returns null
-
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, benchmarkService = benchmarkService) }
 
@@ -141,8 +156,8 @@ class BenchmarkRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/benchmarks/{id} returns benchmark with constituents") {
-        coEvery { benchmarkRepo.findById("SP500") } returns sampleBenchmark()
-        coEvery { benchmarkRepo.findConstituents("SP500", TODAY) } returns sampleConstituents()
+        benchmarkRepo.save(sampleBenchmark())
+        benchmarkRepo.replaceConstituents("SP500", sampleConstituents())
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, benchmarkService = benchmarkService) }
@@ -162,8 +177,7 @@ class BenchmarkRoutesAcceptanceTest : FunSpec({
     }
 
     test("PUT /api/v1/benchmarks/{id}/constituents replaces constituent weights") {
-        coEvery { benchmarkRepo.findById("SP500") } returns sampleBenchmark()
-        coEvery { benchmarkRepo.replaceConstituents(any(), any()) } returns Unit
+        benchmarkRepo.save(sampleBenchmark())
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, benchmarkService = benchmarkService) }
@@ -181,13 +195,14 @@ class BenchmarkRoutesAcceptanceTest : FunSpec({
                 """.trimIndent())
             }
             response.status shouldBe HttpStatusCode.NoContent
-            coVerify { benchmarkRepo.replaceConstituents("SP500", any()) }
+
+            val saved = benchmarkRepo.findConstituents("SP500", TODAY)
+            saved.size shouldBe 2
+            saved.map { it.instrumentId }.toSet() shouldBe setOf("AAPL", "MSFT")
         }
     }
 
     test("PUT /api/v1/benchmarks/{id}/constituents returns 404 when benchmark does not exist") {
-        coEvery { benchmarkRepo.findById("MISSING") } returns null
-
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, benchmarkService = benchmarkService) }
 
@@ -200,8 +215,7 @@ class BenchmarkRoutesAcceptanceTest : FunSpec({
     }
 
     test("POST /api/v1/benchmarks/{id}/returns records a daily return and returns 201") {
-        coEvery { benchmarkRepo.findById("SP500") } returns sampleBenchmark()
-        coEvery { benchmarkRepo.saveReturn(any()) } returns Unit
+        benchmarkRepo.save(sampleBenchmark())
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, benchmarkService = benchmarkService) }
@@ -211,13 +225,14 @@ class BenchmarkRoutesAcceptanceTest : FunSpec({
                 setBody("""{"returnDate":"2026-03-25","dailyReturn":"0.0125"}""")
             }
             response.status shouldBe HttpStatusCode.Created
-            coVerify { benchmarkRepo.saveReturn(any()) }
+
+            val saved = benchmarkRepo.findReturns("SP500", TODAY, TODAY)
+            saved.size shouldBe 1
+            saved[0].dailyReturn shouldBe BigDecimal("0.0125")
         }
     }
 
     test("POST /api/v1/benchmarks/{id}/returns returns 404 when benchmark does not exist") {
-        coEvery { benchmarkRepo.findById("MISSING") } returns null
-
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, benchmarkService = benchmarkService) }
 
@@ -230,7 +245,7 @@ class BenchmarkRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/benchmarks/{id} with invalid asOfDate returns 400") {
-        coEvery { benchmarkRepo.findById("SP500") } returns sampleBenchmark()
+        benchmarkRepo.save(sampleBenchmark())
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, benchmarkService = benchmarkService) }

@@ -17,7 +17,6 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.double
@@ -57,10 +56,8 @@ class ReferenceDataServiceAcceptanceTest : FunSpec({
     val AS_OF = Instant.parse("2026-01-15T12:00:00Z")
 
     beforeEach {
-        runBlocking {
-            newSuspendedTransaction(db = db) {
-                exec("TRUNCATE TABLE dividend_yields, credit_spreads RESTART IDENTITY CASCADE")
-            }
+        newSuspendedTransaction(db = db) {
+            exec("TRUNCATE TABLE dividend_yields, credit_spreads RESTART IDENTITY CASCADE")
         }
     }
 

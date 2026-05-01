@@ -3,7 +3,8 @@ package com.kinetix.risk.routes
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.BookId
 import com.kinetix.common.model.InstrumentId
-import com.kinetix.risk.cache.InMemoryVaRCache
+import com.kinetix.risk.cache.RedisTestSetup
+import com.kinetix.risk.cache.RedisVaRCache
 import com.kinetix.risk.model.*
 import com.kinetix.risk.service.RebalancingWhatIfService
 import com.kinetix.risk.service.VaRCalculationService
@@ -31,7 +32,7 @@ class RebalancingAcceptanceTest : FunSpec({
     val varCalculationService = mockk<VaRCalculationService>()
     val whatIfAnalysisService = mockk<WhatIfAnalysisService>()
     val rebalancingService = mockk<RebalancingWhatIfService>()
-    val varCache = InMemoryVaRCache()
+    val varCache = RedisVaRCache(RedisTestSetup.start())
 
     beforeEach {
         clearMocks(varCalculationService, whatIfAnalysisService, rebalancingService)

@@ -3,7 +3,8 @@ package com.kinetix.risk.routes
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.BookId
-import com.kinetix.risk.cache.InMemoryVaRCache
+import com.kinetix.risk.cache.RedisTestSetup
+import com.kinetix.risk.cache.RedisVaRCache
 import com.kinetix.risk.model.*
 import com.kinetix.risk.service.VaRCalculationService
 import com.kinetix.risk.service.WhatIfAnalysisService
@@ -28,7 +29,7 @@ class WhatIfAcceptanceTest : FunSpec({
 
     val varCalculationService = mockk<VaRCalculationService>()
     val whatIfAnalysisService = mockk<WhatIfAnalysisService>()
-    val varCache = InMemoryVaRCache()
+    val varCache = RedisVaRCache(RedisTestSetup.start())
 
     beforeEach {
         clearMocks(varCalculationService, whatIfAnalysisService)
