@@ -1,15 +1,13 @@
 package com.kinetix.position
 
-import com.kinetix.common.model.Position
 import com.kinetix.position.fix.ExposedExecutionCostRepository
+import com.kinetix.position.kafka.KafkaTestSetup
+import com.kinetix.position.kafka.KafkaTradeEventPublisher
 import com.kinetix.position.persistence.DatabaseTestSetup
 import com.kinetix.position.persistence.ExposedLimitDefinitionRepository
 import com.kinetix.position.persistence.ExposedPositionRepository
 import com.kinetix.position.persistence.ExposedTradeEventRepository
 import com.kinetix.position.routes.demoResetRoutes
-import com.kinetix.position.seed.DevDataSeeder
-import com.kinetix.position.service.BookTradeCommand
-import com.kinetix.position.service.BookTradeResult
 import com.kinetix.position.service.ExposedTransactionalRunner
 import com.kinetix.position.service.TradeBookingService
 import io.kotest.core.spec.style.FunSpec
@@ -24,8 +22,6 @@ import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
-import io.mockk.coEvery
-import io.mockk.mockk
 
 class DemoResetRoutesAcceptanceTest : FunSpec({
 
@@ -35,7 +31,11 @@ class DemoResetRoutesAcceptanceTest : FunSpec({
     val executionCostRepo = ExposedExecutionCostRepository(db)
     val tradeEventRepo = ExposedTradeEventRepository(db)
     val transactional = ExposedTransactionalRunner(db)
-    val publisher = mockk<com.kinetix.position.kafka.TradeEventPublisher>(relaxed = true)
+
+    val bootstrapServers = KafkaTestSetup.start()
+    val producer = KafkaTestSetup.createProducer(bootstrapServers)
+    val publisher = KafkaTradeEventPublisher(producer, "trades.lifecycle.demo-reset")
+
     val tradeBookingService = TradeBookingService(tradeEventRepo, positionRepository, transactional, publisher)
     val resetToken = "test-reset-token"
 
@@ -87,5 +87,9 @@ class DemoResetRoutesAcceptanceTest : FunSpec({
             costs.shouldNotBeEmpty()
             costs.any { it.orderId.startsWith("seed-exec-") } shouldBe true
         }
+    }
+
+    afterSpec {
+        producer.close()
     }
 })
