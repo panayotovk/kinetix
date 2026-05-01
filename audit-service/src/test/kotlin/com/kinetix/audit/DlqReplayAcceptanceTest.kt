@@ -2,30 +2,26 @@ package com.kinetix.audit
 
 import com.kinetix.audit.dlq.DlqMessage
 import com.kinetix.audit.dlq.DlqReplayService
-import com.kinetix.audit.model.AuditEvent
-import com.kinetix.audit.persistence.AuditEventRepository
+import com.kinetix.audit.persistence.DatabaseTestSetup
+import com.kinetix.audit.persistence.ExposedAuditEventRepository
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
-import io.mockk.*
 import kotlinx.serialization.json.*
-import java.time.Instant
 
 class DlqReplayAcceptanceTest : FunSpec({
 
-    val repository = mockk<AuditEventRepository>()
-
-    beforeEach { clearMocks(repository) }
+    val db = DatabaseTestSetup.startAndMigrate()
+    val repository = ExposedAuditEventRepository(db)
 
     test("POST /api/v1/audit/dlq/replay returns 200 with replay summary for successful replay") {
-        coEvery { repository.save(any()) } just runs
-
         val dlqMessages = listOf(
-            DlqMessage(key = "k1", value = tradeEventJson("t-1")),
-            DlqMessage(key = "k2", value = tradeEventJson("t-2")),
+            DlqMessage(key = "k1", value = tradeEventJson("dlq-replay-t1")),
+            DlqMessage(key = "k2", value = tradeEventJson("dlq-replay-t2")),
         )
         val replayService = DlqReplayService(repository, messageSource = { dlqMessages })
 
@@ -38,14 +34,15 @@ class DlqReplayAcceptanceTest : FunSpec({
             body["failureCount"]?.jsonPrimitive?.int shouldBe 0
             body["total"]?.jsonPrimitive?.int shouldBe 2
         }
+
+        repository.findByTradeId("dlq-replay-t1") shouldNotBe null
+        repository.findByTradeId("dlq-replay-t2") shouldNotBe null
     }
 
     test("POST /api/v1/audit/dlq/replay returns 200 with failure count when some events fail") {
-        coEvery { repository.save(any()) } just runs
-
         val dlqMessages = listOf(
             DlqMessage(key = "k1", value = """{"invalid":"json"}"""),
-            DlqMessage(key = "k2", value = tradeEventJson("t-2")),
+            DlqMessage(key = "k2", value = tradeEventJson("dlq-replay-t3")),
         )
         val replayService = DlqReplayService(repository, messageSource = { dlqMessages })
 
@@ -58,6 +55,8 @@ class DlqReplayAcceptanceTest : FunSpec({
             body["failureCount"]?.jsonPrimitive?.int shouldBe 1
             body["total"]?.jsonPrimitive?.int shouldBe 2
         }
+
+        repository.findByTradeId("dlq-replay-t3") shouldNotBe null
     }
 
     test("POST /api/v1/audit/dlq/replay returns 200 with zero counts when DLQ is empty") {
