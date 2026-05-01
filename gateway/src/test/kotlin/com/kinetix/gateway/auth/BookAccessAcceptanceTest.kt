@@ -1,24 +1,24 @@
 package com.kinetix.gateway.auth
 
-import com.kinetix.common.model.*
 import com.kinetix.common.security.Role
-import com.kinetix.gateway.client.*
+import com.kinetix.gateway.client.HttpPositionServiceClient
 import com.kinetix.gateway.module
+import com.kinetix.gateway.testing.BackendStubServer
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.*
 import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.response.respond
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
 import io.ktor.server.testing.*
-import io.mockk.*
-import java.math.BigDecimal
-import java.time.Instant
-import java.util.Currency
-
-private val USD = Currency.getInstance("USD")
 
 class BookAccessAcceptanceTest : FunSpec({
 
-    val positionClient = mockk<PositionServiceClient>()
     val jwtConfig = TestJwtHelper.testJwtConfig()
     val jwkProvider = TestJwtHelper.testJwkProvider()
 
@@ -26,124 +26,173 @@ class BookAccessAcceptanceTest : FunSpec({
         traderBooks = mapOf("trader-1" to setOf("book-A")),
     )
 
-    beforeEach { clearMocks(positionClient) }
+    // Minimal valid position JSON that satisfies the PositionDto deserialization
+    val positionJson = """
+        {
+          "bookId":"book-A",
+          "instrumentId":"AAPL",
+          "assetClass":"EQUITY",
+          "quantity":"100",
+          "averageCost":{"amount":"150.00","currency":"USD"},
+          "marketPrice":{"amount":"155.00","currency":"USD"},
+          "marketValue":{"amount":"15500.00","currency":"USD"},
+          "unrealizedPnl":{"amount":"500.00","currency":"USD"}
+        }
+    """.trimIndent()
+
+    // Minimal valid book-trade response JSON
+    val bookTradeResponseJson = """
+        {
+          "trade":{
+            "tradeId":"t-1","bookId":"book-A","instrumentId":"AAPL","assetClass":"EQUITY",
+            "side":"BUY","quantity":"100","price":{"amount":"150.00","currency":"USD"},
+            "tradedAt":"2026-01-01T10:00:00Z"
+          },
+          "position":{
+            "bookId":"book-A","instrumentId":"AAPL","assetClass":"EQUITY","quantity":"100",
+            "averageCost":{"amount":"150.00","currency":"USD"},
+            "marketPrice":{"amount":"155.00","currency":"USD"},
+            "marketValue":{"amount":"15500.00","currency":"USD"},
+            "unrealizedPnl":{"amount":"500.00","currency":"USD"}
+          }
+        }
+    """.trimIndent()
 
     test("TRADER can access positions in their own book") {
-        coEvery { positionClient.getPositions(BookId("book-A")) } returns listOf(
-            Position(
-                bookId = BookId("book-A"),
-                instrumentId = InstrumentId("AAPL"),
-                assetClass = AssetClass.EQUITY,
-                quantity = BigDecimal("100"),
-                averageCost = Money(BigDecimal("150.00"), USD),
-                marketPrice = Money(BigDecimal("155.00"), USD),
-            ),
-        )
-
-        val token = TestJwtHelper.generateToken(userId = "trader-1", roles = listOf(Role.TRADER))
-
-        testApplication {
-            application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
-            val response = client.get("/api/v1/books/book-A/positions") {
-                header(HttpHeaders.Authorization, "Bearer $token")
+        val backend = BackendStubServer {
+            get("/api/v1/books/book-A/positions") {
+                call.respond(HttpStatusCode.OK, "[$positionJson]")
             }
-            response.status shouldBe HttpStatusCode.OK
+        }
+        val httpClient = HttpClient(CIO) { install(ContentNegotiation) { json() } }
+        try {
+            val positionClient = HttpPositionServiceClient(httpClient, backend.baseUrl)
+            val token = TestJwtHelper.generateToken(userId = "trader-1", roles = listOf(Role.TRADER))
+
+            testApplication {
+                application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
+                val response = client.get("/api/v1/books/book-A/positions") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                }
+                response.status shouldBe HttpStatusCode.OK
+            }
+        } finally {
+            httpClient.close()
+            backend.close()
         }
     }
 
     test("TRADER cannot access positions in a book not assigned to them (403)") {
-        val token = TestJwtHelper.generateToken(userId = "trader-1", roles = listOf(Role.TRADER))
+        val backend = BackendStubServer { }
+        val httpClient = HttpClient(CIO) { install(ContentNegotiation) { json() } }
+        try {
+            val positionClient = HttpPositionServiceClient(httpClient, backend.baseUrl)
+            val token = TestJwtHelper.generateToken(userId = "trader-1", roles = listOf(Role.TRADER))
 
-        testApplication {
-            application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
-            val response = client.get("/api/v1/books/book-B/positions") {
-                header(HttpHeaders.Authorization, "Bearer $token")
+            testApplication {
+                application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
+                val response = client.get("/api/v1/books/book-B/positions") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                }
+                response.status shouldBe HttpStatusCode.Forbidden
             }
-            response.status shouldBe HttpStatusCode.Forbidden
+        } finally {
+            httpClient.close()
+            backend.close()
         }
     }
 
     test("RISK_MANAGER can access positions in any book") {
-        coEvery { positionClient.getPositions(BookId("book-B")) } returns emptyList()
-
-        val token = TestJwtHelper.generateToken(userId = "rm-1", roles = listOf(Role.RISK_MANAGER))
-
-        testApplication {
-            application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
-            val response = client.get("/api/v1/books/book-B/positions") {
-                header(HttpHeaders.Authorization, "Bearer $token")
+        val backend = BackendStubServer {
+            get("/api/v1/books/book-B/positions") {
+                call.respond(HttpStatusCode.OK, "[]")
             }
-            response.status shouldBe HttpStatusCode.OK
+        }
+        val httpClient = HttpClient(CIO) { install(ContentNegotiation) { json() } }
+        try {
+            val positionClient = HttpPositionServiceClient(httpClient, backend.baseUrl)
+            val token = TestJwtHelper.generateToken(userId = "rm-1", roles = listOf(Role.RISK_MANAGER))
+
+            testApplication {
+                application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
+                val response = client.get("/api/v1/books/book-B/positions") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                }
+                response.status shouldBe HttpStatusCode.OK
+            }
+        } finally {
+            httpClient.close()
+            backend.close()
         }
     }
 
     test("TRADER cannot book a trade in a book not assigned to them (403)") {
-        val token = TestJwtHelper.generateToken(userId = "trader-1", roles = listOf(Role.TRADER))
+        val backend = BackendStubServer { }
+        val httpClient = HttpClient(CIO) { install(ContentNegotiation) { json() } }
+        try {
+            val positionClient = HttpPositionServiceClient(httpClient, backend.baseUrl)
+            val token = TestJwtHelper.generateToken(userId = "trader-1", roles = listOf(Role.TRADER))
 
-        testApplication {
-            application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
-            val response = client.post("/api/v1/books/book-B/trades") {
-                header(HttpHeaders.Authorization, "Bearer $token")
-                contentType(ContentType.Application.Json)
-                setBody("""
-                    {
-                        "tradeId": "t-1",
-                        "instrumentId": "AAPL",
-                        "assetClass": "EQUITY",
-                        "side": "BUY",
-                        "quantity": "100",
-                        "priceAmount": "150.00",
-                        "priceCurrency": "USD",
-                        "tradedAt": "2026-01-01T10:00:00Z"
-                    }
-                """.trimIndent())
+            testApplication {
+                application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
+                val response = client.post("/api/v1/books/book-B/trades") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    contentType(ContentType.Application.Json)
+                    setBody("""
+                        {
+                            "tradeId": "t-1",
+                            "instrumentId": "AAPL",
+                            "assetClass": "EQUITY",
+                            "side": "BUY",
+                            "quantity": "100",
+                            "priceAmount": "150.00",
+                            "priceCurrency": "USD",
+                            "tradedAt": "2026-01-01T10:00:00Z"
+                        }
+                    """.trimIndent())
+                }
+                response.status shouldBe HttpStatusCode.Forbidden
             }
-            response.status shouldBe HttpStatusCode.Forbidden
+        } finally {
+            httpClient.close()
+            backend.close()
         }
     }
 
     test("TRADER can book a trade in their own book") {
-        val trade = Trade(
-            tradeId = TradeId("t-1"),
-            bookId = BookId("book-A"),
-            instrumentId = InstrumentId("AAPL"),
-            assetClass = AssetClass.EQUITY,
-            side = Side.BUY,
-            quantity = BigDecimal("100"),
-            price = Money(BigDecimal("150.00"), USD),
-            tradedAt = Instant.parse("2026-01-01T10:00:00Z"),
-        )
-        val position = Position(
-            bookId = BookId("book-A"),
-            instrumentId = InstrumentId("AAPL"),
-            assetClass = AssetClass.EQUITY,
-            quantity = BigDecimal("100"),
-            averageCost = Money(BigDecimal("150.00"), USD),
-            marketPrice = Money(BigDecimal("155.00"), USD),
-        )
-        coEvery { positionClient.bookTrade(any()) } returns BookTradeResult(trade, position)
-
-        val token = TestJwtHelper.generateToken(userId = "trader-1", roles = listOf(Role.TRADER))
-
-        testApplication {
-            application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
-            val response = client.post("/api/v1/books/book-A/trades") {
-                header(HttpHeaders.Authorization, "Bearer $token")
-                contentType(ContentType.Application.Json)
-                setBody("""
-                    {
-                        "tradeId": "t-1",
-                        "instrumentId": "AAPL",
-                        "assetClass": "EQUITY",
-                        "side": "BUY",
-                        "quantity": "100",
-                        "priceAmount": "150.00",
-                        "priceCurrency": "USD",
-                        "tradedAt": "2026-01-01T10:00:00Z"
-                    }
-                """.trimIndent())
+        val backend = BackendStubServer {
+            post("/api/v1/books/book-A/trades") {
+                call.respond(HttpStatusCode.Created, bookTradeResponseJson)
             }
-            response.status shouldBe HttpStatusCode.Created
+        }
+        val httpClient = HttpClient(CIO) { install(ContentNegotiation) { json() } }
+        try {
+            val positionClient = HttpPositionServiceClient(httpClient, backend.baseUrl)
+            val token = TestJwtHelper.generateToken(userId = "trader-1", roles = listOf(Role.TRADER))
+
+            testApplication {
+                application { module(jwtConfig, positionClient = positionClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
+                val response = client.post("/api/v1/books/book-A/trades") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    contentType(ContentType.Application.Json)
+                    setBody("""
+                        {
+                            "tradeId": "t-1",
+                            "instrumentId": "AAPL",
+                            "assetClass": "EQUITY",
+                            "side": "BUY",
+                            "quantity": "100",
+                            "priceAmount": "150.00",
+                            "priceCurrency": "USD",
+                            "tradedAt": "2026-01-01T10:00:00Z"
+                        }
+                    """.trimIndent())
+                }
+                response.status shouldBe HttpStatusCode.Created
+            }
+        } finally {
+            httpClient.close()
+            backend.close()
         }
     }
 })
