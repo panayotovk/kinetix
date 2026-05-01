@@ -1,6 +1,7 @@
 package com.kinetix.regulatory.stress
 
 import com.kinetix.regulatory.client.RiskOrchestratorClient
+import com.kinetix.regulatory.client.StressTestResultDto
 import com.kinetix.regulatory.module
 import com.kinetix.regulatory.persistence.DatabaseTestSetup
 import com.kinetix.regulatory.persistence.ExposedFrtbCalculationRepository
@@ -19,7 +20,6 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
@@ -39,7 +39,7 @@ class StressTestResultPersistenceAcceptanceTest : FunSpec({
 
     val riskBackend = BackendStubServer {
         post("/api/v1/risk/stress/{bookId}") {
-            call.respond(HttpStatusCode.OK, """{"pnlImpact":"$stubPnlImpact"}""")
+            call.respond(StressTestResultDto(pnlImpact = stubPnlImpact))
         }
     }
     val httpClient = HttpClient(CIO) { install(ContentNegotiation) { json() } }
