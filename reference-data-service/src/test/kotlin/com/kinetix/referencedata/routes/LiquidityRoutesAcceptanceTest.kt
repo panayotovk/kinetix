@@ -1,42 +1,57 @@
 package com.kinetix.referencedata.routes
 
+import com.kinetix.common.model.CreditSpread
+import com.kinetix.common.model.DividendYield
+import com.kinetix.common.model.InstrumentId
+import com.kinetix.common.model.LiquidityTier
+import com.kinetix.referencedata.cache.ReferenceDataCache
+import com.kinetix.referencedata.kafka.ReferenceDataPublisher
 import com.kinetix.referencedata.model.InstrumentLiquidity
-import com.kinetix.referencedata.model.InstrumentLiquidityTier
 import com.kinetix.referencedata.module
-import com.kinetix.referencedata.persistence.CreditSpreadRepository
-import com.kinetix.referencedata.persistence.DividendYieldRepository
-import com.kinetix.referencedata.persistence.InstrumentLiquidityRepository
+import com.kinetix.referencedata.persistence.DatabaseTestSetup
+import com.kinetix.referencedata.persistence.ExposedCreditSpreadRepository
+import com.kinetix.referencedata.persistence.ExposedDividendYieldRepository
+import com.kinetix.referencedata.persistence.ExposedInstrumentLiquidityRepository
 import com.kinetix.referencedata.service.InstrumentLiquidityService
 import com.kinetix.referencedata.service.ReferenceDataIngestionService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.request.get
 import io.ktor.client.request.post
-import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.mockk
-import io.mockk.slot
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.Instant
 
 class LiquidityRoutesAcceptanceTest : FunSpec({
 
-    val dividendYieldRepo = mockk<DividendYieldRepository>()
-    val creditSpreadRepo = mockk<CreditSpreadRepository>()
-    val ingestionService = mockk<ReferenceDataIngestionService>()
-    val liquidityRepo = mockk<InstrumentLiquidityRepository>()
+    val db = DatabaseTestSetup.startAndMigrate()
+    val dividendYieldRepo = ExposedDividendYieldRepository(db)
+    val creditSpreadRepo = ExposedCreditSpreadRepository(db)
+    val noOpCache = object : ReferenceDataCache {
+        override suspend fun putDividendYield(dividendYield: DividendYield) = Unit
+        override suspend fun getDividendYield(instrumentId: InstrumentId): DividendYield? = null
+        override suspend fun putCreditSpread(creditSpread: CreditSpread) = Unit
+        override suspend fun getCreditSpread(instrumentId: InstrumentId): CreditSpread? = null
+    }
+    val noOpPublisher = object : ReferenceDataPublisher {
+        override suspend fun publishDividendYield(dividendYield: DividendYield) = Unit
+        override suspend fun publishCreditSpread(creditSpread: CreditSpread) = Unit
+    }
+    val ingestionService = ReferenceDataIngestionService(
+        dividendYieldRepo, creditSpreadRepo, noOpCache, noOpPublisher,
+    )
+    val liquidityRepo = ExposedInstrumentLiquidityRepository(db)
     val liquidityService = InstrumentLiquidityService(liquidityRepo)
 
     val NOW = Instant.now()
@@ -47,14 +62,20 @@ class LiquidityRoutesAcceptanceTest : FunSpec({
         adv = adv,
         bidAskSpreadBps = 5.0,
         assetClass = "EQUITY",
-        liquidityTier = InstrumentLiquidityTier.TIER_2,
+        liquidityTier = LiquidityTier.LIQUID,
         advUpdatedAt = NOW,
         createdAt = NOW,
         updatedAt = NOW,
     )
 
+    beforeEach {
+        newSuspendedTransaction(db = db) {
+            exec("TRUNCATE TABLE instrument_liquidity RESTART IDENTITY CASCADE")
+        }
+    }
+
     test("GET /api/v1/liquidity/{id} returns liquidity data for a known instrument") {
-        coEvery { liquidityRepo.findById("AAPL") } returns sampleLiquidity()
+        liquidityRepo.upsert(sampleLiquidity())
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, liquidityService = liquidityService) }
@@ -72,8 +93,6 @@ class LiquidityRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/liquidity/{id} returns 404 when instrument not found") {
-        coEvery { liquidityRepo.findById("UNKNOWN") } returns null
-
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, liquidityService = liquidityService) }
 
@@ -84,7 +103,7 @@ class LiquidityRoutesAcceptanceTest : FunSpec({
 
     test("GET /api/v1/liquidity/{id} marks advStale true when ADV older than 2 days") {
         val stale = sampleLiquidity().copy(advUpdatedAt = STALE)
-        coEvery { liquidityRepo.findById("AAPL") } returns stale
+        liquidityRepo.upsert(stale)
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, liquidityService = liquidityService) }
@@ -99,9 +118,6 @@ class LiquidityRoutesAcceptanceTest : FunSpec({
     }
 
     test("POST /api/v1/liquidity creates or updates a liquidity record and returns 201") {
-        val saved = slot<InstrumentLiquidity>()
-        coEvery { liquidityRepo.upsert(capture(saved)) } returns Unit
-
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, liquidityService = liquidityService) }
 
@@ -124,15 +140,15 @@ class LiquidityRoutesAcceptanceTest : FunSpec({
             body["instrumentId"]?.jsonPrimitive?.content shouldBe "MSFT"
             body["adv"]?.jsonPrimitive?.content?.toDouble() shouldBe 25_000_000.0
 
-            coVerify { liquidityRepo.upsert(any()) }
-            saved.captured.instrumentId shouldBe "MSFT"
-            saved.captured.adv shouldBe 25_000_000.0
+            val saved = liquidityRepo.findById("MSFT")!!
+            saved.instrumentId shouldBe "MSFT"
+            saved.adv shouldBe 25_000_000.0
         }
     }
 
     test("GET /api/v1/liquidity/{id} includes liquidityTier in response") {
-        val tier2Sample = sampleLiquidity().copy(adv = 25_000_000.0) // adv=25M, spread=5bps → TIER_2
-        coEvery { liquidityRepo.findById("AAPL") } returns tier2Sample
+        val liquidSample = sampleLiquidity().copy(adv = 25_000_000.0) // adv=25M, spread=5bps → LIQUID
+        liquidityRepo.upsert(liquidSample)
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, liquidityService = liquidityService) }
@@ -141,14 +157,11 @@ class LiquidityRoutesAcceptanceTest : FunSpec({
             response.status shouldBe HttpStatusCode.OK
 
             val body: JsonObject = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["liquidityTier"]?.jsonPrimitive?.content shouldBe "TIER_2"
+            body["liquidityTier"]?.jsonPrimitive?.content shouldBe "LIQUID"
         }
     }
 
-    test("POST /api/v1/liquidity classifies TIER_1 for high ADV and tight spread") {
-        val saved = slot<InstrumentLiquidity>()
-        coEvery { liquidityRepo.upsert(capture(saved)) } returns Unit
-
+    test("POST /api/v1/liquidity classifies HIGH_LIQUID for high ADV and tight spread") {
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, liquidityService = liquidityService) }
 
@@ -168,15 +181,14 @@ class LiquidityRoutesAcceptanceTest : FunSpec({
             response.status shouldBe HttpStatusCode.Created
 
             val body: JsonObject = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["liquidityTier"]?.jsonPrimitive?.content shouldBe "TIER_1"
-            saved.captured.liquidityTier.name shouldBe "TIER_1"
+            body["liquidityTier"]?.jsonPrimitive?.content shouldBe "HIGH_LIQUID"
+
+            val saved = liquidityRepo.findById("SPY")!!
+            saved.liquidityTier.name shouldBe "HIGH_LIQUID"
         }
     }
 
     test("POST /api/v1/liquidity classifies ILLIQUID for low ADV") {
-        val saved = slot<InstrumentLiquidity>()
-        coEvery { liquidityRepo.upsert(capture(saved)) } returns Unit
-
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, liquidityService = liquidityService) }
 
@@ -197,14 +209,13 @@ class LiquidityRoutesAcceptanceTest : FunSpec({
 
             val body: JsonObject = Json.parseToJsonElement(response.bodyAsText()).jsonObject
             body["liquidityTier"]?.jsonPrimitive?.content shouldBe "ILLIQUID"
-            saved.captured.liquidityTier.name shouldBe "ILLIQUID"
+
+            val saved = liquidityRepo.findById("ILLIQ-1")!!
+            saved.liquidityTier.name shouldBe "ILLIQUID"
         }
     }
 
     test("POST /api/v1/liquidity accepts advShares, marketDepthScore, and source fields") {
-        val saved = slot<InstrumentLiquidity>()
-        coEvery { liquidityRepo.upsert(capture(saved)) } returns Unit
-
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, liquidityService = liquidityService) }
 
@@ -231,16 +242,14 @@ class LiquidityRoutesAcceptanceTest : FunSpec({
             body["marketDepthScore"]?.jsonPrimitive?.content?.toDouble() shouldBe 9.5
             body["source"]?.jsonPrimitive?.content shouldBe "bloomberg"
 
-            saved.captured.advShares shouldBe 450_000.0
-            saved.captured.marketDepthScore shouldBe 9.5
-            saved.captured.source shouldBe "bloomberg"
+            val saved = liquidityRepo.findById("AAPL")!!
+            saved.advShares shouldBe 450_000.0
+            saved.marketDepthScore shouldBe 9.5
+            saved.source shouldBe "bloomberg"
         }
     }
 
     test("POST /api/v1/liquidity defaults new fields when not provided") {
-        val saved = slot<InstrumentLiquidity>()
-        coEvery { liquidityRepo.upsert(capture(saved)) } returns Unit
-
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, liquidityService = liquidityService) }
 
@@ -259,9 +268,10 @@ class LiquidityRoutesAcceptanceTest : FunSpec({
             }
             response.status shouldBe HttpStatusCode.Created
 
-            saved.captured.advShares shouldBe null
-            saved.captured.marketDepthScore shouldBe null
-            saved.captured.source shouldBe "unknown"
+            val saved = liquidityRepo.findById("MSFT")!!
+            saved.advShares shouldBe null
+            saved.marketDepthScore shouldBe null
+            saved.source shouldBe "unknown"
         }
     }
 
@@ -271,7 +281,7 @@ class LiquidityRoutesAcceptanceTest : FunSpec({
             marketDepthScore = 8.5,
             source = "bloomberg",
         )
-        coEvery { liquidityRepo.findById("AAPL") } returns withNewFields
+        liquidityRepo.upsert(withNewFields)
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, liquidityService = liquidityService) }
@@ -287,10 +297,8 @@ class LiquidityRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/liquidity/batch returns liquidity for multiple instruments") {
-        coEvery { liquidityRepo.findByIds(listOf("AAPL", "MSFT")) } returns listOf(
-            sampleLiquidity("AAPL"),
-            sampleLiquidity("MSFT", adv = 25_000_000.0),
-        )
+        liquidityRepo.upsert(sampleLiquidity("AAPL"))
+        liquidityRepo.upsert(sampleLiquidity("MSFT", adv = 25_000_000.0))
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, liquidityService = liquidityService) }
