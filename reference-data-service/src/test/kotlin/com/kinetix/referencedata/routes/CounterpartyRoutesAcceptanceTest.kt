@@ -1,12 +1,18 @@
 package com.kinetix.referencedata.routes
 
+import com.kinetix.common.model.CreditSpread
+import com.kinetix.common.model.DividendYield
+import com.kinetix.common.model.InstrumentId
+import com.kinetix.referencedata.cache.ReferenceDataCache
+import com.kinetix.referencedata.kafka.ReferenceDataPublisher
 import com.kinetix.referencedata.model.Counterparty
 import com.kinetix.referencedata.model.NettingAgreement
 import com.kinetix.referencedata.module
-import com.kinetix.referencedata.persistence.CounterpartyRepository
-import com.kinetix.referencedata.persistence.CreditSpreadRepository
-import com.kinetix.referencedata.persistence.DividendYieldRepository
-import com.kinetix.referencedata.persistence.NettingAgreementRepository
+import com.kinetix.referencedata.persistence.DatabaseTestSetup
+import com.kinetix.referencedata.persistence.ExposedCounterpartyRepository
+import com.kinetix.referencedata.persistence.ExposedCreditSpreadRepository
+import com.kinetix.referencedata.persistence.ExposedDividendYieldRepository
+import com.kinetix.referencedata.persistence.ExposedNettingAgreementRepository
 import com.kinetix.referencedata.service.CounterpartyService
 import com.kinetix.referencedata.service.ReferenceDataIngestionService
 import io.kotest.core.spec.style.FunSpec
@@ -19,26 +25,36 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.mockk
-import io.mockk.slot
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
 import java.time.Instant
 
 class CounterpartyRoutesAcceptanceTest : FunSpec({
 
-    val dividendYieldRepo = mockk<DividendYieldRepository>()
-    val creditSpreadRepo = mockk<CreditSpreadRepository>()
-    val ingestionService = mockk<ReferenceDataIngestionService>()
-    val counterpartyRepo = mockk<CounterpartyRepository>()
-    val nettingRepo = mockk<NettingAgreementRepository>()
+    val db = DatabaseTestSetup.startAndMigrate()
+    val dividendYieldRepo = ExposedDividendYieldRepository(db)
+    val creditSpreadRepo = ExposedCreditSpreadRepository(db)
+    val noOpCache = object : ReferenceDataCache {
+        override suspend fun putDividendYield(dividendYield: DividendYield) = Unit
+        override suspend fun getDividendYield(instrumentId: InstrumentId): DividendYield? = null
+        override suspend fun putCreditSpread(creditSpread: CreditSpread) = Unit
+        override suspend fun getCreditSpread(instrumentId: InstrumentId): CreditSpread? = null
+    }
+    val noOpPublisher = object : ReferenceDataPublisher {
+        override suspend fun publishDividendYield(dividendYield: DividendYield) = Unit
+        override suspend fun publishCreditSpread(creditSpread: CreditSpread) = Unit
+    }
+    val ingestionService = ReferenceDataIngestionService(
+        dividendYieldRepo, creditSpreadRepo, noOpCache, noOpPublisher,
+    )
+    val counterpartyRepo = ExposedCounterpartyRepository(db)
+    val nettingRepo = ExposedNettingAgreementRepository(db)
     val counterpartyService = CounterpartyService(counterpartyRepo, nettingRepo)
 
     val NOW = Instant.parse("2026-03-24T10:00:00Z")
@@ -72,8 +88,14 @@ class CounterpartyRoutesAcceptanceTest : FunSpec({
         updatedAt = NOW,
     )
 
+    beforeEach {
+        newSuspendedTransaction(db = db) {
+            exec("TRUNCATE TABLE netting_agreements, counterparty_master RESTART IDENTITY CASCADE")
+        }
+    }
+
     test("GET /api/v1/counterparties returns list of all counterparties") {
-        coEvery { counterpartyRepo.findAll() } returns listOf(sampleCounterparty())
+        counterpartyRepo.upsert(sampleCounterparty())
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, counterpartyService = counterpartyService) }
@@ -88,7 +110,7 @@ class CounterpartyRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/counterparties/{id} returns counterparty when found") {
-        coEvery { counterpartyRepo.findById("CP-GS") } returns sampleCounterparty()
+        counterpartyRepo.upsert(sampleCounterparty())
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, counterpartyService = counterpartyService) }
@@ -108,8 +130,6 @@ class CounterpartyRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/counterparties/{id} returns 404 when not found") {
-        coEvery { counterpartyRepo.findById("UNKNOWN") } returns null
-
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, counterpartyService = counterpartyService) }
 
@@ -119,9 +139,6 @@ class CounterpartyRoutesAcceptanceTest : FunSpec({
     }
 
     test("POST /api/v1/counterparties creates counterparty and returns 201") {
-        val saved = slot<Counterparty>()
-        coEvery { counterpartyRepo.upsert(capture(saved)) } returns Unit
-
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, counterpartyService = counterpartyService) }
 
@@ -149,9 +166,9 @@ class CounterpartyRoutesAcceptanceTest : FunSpec({
             body["legalName"]?.jsonPrimitive?.content shouldBe "Test Bank Inc."
             body["ratingSp"]?.jsonPrimitive?.content shouldBe "BBB"
 
-            coVerify { counterpartyRepo.upsert(any()) }
-            saved.captured.counterpartyId shouldBe "CP-TEST"
-            saved.captured.sector shouldBe "FINANCIALS"
+            val saved = counterpartyRepo.findById("CP-TEST")!!
+            saved.counterpartyId shouldBe "CP-TEST"
+            saved.sector shouldBe "FINANCIALS"
         }
     }
 
@@ -168,7 +185,8 @@ class CounterpartyRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/counterparties/{id}/netting-sets returns netting agreements for counterparty") {
-        coEvery { nettingRepo.findByCounterpartyId("CP-GS") } returns listOf(sampleNettingAgreement())
+        counterpartyRepo.upsert(sampleCounterparty())
+        nettingRepo.upsert(sampleNettingAgreement())
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, counterpartyService = counterpartyService) }
@@ -184,8 +202,7 @@ class CounterpartyRoutesAcceptanceTest : FunSpec({
     }
 
     test("POST /api/v1/netting-agreements creates netting agreement and returns 201") {
-        val saved = slot<NettingAgreement>()
-        coEvery { nettingRepo.upsert(capture(saved)) } returns Unit
+        counterpartyRepo.upsert(sampleCounterparty("CP-TEST"))
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, counterpartyService = counterpartyService) }
@@ -212,13 +229,14 @@ class CounterpartyRoutesAcceptanceTest : FunSpec({
             body["agreementType"]?.jsonPrimitive?.content shouldBe "ISDA_2002"
             body["closeOutNetting"]?.jsonPrimitive?.content?.toBoolean() shouldBe true
 
-            coVerify { nettingRepo.upsert(any()) }
-            saved.captured.nettingSetId shouldBe "NS-TEST-001"
+            val saved = nettingRepo.findById("NS-TEST-001")!!
+            saved.nettingSetId shouldBe "NS-TEST-001"
         }
     }
 
     test("GET /api/v1/netting-agreements/{id} returns agreement when found") {
-        coEvery { nettingRepo.findById("NS-GS-001") } returns sampleNettingAgreement()
+        counterpartyRepo.upsert(sampleCounterparty())
+        nettingRepo.upsert(sampleNettingAgreement())
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, counterpartyService = counterpartyService) }
@@ -233,8 +251,6 @@ class CounterpartyRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/netting-agreements/{id} returns 404 when not found") {
-        coEvery { nettingRepo.findById("NS-UNKNOWN") } returns null
-
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, counterpartyService = counterpartyService) }
 
