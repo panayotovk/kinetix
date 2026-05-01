@@ -1,7 +1,8 @@
 package com.kinetix.position
 
 import com.kinetix.common.model.*
-import com.kinetix.position.kafka.TradeEventPublisher
+import com.kinetix.position.kafka.KafkaTestSetup
+import com.kinetix.position.kafka.KafkaTradeEventPublisher
 import com.kinetix.position.persistence.DatabaseTestSetup
 import com.kinetix.position.persistence.ExposedPositionRepository
 import com.kinetix.position.persistence.ExposedTradeEventRepository
@@ -9,7 +10,6 @@ import com.kinetix.position.service.*
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import io.mockk.mockk
 
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
@@ -25,6 +25,11 @@ class TradeLifecycleGuardAcceptanceTest : FunSpec({
     val positionRepo = ExposedPositionRepository(db)
     val transactional = ExposedTransactionalRunner(db)
 
+    val bootstrapServers = KafkaTestSetup.start()
+    val producer = KafkaTestSetup.createProducer(bootstrapServers)
+
+    fun publisherFor(topic: String) = KafkaTradeEventPublisher(producer, topic)
+
     beforeEach {
         newSuspendedTransaction(db = db) {
             exec("TRUNCATE TABLE trade_events, positions RESTART IDENTITY CASCADE")
@@ -32,7 +37,7 @@ class TradeLifecycleGuardAcceptanceTest : FunSpec({
     }
 
     test("cancelling an already-cancelled trade returns existing result idempotently") {
-        val publisher = mockk<TradeEventPublisher>(relaxed = true)
+        val publisher = publisherFor("trades.lifecycle.tlg-cancel-twice")
         val booking = TradeBookingService(tradeRepo, positionRepo, transactional, publisher)
         val lifecycle = TradeLifecycleService(tradeRepo, positionRepo, transactional, publisher)
 
@@ -61,7 +66,7 @@ class TradeLifecycleGuardAcceptanceTest : FunSpec({
     }
 
     test("rejects amend on cancelled trade with InvalidTradeStateException") {
-        val publisher = mockk<TradeEventPublisher>(relaxed = true)
+        val publisher = publisherFor("trades.lifecycle.tlg-amend-cancelled")
         val booking = TradeBookingService(tradeRepo, positionRepo, transactional, publisher)
         val lifecycle = TradeLifecycleService(tradeRepo, positionRepo, transactional, publisher)
 
@@ -101,7 +106,7 @@ class TradeLifecycleGuardAcceptanceTest : FunSpec({
     }
 
     test("cancelling a non-existent trade throws TradeNotFoundException") {
-        val publisher = mockk<TradeEventPublisher>(relaxed = true)
+        val publisher = publisherFor("trades.lifecycle.tlg-cancel-missing")
         val lifecycle = TradeLifecycleService(tradeRepo, positionRepo, transactional, publisher)
 
         val ex = shouldThrow<TradeNotFoundException> {
@@ -113,7 +118,7 @@ class TradeLifecycleGuardAcceptanceTest : FunSpec({
     }
 
     test("amending a non-existent trade throws TradeNotFoundException") {
-        val publisher = mockk<TradeEventPublisher>(relaxed = true)
+        val publisher = publisherFor("trades.lifecycle.tlg-amend-missing")
         val lifecycle = TradeLifecycleService(tradeRepo, positionRepo, transactional, publisher)
 
         val ex = shouldThrow<TradeNotFoundException> {
@@ -132,5 +137,9 @@ class TradeLifecycleGuardAcceptanceTest : FunSpec({
             )
         }
         ex.tradeId shouldBe "does-not-exist"
+    }
+
+    afterSpec {
+        producer.close()
     }
 })
