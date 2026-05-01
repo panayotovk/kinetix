@@ -25,7 +25,7 @@ class ExposedRiskBudgetAllocationRepository(
     override suspend fun save(allocation: RiskBudgetAllocation): Unit = newSuspendedTransaction(db = db) {
         val now = OffsetDateTime.now(ZoneOffset.UTC)
         RiskBudgetAllocationsTable.insert {
-            it[id] = allocation.id
+            it[id] = UUID.fromString(allocation.id)
             it[entityLevel] = allocation.entityLevel.name
             it[entityId] = allocation.entityId
             it[budgetType] = allocation.budgetType
@@ -41,7 +41,7 @@ class ExposedRiskBudgetAllocationRepository(
     }
 
     override suspend fun update(allocation: RiskBudgetAllocation): Unit = newSuspendedTransaction(db = db) {
-        RiskBudgetAllocationsTable.update({ RiskBudgetAllocationsTable.id eq allocation.id }) {
+        RiskBudgetAllocationsTable.update({ RiskBudgetAllocationsTable.id eq UUID.fromString(allocation.id) }) {
             it[budgetAmount] = allocation.budgetAmount
             it[effectiveTo] = allocation.effectiveTo?.toKotlinLocalDate()
             it[allocationNote] = allocation.allocationNote
@@ -50,9 +50,10 @@ class ExposedRiskBudgetAllocationRepository(
     }
 
     override suspend fun findById(id: String): RiskBudgetAllocation? = newSuspendedTransaction(db = db) {
+        val uuid = id.toUuidOrNull() ?: return@newSuspendedTransaction null
         RiskBudgetAllocationsTable
             .selectAll()
-            .where { RiskBudgetAllocationsTable.id eq id }
+            .where { RiskBudgetAllocationsTable.id eq uuid }
             .singleOrNull()
             ?.toModel()
     }
@@ -106,11 +107,12 @@ class ExposedRiskBudgetAllocationRepository(
     }
 
     override suspend fun delete(id: String): Unit = newSuspendedTransaction(db = db) {
-        RiskBudgetAllocationsTable.deleteWhere { RiskBudgetAllocationsTable.id eq id }
+        val uuid = id.toUuidOrNull() ?: return@newSuspendedTransaction
+        RiskBudgetAllocationsTable.deleteWhere { RiskBudgetAllocationsTable.id eq uuid }
     }
 
     private fun org.jetbrains.exposed.sql.ResultRow.toModel() = RiskBudgetAllocation(
-        id = this[RiskBudgetAllocationsTable.id],
+        id = this[RiskBudgetAllocationsTable.id].toString(),
         entityLevel = HierarchyLevel.valueOf(this[RiskBudgetAllocationsTable.entityLevel]),
         entityId = this[RiskBudgetAllocationsTable.entityId],
         budgetType = this[RiskBudgetAllocationsTable.budgetType],
@@ -125,3 +127,5 @@ class ExposedRiskBudgetAllocationRepository(
     private fun kotlinx.datetime.LocalDate.toJavaLocalDate(): LocalDate =
         LocalDate.of(year, monthNumber, dayOfMonth)
 }
+
+private fun String.toUuidOrNull(): UUID? = try { UUID.fromString(this) } catch (_: IllegalArgumentException) { null }

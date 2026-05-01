@@ -5,7 +5,7 @@ import org.jetbrains.exposed.sql.kotlin.datetime.date
 import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 
 object RiskBudgetAllocationsTable : Table("risk_budget_allocations") {
-    val id = varchar("id", 36)
+    val id = uuid("id")
     val entityLevel = varchar("entity_level", 16)
     val entityId = varchar("entity_id", 64)
     val budgetType = varchar("budget_type", 16)

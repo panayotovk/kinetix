@@ -4,7 +4,9 @@ import com.kinetix.common.model.BookId
 import com.kinetix.common.model.LiquidityRiskResult
 import com.kinetix.common.model.LiquidityTier
 import com.kinetix.common.model.PositionLiquidityRisk
-import com.kinetix.risk.persistence.LiquidityRiskSnapshotRepository
+import com.kinetix.risk.persistence.DatabaseTestSetup
+import com.kinetix.risk.persistence.ExposedLiquidityRiskSnapshotRepository
+import com.kinetix.risk.persistence.LiquidityRiskSnapshotsTable
 import com.kinetix.risk.service.LiquidityRiskService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -24,14 +26,18 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 class LiquidityRiskRoutesAcceptanceTest : FunSpec({
 
+    val db = DatabaseTestSetup.startAndMigrate()
     val liquidityRiskService = mockk<LiquidityRiskService>()
-    val snapshotRepository = mockk<LiquidityRiskSnapshotRepository>()
+    val snapshotRepository = ExposedLiquidityRiskSnapshotRepository(db)
 
     beforeEach {
-        clearMocks(liquidityRiskService, snapshotRepository)
+        clearMocks(liquidityRiskService)
+        newSuspendedTransaction(db = db) { LiquidityRiskSnapshotsTable.deleteAll() }
     }
 
     fun testApp(block: suspend ApplicationTestBuilder.() -> Unit) {
@@ -112,7 +118,7 @@ class LiquidityRiskRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/books/{bookId}/liquidity-risk/latest returns the most recent snapshot") {
-        coEvery { snapshotRepository.findLatestByBookId("BOOK-1") } returns sampleResult
+        snapshotRepository.save(sampleResult)
 
         testApp {
             val response = client.get("/api/v1/books/BOOK-1/liquidity-risk/latest")
@@ -126,8 +132,6 @@ class LiquidityRiskRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/books/{bookId}/liquidity-risk/latest returns 404 when no snapshot exists") {
-        coEvery { snapshotRepository.findLatestByBookId("UNKNOWN") } returns null
-
         testApp {
             val response = client.get("/api/v1/books/UNKNOWN/liquidity-risk/latest")
 
@@ -136,11 +140,8 @@ class LiquidityRiskRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/books/{bookId}/liquidity-risk returns history in descending order") {
-        val history = listOf(
-            sampleResult.copy(portfolioLvar = 300_000.0, calculatedAt = "2026-03-24T10:00:00Z"),
-            sampleResult.copy(portfolioLvar = 200_000.0, calculatedAt = "2026-03-23T10:00:00Z"),
-        )
-        coEvery { snapshotRepository.findAllByBookId("BOOK-1", any()) } returns history
+        snapshotRepository.save(sampleResult.copy(portfolioLvar = 300_000.0, calculatedAt = "2026-03-24T10:00:00Z"))
+        snapshotRepository.save(sampleResult.copy(portfolioLvar = 200_000.0, calculatedAt = "2026-03-23T10:00:00Z"))
 
         testApp {
             val response = client.get("/api/v1/books/BOOK-1/liquidity-risk")

@@ -12,7 +12,9 @@ import com.kinetix.risk.client.dtos.NetCollateralDto
 import com.kinetix.risk.client.dtos.NettingAgreementDto
 import com.kinetix.risk.model.CounterpartyExposureSnapshot
 import com.kinetix.risk.model.ExposureAtTenor
-import com.kinetix.risk.persistence.CounterpartyExposureRepository
+import com.kinetix.risk.persistence.CounterpartyExposureHistoryTable
+import com.kinetix.risk.persistence.DatabaseTestSetup
+import com.kinetix.risk.persistence.ExposedCounterpartyExposureRepository
 import com.kinetix.risk.routes.dtos.CounterpartyExposureResponse
 import com.kinetix.risk.routes.dtos.CVAResponse
 import com.kinetix.risk.service.CounterpartyRiskOrchestrationService
@@ -31,6 +33,8 @@ import io.mockk.clearMocks
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
+import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.Instant
 
 private val TENORS = listOf(
@@ -54,19 +58,13 @@ private fun snapshot(
     cvaEstimated = false,
 )
 
-private fun Application.configureTestApp(service: CounterpartyRiskOrchestrationService) {
-    install(ContentNegotiation) { json() }
-    routing {
-        counterpartyRiskRoutes(service)
-    }
-}
-
 class CounterpartyRiskRoutesAcceptanceTest : FunSpec({
 
+    val db = DatabaseTestSetup.startAndMigrate()
+    val repository = ExposedCounterpartyExposureRepository(db)
     val referenceDataClient = mockk<ReferenceDataServiceClient>()
     val counterpartyRiskClient = mockk<CounterpartyRiskClient>()
     val positionServiceClient = mockk<PositionServiceClient>()
-    val repository = mockk<CounterpartyExposureRepository>()
     val service = CounterpartyRiskOrchestrationService(
         referenceDataClient = referenceDataClient,
         counterpartyRiskClient = counterpartyRiskClient,
@@ -75,21 +73,27 @@ class CounterpartyRiskRoutesAcceptanceTest : FunSpec({
     )
 
     beforeEach {
-        clearMocks(referenceDataClient, counterpartyRiskClient, repository)
+        clearMocks(referenceDataClient, counterpartyRiskClient)
+        newSuspendedTransaction(db = db) { CounterpartyExposureHistoryTable.deleteAll() }
         coEvery { positionServiceClient.getNetCollateral(any()) } returns
             ClientResponse.Success(NetCollateralDto(collateralReceived = 0.0, collateralPosted = 0.0))
         coEvery { positionServiceClient.getInstrumentNettingSets(any()) } returns
             ClientResponse.Success(emptyMap())
     }
 
+    fun Application.configureTestApp() {
+        install(ContentNegotiation) { json() }
+        routing {
+            counterpartyRiskRoutes(service)
+        }
+    }
+
     test("GET /api/v1/counterparty-risk/ returns all latest exposures") {
-        coEvery { repository.findLatestForAllCounterparties() } returns listOf(
-            snapshot("CP-GS"),
-            snapshot("CP-JPM"),
-        )
+        repository.save(snapshot("CP-GS"))
+        repository.save(snapshot("CP-JPM"))
 
         testApplication {
-            application { configureTestApp(service) }
+            application { configureTestApp() }
             val response = client.get("/api/v1/counterparty-risk/")
             response.status shouldBe HttpStatusCode.OK
             val body = Json.decodeFromString<List<CounterpartyExposureResponse>>(response.bodyAsText())
@@ -99,10 +103,10 @@ class CounterpartyRiskRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/counterparty-risk/{id} returns latest snapshot for counterparty") {
-        coEvery { repository.findLatestByCounterpartyId("CP-GS") } returns snapshot("CP-GS")
+        repository.save(snapshot("CP-GS"))
 
         testApplication {
-            application { configureTestApp(service) }
+            application { configureTestApp() }
             val response = client.get("/api/v1/counterparty-risk/CP-GS")
             response.status shouldBe HttpStatusCode.OK
             val body = Json.decodeFromString<CounterpartyExposureResponse>(response.bodyAsText())
@@ -114,21 +118,19 @@ class CounterpartyRiskRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/counterparty-risk/{id} returns 404 when no snapshot exists") {
-        coEvery { repository.findLatestByCounterpartyId("CP-NEW") } returns null
-
         testApplication {
-            application { configureTestApp(service) }
+            application { configureTestApp() }
             val response = client.get("/api/v1/counterparty-risk/CP-NEW")
             response.status shouldBe HttpStatusCode.NotFound
         }
     }
 
     test("GET /api/v1/counterparty-risk/{id}/history returns historical snapshots") {
-        val history = listOf(snapshot("CP-GS", netExposure = 2_000_000.0), snapshot("CP-GS", netExposure = 1_800_000.0))
-        coEvery { repository.findByCounterpartyId("CP-GS", 90) } returns history
+        repository.save(snapshot("CP-GS", netExposure = 2_000_000.0))
+        repository.save(snapshot("CP-GS", netExposure = 1_800_000.0))
 
         testApplication {
-            application { configureTestApp(service) }
+            application { configureTestApp() }
             val response = client.get("/api/v1/counterparty-risk/CP-GS/history")
             response.status shouldBe HttpStatusCode.OK
             val body = Json.decodeFromString<List<CounterpartyExposureResponse>>(response.bodyAsText())
@@ -155,10 +157,9 @@ class CounterpartyRiskRoutesAcceptanceTest : FunSpec({
                 seed = 0,
             )
         } returns PFEResult("CP-GS", "NS-001", 3_000_000.0, 2_000_000.0, TENORS)
-        coEvery { repository.save(any()) } answers { args[0] as CounterpartyExposureSnapshot }
 
         testApplication {
-            application { configureTestApp(service) }
+            application { configureTestApp() }
             val response = client.post("/api/v1/counterparty-risk/CP-GS/pfe") {
                 contentType(ContentType.Application.Json)
                 setBody(
@@ -182,7 +183,7 @@ class CounterpartyRiskRoutesAcceptanceTest : FunSpec({
         coEvery { referenceDataClient.getCounterparty("CP-MISSING") } returns ClientResponse.NotFound(404)
 
         testApplication {
-            application { configureTestApp(service) }
+            application { configureTestApp() }
             val response = client.post("/api/v1/counterparty-risk/CP-MISSING/pfe") {
                 contentType(ContentType.Application.Json)
                 setBody("""{"positions": []}""")
@@ -192,10 +193,8 @@ class CounterpartyRiskRoutesAcceptanceTest : FunSpec({
     }
 
     test("POST /api/v1/counterparty-risk/{id}/cva returns 404 when no PFE snapshot exists") {
-        coEvery { repository.findLatestByCounterpartyId("CP-NEW") } returns null
-
         testApplication {
-            application { configureTestApp(service) }
+            application { configureTestApp() }
             val response = client.post("/api/v1/counterparty-risk/CP-NEW/cva")
             response.status shouldBe HttpStatusCode.NotFound
             response.bodyAsText() shouldContain "No PFE snapshot"
@@ -203,7 +202,7 @@ class CounterpartyRiskRoutesAcceptanceTest : FunSpec({
     }
 
     test("POST /api/v1/counterparty-risk/{id}/cva computes CVA from latest PFE profile") {
-        coEvery { repository.findLatestByCounterpartyId("CP-GS") } returns snapshot("CP-GS")
+        repository.save(snapshot("CP-GS"))
         coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(
             CounterpartyDto(
                 counterpartyId = "CP-GS",
@@ -228,7 +227,7 @@ class CounterpartyRiskRoutesAcceptanceTest : FunSpec({
         } returns CVAResult("CP-GS", 12_500.0, false, 0.0065, 0.0065)
 
         testApplication {
-            application { configureTestApp(service) }
+            application { configureTestApp() }
             val response = client.post("/api/v1/counterparty-risk/CP-GS/cva")
             response.status shouldBe HttpStatusCode.OK
             val body = Json.decodeFromString<CVAResponse>(response.bodyAsText())

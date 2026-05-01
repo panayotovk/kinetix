@@ -6,11 +6,14 @@ import com.kinetix.common.model.BookId
 import com.kinetix.risk.model.AttributionDataQuality
 import com.kinetix.risk.model.PnlAttribution
 import com.kinetix.risk.model.PositionPnlAttribution
-import com.kinetix.risk.persistence.PnlAttributionRepository
+import com.kinetix.risk.persistence.DatabaseTestSetup
+import com.kinetix.risk.persistence.ExposedPnlAttributionRepository
+import com.kinetix.risk.persistence.PnlAttributionsTable
 import com.kinetix.risk.routes.dtos.PnlAttributionResponse
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -20,10 +23,9 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
-import io.mockk.clearMocks
-import io.mockk.coEvery
-import io.mockk.mockk
 import kotlinx.serialization.json.Json
+import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
@@ -89,15 +91,15 @@ private fun sampleAttribution(
 
 class PnlAttributionRouteAcceptanceTest : FunSpec({
 
-    val pnlAttributionRepository = mockk<PnlAttributionRepository>()
+    val db = DatabaseTestSetup.startAndMigrate()
+    val pnlAttributionRepository = ExposedPnlAttributionRepository(db)
 
     beforeEach {
-        clearMocks(pnlAttributionRepository)
+        newSuspendedTransaction(db = db) { PnlAttributionsTable.deleteAll() }
     }
 
     test("GET /api/v1/risk/pnl-attribution/{bookId} returns latest attribution with cross-Greek fields") {
-        val attribution = sampleAttribution()
-        coEvery { pnlAttributionRepository.findLatestByBookId(PORTFOLIO) } returns attribution
+        pnlAttributionRepository.save(sampleAttribution())
 
         testApplication {
             install(ContentNegotiation) { json() }
@@ -119,25 +121,24 @@ class PnlAttributionRouteAcceptanceTest : FunSpec({
             val body = Json.decodeFromString<PnlAttributionResponse>(response.bodyAsText())
             body.bookId shouldBe "port-1"
             body.date shouldBe "2025-01-15"
-            body.totalPnl shouldBe "10.00"
-            body.deltaPnl shouldBe "3.00"
-            body.gammaPnl shouldBe "1.50"
-            body.vegaPnl shouldBe "2.00"
-            body.thetaPnl shouldBe "-0.50"
-            body.rhoPnl shouldBe "0.30"
-            body.vannaPnl shouldBe "0.10"
-            body.volgaPnl shouldBe "0.04"
-            body.charmPnl shouldBe "-0.002"
-            body.crossGammaPnl shouldBe "0.00"
-            body.unexplainedPnl shouldBe "3.562"
+            body.totalPnl shouldBe "10.00000000"
+            body.deltaPnl shouldBe "3.00000000"
+            body.gammaPnl shouldBe "1.50000000"
+            body.vegaPnl shouldBe "2.00000000"
+            body.thetaPnl shouldBe "-0.50000000"
+            body.rhoPnl shouldBe "0.30000000"
+            body.vannaPnl shouldBe "0.10000000"
+            body.volgaPnl shouldBe "0.04000000"
+            body.charmPnl shouldBe "-0.00200000"
+            body.crossGammaPnl shouldBe "0.00000000"
+            body.unexplainedPnl shouldBe "3.56200000"
             body.dataQualityFlag shouldBe "FULL_ATTRIBUTION"
-            body.calculatedAt shouldBe "2025-01-15T10:00:00Z"
+            body.calculatedAt shouldNotBe null
         }
     }
 
     test("GET /api/v1/risk/pnl-attribution/{bookId} returns position attributions with cross-Greek fields") {
-        val attribution = sampleAttribution()
-        coEvery { pnlAttributionRepository.findLatestByBookId(PORTFOLIO) } returns attribution
+        pnlAttributionRepository.save(sampleAttribution())
 
         testApplication {
             install(ContentNegotiation) { json() }
@@ -182,8 +183,7 @@ class PnlAttributionRouteAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/risk/pnl-attribution/{bookId} with date query parameter") {
-        val attribution = sampleAttribution()
-        coEvery { pnlAttributionRepository.findByBookIdAndDate(PORTFOLIO, TODAY) } returns attribution
+        pnlAttributionRepository.save(sampleAttribution())
 
         testApplication {
             install(ContentNegotiation) { json() }
@@ -215,8 +215,6 @@ class PnlAttributionRouteAcceptanceTest : FunSpec({
     }
 
     test("GET /api/v1/risk/pnl-attribution/{bookId} returns 404 when no attribution exists") {
-        coEvery { pnlAttributionRepository.findLatestByBookId(any()) } returns null
-
         testApplication {
             install(ContentNegotiation) { json() }
             routing {

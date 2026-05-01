@@ -3,7 +3,9 @@ package com.kinetix.risk.routes
 import com.kinetix.risk.model.BudgetPeriod
 import com.kinetix.risk.model.HierarchyLevel
 import com.kinetix.risk.model.RiskBudgetAllocation
-import com.kinetix.risk.persistence.RiskBudgetAllocationRepository
+import com.kinetix.risk.persistence.DatabaseTestSetup
+import com.kinetix.risk.persistence.ExposedRiskBudgetAllocationRepository
+import com.kinetix.risk.persistence.RiskBudgetAllocationsTable
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.request.*
@@ -13,20 +15,21 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
-import io.mockk.clearMocks
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
 import java.time.LocalDate
 
 private val json = Json { ignoreUnknownKeys = true }
 
-private fun sampleAllocation(id: String = "alloc-1") = RiskBudgetAllocation(
+private const val ALLOC_ID_1 = "00000000-0000-0000-0000-000000000001"
+private const val ALLOC_ID_2 = "00000000-0000-0000-0000-000000000002"
+
+private fun sampleAllocation(id: String = ALLOC_ID_1) = RiskBudgetAllocation(
     id = id,
     entityLevel = HierarchyLevel.DESK,
     entityId = "desk-rates",
@@ -41,9 +44,12 @@ private fun sampleAllocation(id: String = "alloc-1") = RiskBudgetAllocation(
 
 class RiskBudgetRoutesAcceptanceTest : FunSpec({
 
-    val budgetRepository = mockk<RiskBudgetAllocationRepository>()
+    val db = DatabaseTestSetup.startAndMigrate()
+    val budgetRepository = ExposedRiskBudgetAllocationRepository(db)
 
-    beforeEach { clearMocks(budgetRepository) }
+    beforeEach {
+        newSuspendedTransaction(db = db) { RiskBudgetAllocationsTable.deleteAll() }
+    }
 
     fun testApp(block: suspend ApplicationTestBuilder.() -> Unit) {
         testApplication {
@@ -56,7 +62,8 @@ class RiskBudgetRoutesAcceptanceTest : FunSpec({
     // ── GET /api/v1/risk/budgets ───────────────────────────────────────────────
 
     test("GET /api/v1/risk/budgets returns all allocations") {
-        coEvery { budgetRepository.findAll(null, null) } returns listOf(sampleAllocation("alloc-1"), sampleAllocation("alloc-2"))
+        budgetRepository.save(sampleAllocation(ALLOC_ID_1))
+        budgetRepository.save(sampleAllocation(ALLOC_ID_2))
 
         testApp {
             val response = client.get("/api/v1/risk/budgets")
@@ -65,12 +72,12 @@ class RiskBudgetRoutesAcceptanceTest : FunSpec({
 
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
             body.size shouldBe 2
-            body[0].jsonObject["id"]!!.jsonPrimitive.content shouldBe "alloc-1"
+            body[0].jsonObject["id"]!!.jsonPrimitive.content shouldBe ALLOC_ID_1
         }
     }
 
     test("GET /api/v1/risk/budgets?level=DESK returns desk-level allocations") {
-        coEvery { budgetRepository.findAll(HierarchyLevel.DESK, null) } returns listOf(sampleAllocation())
+        budgetRepository.save(sampleAllocation())
 
         testApp {
             val response = client.get("/api/v1/risk/budgets?level=DESK")
@@ -86,26 +93,24 @@ class RiskBudgetRoutesAcceptanceTest : FunSpec({
     // ── GET /api/v1/risk/budgets/{id} ─────────────────────────────────────────
 
     test("GET /api/v1/risk/budgets/{id} returns allocation when found") {
-        coEvery { budgetRepository.findById("alloc-1") } returns sampleAllocation("alloc-1")
+        budgetRepository.save(sampleAllocation(ALLOC_ID_1))
 
         testApp {
-            val response = client.get("/api/v1/risk/budgets/alloc-1")
+            val response = client.get("/api/v1/risk/budgets/$ALLOC_ID_1")
 
             response.status shouldBe HttpStatusCode.OK
 
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["id"]!!.jsonPrimitive.content shouldBe "alloc-1"
+            body["id"]!!.jsonPrimitive.content shouldBe ALLOC_ID_1
             body["entityId"]!!.jsonPrimitive.content shouldBe "desk-rates"
             body["budgetType"]!!.jsonPrimitive.content shouldBe "VAR_BUDGET"
-            body["budgetAmount"]!!.jsonPrimitive.content shouldBe "5000000.00"
+            body["budgetAmount"]!!.jsonPrimitive.content shouldBe "5000000.000000"
         }
     }
 
     test("GET /api/v1/risk/budgets/{id} returns 404 when not found") {
-        coEvery { budgetRepository.findById("nonexistent") } returns null
-
         testApp {
-            val response = client.get("/api/v1/risk/budgets/nonexistent")
+            val response = client.get("/api/v1/risk/budgets/00000000-0000-0000-0000-000000000099")
 
             response.status shouldBe HttpStatusCode.NotFound
         }
@@ -114,8 +119,6 @@ class RiskBudgetRoutesAcceptanceTest : FunSpec({
     // ── POST /api/v1/risk/budgets ──────────────────────────────────────────────
 
     test("POST /api/v1/risk/budgets creates allocation and returns 201") {
-        coEvery { budgetRepository.save(any()) } returns Unit
-
         testApp {
             val response = client.post("/api/v1/risk/budgets") {
                 contentType(ContentType.Application.Json)
@@ -132,7 +135,9 @@ class RiskBudgetRoutesAcceptanceTest : FunSpec({
             }
 
             response.status shouldBe HttpStatusCode.Created
-            coVerify(exactly = 1) { budgetRepository.save(any()) }
+            val saved = budgetRepository.findAll(null, null)
+            saved.size shouldBe 1
+            saved[0].entityId shouldBe "desk-rates"
         }
     }
 
@@ -150,12 +155,10 @@ class RiskBudgetRoutesAcceptanceTest : FunSpec({
     // ── PUT /api/v1/risk/budgets/{id} ─────────────────────────────────────────
 
     test("PUT updates budget amount and returns updated budget") {
-        val original = sampleAllocation("alloc-1")
-        coEvery { budgetRepository.findById("alloc-1") } returns original
-        coEvery { budgetRepository.update(any()) } returns Unit
+        budgetRepository.save(sampleAllocation(ALLOC_ID_1))
 
         testApp {
-            val response = client.put("/api/v1/risk/budgets/alloc-1") {
+            val response = client.put("/api/v1/risk/budgets/$ALLOC_ID_1") {
                 contentType(ContentType.Application.Json)
                 setBody("""{"budgetAmount":"7500000.00","allocationNote":"Revised budget"}""")
             }
@@ -163,18 +166,18 @@ class RiskBudgetRoutesAcceptanceTest : FunSpec({
             response.status shouldBe HttpStatusCode.OK
 
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-            body["id"]!!.jsonPrimitive.content shouldBe "alloc-1"
+            body["id"]!!.jsonPrimitive.content shouldBe ALLOC_ID_1
+            // Response reflects the request value before DB round-trip (scale 2)
             body["budgetAmount"]!!.jsonPrimitive.content shouldBe "7500000.00"
             body["allocationNote"]!!.jsonPrimitive.content shouldBe "Revised budget"
-            coVerify(exactly = 1) { budgetRepository.update(any()) }
+            // DB stores with scale 6 per decimal(24,6) column
+            budgetRepository.findById(ALLOC_ID_1)!!.budgetAmount shouldBe BigDecimal("7500000.000000")
         }
     }
 
     test("PUT returns 404 for non-existent budget") {
-        coEvery { budgetRepository.findById("nonexistent") } returns null
-
         testApp {
-            val response = client.put("/api/v1/risk/budgets/nonexistent") {
+            val response = client.put("/api/v1/risk/budgets/00000000-0000-0000-0000-000000000099") {
                 contentType(ContentType.Application.Json)
                 setBody("""{"budgetAmount":"1000000.00"}""")
             }
@@ -186,22 +189,19 @@ class RiskBudgetRoutesAcceptanceTest : FunSpec({
     // ── DELETE /api/v1/risk/budgets/{id} ──────────────────────────────────────
 
     test("DELETE /api/v1/risk/budgets/{id} removes allocation and returns 204") {
-        coEvery { budgetRepository.findById("alloc-1") } returns sampleAllocation("alloc-1")
-        coEvery { budgetRepository.delete("alloc-1") } returns Unit
+        budgetRepository.save(sampleAllocation(ALLOC_ID_1))
 
         testApp {
-            val response = client.delete("/api/v1/risk/budgets/alloc-1")
+            val response = client.delete("/api/v1/risk/budgets/$ALLOC_ID_1")
 
             response.status shouldBe HttpStatusCode.NoContent
-            coVerify(exactly = 1) { budgetRepository.delete("alloc-1") }
+            budgetRepository.findById(ALLOC_ID_1) shouldBe null
         }
     }
 
     test("DELETE /api/v1/risk/budgets/{id} returns 404 when not found") {
-        coEvery { budgetRepository.findById("nonexistent") } returns null
-
         testApp {
-            val response = client.delete("/api/v1/risk/budgets/nonexistent")
+            val response = client.delete("/api/v1/risk/budgets/00000000-0000-0000-0000-000000000099")
 
             response.status shouldBe HttpStatusCode.NotFound
         }
