@@ -198,6 +198,16 @@ internal data class CachedValuationResult(
             },
             jobId = result.jobId?.toString(),
             marketDataComplete = result.marketDataComplete,
+            positionGreeks = result.positionGreeks.map {
+                CachedPositionGreek(
+                    instrumentId = it.instrumentId,
+                    delta = it.delta,
+                    gamma = it.gamma,
+                    vega = it.vega,
+                    theta = it.theta,
+                    rho = it.rho,
+                )
+            },
         )
     }
 }
