@@ -1,16 +1,23 @@
 package com.kinetix.gateway.auth
 
 import com.kinetix.common.security.Role
-import com.kinetix.gateway.client.RiskServiceClient
+import com.kinetix.gateway.client.HttpRiskServiceClient
 import com.kinetix.gateway.module
+import com.kinetix.gateway.testing.BackendStubServer
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.response.respond
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
 import io.ktor.server.testing.*
-import io.mockk.*
 
 /**
  * Acceptance tests verifying that BOLA prevention is wired across all book-scoped
@@ -21,7 +28,6 @@ import io.mockk.*
  */
 class BookAccessBolaAcceptanceTest : FunSpec({
 
-    val riskClient = mockk<RiskServiceClient>()
     val jwtConfig = TestJwtHelper.testJwtConfig()
     val jwkProvider = TestJwtHelper.testJwkProvider()
 
@@ -29,88 +35,165 @@ class BookAccessBolaAcceptanceTest : FunSpec({
         traderBooks = mapOf("trader-1" to setOf("book-A"))
     )
 
-    beforeEach { clearMocks(riskClient) }
+    // Minimal VaR result JSON satisfying ValuationResultDto
+    val varResultJson = """
+        {
+          "bookId":"book-A","calculationType":"PARAMETRIC","confidenceLevel":"CL_95",
+          "varValue":"50000.0","expectedShortfall":"65000.0",
+          "componentBreakdown":[],"calculatedAt":"2025-01-15T10:00:00Z"
+        }
+    """.trimIndent()
+
+    // Minimal stress test result JSON satisfying StressTestResultDto
+    val stressResultJson = """
+        {
+          "scenarioName":"GFC 2008","baseVar":"50000.0","stressedVar":"80000.0",
+          "pnlImpact":"-30000.0","assetClassImpacts":[],"calculatedAt":"2025-01-15T10:00:00Z"
+        }
+    """.trimIndent()
+
+    // Minimal cross-book VaR result JSON satisfying CrossBookVaRResultClientDto
+    val crossBookVarJson = """
+        {
+          "portfolioGroupId":"group-1","bookIds":["book-A"],"calculationType":"PARAMETRIC",
+          "confidenceLevel":"CL_95","varValue":50000.0,"expectedShortfall":65000.0,
+          "componentBreakdown":[],"bookContributions":[],"totalStandaloneVar":50000.0,
+          "diversificationBenefit":0.0,"calculatedAt":"2025-01-15T10:00:00Z"
+        }
+    """.trimIndent()
 
     // --- CALCULATE_RISK permission group (RISK_MANAGER has this, TRADER does not) ---
 
     test("RISK_MANAGER accessing own-assigned book via VaR route receives response") {
-        coEvery { riskClient.calculateVaR(any()) } returns mockk(relaxed = true)
         val rmBookAccess = InMemoryBookAccessService(
             traderBooks = mapOf("rm-1" to setOf("book-A"))
         )
-        val token = TestJwtHelper.generateToken(userId = "rm-1", roles = listOf(Role.RISK_MANAGER))
-
-        testApplication {
-            application { module(jwtConfig, riskClient = riskClient, bookAccessService = rmBookAccess, jwkProvider = jwkProvider) }
-            val response = client.post("/api/v1/risk/var/book-A") {
-                header(HttpHeaders.Authorization, "Bearer $token")
-                contentType(ContentType.Application.Json)
-                setBody("{}")
+        val backend = BackendStubServer {
+            post("/api/v1/risk/var/book-A") {
+                call.respond(HttpStatusCode.OK, varResultJson)
             }
-            response.status shouldBe HttpStatusCode.OK
+        }
+        val httpClient = HttpClient(CIO) { install(ContentNegotiation) { json() } }
+        try {
+            val riskClient = HttpRiskServiceClient(httpClient, backend.baseUrl)
+            val token = TestJwtHelper.generateToken(userId = "rm-1", roles = listOf(Role.RISK_MANAGER))
+
+            testApplication {
+                application { module(jwtConfig, riskClient = riskClient, bookAccessService = rmBookAccess, jwkProvider = jwkProvider) }
+                val response = client.post("/api/v1/risk/var/book-A") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    contentType(ContentType.Application.Json)
+                    setBody("{}")
+                }
+                response.status shouldBe HttpStatusCode.OK
+            }
+        } finally {
+            httpClient.close()
+            backend.close()
         }
     }
 
     test("RISK_MANAGER can access any book via VaR route (unrestricted role)") {
-        coEvery { riskClient.calculateVaR(any()) } returns mockk(relaxed = true)
-        val token = TestJwtHelper.generateToken(userId = "rm-1", roles = listOf(Role.RISK_MANAGER))
-
-        testApplication {
-            application { module(jwtConfig, riskClient = riskClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
-            val response = client.post("/api/v1/risk/var/any-book") {
-                header(HttpHeaders.Authorization, "Bearer $token")
-                contentType(ContentType.Application.Json)
-                setBody("{}")
+        val backend = BackendStubServer {
+            post("/api/v1/risk/var/any-book") {
+                call.respond(HttpStatusCode.OK, varResultJson.replace("\"book-A\"", "\"any-book\""))
             }
-            response.status shouldBe HttpStatusCode.OK
+        }
+        val httpClient = HttpClient(CIO) { install(ContentNegotiation) { json() } }
+        try {
+            val riskClient = HttpRiskServiceClient(httpClient, backend.baseUrl)
+            val token = TestJwtHelper.generateToken(userId = "rm-1", roles = listOf(Role.RISK_MANAGER))
+
+            testApplication {
+                application { module(jwtConfig, riskClient = riskClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
+                val response = client.post("/api/v1/risk/var/any-book") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    contentType(ContentType.Application.Json)
+                    setBody("{}")
+                }
+                response.status shouldBe HttpStatusCode.OK
+            }
+        } finally {
+            httpClient.close()
+            backend.close()
         }
     }
 
     // --- READ_RISK permission group (TRADER has READ_RISK) ---
 
     test("TRADER accessing own book via stress test route receives response") {
-        coEvery { riskClient.runStressTest(any()) } returns mockk(relaxed = true)
-        val token = TestJwtHelper.generateToken(userId = "trader-1", roles = listOf(Role.TRADER))
-
-        testApplication {
-            application { module(jwtConfig, riskClient = riskClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
-            val response = client.post("/api/v1/risk/stress/book-A") {
-                header(HttpHeaders.Authorization, "Bearer $token")
-                contentType(ContentType.Application.Json)
-                setBody("""{"scenarioName":"GFC 2008"}""")
+        val backend = BackendStubServer {
+            post("/api/v1/risk/stress/book-A") {
+                call.respond(HttpStatusCode.OK, stressResultJson)
             }
-            response.status shouldBe HttpStatusCode.OK
+        }
+        val httpClient = HttpClient(CIO) { install(ContentNegotiation) { json() } }
+        try {
+            val riskClient = HttpRiskServiceClient(httpClient, backend.baseUrl)
+            val token = TestJwtHelper.generateToken(userId = "trader-1", roles = listOf(Role.TRADER))
+
+            testApplication {
+                application { module(jwtConfig, riskClient = riskClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
+                val response = client.post("/api/v1/risk/stress/book-A") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"scenarioName":"GFC 2008"}""")
+                }
+                response.status shouldBe HttpStatusCode.OK
+            }
+        } finally {
+            httpClient.close()
+            backend.close()
         }
     }
 
     test("TRADER accessing unassigned book via stress test route receives 403") {
-        val token = TestJwtHelper.generateToken(userId = "trader-1", roles = listOf(Role.TRADER))
+        val backend = BackendStubServer { }
+        val httpClient = HttpClient(CIO) { install(ContentNegotiation) { json() } }
+        try {
+            val riskClient = HttpRiskServiceClient(httpClient, backend.baseUrl)
+            val token = TestJwtHelper.generateToken(userId = "trader-1", roles = listOf(Role.TRADER))
 
-        testApplication {
-            application { module(jwtConfig, riskClient = riskClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
-            val response = client.post("/api/v1/risk/stress/book-B") {
-                header(HttpHeaders.Authorization, "Bearer $token")
-                contentType(ContentType.Application.Json)
-                setBody("""{"scenarioName":"GFC 2008"}""")
+            testApplication {
+                application { module(jwtConfig, riskClient = riskClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
+                val response = client.post("/api/v1/risk/stress/book-B") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"scenarioName":"GFC 2008"}""")
+                }
+                response.status shouldBe HttpStatusCode.Forbidden
             }
-            response.status shouldBe HttpStatusCode.Forbidden
+        } finally {
+            httpClient.close()
+            backend.close()
         }
     }
 
     // --- Cross-book VaR (bookIds in body, under CALCULATE_RISK — use RISK_MANAGER) ---
 
     test("RISK_MANAGER with access to all listed books can run cross-book VaR") {
-        coEvery { riskClient.calculateCrossBookVaR(any()) } returns mockk(relaxed = true)
-        val token = TestJwtHelper.generateToken(userId = "rm-1", roles = listOf(Role.RISK_MANAGER))
-
-        testApplication {
-            application { module(jwtConfig, riskClient = riskClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
-            val response = client.post("/api/v1/risk/var/cross-book") {
-                header(HttpHeaders.Authorization, "Bearer $token")
-                contentType(ContentType.Application.Json)
-                setBody("""{"bookIds":["book-A"],"portfolioGroupId":"group-1"}""")
+        val backend = BackendStubServer {
+            post("/api/v1/risk/var/cross-book") {
+                call.respond(HttpStatusCode.OK, crossBookVarJson)
             }
-            response.status shouldBe HttpStatusCode.OK
+        }
+        val httpClient = HttpClient(CIO) { install(ContentNegotiation) { json() } }
+        try {
+            val riskClient = HttpRiskServiceClient(httpClient, backend.baseUrl)
+            val token = TestJwtHelper.generateToken(userId = "rm-1", roles = listOf(Role.RISK_MANAGER))
+
+            testApplication {
+                application { module(jwtConfig, riskClient = riskClient, bookAccessService = bookAccessService, jwkProvider = jwkProvider) }
+                val response = client.post("/api/v1/risk/var/cross-book") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"bookIds":["book-A"],"portfolioGroupId":"group-1"}""")
+                }
+                response.status shouldBe HttpStatusCode.OK
+            }
+        } finally {
+            httpClient.close()
+            backend.close()
         }
     }
 
@@ -122,17 +205,25 @@ class BookAccessBolaAcceptanceTest : FunSpec({
                 return bookId == "book-A"
             }
         }
-        val token = TestJwtHelper.generateToken(userId = "rm-1", roles = listOf(Role.RISK_MANAGER))
+        val backend = BackendStubServer { }
+        val httpClient = HttpClient(CIO) { install(ContentNegotiation) { json() } }
+        try {
+            val riskClient = HttpRiskServiceClient(httpClient, backend.baseUrl)
+            val token = TestJwtHelper.generateToken(userId = "rm-1", roles = listOf(Role.RISK_MANAGER))
 
-        testApplication {
-            application { module(jwtConfig, riskClient = riskClient, bookAccessService = restrictedService, jwkProvider = jwkProvider) }
-            val response = client.post("/api/v1/risk/var/cross-book") {
-                header(HttpHeaders.Authorization, "Bearer $token")
-                contentType(ContentType.Application.Json)
-                setBody("""{"bookIds":["book-A","book-C"],"portfolioGroupId":"group-1"}""")
+            testApplication {
+                application { module(jwtConfig, riskClient = riskClient, bookAccessService = restrictedService, jwkProvider = jwkProvider) }
+                val response = client.post("/api/v1/risk/var/cross-book") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"bookIds":["book-A","book-C"],"portfolioGroupId":"group-1"}""")
+                }
+                response.status shouldBe HttpStatusCode.Forbidden
+                response.bodyAsText() shouldContain "book-C"
             }
-            response.status shouldBe HttpStatusCode.Forbidden
-            response.bodyAsText() shouldContain "book-C"
+        } finally {
+            httpClient.close()
+            backend.close()
         }
     }
 
@@ -140,16 +231,24 @@ class BookAccessBolaAcceptanceTest : FunSpec({
 
     test("TRADER with no book assignments receives 403 on book-scoped routes") {
         val bookAccessNoAssignments = InMemoryBookAccessService(traderBooks = emptyMap())
-        val token = TestJwtHelper.generateToken(userId = "trader-orphan", roles = listOf(Role.TRADER))
+        val backend = BackendStubServer { }
+        val httpClient = HttpClient(CIO) { install(ContentNegotiation) { json() } }
+        try {
+            val riskClient = HttpRiskServiceClient(httpClient, backend.baseUrl)
+            val token = TestJwtHelper.generateToken(userId = "trader-orphan", roles = listOf(Role.TRADER))
 
-        testApplication {
-            application { module(jwtConfig, riskClient = riskClient, bookAccessService = bookAccessNoAssignments, jwkProvider = jwkProvider) }
-            val response = client.post("/api/v1/risk/stress/any-book") {
-                header(HttpHeaders.Authorization, "Bearer $token")
-                contentType(ContentType.Application.Json)
-                setBody("""{"scenarioName":"GFC 2008"}""")
+            testApplication {
+                application { module(jwtConfig, riskClient = riskClient, bookAccessService = bookAccessNoAssignments, jwkProvider = jwkProvider) }
+                val response = client.post("/api/v1/risk/stress/any-book") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"scenarioName":"GFC 2008"}""")
+                }
+                response.status shouldBe HttpStatusCode.Forbidden
             }
-            response.status shouldBe HttpStatusCode.Forbidden
+        } finally {
+            httpClient.close()
+            backend.close()
         }
     }
 })
