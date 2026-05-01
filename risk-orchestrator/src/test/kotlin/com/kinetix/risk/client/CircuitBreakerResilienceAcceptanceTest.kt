@@ -10,56 +10,71 @@ import com.kinetix.risk.model.ConfidenceLevel
 import com.kinetix.risk.model.VaRCalculationRequest
 import com.kinetix.risk.model.VaRResult
 import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.core.spec.style.BehaviorSpec
+import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.*
 import java.time.Instant
 
-class CircuitBreakerResilienceAcceptanceTest : BehaviorSpec({
+class CircuitBreakerResilienceAcceptanceTest : FunSpec({
 
-    given("circuit breaker protecting risk engine calls") {
+    test("circuit breaker protecting risk engine calls — risk engine fails repeatedly exceeding threshold — circuit opens and rejects subsequent calls") {
+        val delegate = mockk<RiskEngineClient>()
+        val cb = CircuitBreaker(CircuitBreakerConfig(failureThreshold = 3, resetTimeoutMs = 5000, name = "risk"))
+        val resilient = ResilientRiskEngineClient(delegate, cb)
+        val request = VaRCalculationRequest(
+            bookId = BookId("port-1"),
+            calculationType = CalculationType.PARAMETRIC,
+            confidenceLevel = ConfidenceLevel.CL_95,
+        )
+        coEvery { delegate.calculateVaR(any(), any()) } throws RuntimeException("connection refused")
 
-        `when`("risk engine fails repeatedly exceeding threshold") {
-            val delegate = mockk<RiskEngineClient>()
-            val cb = CircuitBreaker(CircuitBreakerConfig(failureThreshold = 3, resetTimeoutMs = 5000, name = "risk"))
-            val resilient = ResilientRiskEngineClient(delegate, cb)
-            val request = VaRCalculationRequest(
-                bookId = BookId("port-1"),
-                calculationType = CalculationType.PARAMETRIC,
-                confidenceLevel = ConfidenceLevel.CL_95,
-            )
-            coEvery { delegate.calculateVaR(any(), any()) } throws RuntimeException("connection refused")
-
-            then("circuit opens and rejects subsequent calls") {
-                repeat(3) { runCatching { resilient.calculateVaR(request, emptyList()) } }
-                cb.currentState shouldBe CircuitState.OPEN
-                shouldThrow<CircuitBreakerOpenException> {
-                    resilient.calculateVaR(request, emptyList())
-                }
-            }
-
-            then("after reset timeout, circuit transitions to half-open") {
-                cb.reset()
-                repeat(3) { runCatching { resilient.calculateVaR(request, emptyList()) } }
-                cb.currentState shouldBe CircuitState.OPEN
-            }
-
-            then("successful call in half-open closes circuit") {
-                cb.reset()
-                val result = VaRResult(
-                    bookId = BookId("port-1"),
-                    calculationType = CalculationType.PARAMETRIC,
-                    confidenceLevel = ConfidenceLevel.CL_95,
-                    varValue = 50000.0,
-                    expectedShortfall = 65000.0,
-                    componentBreakdown = emptyList(),
-                    calculatedAt = Instant.parse("2025-01-15T10:00:00Z"),
-                )
-                coEvery { delegate.calculateVaR(any(), any()) } returns result
-                val actual = resilient.calculateVaR(request, emptyList())
-                actual shouldBe result
-                cb.currentState shouldBe CircuitState.CLOSED
-            }
+        repeat(3) { runCatching { resilient.calculateVaR(request, emptyList()) } }
+        cb.currentState shouldBe CircuitState.OPEN
+        shouldThrow<CircuitBreakerOpenException> {
+            resilient.calculateVaR(request, emptyList())
         }
+    }
+
+    test("circuit breaker protecting risk engine calls — risk engine fails repeatedly exceeding threshold — after reset timeout, circuit transitions to half-open") {
+        val delegate = mockk<RiskEngineClient>()
+        val cb = CircuitBreaker(CircuitBreakerConfig(failureThreshold = 3, resetTimeoutMs = 5000, name = "risk"))
+        val resilient = ResilientRiskEngineClient(delegate, cb)
+        val request = VaRCalculationRequest(
+            bookId = BookId("port-1"),
+            calculationType = CalculationType.PARAMETRIC,
+            confidenceLevel = ConfidenceLevel.CL_95,
+        )
+        coEvery { delegate.calculateVaR(any(), any()) } throws RuntimeException("connection refused")
+
+        cb.reset()
+        repeat(3) { runCatching { resilient.calculateVaR(request, emptyList()) } }
+        cb.currentState shouldBe CircuitState.OPEN
+    }
+
+    test("circuit breaker protecting risk engine calls — risk engine fails repeatedly exceeding threshold — successful call in half-open closes circuit") {
+        val delegate = mockk<RiskEngineClient>()
+        val cb = CircuitBreaker(CircuitBreakerConfig(failureThreshold = 3, resetTimeoutMs = 5000, name = "risk"))
+        val resilient = ResilientRiskEngineClient(delegate, cb)
+        val request = VaRCalculationRequest(
+            bookId = BookId("port-1"),
+            calculationType = CalculationType.PARAMETRIC,
+            confidenceLevel = ConfidenceLevel.CL_95,
+        )
+        coEvery { delegate.calculateVaR(any(), any()) } throws RuntimeException("connection refused")
+
+        cb.reset()
+        val result = VaRResult(
+            bookId = BookId("port-1"),
+            calculationType = CalculationType.PARAMETRIC,
+            confidenceLevel = ConfidenceLevel.CL_95,
+            varValue = 50000.0,
+            expectedShortfall = 65000.0,
+            componentBreakdown = emptyList(),
+            calculatedAt = Instant.parse("2025-01-15T10:00:00Z"),
+        )
+        coEvery { delegate.calculateVaR(any(), any()) } returns result
+        val actual = resilient.calculateVaR(request, emptyList())
+        actual shouldBe result
+        cb.currentState shouldBe CircuitState.CLOSED
     }
 })

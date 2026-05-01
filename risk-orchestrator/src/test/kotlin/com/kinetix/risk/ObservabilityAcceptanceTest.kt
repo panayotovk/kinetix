@@ -6,7 +6,7 @@ import com.kinetix.risk.client.dtos.InstrumentDto
 import com.kinetix.risk.kafka.RiskResultPublisher
 import com.kinetix.risk.model.*
 import com.kinetix.risk.service.VaRCalculationService
-import io.kotest.core.spec.style.BehaviorSpec
+import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.string.shouldContain
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
@@ -94,44 +94,48 @@ private class StubPositionProvider : com.kinetix.risk.client.PositionProvider {
     }
 }
 
-class ObservabilityAcceptanceTest : BehaviorSpec({
+class ObservabilityAcceptanceTest : FunSpec({
 
-    given("a risk orchestrator with metrics enabled") {
-        val registry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
-        val positionProvider = StubPositionProvider()
-        val slowRiskEngine = SlowStubRiskEngineClient()
-        val resultPublisher = mockk<RiskResultPublisher>()
-        coEvery { resultPublisher.publish(any()) } just Runs
+    val registry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+    val positionProvider = StubPositionProvider()
+    val slowRiskEngine = SlowStubRiskEngineClient()
+    val resultPublisher = mockk<RiskResultPublisher>()
+    coEvery { resultPublisher.publish(any()) } just Runs
 
-        val varService = VaRCalculationService(
-            positionProvider, slowRiskEngine, resultPublisher, registry,
+    val varService = VaRCalculationService(
+        positionProvider, slowRiskEngine, resultPublisher, registry,
+    )
+
+    test("a risk orchestrator with metrics enabled — a VaR calculation exceeds 30 seconds — the calculation duration metric records a value exceeding 30s") {
+        val result = varService.calculateVaR(
+            VaRCalculationRequest(
+                bookId = BookId("obs-test-port"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
+            )
         )
 
-        `when`("a VaR calculation exceeds 30 seconds") {
-            val result = varService.calculateVaR(
-                VaRCalculationRequest(
-                    bookId = BookId("obs-test-port"),
-                    calculationType = CalculationType.PARAMETRIC,
-                    confidenceLevel = ConfidenceLevel.CL_95,
-                )
+        val scrapeOutput = registry.scrape()
+        scrapeOutput shouldContain "var_calculation_duration"
+        val durationLine = scrapeOutput.lines()
+            .filter { it.startsWith("var_calculation_duration_seconds_bucket") }
+            .lastOrNull { !it.contains("+Inf") }
+        // The highest finite bucket should have been recorded
+        scrapeOutput shouldContain "var_calculation_duration_seconds_count"
+    }
+
+    test("a risk orchestrator with metrics enabled — a VaR calculation exceeds 30 seconds — the /metrics endpoint exposes the duration metric in Prometheus format") {
+        val result = varService.calculateVaR(
+            VaRCalculationRequest(
+                bookId = BookId("obs-test-port"),
+                calculationType = CalculationType.PARAMETRIC,
+                confidenceLevel = ConfidenceLevel.CL_95,
             )
+        )
 
-            then("the calculation duration metric records a value exceeding 30s") {
-                val scrapeOutput = registry.scrape()
-                scrapeOutput shouldContain "var_calculation_duration"
-                val durationLine = scrapeOutput.lines()
-                    .filter { it.startsWith("var_calculation_duration_seconds_bucket") }
-                    .lastOrNull { !it.contains("+Inf") }
-                // The highest finite bucket should have been recorded
-                scrapeOutput shouldContain "var_calculation_duration_seconds_count"
-            }
-
-            then("the /metrics endpoint exposes the duration metric in Prometheus format") {
-                val scrapeOutput = registry.scrape()
-                scrapeOutput shouldContain "# HELP"
-                scrapeOutput shouldContain "var_calculation_duration_seconds"
-                scrapeOutput shouldContain "var_calculation_count_total"
-            }
-        }
+        val scrapeOutput = registry.scrape()
+        scrapeOutput shouldContain "# HELP"
+        scrapeOutput shouldContain "var_calculation_duration_seconds"
+        scrapeOutput shouldContain "var_calculation_count_total"
     }
 })
