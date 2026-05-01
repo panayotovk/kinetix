@@ -8,13 +8,15 @@ import com.kinetix.common.model.Position
 import com.kinetix.common.model.Side
 import com.kinetix.position.fix.ExecutionCostAnalysis
 import com.kinetix.position.fix.ExecutionCostMetrics
-import com.kinetix.position.fix.ExecutionCostRepository
+import com.kinetix.position.fix.ExposedExecutionCostRepository
+import com.kinetix.position.fix.ExposedPrimeBrokerReconciliationRepository
 import com.kinetix.position.fix.PrimeBrokerReconciliation
-import com.kinetix.position.fix.PrimeBrokerReconciliationRepository
 import com.kinetix.position.fix.PrimeBrokerReconciliationService
 import com.kinetix.position.fix.ReconciliationBreak
+import com.kinetix.position.fix.ReconciliationBreakSeverity
 import com.kinetix.position.fix.ReconciliationBreakStatus
-import com.kinetix.position.persistence.PositionRepository
+import com.kinetix.position.persistence.DatabaseTestSetup
+import com.kinetix.position.persistence.ExposedPositionRepository
 import com.kinetix.position.routes.executionRoutes
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -30,14 +32,12 @@ import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.mockk
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.Currency as JCurrency
@@ -46,10 +46,10 @@ import java.util.Currency as JCurrency
 private data class ExecutionErrorBody(val error: String, val message: String)
 
 private fun Application.configureTestApp(
-    costRepo: ExecutionCostRepository,
-    reconRepo: PrimeBrokerReconciliationRepository,
+    costRepo: ExposedExecutionCostRepository,
+    reconRepo: ExposedPrimeBrokerReconciliationRepository,
     reconService: PrimeBrokerReconciliationService,
-    positionRepo: PositionRepository,
+    positionRepo: ExposedPositionRepository,
 ) {
     install(ContentNegotiation) { json() }
     install(StatusPages) {
@@ -64,10 +64,17 @@ private fun Application.configureTestApp(
 
 class ExecutionRoutesAcceptanceTest : FunSpec({
 
-    val costRepo = mockk<ExecutionCostRepository>()
-    val reconRepo = mockk<PrimeBrokerReconciliationRepository>(relaxed = true)
+    val db = DatabaseTestSetup.startAndMigrate()
+    val costRepo = ExposedExecutionCostRepository(db)
+    val reconRepo = ExposedPrimeBrokerReconciliationRepository(db)
     val reconService = PrimeBrokerReconciliationService()
-    val positionRepo = mockk<PositionRepository>()
+    val positionRepo = ExposedPositionRepository(db)
+
+    beforeEach {
+        newSuspendedTransaction(db = db) {
+            exec("TRUNCATE TABLE prime_broker_reconciliation, execution_cost_analysis, positions RESTART IDENTITY CASCADE")
+        }
+    }
 
     test("GET /api/v1/execution/cost/{bookId} returns list of cost analyses") {
         val analysis = ExecutionCostAnalysis(
@@ -86,7 +93,7 @@ class ExecutionRoutesAcceptanceTest : FunSpec({
                 totalCostBps = BigDecimal("10.00"),
             ),
         )
-        coEvery { costRepo.findByBookId("book-1") } returns listOf(analysis)
+        costRepo.save(analysis)
 
         testApplication {
             application { configureTestApp(costRepo, reconRepo, reconService, positionRepo) }
@@ -95,13 +102,12 @@ class ExecutionRoutesAcceptanceTest : FunSpec({
             val body = Json.parseToJsonElement(response.bodyAsText()).jsonArray
             body.size shouldBe 1
             body[0].jsonObject["orderId"]!!.jsonPrimitive.content shouldBe "ord-1"
-            body[0].jsonObject["slippageBps"]!!.jsonPrimitive.content shouldBe "10.00"
+            // slippageBps is stored as decimal(20,10); toPlainString() preserves full scale
+            body[0].jsonObject["slippageBps"]!!.jsonPrimitive.content.toBigDecimal().toDouble() shouldBe 10.0
         }
     }
 
     test("GET /api/v1/execution/cost/{bookId} returns empty list when no analyses exist") {
-        coEvery { costRepo.findByBookId("book-empty") } returns emptyList()
-
         testApplication {
             application { configureTestApp(costRepo, reconRepo, reconService, positionRepo) }
             val response = client.get("/api/v1/execution/cost/book-empty")
@@ -122,7 +128,7 @@ class ExecutionRoutesAcceptanceTest : FunSpec({
             breaks = emptyList(),
             reconciledAt = Instant.parse("2026-03-24T18:00:00Z"),
         )
-        coEvery { reconRepo.findByBookId("book-2") } returns listOf(recon)
+        reconRepo.save(recon, "recon-book-2")
 
         testApplication {
             application { configureTestApp(costRepo, reconRepo, reconService, positionRepo) }
@@ -136,7 +142,7 @@ class ExecutionRoutesAcceptanceTest : FunSpec({
     }
 
     test("POST /api/v1/execution/reconciliation/{bookId}/statements returns reconciliation result") {
-        coEvery { positionRepo.findByBookId(BookId("book-3")) } returns listOf(
+        positionRepo.save(
             Position(
                 bookId = BookId("book-3"),
                 instrumentId = InstrumentId("AAPL"),
@@ -173,7 +179,27 @@ class ExecutionRoutesAcceptanceTest : FunSpec({
 
     // EXEC-04: break status update endpoint
     test("PATCH /api/v1/execution/reconciliation-breaks/{id}/{instrument}/status updates break status") {
-        coEvery { reconRepo.updateBreakStatus("recon-1", "AAPL", ReconciliationBreakStatus.INVESTIGATING) } returns Unit
+        val recon = PrimeBrokerReconciliation(
+            reconciliationDate = "2026-03-24",
+            bookId = "book-patch",
+            status = "BREAKS_FOUND",
+            totalPositions = 1,
+            matchedCount = 0,
+            breakCount = 1,
+            breaks = listOf(
+                ReconciliationBreak(
+                    instrumentId = "AAPL",
+                    internalQty = BigDecimal("105"),
+                    primeBrokerQty = BigDecimal("100"),
+                    breakQty = BigDecimal("5"),
+                    breakNotional = BigDecimal("775.00"),
+                    severity = ReconciliationBreakSeverity.NORMAL,
+                    status = ReconciliationBreakStatus.OPEN,
+                )
+            ),
+            reconciledAt = Instant.parse("2026-03-24T18:00:00Z"),
+        )
+        reconRepo.save(recon, "recon-1")
 
         testApplication {
             application { configureTestApp(costRepo, reconRepo, reconService, positionRepo) }
@@ -182,8 +208,10 @@ class ExecutionRoutesAcceptanceTest : FunSpec({
                 setBody("""{"status": "INVESTIGATING"}""")
             }
             response.status shouldBe HttpStatusCode.NoContent
-            coVerify(exactly = 1) { reconRepo.updateBreakStatus("recon-1", "AAPL", ReconciliationBreakStatus.INVESTIGATING) }
         }
+
+        val updated = reconRepo.findById("recon-1")!!
+        updated.breaks[0].status shouldBe ReconciliationBreakStatus.INVESTIGATING
     }
 
     test("PATCH break status with invalid status returns 400") {
@@ -217,7 +245,7 @@ class ExecutionRoutesAcceptanceTest : FunSpec({
     }
 
     test("POST statement detects material break when PB position differs by more than 1 unit") {
-        coEvery { positionRepo.findByBookId(BookId("book-5")) } returns listOf(
+        positionRepo.save(
             Position(
                 bookId = BookId("book-5"),
                 instrumentId = InstrumentId("AAPL"),
