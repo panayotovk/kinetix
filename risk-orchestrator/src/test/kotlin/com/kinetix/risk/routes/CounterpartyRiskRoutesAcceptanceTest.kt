@@ -1,15 +1,16 @@
 package com.kinetix.risk.routes
 
-import com.kinetix.risk.client.CVAResult
-import com.kinetix.risk.client.ClientResponse
-import com.kinetix.risk.client.CounterpartyRiskClient
-import com.kinetix.risk.client.PFEPositionInput
-import com.kinetix.risk.client.PFEResult
-import com.kinetix.risk.client.PositionServiceClient
-import com.kinetix.risk.client.ReferenceDataServiceClient
+import com.kinetix.proto.risk.CalculateCVAResponse
+import com.kinetix.proto.risk.CalculatePFEResponse
+import com.kinetix.proto.risk.CounterpartyRiskServiceGrpcKt.CounterpartyRiskServiceCoroutineStub
+import com.kinetix.proto.risk.ExposureProfile
+import com.kinetix.risk.client.GrpcCounterpartyRiskClient
+import com.kinetix.risk.client.HttpPositionServiceClient
+import com.kinetix.risk.client.HttpReferenceDataServiceClient
 import com.kinetix.risk.client.dtos.CounterpartyDto
-import com.kinetix.risk.client.dtos.NetCollateralDto
 import com.kinetix.risk.client.dtos.NettingAgreementDto
+import com.kinetix.risk.grpc.FakeCounterpartyRiskService
+import com.kinetix.risk.grpc.GrpcFakeServer
 import com.kinetix.risk.model.CounterpartyExposureSnapshot
 import com.kinetix.risk.model.ExposureAtTenor
 import com.kinetix.risk.persistence.CounterpartyExposureHistoryTable
@@ -18,20 +19,23 @@ import com.kinetix.risk.persistence.ExposedCounterpartyExposureRepository
 import com.kinetix.risk.routes.dtos.CounterpartyExposureResponse
 import com.kinetix.risk.routes.dtos.CVAResponse
 import com.kinetix.risk.service.CounterpartyRiskOrchestrationService
+import com.kinetix.risk.testing.BackendStubServer
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.response.respond
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
-import io.mockk.clearMocks
-import io.mockk.coEvery
-import io.mockk.mockk
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
@@ -58,13 +62,74 @@ private fun snapshot(
     cvaEstimated = false,
 )
 
+@Serializable
+private data class NetCollateralBody(
+    val counterpartyId: String,
+    val collateralReceived: String,
+    val collateralPosted: String,
+)
+
 class CounterpartyRiskRoutesAcceptanceTest : FunSpec({
 
     val db = DatabaseTestSetup.startAndMigrate()
     val repository = ExposedCounterpartyExposureRepository(db)
-    val referenceDataClient = mockk<ReferenceDataServiceClient>()
-    val counterpartyRiskClient = mockk<CounterpartyRiskClient>()
-    val positionServiceClient = mockk<PositionServiceClient>()
+
+    val fakeCounterpartyRiskService = FakeCounterpartyRiskService()
+    val grpcServer = GrpcFakeServer(fakeCounterpartyRiskService)
+    val counterpartyRiskStub = CounterpartyRiskServiceCoroutineStub(grpcServer.channel())
+    val counterpartyRiskClient = GrpcCounterpartyRiskClient(counterpartyRiskStub)
+
+    val httpClient = HttpClient(CIO) {
+        install(ClientContentNegotiation) { json() }
+    }
+
+    // Reference-data stub: returns CP-GS with all fields needed for PFE and CVA tests.
+    // CP-MISSING returns 404.
+    val referenceDataBackend = BackendStubServer {
+        get("/api/v1/counterparties/{counterpartyId}") {
+            val id = call.parameters["counterpartyId"]
+            if (id == "CP-MISSING") {
+                call.respond(HttpStatusCode.NotFound)
+            } else {
+                call.respond(
+                    CounterpartyDto(
+                        counterpartyId = id ?: "CP-GS",
+                        legalName = "Goldman Sachs",
+                        lgd = 0.4,
+                        cdsSpreadBps = 65.0,
+                        ratingSp = "A+",
+                        sector = "FINANCIALS",
+                    )
+                )
+            }
+        }
+        get("/api/v1/counterparties/{counterpartyId}/netting-sets") {
+            call.respond(
+                listOf(NettingAgreementDto("NS-001", "CP-GS", "ISDA_2002", true, 0.0, "USD"))
+            )
+        }
+    }
+
+    // Position-service stub: returns zero collateral and CP-GS → AAPL→NS-001 netting sets.
+    val positionServiceBackend = BackendStubServer {
+        get("/api/v1/counterparties/{counterpartyId}/collateral/net") {
+            val id = call.parameters["counterpartyId"] ?: ""
+            call.respond(NetCollateralBody(counterpartyId = id, collateralReceived = "0.0", collateralPosted = "0.0"))
+        }
+        get("/api/v1/counterparties/{counterpartyId}/instrument-netting-sets") {
+            val id = call.parameters["counterpartyId"]
+            // The PFE test exercises CP-GS with one netting assignment; all others return empty.
+            if (id == "CP-GS") {
+                call.respond(mapOf("AAPL" to "NS-001"))
+            } else {
+                call.respond(emptyMap<String, String>())
+            }
+        }
+    }
+
+    val referenceDataClient = HttpReferenceDataServiceClient(httpClient, referenceDataBackend.baseUrl)
+    val positionServiceClient = HttpPositionServiceClient(httpClient, positionServiceBackend.baseUrl)
+
     val service = CounterpartyRiskOrchestrationService(
         referenceDataClient = referenceDataClient,
         counterpartyRiskClient = counterpartyRiskClient,
@@ -73,12 +138,18 @@ class CounterpartyRiskRoutesAcceptanceTest : FunSpec({
     )
 
     beforeEach {
-        clearMocks(referenceDataClient, counterpartyRiskClient)
         newSuspendedTransaction(db = db) { CounterpartyExposureHistoryTable.deleteAll() }
-        coEvery { positionServiceClient.getNetCollateral(any()) } returns
-            ClientResponse.Success(NetCollateralDto(collateralReceived = 0.0, collateralPosted = 0.0))
-        coEvery { positionServiceClient.getInstrumentNettingSets(any()) } returns
-            ClientResponse.Success(emptyMap())
+        fakeCounterpartyRiskService.calculatePFERequests.clear()
+        fakeCounterpartyRiskService.calculateCVARequests.clear()
+        fakeCounterpartyRiskService.calculatePFEHandler = { CalculatePFEResponse.getDefaultInstance() }
+        fakeCounterpartyRiskService.calculateCVAHandler = { CalculateCVAResponse.getDefaultInstance() }
+    }
+
+    afterSpec {
+        grpcServer.close()
+        referenceDataBackend.close()
+        positionServiceBackend.close()
+        httpClient.close()
     }
 
     fun Application.configureTestApp() {
@@ -139,24 +210,26 @@ class CounterpartyRiskRoutesAcceptanceTest : FunSpec({
     }
 
     test("POST /api/v1/counterparty-risk/{id}/pfe computes and returns PFE snapshot") {
-        coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(
-            CounterpartyDto(counterpartyId = "CP-GS", legalName = "Goldman Sachs", lgd = 0.4)
-        )
-        coEvery { referenceDataClient.getNettingAgreements("CP-GS") } returns ClientResponse.Success(
-            listOf(NettingAgreementDto("NS-001", "CP-GS", "ISDA_2002", true, 0.0, "USD"))
-        )
-        coEvery { positionServiceClient.getInstrumentNettingSets("CP-GS") } returns
-            ClientResponse.Success(mapOf("AAPL" to "NS-001"))
-        coEvery {
-            counterpartyRiskClient.calculatePFE(
-                counterpartyId = "CP-GS",
-                nettingSetId = "NS-001",
-                agreementType = "ISDA_2002",
-                positions = any(),
-                numSimulations = 0,
-                seed = 0,
-            )
-        } returns PFEResult("CP-GS", "NS-001", 3_000_000.0, 2_000_000.0, TENORS)
+        fakeCounterpartyRiskService.calculatePFEHandler = {
+            CalculatePFEResponse.newBuilder()
+                .setCounterpartyId("CP-GS")
+                .setNettingSetId("NS-001")
+                .setGrossExposure(3_000_000.0)
+                .setNetExposure(2_000_000.0)
+                .addExposureProfile(
+                    ExposureProfile.newBuilder()
+                        .setTenor("1M").setTenorYears(1.0 / 12)
+                        .setExpectedExposure(500_000.0).setPfe95(750_000.0).setPfe99(900_000.0)
+                        .build()
+                )
+                .addExposureProfile(
+                    ExposureProfile.newBuilder()
+                        .setTenor("1Y").setTenorYears(1.0)
+                        .setExpectedExposure(1_200_000.0).setPfe95(1_800_000.0).setPfe99(2_100_000.0)
+                        .build()
+                )
+                .build()
+        }
 
         testApplication {
             application { configureTestApp() }
@@ -180,8 +253,6 @@ class CounterpartyRiskRoutesAcceptanceTest : FunSpec({
     }
 
     test("POST /api/v1/counterparty-risk/{id}/pfe returns 400 when counterparty not found") {
-        coEvery { referenceDataClient.getCounterparty("CP-MISSING") } returns ClientResponse.NotFound(404)
-
         testApplication {
             application { configureTestApp() }
             val response = client.post("/api/v1/counterparty-risk/CP-MISSING/pfe") {
@@ -203,28 +274,16 @@ class CounterpartyRiskRoutesAcceptanceTest : FunSpec({
 
     test("POST /api/v1/counterparty-risk/{id}/cva computes CVA from latest PFE profile") {
         repository.save(snapshot("CP-GS"))
-        coEvery { referenceDataClient.getCounterparty("CP-GS") } returns ClientResponse.Success(
-            CounterpartyDto(
-                counterpartyId = "CP-GS",
-                legalName = "Goldman Sachs",
-                lgd = 0.4,
-                cdsSpreadBps = 65.0,
-                ratingSp = "A+",
-                sector = "FINANCIALS",
-            )
-        )
-        coEvery {
-            counterpartyRiskClient.calculateCVA(
-                counterpartyId = "CP-GS",
-                exposureProfile = TENORS,
-                lgd = 0.4,
-                pd1y = 0.0,
-                cdsSpreadBps = 65.0,
-                rating = "A+",
-                sector = "FINANCIALS",
-                riskFreeRate = 0.0,
-            )
-        } returns CVAResult("CP-GS", 12_500.0, false, 0.0065, 0.0065)
+
+        fakeCounterpartyRiskService.calculateCVAHandler = {
+            CalculateCVAResponse.newBuilder()
+                .setCounterpartyId("CP-GS")
+                .setCva(12_500.0)
+                .setIsEstimated(false)
+                .setHazardRate(0.0065)
+                .setPd1Y(0.0065)
+                .build()
+        }
 
         testApplication {
             application { configureTestApp() }
