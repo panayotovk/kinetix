@@ -25,8 +25,9 @@ import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
-private val LIQUID_TIERS = setOf("TIER_1", "TIER_2")
+private val LIQUID_TIERS = setOf("HIGH_LIQUID", "LIQUID")
 private const val MAX_CANDIDATES = 50
+private val STALENESS_WARNING_THRESHOLD = Duration.ofMinutes(30)
 
 class HedgeRecommendationService(
     private val varCache: VaRCache,
@@ -63,12 +64,21 @@ class HedgeRecommendationService(
             )
         }
 
+        val staleWarning: String? = if (greekAge >= STALENESS_WARNING_THRESHOLD) {
+            "Greeks are stale (age: ${greekAge.toMinutes()} minutes). " +
+                "Suggestions may not reflect the latest market conditions. Rerun VaR for fresh data."
+        } else {
+            null
+        }
+
         val currentGreeks = extractGreeks(cachedResult)
         val candidates = fetchCandidates(target, constraints)
 
         if (candidates.isEmpty()) {
             logger.warn("No liquid candidates found for book {} target {}", bookId.value, target)
             val now = Instant.now()
+            val noCandidatesMessage = "No liquid instruments found matching your constraints. " +
+                "Broaden the instrument universe or relax liquidity constraints and retry."
             val recommendation = HedgeRecommendation(
                 id = UUID.randomUUID(),
                 bookId = bookId.value,
@@ -76,8 +86,7 @@ class HedgeRecommendationService(
                 targetReductionPct = targetReductionPct,
                 requestedAt = now,
                 status = HedgeStatus.PENDING,
-                message = "No liquid instruments found matching your constraints. " +
-                    "Broaden the instrument universe or relax liquidity constraints and retry.",
+                message = if (staleWarning != null) "$noCandidatesMessage $staleWarning" else noCandidatesMessage,
                 constraints = constraints,
                 suggestions = emptyList(),
                 preHedgeGreeks = currentGreeks,
@@ -112,6 +121,7 @@ class HedgeRecommendationService(
             targetReductionPct = targetReductionPct,
             requestedAt = now,
             status = HedgeStatus.PENDING,
+            message = staleWarning,
             constraints = constraints,
             suggestions = suggestions,
             preHedgeGreeks = currentGreeks,
@@ -215,7 +225,7 @@ class HedgeRecommendationService(
         target: HedgeTarget,
         constraints: HedgeConstraints,
     ): List<CandidateInstrument> {
-        // Fetch liquidity data for all instruments with TIER_1/TIER_2 liquidity.
+        // Fetch liquidity data for all instruments with HIGH_LIQUID/LIQUID liquidity.
         // In Phase 1 we use the batch endpoint filtering by universe if specified.
         val liquidityByInstrument = try {
             referenceDataClient.getLiquidityDataBatch(
@@ -303,9 +313,9 @@ class HedgeRecommendationService(
     }
 
     private fun classifyTier(advNotional: Double, bidAskSpreadBps: Double): String = when {
-        advNotional >= 50_000_000 && bidAskSpreadBps <= 5.0 -> "TIER_1"
-        advNotional >= 10_000_000 && bidAskSpreadBps <= 20.0 -> "TIER_2"
-        advNotional >= 1_000_000 -> "TIER_3"
+        advNotional >= 50_000_000 && bidAskSpreadBps <= 5.0 -> "HIGH_LIQUID"
+        advNotional >= 10_000_000 && bidAskSpreadBps <= 20.0 -> "LIQUID"
+        advNotional >= 1_000_000 -> "SEMI_LIQUID"
         else -> "ILLIQUID"
     }
 

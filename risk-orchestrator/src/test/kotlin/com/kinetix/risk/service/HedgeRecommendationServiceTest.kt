@@ -141,7 +141,7 @@ private fun sampleSuggestion(notional: Double = 10_000.0) = HedgeSuggestion(
         thetaBefore = 0.0, thetaAfter = 0.0,
         rhoBefore = 0.0, rhoAfter = 0.0,
     ),
-    liquidityTier = "TIER_1",
+    liquidityTier = "HIGH_LIQUID",
     dataQuality = "FRESH",
 )
 
@@ -295,12 +295,12 @@ class HedgeRecommendationServiceTest : FunSpec({
         rec.expiresAt.isAfter(Instant.now()) shouldBe true
     }
 
-    test("filters candidates to TIER_1 and TIER_2 only — excludes TIER_3 and ILLIQUID") {
+    test("filters candidates to HIGH_LIQUID and LIQUID only — excludes SEMI_LIQUID and ILLIQUID") {
         coEvery { varCache.get("BOOK-1") } returns varResult()
         coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
-            "TIER1-STOCK" to liquidityDto("TIER1-STOCK", adv = 100_000_000.0, bidAskSpreadBps = 3.0),
-            "TIER2-STOCK" to liquidityDto("TIER2-STOCK", adv = 15_000_000.0, bidAskSpreadBps = 15.0),
-            "TIER3-STOCK" to liquidityDto("TIER3-STOCK", adv = 2_000_000.0, bidAskSpreadBps = 50.0),
+            "HIGH-LIQ-STOCK" to liquidityDto("HIGH-LIQ-STOCK", adv = 100_000_000.0, bidAskSpreadBps = 3.0),
+            "LIQ-STOCK" to liquidityDto("LIQ-STOCK", adv = 15_000_000.0, bidAskSpreadBps = 15.0),
+            "SEMI-STOCK" to liquidityDto("SEMI-STOCK", adv = 2_000_000.0, bidAskSpreadBps = 50.0),
             "ILLIQUID-STOCK" to liquidityDto("ILLIQUID-STOCK", adv = 100_000.0, bidAskSpreadBps = 100.0),
         )
         coEvery { instrumentServiceClient.getInstrument(any()) } returns
@@ -314,9 +314,9 @@ class HedgeRecommendationServiceTest : FunSpec({
 
         val candidateIds = candidatesSlot.captured.map { it.instrumentId }
         candidateIds shouldHaveSize 2
-        (candidateIds.contains("TIER1-STOCK")) shouldBe true
-        (candidateIds.contains("TIER2-STOCK")) shouldBe true
-        (candidateIds.contains("TIER3-STOCK")) shouldBe false
+        (candidateIds.contains("HIGH-LIQ-STOCK")) shouldBe true
+        (candidateIds.contains("LIQ-STOCK")) shouldBe true
+        (candidateIds.contains("SEMI-STOCK")) shouldBe false
         (candidateIds.contains("ILLIQUID-STOCK")) shouldBe false
     }
 
@@ -335,10 +335,10 @@ class HedgeRecommendationServiceTest : FunSpec({
     test("returns PENDING recommendation when at least one liquid candidate is found") {
         coEvery { varCache.get("BOOK-1") } returns varResult()
         coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
-            "TIER1-STOCK" to liquidityDto("TIER1-STOCK", adv = 100_000_000.0, bidAskSpreadBps = 3.0),
+            "HIGH-LIQ-STOCK" to liquidityDto("HIGH-LIQ-STOCK", adv = 100_000_000.0, bidAskSpreadBps = 3.0),
         )
-        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("TIER1-STOCK"))
-        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("TIER1-STOCK"))
+        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("HIGH-LIQ-STOCK"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("HIGH-LIQ-STOCK"))
         coEvery { calculator.suggest(any(), any(), any(), any(), any()) } returns emptyList()
 
         val rec = service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
@@ -362,6 +362,23 @@ class HedgeRecommendationServiceTest : FunSpec({
 
         rec.shouldNotBeNull()
         rec.status shouldBe HedgeStatus.PENDING
+        rec.message.shouldNotBeNull()
+        rec.message!!.shouldContain("stale")
+    }
+
+    test("does not include a staleness warning when source job is fresh (under 30 minutes)") {
+        val freshResult = varResult(calculatedAt = Instant.now().minusSeconds(10 * 60))
+        coEvery { varCache.get("BOOK-1") } returns freshResult
+        coEvery { referenceDataClient.getLiquidityDataBatch(any()) } returns mapOf(
+            "AAPL" to liquidityDto("AAPL"),
+        )
+        coEvery { instrumentServiceClient.getInstrument(any()) } returns ClientResponse.Success(instrumentDto("AAPL"))
+        coEvery { priceServiceClient.getLatestPrice(any()) } returns ClientResponse.Success(pricePoint("AAPL"))
+        coEvery { calculator.suggest(any(), any(), any(), any(), any()) } returns emptyList()
+
+        val rec = service.suggestHedge(bookId, HedgeTarget.DELTA, 0.80, defaultConstraints)
+
+        rec.message shouldBe null
     }
 
     test("uses real price per unit from price service") {

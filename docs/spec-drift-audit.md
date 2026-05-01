@@ -65,7 +65,7 @@ P2 aspirational items carry a Batch-I triage suffix:
 
 18. ☐ **Reconciliation alert severity tiers wrong.** `position-service/.../PrimeBrokerReconciliationService.kt:53-56` uses `$10K manual_review` threshold; spec `execution.allium` describes `WARNING < $100K < CRITICAL`. Spec or code; needs decision.
 
-19. ☐ **Hedge `staleness warning` (30min ≤ age < 2h) not implemented.** `risk-orchestrator/.../HedgeRecommendationService.kt:58-64` only enforces 2h hard cap. Spec `hedge.allium:172-175`.
+19. ✓ **Hedge `staleness warning` (30min ≤ age < 2h) not implemented.** Resolved: `HedgeRecommendationService` now emits a non-blocking warning in `recommendation.message` when Greek age ≥ 30 min; hard block remains at 2 h. Per `hedge.allium:172-175`.
 
 20. ✓ **`expire_all_pending_past_deadline` does N+1 updates instead of single UPDATE.** `risk-orchestrator/.../ExposedHedgeRecommendationRepository.kt:88-104`. Spec `hedge.allium:304-308`.
 
