@@ -1,98 +1,69 @@
 # Kinetix Evolution Report
 
+A risk management platform built from a single sentence on **2026-02-10** to a 1,580-commit, 12-service institutional system by **2026-04-14** — roughly 9 weeks of intense, AI-paired construction across 393 conversation sessions and 2,113 prompts.
+
+---
+
 ## 1. Project Timeline
 
-**10 Feb 2026 — The Vision**
-The project began with a single, ambitious prompt: *"this project will be for building a complete, modern, insightful and AI powered risk management system for big financial institutions, e.g. investment banks and large hedge funds."* The backend would be Kotlin, Python would handle ML/AI, and everything would follow strict TDD. An early session crash immediately exposed the risk of losing context — the user insisted all progress, architecture decisions, and TODOs be persisted on disc. This moment set the tone for the entire project: documentation and traceability became non-negotiable. The first commit initialised a Gradle monorepo with a version catalog, convention plugins, and the module structure. Proto definitions and shared domain primitives followed.
+**2026-02-10 — Genesis & Plan**
+"this project will be for building a complete, modern, insightful and AI powered risk management system for big financial institutions." That single prompt set everything in motion. The first day produced a written architecture, ADRs, and the empty Gradle monorepo with a version catalog. The first session crashed and lost progress, prompting the durable rule: "make sure all is documented somewhere in the project going forward."
 
-**11–12 Feb 2026 — Scaffolding the Services**
-All 7 Ktor services were scaffolded with health endpoints (TDD), and the Python risk engine was set up with `uv` and `pytest`. The architecture was taking shape: Gateway, Position Service, Price Service, Risk Orchestrator, Rates Service, Audit Service, Regulatory Service, Notification Service, and the Python Risk Engine communicating over gRPC.
+**2026-02-11 → 02-12 — Skeletons**
+Seven Ktor services scaffolded with health endpoints. Python risk-engine wired up with `uv` and pytest. TDD mandated from prompt #2: *"we will be following a strict tdd approach… always run all tests before a commit."*
 
-**20 Feb 2026 — The Big Build Day**
-This was the most intense day — **27 commits** landed. The React UI was scaffolded with Vite, Tailwind, and Vitest. Docker Compose infrastructure (PostgreSQL, Kafka, Redis) was added. Then, increment by increment, the position domain model, persistence with Exposed ORM and Flyway, trade booking, Kafka event publishing, gateway REST endpoints, audit service, and acceptance tests were all built. Market data ingestion, WebSocket live price broadcasting, and a basic position grid UI with live P&L followed. By midnight, the VaR dashboard (gauge, trend chart, component breakdown) and a full VaR calculation acceptance test were in place.
+**2026-02-20 → 02-21 — Core Vertical Slice (huge day)**
+The system became real in 24 hours: React/Vite/Tailwind UI, Docker Compose stack, the position domain with P&L, Exposed/Flyway persistence, Kafka publishing, gateway REST, audit service, end-to-end acceptance test, market data ingestion, WebSocket P&L, the first VaR pipeline (Python gRPC), VaR dashboard UI, Prometheus/Grafana/Loki/Tempo observability, ML predictors (LSTM vol, GBT credit, anomaly detection), historical stress scenarios (GFC, COVID, Taper Tantrum), Greeks, FRTB regulatory reports, alert rules, JWT/RBAC, circuit breaker, rate limiting, Gatling load tests, and CI. 73 commits in one day.
 
-**21 Feb 2026 — Observability, ML, Stress Testing, Regulatory, Notifications, Security**
-The pace continued unrelentingly. Prometheus metrics endpoints were added to every service. The full observability stack landed: OpenTelemetry Collector, Prometheus, Grafana, Loki, Tempo, with provisioned dashboards (Risk Overview, System Health, Market Data) and alert rules (VaR breach, slow calc, stale data, Kafka lag). The ML pipeline was built: LSTM volatility predictor, credit default model (GBT), anomaly detector (Isolation Forest) — all with gRPC endpoints and acceptance tests. Stress testing followed (GFC 2008, COVID 2020, Taper Tantrum scenarios), then FRTB regulatory reporting (SBM, DRC, RRAO with CSV/XBRL output). Notifications with configurable alert rules, delivery channels (in-app, email, webhook), and risk result Kafka consumers were added. The day ended with JWT authentication via Keycloak, RBAC, circuit breakers, rate limiting, and Gatling load tests. A GitHub Actions CI pipeline was designed with a full test pyramid.
+**2026-02-22 → 02-26 — Liveable Local Dev**
+Dev data seeders, `dev-up.sh` / `dev-down.sh` / `dev-restart.sh`, then a long stretch of UI polish on the Risk tab: tooltips for VaR/ES, Grafana dashboards per service, valuation job timeline with search/zoom/pagination, click-to-zoom timecharts.
 
-**22 Feb 2026 — Polish and Production Readiness**
-Dev data seeders were built for a realistic local experience. The VaR calculator was wired for automatic calculation on startup. Tab navigation and portfolio switching were connected. AWS EKS deployment infrastructure (Dockerfiles, Helm, Terraform) was added. The user tested the live UI for the first time and began an intense series of UX refinements: formatting, portfolio summaries, alerts, dark fintech theme, and a component library with lucide-react icons. The System tab with service health and observability links was born.
+**2026-02-27 → 03-04 — Valuation Pipeline & Stress Scenarios**
+Unified VaR + Greeks under a single `Valuate` RPC, introduced PV as a first-class output, restructured tests into a 3-tier taxonomy. Big stress-scenario UI sprint (custom builder, comparison view, governance panel, CSV export, tooltips, position-level drill-down). Playwright E2E coverage rolled out across Risk, Positions, and Trades tabs (140+ tests).
 
-**23 Feb 2026 — Logging & Operational Maturity**
-Structured logging to Grafana Loki via OTel Collector was implemented. The Service Logs dashboard was created. A `dev-restart.sh` script was added. An OTLP logging pipeline integration test was written. The market data dependencies discovery feature was designed — understanding what data is needed before calculating risk.
+**2026-03-11 → 03-19 — Instrument Type Hierarchy & Book Rename**
+The big architectural pivot. A typed `InstrumentType` sealed hierarchy (11 subtypes) replaced loose strings, threaded through Kotlin → proto → Python → UI. Then the cross-cutting `portfolio → book` rename swept every service, database, Kafka event, gateway DTO, and UI component in a single day (March 19, 109 commits). Cross-book VaR with diversification, correlation heatmaps, and marginal/incremental VaR landed the same week.
 
-**24 Feb 2026 — Architecture Refinements & New Services**
-The price service was renamed from "market-data-service" to reflect its true scope. DTOs were refactored into individual files under `routes/dtos` sub-packages. `CLAUDE.md` was created with TDD/BDD guidelines, code organisation rules, and single responsibility principles. Four new market data services were built: Rates Service, Reference Data Service, Volatility Service, Correlation Service. The Calculation Runs (later Valuation Jobs) feature was added with pipeline visualization. An intense UX iteration cycle began: expandable sections, inline JSON, copy-to-clipboard, search and filtering.
+**2026-03-23 → 03-26 — Trader Review & Allium Specs**
+A `/trader`-driven review produced `trader-review-team-plan-23.03.2026.md`. Allium specifications were generated from the codebase via `/distill`, then 137 spec-vs-code divergences were resolved across 20 specs using the `/weed` agent. SA-CCR counterparty risk, OMS/FIX hardening, scenario governance (correlated/2D-grid/historical replay), reconciliation breaks, and FIX session events all landed.
 
-**25 Feb 2026 — Valuation Jobs UX Perfection & Dashboard Links**
-Tooltips for VaR and ES were refined. Time range filtering was added with server-side support. A zoomable timechart was introduced. Stress Testing was moved to a new Scenarios tab. Auto-polling replaced manual refresh. Click-to-zoom on bars, market data highlighting, per-position dependency grouping, pagination — feature after feature was polished. The Prices service Grafana link was inlined into the service health card. Custom Claude Code skills were created (TDD, architecture reference, evolution report).
+**2026-03-27 → 03-30 — Demo Mode**
+Pivot to portfolio-showcase mode: Keycloak-bypass auth, persona switcher (Trader / Risk Manager / CRO), DEMO badge, dismissible welcome strip, nightly demo reset cron, 30-day VaR timeline seeding, automatic EOD scheduled jobs, gateway demo-reset aggregation endpoint.
 
-**26 Feb 2026 — Unified Valuate RPC & CI Matrix Split**
-VaR and Greeks calculations were unified into a single `Valuate` gRPC RPC, replacing the separate `CalculateVaR` and `CalculateGreeks` calls with a `ValuationRequest` that accepts `requested_outputs` (VAR, EXPECTED_SHORTFALL, GREEKS) and returns a unified `ValuationResponse`. The CI pipeline was split from a monolithic `kotlin-build` job into per-module matrix jobs for unit tests, acceptance tests, and integration tests — enabling parallel execution and faster feedback. VaR history was pre-populated on dashboard load, Risk tab sub-sections became lazy-loaded, and valuation job durations were formatted as human-readable seconds.
+**2026-04-03 → 04-07 — Hardening & Polish**
+Comprehensive error-handling pass: `ClientResponse` Either type with `ServiceUnavailable`/`UpstreamError`/`NetworkError` variants, HTTP timeouts on every client, stale-cache fallback for VaR, retry buttons across panels, ErrorBoundary wrapping major risk panels, partial-failure tests. Institutional-scale demo data (83 instruments, 252 daily closes, multi-leg derivatives, ~300 generated trades). Per-instrument analytical Greeks threaded through gateway to UI. `dto/` → `dtos/` package refactor, one-type-per-file enforced. Idempotent trade amend/cancel.
 
-**27 Feb 2026 — Risk Dashboard Refinements & OpenAPI**
-The "Portfolio Value" label was renamed to "PV" in the Risk tab. An ES (Expected Shortfall) line was added to the VaR Trend chart alongside the existing VaR line. The Valuation Jobs section was made non-collapsible for direct visibility, and a total job count was added to the pagination bar. OpenAPI specification generation (`/openapi.json`) and Swagger UI (`/swagger`) were integrated across all Kotlin services using `ktor-openapi-tools`. The `GreeksPanel` component was replaced by inline `RiskSensitivities` within the VaR Dashboard grid. Documentation was audited and updated to reflect the current state of the codebase.
+**2026-04-08 → 04-14 — Aftermath**
+The `yavorpanayotovdr` GitHub account was suspended on April 13 and the conversation pivoted to recovering local state. Final week is small fixes and an evolution report request.
 
 ---
 
 ## 2. Initial Vision vs Current State
 
-**Original goal:** A "complete, modern, insightful and AI-powered risk management system for big financial institutions."
+**Original goal:** an AI-powered risk system for investment banks and hedge funds, multi-asset, with traditional VaR/Greeks plus ML overlays.
 
-**How it evolved:**
-- The initial plan had ~10 increments. All were completed in roughly 2 weeks.
-- AI/ML was originally vaguely described as "leveraging AI for risk compute" — it became concrete with LSTM volatility prediction, gradient-boosted credit scoring, and isolation forest anomaly detection.
-- The UI was initially an afterthought ("also the UI is quite important and is not for the future") — it became a major focus area consuming nearly half the development effort with detailed UX iterations.
-- The scope expanded from core risk calculation to include: regulatory reporting (FRTB), stress testing with historical scenarios, notification alerting, authentication/RBAC, and a comprehensive observability stack.
-- The "Valuation Jobs" feature (calculation pipeline visualization) was not in the original plan at all — it emerged organically from the desire to understand what the risk engine does and what data it needs.
-
-**Key pivots:**
-- "market-data-service" was renamed to "price-service" when it became clear it only handled prices, and separate services (rates, volatility, reference-data, correlation) were created for other market data types.
-- The monolithic `MarketDataFetcher` was split into `DependenciesDiscoverer` + `MarketDataFetcher` following single-responsibility principles.
-- Calculation Runs → Calculation Jobs → Valuation Jobs — naming evolved as the mental model crystallised.
+**Pivots:**
+- "I will not need traditional risk calculations for now" (Feb 10) — quickly reversed; classical VaR/Greeks/FRTB became the spine of the system.
+- "the UI is quite important and is not for the future" (Feb 10) — UI became a dominant share of effort, with six tabs, dark mode, accessibility, Playwright E2E, demo personas.
+- **From product to portfolio piece (April):** "kinetix is in demo mode, it's just a project I am using for my CV." Demo mode infrastructure became first-class.
+- **From hand-coded to spec-driven:** Allium specifications were distilled from code in late March, then used as the source of truth for divergence audits via `/weed`.
 
 ---
 
 ## 3. Technical Evolution
 
-### Stack Changes
+**Stack additions (chronological):** Gradle monorepo → Ktor + Exposed + Flyway + Kafka → React/Vite/Tailwind/Vitest → Python `uv`/pytest/gRPC → Prometheus/Grafana/Loki/Tempo → LSTM/GBT/IsolationForest ML → Keycloak JWT → Playwright → TimescaleDB hypertables/continuous aggregates → Redis (Lettuce) → Helm charts → buf proto lint → Allium DSL.
 
-| Technology | When Added | Purpose |
-|---|---|---|
-| Kotlin 2.1.20 / Ktor | Day 1 | Backend microservices |
-| Python 3.12 / uv | Day 3 | ML models and gRPC risk engine |
-| React / Vite / Tailwind | Day 10 | Frontend SPA |
-| PostgreSQL 17 (TimescaleDB) | Day 10 | Per-service databases |
-| Kafka (KRaft) | Day 10 | Event-driven communication |
-| Redis | Day 10 | Price caching layer |
-| gRPC / Protobuf | Day 1 | Risk Engine ↔ Orchestrator communication |
-| Keycloak | Day 11 | Authentication & RBAC |
-| Prometheus / Grafana | Day 11 | Metrics & dashboards |
-| Loki / Tempo | Day 11 | Log aggregation & distributed tracing |
-| OpenTelemetry Collector | Day 11 | Telemetry pipeline |
-| Gatling | Day 11 | Load testing |
-| Terraform / Helm | Day 12 | AWS EKS deployment |
-| lucide-react | Day 12 | Icon library (replaced generic icons) |
+**Architecture shifts:**
+- **Acceptance test taxonomy** restructured into unit / integration / acceptance / end-to-end (Feb 26).
+- **Kafka schemas consolidated** into the `common` module after a TradeEvent schema-drift incident (Mar 1).
+- **Risk-orchestrator decoupled** from position-service via HTTP client interface (Phase 1.5).
+- **`portfolio → book`** rename across all services (Mar 19) — single-day cross-cutting refactor.
+- **`InstrumentType` sealed hierarchy** replaced string instrument types with typed positions (Phase A/B/C, mid-March).
+- **`ClientResponse` Either type** introduced for typed error handling (Apr 3).
+- **`dto/` → `dtos/` one-type-per-file** package refactor (Apr 7).
 
-**No technologies were removed or swapped** — the stack was chosen deliberately and remained stable.
-
-### Architecture Shifts
-
-1. **Market Data Service → Price Service + 4 specialized services** (24 Feb): The single market-data-service was found to only handle prices. Four new services (Rates, Reference Data, Volatility, Correlation) were created to properly model the full market data landscape.
-
-2. **MarketDataFetcher decomposition** (24 Feb): The user noticed this class was doing both dependency discovery and data fetching — it was split into `DependenciesDiscoverer` and `MarketDataFetcher`.
-
-3. **DTO extraction** (24 Feb): DTOs were initially inlined in route files. They were refactored into individual files under `routes/dtos` sub-packages, and this was codified as a project convention in `CLAUDE.md`.
-
-4. **UI tab restructuring** (25 Feb): Stress Testing was moved from the Risk tab to a new Scenarios tab. Portfolio Greeks remained on Risk tab after careful consideration of where it belongs conceptually.
-
-### Key Integrations
-
-- **Kafka event mesh**: 10 topics connecting Position, Price, Risk, Notification, Rates, Reference Data, Volatility, and Correlation services
-- **gRPC for compute**: Risk Orchestrator → Python Risk Engine (VaR, Greeks, stress tests, ML predictions)
-- **WebSocket**: Gateway → UI for real-time price broadcasting
-- **Keycloak OIDC**: JWT-based authentication with 5 role types
-- **OTel → Prometheus/Loki/Tempo**: Full observability pipeline
-- **GitHub Actions**: CI with test pyramid (unit → integration → acceptance per module)
+**Key integrations:** OTel Collector → Prometheus → Grafana dashboards per service; gRPC contract tests against the real Python risk-engine; Testcontainers for Kafka/Postgres integration; GitHub Actions CI per-module matrix; Keycloak with demo-bypass mode.
 
 ---
 
@@ -100,105 +71,58 @@ The "Portfolio Value" label was renamed to "PV" in the Risk tab. An ES (Expected
 
 | Problem | Solution | Date |
 |---|---|---|
-| Session crash lost all progress | Persisted plan.md, ADRs, and docs on disc | 10 Feb |
-| Ktor Gradle plugin incompatible with Gradle 9 | Replaced with application plugin | 20 Feb |
-| Proto module missing kotlinx-coroutines-core | Added explicit dependency | 20 Feb |
-| Dev services not responding on correct ports | Added `-port` args to Ktor services, set PYTHONPATH | 21 Feb |
-| UI not rendering at localhost:5173 | Added Vite dev server proxy for gateway API/WebSocket | 21 Feb |
-| "Failed to fetch portfolios" in UI | Wired gateway to downstream services for local dev | 21 Feb |
-| No VaR data on startup | Wired ScheduledVaRCalculator to run on startup | 22 Feb |
-| System tab not rendering during position loading | Fixed conditional rendering to not block on position state | 22 Feb |
-| Grafana dashboard UIDs didn't match links | Fixed URLs to match provisioned dashboard UIDs | 22 Feb |
-| Logs not appearing in Grafana Loki | Fixed OTel SDK auto-init and deferred appender install; fixed Loki OTLP ingestion and template variable | 23 Feb |
-| UI startup race condition | Added gateway health check wait in dev-restart | 23 Feb |
-| dev-restart.sh bash 3.2 compatibility (macOS) | Fixed array syntax for macOS bash | 23 Feb |
-| Port conflicts with 4 new services | Assigned unique ports and updated all dev scripts | 24 Feb |
-| Services showing DOWN in health UI | Fixed missing database creation and fallback URLs | 24 Feb |
-| Content flash when selecting calculation run | Fixed state management to prevent re-render flash | 24 Feb |
-| Custom time range not filtering server-side | Added integration tests, fixed query parameter handling | 25 Feb |
-| Tooltip overflow off-screen edge | Clamped tooltip positioning within container bounds | 25 Feb |
-| Slow dev stack startup | Replaced per-service Gradle runs with single `installDist` | 25 Feb |
-| `act()` warnings in React tests | Wrapped state updates properly | 25 Feb |
-| Stale time window in job polling | Fixed to use current time window on each poll | 25 Feb |
+| First session crashed, all progress lost | Mandate persisted plan + ADR docs | 2026-02-10 |
+| Testcontainers fails in `common` module | Move integration tests to service modules | 2026-02-21 |
+| Exposed `shouldThrow` swallows exceptions in `newSuspendedTransaction` | Validate before transactional block | 2026-02-21 |
+| Risk-engine module not found in Docker | `PYTHONPATH=/app/src` env var | 2026-02-21 |
+| Price history sort order regression | Acceptance test catches DESC bug | 2026-03-01 |
+| TradeEvent schema drift across 3 services | Consolidate schemas in `common`, add compat tests | 2026-03-01 |
+| VaR cache empty on startup | Seed cache from DB on startup | 2026-03-02 |
+| What-If panel stealing focus on every keystroke | Re-scope refs | 2026-03-03 |
+| TimescaleDB migrations fail in plain Postgres tests | Conditional migrations on extension availability | 2026-03-26 |
+| Audit hash chain inconsistent across services | Normalize `tradedAt` to microseconds before hashing | 2026-03-19 |
+| Cross-cutting `portfolio` ambiguity (book vs portfolio) | Single-day rename across all 12 services | 2026-03-19 |
+| Spec drift between Allium specs and code | `/weed` agent + 137 divergence fixes | 2026-03-26 |
+| Trade amend/cancel not idempotent → E2E flakes | Make operations idempotent, align tests | 2026-04-07 |
+| `yavorpanayotovdr` GitHub account suspended | Recover from local clone | 2026-04-13 |
 
 ---
 
 ## 5. Abandoned Approaches
 
-- **Single market-data-service**: Initially all market data (prices, rates, vol surfaces, correlations) was handled by one service. This didn't align with single responsibility and was replaced by 5 specialized services.
-- **Monolithic MarketDataFetcher**: Discovery + fetching in one class was tried and refactored.
-- **DTOs in same file as routes**: Initially convenient but violated code organisation principles; extracted to individual files.
-- **Native HTML `title` tooltips**: Tried for VaR/ES explanations but too limited; replaced with CSS hover tooltips.
-- **"Calculation Runs" naming**: Renamed twice before settling on "Valuation Jobs".
-- **Auto-expanding FETCH_POSITIONS**: Tried, then reverted — too noisy by default.
-- **Manual refresh for Valuation Jobs**: Replaced with auto-polling.
-- **Click-to-expand pipeline arrows**: Replaced with full-row clickability.
-- **Green highlighting for successful market data fetches**: Removed as "too much" — only failures are now highlighted.
-- **Job IDs in zoomable timechart bars**: Tried, then removed for cleaner visualization.
-- **GitHub wiki for documentation**: Attempted but links kept breaking; docs live in-repo instead.
+- **What-If volatility-bump analysis** in the Risk tab — removed (Feb 27, `05a3bf01`) when stress scenarios subsumed the use case.
+- **Inline VaR sparkline** on the Risk tab — replaced by Grafana-style trend chart with zoom (Feb 26).
+- **Separate `CALCULATE_GREEKS` step** in the valuation pipeline — folded into `CALCULATE_VAR` then renamed to `VALUATION` (Feb 27).
+- **"Calculation Runs" / "Pipeline" naming** — renamed twice (Calculation Runs → Calculation Jobs → Valuation Jobs) as the domain language settled.
+- **Mocked database tests** — explicitly avoided in favour of Testcontainers for infra boundaries.
+- **Per-service Kafka event files** — 8 duplicates deleted; consolidated to `common`.
+- **Native HTML `title` tooltips** — replaced everywhere with click-only popovers after hover-only proved a "hidden feature" (Feb 25).
 
 ---
 
 ## 6. Current State Summary
 
-**What's working:**
-- 11 microservices (Gateway, Position, Price, Risk Orchestrator, Audit, Regulatory, Notification, Rates, Reference Data, Volatility, Correlation) + Python Risk Engine
-- Full VaR calculation pipeline: Historical, Parametric, Monte Carlo
-- ML models: LSTM volatility, GBT credit scoring, Isolation Forest anomaly detection
-- Stress testing with historical scenarios (GFC 2008, COVID 2020, etc.)
-- FRTB regulatory reporting (SBM, DRC, RRAO) with CSV/XBRL output
-- Configurable notification alerting (VaR breaches, P&L thresholds)
-- JWT authentication via Keycloak with 5 role types
-- Real-time price broadcasting via WebSocket
-- Polished React UI with 6 tabs (Positions, Risk, Scenarios, Regulatory, Alerts, System)
-- Valuation Jobs with zoomable timechart, search, pagination, pipeline visualization
-- Full observability: Prometheus metrics, Grafana dashboards, Loki logs, Tempo traces
-- GitHub Actions CI with test pyramid and test summary
-- Local dev stack (dev-up/dev-down/dev-restart) with data seeding
-- AWS EKS deployment infrastructure (Helm, Terraform, Dockerfiles)
-- 200 commits, ~555 conversation prompts across 92 sessions
+**Working** — 12 services (gateway, position, price, rates, vol, correlation, ref-data, risk-orchestrator, regulatory, notification, audit, risk-engine), end-to-end VaR with Historical / Parametric / Monte Carlo modes, full Greeks (Delta/Gamma/Vega/Theta/Rho + Vanna/Volga/Charm), FRTB SBM/DRC/RRAO with CSV/XBRL export, cross-book VaR with diversification, SA-CCR counterparty risk, stress testing with governance, P&L attribution, audit hash chain, demo mode with persona switching, dark mode, CSV export everywhere, six-tab UI with full Playwright coverage, Helm charts for production deploy.
 
-**Recent additions (27 Feb):**
-- Unified `Valuate` gRPC RPC replacing separate VaR and Greeks calls
-- CI pipeline split into per-module matrix jobs (unit, acceptance, integration)
-- VaR history pre-populated on dashboard load
-- Human-readable valuation job durations
-- OpenAPI spec generation and Swagger UI across all services (`ktor-openapi-tools`)
-- ES (Expected Shortfall) line in VaR Trend chart
-- PV (Portfolio Value) display in Risk Sensitivities
-- Non-collapsible Valuation Jobs section with total job count in pagination
-- Inline Risk Sensitivities replacing separate Greeks panel
+**In progress** — Recovering from the GitHub account suspension; the local clone is the only authoritative copy as of Apr 13.
 
-**Known issues / tech debt:**
-- Some Helm chart `.tgz` files are untracked in git
-- GitHub wiki links were attempted but remain broken — documentation lives in-repo
+**Known issues / tech debt** —
+- Testcontainers Docker connectivity broken in `common` module.
+- Exposed + Kotest `shouldThrow` incompatibility documented but not fixed upstream.
+- 19 unmerged agent worktrees in `.claude/worktrees/` from parallel agent runs.
+- Risk-engine `sqrt(T)` VaR scaling limitation documented but not addressed.
 
 ---
 
 ## 7. Session References
 
-| Phase | Session ID | Date |
-|---|---|---|
-| Initial vision & architecture | `761fa3b1-d022-40d2-8114-db773fade956` | 10 Feb |
-| Session crash & documentation lesson | `1dc557ac-55ef-49f1-8544-9b6b0edfc83d` | 10 Feb |
-| Plan creation & first commits | `5d799de3-bc3b-4b53-b519-2ec311349aef` | 10 Feb |
-| The big build day (increments 0.6–2.6) | `a1f204ba-1eb2-43dc-ad9b-2ea29160d344` | 20 Feb |
-| Risk engine & ML models | `fb15f741-80b1-4332-bf6d-d0745fa45591` | 21 Feb |
-| Stress testing | `6dec875c-bec0-48c1-8ef7-b465adc140d1` | 21 Feb |
-| FRTB regulatory reporting | `2ef509d6-8f27-4b01-8f10-66af1be97238` | 21 Feb |
-| Notifications & alerting | `fe62d76c-fe5b-4069-ae8f-997e2d5b8829` | 21 Feb |
-| Security & production hardening | `f184b3b9-aae1-4775-889a-c6335bcf18c8` | 21 Feb |
-| CI pipeline & dev tooling | `f6038258-4020-4b53-bedb-2d0d9ce2342c` | 21 Feb |
-| UI wiring & first live test | `8593529a-3209-4614-a37c-3e5675c6e595` | 22 Feb |
-| AWS deployment infrastructure | `31679e6d-6676-4af5-a771-44d129c70e32` | 22 Feb |
-| Dark theme & UI modernization | `af4c7ad8-17fd-466a-946e-1b3c4c09e654` | 22 Feb |
-| Loki logging pipeline | `6c1768a3-e292-4c41-a68b-3528fe4fbe48` | 23 Feb |
-| CLAUDE.md & code conventions | `190f2753-2305-4b66-8942-431c4bba3c46` | 24 Feb |
-| Market data services expansion | `ce27ebb4-3b1f-4e81-b71c-c2d483283652` | 24 Feb |
-| Valuation Jobs UX iterations | `9eeb77be-97bb-42a0-ac8b-dfb3cd2f4953` | 24–25 Feb |
-| Grafana dashboard links | `0ac35409-0a31-4d6e-bd07-2eadf76d6e4e` | 25 Feb |
-| Unified Valuate RPC & CI matrix split | — | 26 Feb |
+- **Genesis:** `5d799de3` (Feb 10 — original system prompt and plan)
+- **Big vertical slice:** Feb 20–21 sessions (no single ID, ~73 commits)
+- **First trader review:** `9ab051d4` (Feb 28 — `/trader` Greeks/valuation feedback)
+- **Phase planning:** `ff240144` (Feb 28 → Mar 1, 30 prompts)
+- **Big UI hardening sprint:** `d30bd682` (Mar 12–13, 32 prompts)
+- **Trader review team plan:** `1e352111` (Mar 23–25, 39 prompts — produced the trader-review plan)
+- **Allium spec audit:** `5affab94` (Mar 26–28, 42 prompts — `/weed` campaign)
+- **Demo mode + GitHub recovery:** Apr 3–13 (multiple short sessions)
 
----
-
-*Report generated from conversation history, cross-referenced with git commits spanning 10–27 February 2026.*
+Built a 12-service institutional risk platform from a single sentence in nine weeks using strict TDD, AI agent teams, and an Allium spec-driven workflow.
