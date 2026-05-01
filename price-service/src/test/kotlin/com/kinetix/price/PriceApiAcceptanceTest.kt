@@ -4,8 +4,10 @@ import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.Money
 import com.kinetix.common.model.PricePoint
 import com.kinetix.common.model.PriceSource
-import com.kinetix.price.cache.PriceCache
-import com.kinetix.price.kafka.PricePublisher
+import com.kinetix.price.cache.RedisPriceCache
+import com.kinetix.price.cache.RedisTestSetup
+import com.kinetix.price.kafka.KafkaPricePublisher
+import com.kinetix.price.kafka.KafkaTestSetup
 import com.kinetix.price.persistence.DatabaseTestSetup
 import com.kinetix.price.persistence.ExposedPriceRepository
 import com.kinetix.price.persistence.PriceTable
@@ -18,7 +20,6 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
-import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -34,17 +35,24 @@ private val USD = Currency.getInstance("USD")
 /**
  * Acceptance tests for the Price API endpoints.
  *
- * Wires a real [ExposedPriceRepository] against a Testcontainers PostgreSQL instance and
- * drives the full Ktor handler stack via [testApplication].  External dependencies
- * (Kafka publisher, Redis cache) are relaxed mocks — their integration is covered in
- * dedicated integration tests.
+ * Wires a real [ExposedPriceRepository] against a Testcontainers PostgreSQL instance,
+ * a real [KafkaPricePublisher] against a Testcontainers Kafka broker, and a real
+ * [RedisPriceCache] against a Testcontainers Redis instance.  All infrastructure
+ * dependencies are real — no mocks.  The tests drive the full Ktor handler stack
+ * via [testApplication].
  */
 class PriceApiAcceptanceTest : FunSpec({
 
     val db = DatabaseTestSetup.startAndMigrate()
     val repository = ExposedPriceRepository(db)
-    val publisher = mockk<PricePublisher>(relaxed = true)
-    val cache = mockk<PriceCache>(relaxed = true)
+
+    val bootstrapServers = KafkaTestSetup.start()
+    val producer = KafkaTestSetup.createProducer(bootstrapServers)
+    val publisher = KafkaPricePublisher(producer, "price.updates")
+
+    val redisConnection = RedisTestSetup.start()
+    val cache = RedisPriceCache(redisConnection)
+
     val ingestionService = PriceIngestionService(repository, cache, publisher)
 
     beforeEach {
@@ -52,6 +60,11 @@ class PriceApiAcceptanceTest : FunSpec({
             PriceTable.deleteAll()
         }
         DatabaseTestSetup.refreshDailyClosePrices()
+    }
+
+    afterSpec {
+        producer.close()
+        redisConnection.close()
     }
 
     // -------------------------------------------------------------------------
