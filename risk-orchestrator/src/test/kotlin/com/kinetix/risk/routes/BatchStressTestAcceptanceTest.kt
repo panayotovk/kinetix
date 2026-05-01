@@ -10,8 +10,11 @@ import com.kinetix.proto.risk.AssetClassImpact
 import com.kinetix.proto.risk.ListScenariosResponse
 import com.kinetix.proto.risk.StressTestResponse
 import com.kinetix.proto.risk.StressTestServiceGrpcKt.StressTestServiceCoroutineStub
-import com.kinetix.risk.cache.InMemoryVaRCache
+import com.kinetix.risk.cache.RedisVaRCache
+import com.kinetix.risk.cache.RedisTestSetup
 import com.kinetix.risk.client.PositionProvider
+import com.kinetix.risk.grpc.FakeStressTestService
+import com.kinetix.risk.grpc.GrpcFakeServer
 import com.kinetix.risk.service.BatchStressTestService
 import com.kinetix.risk.service.VaRCalculationService
 import io.kotest.core.spec.style.FunSpec
@@ -65,18 +68,29 @@ private fun stressResponse(scenarioName: String, pnlImpact: Double) =
 
 class BatchStressTestAcceptanceTest : FunSpec({
 
-    val stressTestStub = mockk<StressTestServiceCoroutineStub>()
+    val varCache = RedisVaRCache(RedisTestSetup.start())
     val positionProvider = mockk<PositionProvider>()
     val varCalculationService = mockk<VaRCalculationService>()
-    val varCache = InMemoryVaRCache()
+
+    val fakeStressService = FakeStressTestService()
+    val grpcServer = GrpcFakeServer(fakeStressService)
+    val stressTestStub = StressTestServiceCoroutineStub(grpcServer.channel())
     val batchService = BatchStressTestService(stressTestStub, positionProvider)
 
     beforeEach {
-        clearMocks(stressTestStub, positionProvider, varCalculationService)
+        clearMocks(positionProvider, varCalculationService)
+        fakeStressService.runStressTestRequests.clear()
+        fakeStressService.listScenariosRequests.clear()
+        fakeStressService.listScenariosHandler = {
+            ListScenariosResponse.newBuilder()
+                .addAllScenarioNames(listOf("GFC_2008", "COVID_2020"))
+                .build()
+        }
         coEvery { positionProvider.getPositions(any()) } returns listOf(position())
-        coEvery { stressTestStub.listScenarios(any()) } returns ListScenariosResponse.newBuilder()
-            .addAllScenarioNames(listOf("GFC_2008", "COVID_2020"))
-            .build()
+    }
+
+    afterSpec {
+        grpcServer.close()
     }
 
     fun testApp(block: suspend ApplicationTestBuilder.() -> Unit) {
@@ -97,8 +111,7 @@ class BatchStressTestAcceptanceTest : FunSpec({
     }
 
     test("POST /api/v1/risk/stress/{bookId}/batch returns 200 with ranked results") {
-        coEvery { stressTestStub.runStressTest(any(), any()) } answers {
-            val req = firstArg<com.kinetix.proto.risk.StressTestRequest>()
+        fakeStressService.runStressTestHandler = { req ->
             val pnl = when (req.scenarioName) {
                 "GFC_2008" -> -400_000.0
                 "COVID_2020" -> -150_000.0
@@ -124,8 +137,7 @@ class BatchStressTestAcceptanceTest : FunSpec({
     }
 
     test("POST /api/v1/risk/stress/{bookId}/batch reports failed scenarios without aborting") {
-        coEvery { stressTestStub.runStressTest(any(), any()) } answers {
-            val req = firstArg<com.kinetix.proto.risk.StressTestRequest>()
+        fakeStressService.runStressTestHandler = { req ->
             if (req.scenarioName == "BROKEN") throw RuntimeException("engine unavailable")
             stressResponse(req.scenarioName, -100_000.0)
         }
@@ -147,8 +159,7 @@ class BatchStressTestAcceptanceTest : FunSpec({
     }
 
     test("POST /api/v1/risk/stress/{bookId}/batch returns worstScenarioName in summary") {
-        coEvery { stressTestStub.runStressTest(any(), any()) } answers {
-            val req = firstArg<com.kinetix.proto.risk.StressTestRequest>()
+        fakeStressService.runStressTestHandler = { req ->
             stressResponse(req.scenarioName, -300_000.0)
         }
 

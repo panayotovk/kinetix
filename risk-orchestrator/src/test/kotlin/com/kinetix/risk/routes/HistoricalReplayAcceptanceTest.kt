@@ -4,18 +4,17 @@ import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.BookId
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.Position
-import com.kinetix.proto.risk.HistoricalReplayRequest
 import com.kinetix.proto.risk.HistoricalReplayResponse
-import com.kinetix.proto.risk.InstrumentDailyReturns
 import com.kinetix.proto.risk.InstrumentShock
-import com.kinetix.proto.risk.ListScenariosRequest
 import com.kinetix.proto.risk.ListScenariosResponse
 import com.kinetix.proto.risk.PositionReplayImpact
-import com.kinetix.proto.risk.ReverseStressRequest
 import com.kinetix.proto.risk.ReverseStressResponse
 import com.kinetix.proto.risk.StressTestServiceGrpcKt.StressTestServiceCoroutineStub
-import com.kinetix.risk.cache.InMemoryVaRCache
+import com.kinetix.risk.cache.RedisTestSetup
+import com.kinetix.risk.cache.RedisVaRCache
 import com.kinetix.risk.client.PositionProvider
+import com.kinetix.risk.grpc.FakeStressTestService
+import com.kinetix.risk.grpc.GrpcFakeServer
 import com.kinetix.risk.service.VaRCalculationService
 import com.google.protobuf.Timestamp
 import com.kinetix.proto.common.AssetClass as ProtoAssetClass
@@ -40,13 +39,24 @@ import java.time.Instant
 
 class HistoricalReplayAcceptanceTest : FunSpec({
 
-    val stressTestStub = mockk<StressTestServiceCoroutineStub>()
+    val varCache = RedisVaRCache(RedisTestSetup.start())
     val positionProvider = mockk<PositionProvider>()
     val varCalculationService = mockk<VaRCalculationService>()
-    val varCache = InMemoryVaRCache()
+
+    val fakeStressService = FakeStressTestService()
+    val grpcServer = GrpcFakeServer(fakeStressService)
+    val stressTestStub = StressTestServiceCoroutineStub(grpcServer.channel())
 
     beforeEach {
-        clearMocks(stressTestStub, positionProvider)
+        clearMocks(positionProvider)
+        fakeStressService.runHistoricalReplayRequests.clear()
+        fakeStressService.runReverseStressRequests.clear()
+        fakeStressService.listScenariosRequests.clear()
+        fakeStressService.listScenariosHandler = {
+            ListScenariosResponse.newBuilder()
+                .addAllScenarioNames(listOf("GFC_2008", "COVID_2020"))
+                .build()
+        }
         coEvery { positionProvider.getPositions(any()) } returns listOf(
             Position(
                 bookId = BookId("port-1"),
@@ -57,9 +67,10 @@ class HistoricalReplayAcceptanceTest : FunSpec({
                 marketPrice = com.kinetix.common.model.Money(java.math.BigDecimal("155.00"), java.util.Currency.getInstance("USD")),
             )
         )
-        coEvery { stressTestStub.listScenarios(any()) } returns ListScenariosResponse.newBuilder()
-            .addAllScenarioNames(listOf("GFC_2008", "COVID_2020"))
-            .build()
+    }
+
+    afterSpec {
+        grpcServer.close()
     }
 
     fun testApp(block: suspend ApplicationTestBuilder.() -> Unit) {
@@ -79,25 +90,25 @@ class HistoricalReplayAcceptanceTest : FunSpec({
     }
 
     test("POST /api/v1/risk/stress/{bookId}/historical-replay returns 200 with position impacts") {
-        val protoResponse = HistoricalReplayResponse.newBuilder()
-            .setScenarioName("GFC_2008")
-            .setTotalPnlImpact(-125_000.0)
-            .addPositionImpacts(
-                PositionReplayImpact.newBuilder()
-                    .setInstrumentId("AAPL")
-                    .setAssetClass(ProtoAssetClass.EQUITY)
-                    .setMarketValue(15_500.0)
-                    .setPnlImpact(-125_000.0)
-                    .addAllDailyPnl(listOf(-50_000.0, -25_000.0, 10_000.0, -40_000.0, -20_000.0))
-                    .setProxyUsed(false)
-                    .build()
-            )
-            .setWindowStart("2008-09-15")
-            .setWindowEnd("2008-09-19")
-            .setCalculatedAt(Timestamp.newBuilder().setSeconds(Instant.now().epochSecond))
-            .build()
-
-        coEvery { stressTestStub.runHistoricalReplay(any(), any()) } returns protoResponse
+        fakeStressService.runHistoricalReplayHandler = {
+            HistoricalReplayResponse.newBuilder()
+                .setScenarioName("GFC_2008")
+                .setTotalPnlImpact(-125_000.0)
+                .addPositionImpacts(
+                    PositionReplayImpact.newBuilder()
+                        .setInstrumentId("AAPL")
+                        .setAssetClass(ProtoAssetClass.EQUITY)
+                        .setMarketValue(15_500.0)
+                        .setPnlImpact(-125_000.0)
+                        .addAllDailyPnl(listOf(-50_000.0, -25_000.0, 10_000.0, -40_000.0, -20_000.0))
+                        .setProxyUsed(false)
+                        .build()
+                )
+                .setWindowStart("2008-09-15")
+                .setWindowEnd("2008-09-19")
+                .setCalculatedAt(Timestamp.newBuilder().setSeconds(Instant.now().epochSecond))
+                .build()
+        }
 
         testApp {
             val response = client.post("/api/v1/risk/stress/port-1/historical-replay") {
@@ -118,8 +129,7 @@ class HistoricalReplayAcceptanceTest : FunSpec({
     }
 
     test("POST /api/v1/risk/stress/{bookId}/historical-replay passes instrument returns to gRPC") {
-        coEvery { stressTestStub.runHistoricalReplay(any(), any()) } answers {
-            val req = firstArg<HistoricalReplayRequest>()
+        fakeStressService.runHistoricalReplayHandler = { req ->
             HistoricalReplayResponse.newBuilder()
                 .setScenarioName(req.scenarioName)
                 .setTotalPnlImpact(-50_000.0)
@@ -147,15 +157,15 @@ class HistoricalReplayAcceptanceTest : FunSpec({
     }
 
     test("POST /api/v1/risk/stress/{bookId}/reverse returns 200 with shock vector") {
-        val protoResponse = ReverseStressResponse.newBuilder()
-            .addShocks(InstrumentShock.newBuilder().setInstrumentId("AAPL").setShock(-0.10))
-            .setAchievedLoss(100_000.0)
-            .setTargetLoss(100_000.0)
-            .setConverged(true)
-            .setCalculatedAt(Timestamp.newBuilder().setSeconds(Instant.now().epochSecond))
-            .build()
-
-        coEvery { stressTestStub.runReverseStress(any(), any()) } returns protoResponse
+        fakeStressService.runReverseStressHandler = {
+            ReverseStressResponse.newBuilder()
+                .addShocks(InstrumentShock.newBuilder().setInstrumentId("AAPL").setShock(-0.10))
+                .setAchievedLoss(100_000.0)
+                .setTargetLoss(100_000.0)
+                .setConverged(true)
+                .setCalculatedAt(Timestamp.newBuilder().setSeconds(Instant.now().epochSecond))
+                .build()
+        }
 
         testApp {
             val response = client.post("/api/v1/risk/stress/port-1/reverse") {
@@ -173,14 +183,14 @@ class HistoricalReplayAcceptanceTest : FunSpec({
     }
 
     test("POST /api/v1/risk/stress/{bookId}/reverse with non-converged result returns 200 with converged=false") {
-        val protoResponse = ReverseStressResponse.newBuilder()
-            .setAchievedLoss(1_500_000.0)
-            .setTargetLoss(5_000_000.0)
-            .setConverged(false)
-            .setCalculatedAt(Timestamp.newBuilder().setSeconds(Instant.now().epochSecond))
-            .build()
-
-        coEvery { stressTestStub.runReverseStress(any(), any()) } returns protoResponse
+        fakeStressService.runReverseStressHandler = {
+            ReverseStressResponse.newBuilder()
+                .setAchievedLoss(1_500_000.0)
+                .setTargetLoss(5_000_000.0)
+                .setConverged(false)
+                .setCalculatedAt(Timestamp.newBuilder().setSeconds(Instant.now().epochSecond))
+                .build()
+        }
 
         testApp {
             val response = client.post("/api/v1/risk/stress/port-1/reverse") {
