@@ -1,6 +1,7 @@
 package com.kinetix.referencedata.routes
 
-import com.kinetix.common.model.AssetClass
+import com.kinetix.common.model.CreditSpread
+import com.kinetix.common.model.DividendYield
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.common.model.instrument.CashEquity
 import com.kinetix.common.model.instrument.CommodityFuture
@@ -8,11 +9,14 @@ import com.kinetix.common.model.instrument.CorporateBond
 import com.kinetix.common.model.instrument.EquityOption
 import com.kinetix.common.model.instrument.FxSpot
 import com.kinetix.common.model.instrument.GovernmentBond
+import com.kinetix.referencedata.cache.ReferenceDataCache
+import com.kinetix.referencedata.kafka.ReferenceDataPublisher
 import com.kinetix.referencedata.model.Instrument
 import com.kinetix.referencedata.module
-import com.kinetix.referencedata.persistence.CreditSpreadRepository
-import com.kinetix.referencedata.persistence.DividendYieldRepository
-import com.kinetix.referencedata.persistence.InstrumentRepository
+import com.kinetix.referencedata.persistence.DatabaseTestSetup
+import com.kinetix.referencedata.persistence.ExposedCreditSpreadRepository
+import com.kinetix.referencedata.persistence.ExposedDividendYieldRepository
+import com.kinetix.referencedata.persistence.ExposedInstrumentRepository
 import com.kinetix.referencedata.service.InstrumentService
 import com.kinetix.referencedata.service.ReferenceDataIngestionService
 import io.kotest.core.spec.style.FunSpec
@@ -25,27 +29,43 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.mockk
-import io.mockk.slot
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.Instant
 
 class InstrumentRoutesAcceptanceTest : FunSpec({
 
-    val dividendYieldRepo = mockk<DividendYieldRepository>()
-    val creditSpreadRepo = mockk<CreditSpreadRepository>()
-    val ingestionService = mockk<ReferenceDataIngestionService>()
-    val instrumentRepo = mockk<InstrumentRepository>()
+    val db = DatabaseTestSetup.startAndMigrate()
+    val dividendYieldRepo = ExposedDividendYieldRepository(db)
+    val creditSpreadRepo = ExposedCreditSpreadRepository(db)
+    val noOpCache = object : ReferenceDataCache {
+        override suspend fun putDividendYield(dividendYield: DividendYield) = Unit
+        override suspend fun getDividendYield(instrumentId: InstrumentId): DividendYield? = null
+        override suspend fun putCreditSpread(creditSpread: CreditSpread) = Unit
+        override suspend fun getCreditSpread(instrumentId: InstrumentId): CreditSpread? = null
+    }
+    val noOpPublisher = object : ReferenceDataPublisher {
+        override suspend fun publishDividendYield(dividendYield: DividendYield) = Unit
+        override suspend fun publishCreditSpread(creditSpread: CreditSpread) = Unit
+    }
+    val ingestionService = ReferenceDataIngestionService(
+        dividendYieldRepo, creditSpreadRepo, noOpCache, noOpPublisher,
+    )
+    val instrumentRepo = ExposedInstrumentRepository(db)
     val instrumentService = InstrumentService(instrumentRepo)
 
     val NOW = Instant.parse("2026-03-16T12:00:00Z")
+
+    beforeEach {
+        newSuspendedTransaction(db = db) {
+            exec("TRUNCATE TABLE instruments RESTART IDENTITY CASCADE")
+        }
+    }
 
     test("GET instrument by ID returns correct shape for cash equity") {
         val instrument = Instrument(
@@ -56,7 +76,7 @@ class InstrumentRoutesAcceptanceTest : FunSpec({
             createdAt = NOW,
             updatedAt = NOW,
         )
-        coEvery { instrumentRepo.findById(InstrumentId("AAPL")) } returns instrument
+        instrumentRepo.save(instrument)
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, instrumentService) }
@@ -87,7 +107,7 @@ class InstrumentRoutesAcceptanceTest : FunSpec({
             createdAt = NOW,
             updatedAt = NOW,
         )
-        coEvery { instrumentRepo.findById(InstrumentId("AAPL-C-150-20260620")) } returns instrument
+        instrumentRepo.save(instrument)
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, instrumentService) }
@@ -114,7 +134,7 @@ class InstrumentRoutesAcceptanceTest : FunSpec({
             createdAt = NOW,
             updatedAt = NOW,
         )
-        coEvery { instrumentRepo.findById(InstrumentId("US10Y")) } returns instrument
+        instrumentRepo.save(instrument)
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, instrumentService) }
@@ -129,8 +149,6 @@ class InstrumentRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET instrument returns 404 when not found") {
-        coEvery { instrumentRepo.findById(InstrumentId("UNKNOWN")) } returns null
-
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, instrumentService) }
 
@@ -140,17 +158,14 @@ class InstrumentRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET instruments filtered by type returns list") {
-        val instruments = listOf(
-            Instrument(
-                instrumentId = InstrumentId("EURUSD"),
-                instrumentType = FxSpot(baseCurrency = "EUR", quoteCurrency = "USD"),
-                displayName = "EUR/USD Spot",
-                currency = "USD",
-                createdAt = NOW,
-                updatedAt = NOW,
-            ),
-        )
-        coEvery { instrumentRepo.findByType("FX_SPOT") } returns instruments
+        instrumentRepo.save(Instrument(
+            instrumentId = InstrumentId("EURUSD"),
+            instrumentType = FxSpot(baseCurrency = "EUR", quoteCurrency = "USD"),
+            displayName = "EUR/USD Spot",
+            currency = "USD",
+            createdAt = NOW,
+            updatedAt = NOW,
+        ))
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, instrumentService) }
@@ -165,17 +180,14 @@ class InstrumentRoutesAcceptanceTest : FunSpec({
     }
 
     test("GET instruments filtered by asset class returns list") {
-        val instruments = listOf(
-            Instrument(
-                instrumentId = InstrumentId("WTI-AUG26"),
-                instrumentType = CommodityFuture(commodity = "WTI", expiryDate = "2026-08-20", contractSize = 1000.0, currency = "USD"),
-                displayName = "WTI Crude Aug2026",
-                currency = "USD",
-                createdAt = NOW,
-                updatedAt = NOW,
-            ),
-        )
-        coEvery { instrumentRepo.findByAssetClass(AssetClass.COMMODITY) } returns instruments
+        instrumentRepo.save(Instrument(
+            instrumentId = InstrumentId("WTI-AUG26"),
+            instrumentType = CommodityFuture(commodity = "WTI", expiryDate = "2026-08-20", contractSize = 1000.0, currency = "USD"),
+            displayName = "WTI Crude Aug2026",
+            currency = "USD",
+            createdAt = NOW,
+            updatedAt = NOW,
+        ))
 
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, instrumentService) }
@@ -190,9 +202,6 @@ class InstrumentRoutesAcceptanceTest : FunSpec({
     }
 
     test("POST creates an instrument and returns 201") {
-        val saved = slot<Instrument>()
-        coEvery { instrumentRepo.save(capture(saved)) } returns Unit
-
         testApplication {
             application { module(dividendYieldRepo, creditSpreadRepo, ingestionService, instrumentService) }
 
@@ -225,9 +234,9 @@ class InstrumentRoutesAcceptanceTest : FunSpec({
             body["instrumentType"]?.jsonPrimitive?.content shouldBe "CORPORATE_BOND"
             body["assetClass"]?.jsonPrimitive?.content shouldBe "FIXED_INCOME"
 
-            coVerify { instrumentRepo.save(any()) }
-            saved.captured.instrumentId.value shouldBe "JPM-BOND"
-            (saved.captured.instrumentType as CorporateBond).issuer shouldBe "JPM"
+            val saved = instrumentRepo.findById(InstrumentId("JPM-BOND"))!!
+            saved.instrumentId.value shouldBe "JPM-BOND"
+            (saved.instrumentType as CorporateBond).issuer shouldBe "JPM"
         }
     }
 })
