@@ -4,8 +4,11 @@ import com.kinetix.risk.model.RunLabel
 import com.kinetix.risk.model.RunStatus
 import com.kinetix.risk.model.TriggerType
 import com.kinetix.risk.model.ValuationJob
+import com.kinetix.risk.persistence.DatabaseTestSetup
+import com.kinetix.risk.persistence.ExposedValuationJobRecorder
+import com.kinetix.risk.persistence.OfficialEodDesignationsTable
+import com.kinetix.risk.persistence.ValuationJobsTable
 import com.kinetix.risk.routes.dtos.EodTimelineResponse
-import com.kinetix.risk.service.ValuationJobRecorder
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
@@ -16,10 +19,9 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
-import io.mockk.clearMocks
-import io.mockk.coEvery
-import io.mockk.mockk
 import kotlinx.serialization.json.Json
+import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -49,17 +51,20 @@ private fun eodJob(
     vega = 500.0,
     theta = -30.0,
     rho = 15.0,
-    runLabel = RunLabel.OFFICIAL_EOD,
-    promotedAt = Instant.parse("2025-01-15T18:00:00Z"),
-    promotedBy = "risk-approver",
     triggeredBy = "SYSTEM",
 )
 
 class EodTimelineAcceptanceTest : FunSpec({
 
-    val jobRecorder = mockk<ValuationJobRecorder>()
+    val db = DatabaseTestSetup.startAndMigrate()
+    val jobRecorder = ExposedValuationJobRecorder(db)
 
-    beforeEach { clearMocks(jobRecorder) }
+    beforeEach {
+        newSuspendedTransaction(db = db) {
+            OfficialEodDesignationsTable.deleteAll()
+            ValuationJobsTable.deleteAll()
+        }
+    }
 
     fun testApp(block: suspend ApplicationTestBuilder.() -> Unit) {
         testApplication {
@@ -69,18 +74,19 @@ class EodTimelineAcceptanceTest : FunSpec({
         }
     }
 
+    suspend fun saveOfficialEod(job: ValuationJob): ValuationJob {
+        jobRecorder.save(job)
+        return jobRecorder.promoteToOfficialEod(job.jobId, "test-promoter", Instant.now())
+    }
+
     test("returns rows for each business day in the requested range, ordered ascending by date") {
         val day1 = LocalDate.of(2025, 1, 13)
         val day2 = LocalDate.of(2025, 1, 14)
         val day3 = LocalDate.of(2025, 1, 15)
 
-        coEvery {
-            jobRecorder.findOfficialEodRange("port-1", day1, day3)
-        } returns listOf(
-            eodJob(valuationDate = day1, varValue = 9_000.0),
-            eodJob(valuationDate = day2, varValue = 10_000.0),
-            eodJob(valuationDate = day3, varValue = 11_000.0),
-        )
+        saveOfficialEod(eodJob(valuationDate = day1, varValue = 9_000.0))
+        saveOfficialEod(eodJob(valuationDate = day2, varValue = 10_000.0))
+        saveOfficialEod(eodJob(valuationDate = day3, varValue = 11_000.0))
 
         testApp {
             val response = client.get("/api/v1/risk/eod-timeline/port-1?from=2025-01-13&to=2025-01-15")
@@ -102,12 +108,8 @@ class EodTimelineAcceptanceTest : FunSpec({
         val day1 = LocalDate.of(2025, 1, 14)
         val day2 = LocalDate.of(2025, 1, 15)
 
-        coEvery {
-            jobRecorder.findOfficialEodRange("port-1", day1, day2)
-        } returns listOf(
-            eodJob(valuationDate = day1, varValue = 8_000.0),
-            eodJob(valuationDate = day2, varValue = 10_000.0),
-        )
+        saveOfficialEod(eodJob(valuationDate = day1, varValue = 8_000.0))
+        saveOfficialEod(eodJob(valuationDate = day2, varValue = 10_000.0))
 
         testApp {
             val response = client.get("/api/v1/risk/eod-timeline/port-1?from=2025-01-14&to=2025-01-15")
@@ -122,11 +124,7 @@ class EodTimelineAcceptanceTest : FunSpec({
     test("returns varChange null for the first row in the range") {
         val day = LocalDate.of(2025, 1, 15)
 
-        coEvery {
-            jobRecorder.findOfficialEodRange("port-1", day, day)
-        } returns listOf(
-            eodJob(valuationDate = day, varValue = 10_000.0),
-        )
+        saveOfficialEod(eodJob(valuationDate = day, varValue = 10_000.0))
 
         testApp {
             val response = client.get("/api/v1/risk/eod-timeline/port-1?from=2025-01-15&to=2025-01-15")

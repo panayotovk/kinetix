@@ -3,9 +3,12 @@ package com.kinetix.risk.routes
 import com.kinetix.common.model.AssetClass
 import com.kinetix.common.model.InstrumentId
 import com.kinetix.risk.model.*
+import com.kinetix.risk.persistence.DatabaseTestSetup
+import com.kinetix.risk.persistence.ExposedValuationJobRecorder
+import com.kinetix.risk.persistence.OfficialEodDesignationsTable
+import com.kinetix.risk.persistence.ValuationJobsTable
 import com.kinetix.risk.service.RunComparisonService
 import com.kinetix.risk.service.SnapshotDiffer
-import com.kinetix.risk.service.ValuationJobRecorder
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.request.*
@@ -15,13 +18,12 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
-import io.mockk.clearMocks
-import io.mockk.coEvery
-import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
@@ -29,12 +31,16 @@ import java.util.UUID
 
 class RunComparisonAcceptanceTest : FunSpec({
 
-    val jobRecorder = mockk<ValuationJobRecorder>()
+    val db = DatabaseTestSetup.startAndMigrate()
+    val jobRecorder = ExposedValuationJobRecorder(db)
     val differ = SnapshotDiffer()
     val runComparisonService = RunComparisonService(jobRecorder, differ)
 
     beforeEach {
-        clearMocks(jobRecorder)
+        newSuspendedTransaction(db = db) {
+            OfficialEodDesignationsTable.deleteAll()
+            ValuationJobsTable.deleteAll()
+        }
     }
 
     fun testApp(block: suspend ApplicationTestBuilder.() -> Unit) {
@@ -99,16 +105,8 @@ class RunComparisonAcceptanceTest : FunSpec({
         val baseJobId = UUID.randomUUID()
         val targetJobId = UUID.randomUUID()
 
-        coEvery { jobRecorder.findByJobId(baseJobId) } returns completedJob(
-            jobId = baseJobId,
-            varValue = 5000.0,
-            es = 6250.0,
-        )
-        coEvery { jobRecorder.findByJobId(targetJobId) } returns completedJob(
-            jobId = targetJobId,
-            varValue = 7000.0,
-            es = 8750.0,
-        )
+        jobRecorder.save(completedJob(jobId = baseJobId, varValue = 5000.0, es = 6250.0))
+        jobRecorder.save(completedJob(jobId = targetJobId, varValue = 7000.0, es = 8750.0))
 
         testApp {
             val response = client.post("/api/v1/risk/compare/port-1") {
@@ -128,17 +126,12 @@ class RunComparisonAcceptanceTest : FunSpec({
         val baseDate = LocalDate.of(2025, 1, 14)
         val targetDate = LocalDate.of(2025, 1, 15)
 
-        coEvery { jobRecorder.findOfficialEodByDate("port-1", baseDate) } returns null
-        coEvery { jobRecorder.findOfficialEodByDate("port-1", targetDate) } returns null
-        coEvery { jobRecorder.findLatestCompletedByDate("port-1", baseDate) } returns completedJob(
-            varValue = 5000.0,
-            es = 6250.0,
-            valuationDate = baseDate,
+        // No official EOD (no promoteToOfficialEod call), just completed runs on each date
+        jobRecorder.save(
+            completedJob(varValue = 5000.0, es = 6250.0, valuationDate = baseDate)
         )
-        coEvery { jobRecorder.findLatestCompletedByDate("port-1", targetDate) } returns completedJob(
-            varValue = 6000.0,
-            es = 7500.0,
-            valuationDate = targetDate,
+        jobRecorder.save(
+            completedJob(varValue = 6000.0, es = 7500.0, valuationDate = targetDate)
         )
 
         testApp {
@@ -156,8 +149,8 @@ class RunComparisonAcceptanceTest : FunSpec({
         val baseJobId = UUID.randomUUID()
         val targetJobId = UUID.randomUUID()
 
-        coEvery { jobRecorder.findByJobId(baseJobId) } returns null
-        coEvery { jobRecorder.findByJobId(targetJobId) } returns completedJob(jobId = targetJobId)
+        // Only save target, not base
+        jobRecorder.save(completedJob(jobId = targetJobId))
 
         testApp {
             val response = client.post("/api/v1/risk/compare/port-1") {
@@ -187,44 +180,48 @@ class RunComparisonAcceptanceTest : FunSpec({
         val baseJobId = UUID.randomUUID()
         val targetJobId = UUID.randomUUID()
 
-        coEvery { jobRecorder.findByJobId(baseJobId) } returns completedJob(
-            jobId = baseJobId,
-            varValue = 5000.0,
-            positionRisk = listOf(
-                PositionRisk(
-                    instrumentId = InstrumentId("AAPL"),
-                    assetClass = AssetClass.EQUITY,
-                    marketValue = BigDecimal("17000.00"),
-                    delta = 0.85, gamma = 0.02, vega = 1500.0,
-                    varContribution = BigDecimal("5000.00"),
-                    esContribution = BigDecimal("6250.00"),
-                    percentageOfTotal = BigDecimal("100.00"),
+        jobRecorder.save(
+            completedJob(
+                jobId = baseJobId,
+                varValue = 5000.0,
+                positionRisk = listOf(
+                    PositionRisk(
+                        instrumentId = InstrumentId("AAPL"),
+                        assetClass = AssetClass.EQUITY,
+                        marketValue = BigDecimal("17000.00"),
+                        delta = 0.85, gamma = 0.02, vega = 1500.0,
+                        varContribution = BigDecimal("5000.00"),
+                        esContribution = BigDecimal("6250.00"),
+                        percentageOfTotal = BigDecimal("100.00"),
+                    ),
                 ),
-            ),
+            )
         )
-        coEvery { jobRecorder.findByJobId(targetJobId) } returns completedJob(
-            jobId = targetJobId,
-            varValue = 8000.0,
-            positionRisk = listOf(
-                PositionRisk(
-                    instrumentId = InstrumentId("AAPL"),
-                    assetClass = AssetClass.EQUITY,
-                    marketValue = BigDecimal("25000.00"),
-                    delta = 1.2, gamma = 0.03, vega = 2000.0,
-                    varContribution = BigDecimal("6000.00"),
-                    esContribution = BigDecimal("7500.00"),
-                    percentageOfTotal = BigDecimal("75.00"),
+        jobRecorder.save(
+            completedJob(
+                jobId = targetJobId,
+                varValue = 8000.0,
+                positionRisk = listOf(
+                    PositionRisk(
+                        instrumentId = InstrumentId("AAPL"),
+                        assetClass = AssetClass.EQUITY,
+                        marketValue = BigDecimal("25000.00"),
+                        delta = 1.2, gamma = 0.03, vega = 2000.0,
+                        varContribution = BigDecimal("6000.00"),
+                        esContribution = BigDecimal("7500.00"),
+                        percentageOfTotal = BigDecimal("75.00"),
+                    ),
+                    PositionRisk(
+                        instrumentId = InstrumentId("TSLA"),
+                        assetClass = AssetClass.EQUITY,
+                        marketValue = BigDecimal("8000.00"),
+                        delta = 0.9, gamma = 0.05, vega = 3000.0,
+                        varContribution = BigDecimal("2000.00"),
+                        esContribution = BigDecimal("2500.00"),
+                        percentageOfTotal = BigDecimal("25.00"),
+                    ),
                 ),
-                PositionRisk(
-                    instrumentId = InstrumentId("TSLA"),
-                    assetClass = AssetClass.EQUITY,
-                    marketValue = BigDecimal("8000.00"),
-                    delta = 0.9, gamma = 0.05, vega = 3000.0,
-                    varContribution = BigDecimal("2000.00"),
-                    esContribution = BigDecimal("2500.00"),
-                    percentageOfTotal = BigDecimal("25.00"),
-                ),
-            ),
+            )
         )
 
         testApp {
