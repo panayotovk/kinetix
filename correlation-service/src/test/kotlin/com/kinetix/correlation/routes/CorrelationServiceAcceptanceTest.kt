@@ -3,7 +3,8 @@ package com.kinetix.correlation.routes
 import com.kinetix.common.model.CorrelationMatrix
 import com.kinetix.common.model.EstimationMethod
 import com.kinetix.correlation.module
-import com.kinetix.correlation.persistence.CorrelationMatrixRepository
+import com.kinetix.correlation.persistence.DatabaseTestSetup
+import com.kinetix.correlation.persistence.ExposedCorrelationMatrixRepository
 import com.kinetix.correlation.service.CorrelationIngestionService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -11,7 +12,6 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
-import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -21,6 +21,7 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.Instant
 
 /**
@@ -32,10 +33,17 @@ import java.time.Instant
  */
 class CorrelationServiceAcceptanceTest : FunSpec({
 
-    val correlationRepo = mockk<CorrelationMatrixRepository>()
-    val ingestionService = mockk<CorrelationIngestionService>()
+    val db = DatabaseTestSetup.startAndMigrate()
+    val correlationRepo = ExposedCorrelationMatrixRepository(db)
+    val ingestionService = mockk<CorrelationIngestionService>(relaxed = true)
 
     val AS_OF = Instant.parse("2026-01-15T12:00:00Z")
+
+    beforeEach {
+        newSuspendedTransaction(db = db) {
+            exec("TRUNCATE TABLE correlation_matrices RESTART IDENTITY CASCADE")
+        }
+    }
 
     test("correlation matrix response shape matches CorrelationMatrixDto consumed by risk-orchestrator") {
         val matrix = CorrelationMatrix(
@@ -45,7 +53,7 @@ class CorrelationServiceAcceptanceTest : FunSpec({
             asOfDate = AS_OF,
             method = EstimationMethod.HISTORICAL,
         )
-        coEvery { correlationRepo.findLatest(listOf("AAPL", "MSFT", "GOOGL"), 252) } returns matrix
+        correlationRepo.save(matrix)
 
         testApplication {
             application { module(correlationRepo, ingestionService) }
@@ -56,11 +64,12 @@ class CorrelationServiceAcceptanceTest : FunSpec({
             val body: JsonObject = Json.parseToJsonElement(response.bodyAsText()).jsonObject
 
             // Fields the orchestrator's CorrelationMatrixDto requires
+            // Labels are stored sorted alphabetically by the repository
             val labels: JsonArray = body["labels"]!!.jsonArray
             labels.size shouldBe 3
             labels[0].jsonPrimitive.content shouldBe "AAPL"
-            labels[1].jsonPrimitive.content shouldBe "MSFT"
-            labels[2].jsonPrimitive.content shouldBe "GOOGL"
+            labels[1].jsonPrimitive.content shouldBe "GOOGL"
+            labels[2].jsonPrimitive.content shouldBe "MSFT"
 
             val values: JsonArray = body["values"]!!.jsonArray
             values.size shouldBe 9
@@ -81,7 +90,7 @@ class CorrelationServiceAcceptanceTest : FunSpec({
             asOfDate = AS_OF,
             method = EstimationMethod.SHRINKAGE,
         )
-        coEvery { correlationRepo.findLatest(listOf("AAPL", "MSFT"), 60) } returns matrix
+        correlationRepo.save(matrix)
 
         testApplication {
             application { module(correlationRepo, ingestionService) }
@@ -100,8 +109,6 @@ class CorrelationServiceAcceptanceTest : FunSpec({
     }
 
     test("correlation matrix endpoint returns 404 when no matrix exists for the given labels and window") {
-        coEvery { correlationRepo.findLatest(listOf("UNKNOWN1", "UNKNOWN2"), 252) } returns null
-
         testApplication {
             application { module(correlationRepo, ingestionService) }
 
