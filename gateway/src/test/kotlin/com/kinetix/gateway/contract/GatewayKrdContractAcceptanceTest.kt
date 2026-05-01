@@ -1,135 +1,160 @@
 package com.kinetix.gateway.contract
 
-import com.kinetix.gateway.client.RiskServiceClient
+import com.kinetix.gateway.client.HttpRiskServiceClient
 import com.kinetix.gateway.module
-import io.kotest.core.spec.style.BehaviorSpec
+import com.kinetix.gateway.testing.BackendStubServer
+import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.response.respond
+import io.ktor.server.routing.get
 import io.ktor.server.testing.*
-import io.mockk.*
 import kotlinx.serialization.json.*
 
-class GatewayKrdContractAcceptanceTest : BehaviorSpec({
+class GatewayKrdContractAcceptanceTest : FunSpec({
 
-    val riskClient = mockk<RiskServiceClient>()
+    val krdResponseJson = """
+        {
+          "bookId":"BOOK-1",
+          "instruments":[
+            {
+              "instrumentId":"UST-10Y",
+              "totalDv01":"854.02",
+              "krdBuckets":[
+                {"tenorLabel":"2Y","tenorDays":730,"dv01":"45.12"},
+                {"tenorLabel":"5Y","tenorDays":1825,"dv01":"120.34"},
+                {"tenorLabel":"10Y","tenorDays":3650,"dv01":"680.55"},
+                {"tenorLabel":"30Y","tenorDays":10950,"dv01":"8.01"}
+              ]
+            }
+          ],
+          "aggregated":[
+            {"tenorLabel":"2Y","tenorDays":730,"dv01":"45.12"},
+            {"tenorLabel":"10Y","tenorDays":3650,"dv01":"680.55"}
+          ]
+        }
+    """.trimIndent()
 
-    beforeEach { clearMocks(riskClient) }
-
-    val sampleResponse = buildJsonObject {
-        put("bookId", "BOOK-1")
-        putJsonArray("instruments") {
-            addJsonObject {
-                put("instrumentId", "UST-10Y")
-                put("totalDv01", "854.02")
-                putJsonArray("krdBuckets") {
-                    addJsonObject {
-                        put("tenorLabel", "2Y")
-                        put("tenorDays", 730)
-                        put("dv01", "45.12")
-                    }
-                    addJsonObject {
-                        put("tenorLabel", "5Y")
-                        put("tenorDays", 1825)
-                        put("dv01", "120.34")
-                    }
-                    addJsonObject {
-                        put("tenorLabel", "10Y")
-                        put("tenorDays", 3650)
-                        put("dv01", "680.55")
-                    }
-                    addJsonObject {
-                        put("tenorLabel", "30Y")
-                        put("tenorDays", 10950)
-                        put("dv01", "8.01")
-                    }
-                }
+    test("gateway routing to KRD endpoint — GET /api/v1/risk/krd/{bookId} returns 200") {
+        val backend = BackendStubServer {
+            get("/api/v1/risk/krd/BOOK-1") {
+                call.respond(Json.parseToJsonElement(krdResponseJson).jsonObject)
             }
         }
-        putJsonArray("aggregated") {
-            addJsonObject {
-                put("tenorLabel", "2Y")
-                put("tenorDays", 730)
-                put("dv01", "45.12")
+        val httpClient = HttpClient(CIO) { install(ClientContentNegotiation) { json() } }
+        try {
+            val riskClient = HttpRiskServiceClient(httpClient, backend.baseUrl)
+
+            testApplication {
+                application { module(riskClient) }
+                val response = client.get("/api/v1/risk/krd/BOOK-1")
+
+                response.status shouldBe HttpStatusCode.OK
+
+                val recorded = backend.recordedRequests.single { it.path == "/api/v1/risk/krd/BOOK-1" }
+                recorded.method shouldBe "GET"
             }
-            addJsonObject {
-                put("tenorLabel", "10Y")
-                put("tenorDays", 3650)
-                put("dv01", "680.55")
-            }
+        } finally {
+            httpClient.close()
+            backend.close()
         }
     }
 
-    given("gateway routing to KRD endpoint") {
-
-        `when`("GET /api/v1/risk/krd/{bookId} with a book that has fixed-income positions") {
-            then("returns 200 with KRD result") {
-                coEvery { riskClient.getKeyRateDurations("BOOK-1") } returns sampleResponse
-
-                testApplication {
-                    application { module(riskClient) }
-                    val response = client.get("/api/v1/risk/krd/BOOK-1")
-
-                    response.status shouldBe HttpStatusCode.OK
-                }
+    test("gateway routing to KRD endpoint — GET /api/v1/risk/krd/{bookId} response body contains bookId matching requested book") {
+        val backend = BackendStubServer {
+            get("/api/v1/risk/krd/BOOK-1") {
+                call.respond(Json.parseToJsonElement(krdResponseJson).jsonObject)
             }
         }
+        val httpClient = HttpClient(CIO) { install(ClientContentNegotiation) { json() } }
+        try {
+            val riskClient = HttpRiskServiceClient(httpClient, backend.baseUrl)
 
-        `when`("GET /api/v1/risk/krd/{bookId} response body contains bookId") {
-            then("bookId matches requested book") {
-                coEvery { riskClient.getKeyRateDurations("BOOK-1") } returns sampleResponse
+            testApplication {
+                application { module(riskClient) }
+                val response = client.get("/api/v1/risk/krd/BOOK-1")
+                val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
 
-                testApplication {
-                    application { module(riskClient) }
-                    val response = client.get("/api/v1/risk/krd/BOOK-1")
-                    val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+                body["bookId"]?.jsonPrimitive?.content shouldBe "BOOK-1"
+            }
+        } finally {
+            httpClient.close()
+            backend.close()
+        }
+    }
 
-                    body["bookId"]?.jsonPrimitive?.content shouldBe "BOOK-1"
-                }
+    test("gateway routing to KRD endpoint — GET /api/v1/risk/krd/{bookId} response body contains instruments array") {
+        val backend = BackendStubServer {
+            get("/api/v1/risk/krd/BOOK-1") {
+                call.respond(Json.parseToJsonElement(krdResponseJson).jsonObject)
             }
         }
+        val httpClient = HttpClient(CIO) { install(ClientContentNegotiation) { json() } }
+        try {
+            val riskClient = HttpRiskServiceClient(httpClient, backend.baseUrl)
 
-        `when`("GET /api/v1/risk/krd/{bookId} response body contains instruments") {
-            then("instruments array is present") {
-                coEvery { riskClient.getKeyRateDurations("BOOK-1") } returns sampleResponse
+            testApplication {
+                application { module(riskClient) }
+                val response = client.get("/api/v1/risk/krd/BOOK-1")
+                val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
 
-                testApplication {
-                    application { module(riskClient) }
-                    val response = client.get("/api/v1/risk/krd/BOOK-1")
-                    val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+                body.containsKey("instruments") shouldBe true
+                body["instruments"]!!.jsonArray.size shouldBe 1
+            }
+        } finally {
+            httpClient.close()
+            backend.close()
+        }
+    }
 
-                    body.containsKey("instruments") shouldBe true
-                    body["instruments"]!!.jsonArray.size shouldBe 1
-                }
+    test("gateway routing to KRD endpoint — GET /api/v1/risk/krd/{bookId} response body contains aggregated buckets") {
+        val backend = BackendStubServer {
+            get("/api/v1/risk/krd/BOOK-1") {
+                call.respond(Json.parseToJsonElement(krdResponseJson).jsonObject)
             }
         }
+        val httpClient = HttpClient(CIO) { install(ClientContentNegotiation) { json() } }
+        try {
+            val riskClient = HttpRiskServiceClient(httpClient, backend.baseUrl)
 
-        `when`("GET /api/v1/risk/krd/{bookId} response body contains aggregated buckets") {
-            then("aggregated array is present") {
-                coEvery { riskClient.getKeyRateDurations("BOOK-1") } returns sampleResponse
+            testApplication {
+                application { module(riskClient) }
+                val response = client.get("/api/v1/risk/krd/BOOK-1")
+                val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
 
-                testApplication {
-                    application { module(riskClient) }
-                    val response = client.get("/api/v1/risk/krd/BOOK-1")
-                    val body = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+                body.containsKey("aggregated") shouldBe true
+            }
+        } finally {
+            httpClient.close()
+            backend.close()
+        }
+    }
 
-                    body.containsKey("aggregated") shouldBe true
-                }
+    test("gateway routing to KRD endpoint — GET /api/v1/risk/krd/{bookId} when upstream returns null — returns 404") {
+        val backend = BackendStubServer {
+            get("/api/v1/risk/krd/UNKNOWN") {
+                call.respond(HttpStatusCode.NotFound)
             }
         }
+        val httpClient = HttpClient(CIO) { install(ClientContentNegotiation) { json() } }
+        try {
+            val riskClient = HttpRiskServiceClient(httpClient, backend.baseUrl)
 
-        `when`("GET /api/v1/risk/krd/{bookId} when upstream returns null") {
-            then("returns 404") {
-                coEvery { riskClient.getKeyRateDurations("UNKNOWN") } returns null
+            testApplication {
+                application { module(riskClient) }
+                val response = client.get("/api/v1/risk/krd/UNKNOWN")
 
-                testApplication {
-                    application { module(riskClient) }
-                    val response = client.get("/api/v1/risk/krd/UNKNOWN")
-
-                    response.status shouldBe HttpStatusCode.NotFound
-                }
+                response.status shouldBe HttpStatusCode.NotFound
             }
+        } finally {
+            httpClient.close()
+            backend.close()
         }
     }
 })
